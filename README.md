@@ -405,10 +405,10 @@ Reminder that the `config.cluster.id` parameter from [managed Kafka cluster prop
 
 #### AKHQ
 
-[AKHQ](https://github.com/tchiotludo/akhq) can be integrated with Ns4Kafka to provide access to resources within your
-namespace during the authentication process.
+[AKHQ](https://github.com/tchiotludo/akhq) can be integrated with Ns4Kafka to provide access to resources within your namespace.
+The link between AKHQ and Ns4Kafka namespaces is established using LDAP groups and LDAP authentication in AKHQ.
 
-To enable this integration, follow these steps:
+To enable this integration:
 
 1. Configure LDAP authentication in AKHQ.
 2. Add the Ns4Kafka claim endpoint to AKHQ's configuration:
@@ -421,32 +421,44 @@ akhq:
       url: https://ns4kafka/akhq-claim/v3
 ```
 
-For AKHQ versions from v0.20 to v0.24, use the `/akhq-claim/v2` endpoint.
-For AKHQ versions prior to v0.20, use the `/akhq-claim/v1` endpoint.
+For AKHQ versions:
+- `v0.25` and later, use the `/akhq-claim/v3` endpoint.
+- `v0.20` to `v0.24`, use the `/akhq-claim/v2` endpoint.
+- `v0.20` and earlier, use the `/akhq-claim/v1` endpoint.
 
 3. In your Ns4Kafka configuration, specify the following settings for AKHQ:
 
-* For AKHQ versions v0.25 and later
+* For AKHQ versions `v0.25` and later:
 
 ```yaml
 ns4kafka:
   akhq:
     admin-group: LDAP-ADMIN-GROUP
+    admin-roles:
+      TOPIC: topic-admin
+      CONNECT: connect-admin
+      SCHEMA: registry-admin
+      GROUP: group-read
+      CONNECT_CLUSTER: connect-cluster-read
+    group-label: "support-group"
+    group-delimiter: ","
     roles:
       TOPIC: topic-read
       CONNECT: connect-rw
       SCHEMA: registry-read
       GROUP: group-read
       CONNECT_CLUSTER: connect-cluster-read
-    admin-roles:
-      TOPIC: topic-admin
-      CONNECT: connect-admin
-      SCHEMA: registry-admin
-      GROUP: group-read
-      CONNECT_CLUSTER: connect-cluster-read 
 ```
 
-* For AKHQ versions prior to v0.25
+| Property        | Type   | Required | Description                                                                                                                  |
+|-----------------|--------|----------|------------------------------------------------------------------------------------------------------------------------------|
+| admin-group     | string | yes      | Administrator LDAP group. Users in this group will be granted admin privileges in AKHQ.                                      |
+| admin-roles     | string | yes      | Administrator privileges granted to AKHQ administrators.                                                                     |
+| group-label     | string | yes      | Name of the label in `metadata.labels` of namespace resources that contains the LDAP groups used during AKHQ authentication. |
+| group-delimiter | string | no       | Delimiter for separating multiple LDAP groups (defaults to `,`).                                                             |
+| roles           | string | yes      | Privileges granted to AKHQ users.                                                                                            |
+
+* For AKHQ versions prior to `v0.25`:
 
 ```yaml
 ns4kafka:
@@ -470,9 +482,8 @@ ns4kafka:
       - connect/state/update
 ```
 
-If the admin group is set to "LDAP-ADMIN-GROUP", users belonging to this LDAP group will be granted admin privileges.
-
-4. In your namespace configuration, define an LDAP group:
+4. In your namespace configuration, define an LDAP group in `metadata.labels` with a label name that matches the value defined in the
+   `ns4kafka.akhq.group-label` property:
 
 ```yaml
 apiVersion: v1
@@ -485,8 +496,7 @@ metadata:
     support-group: NAMESPACE-LDAP-GROUP
 ```
 
-Once the configuration is in place, after successful authentication in AKHQ, users belonging to
-the `NAMESPACE-LDAP-GROUP` will be able to access the resources within the `myNamespace` namespace.
+Once the configuration is in place, after successful authentication in AKHQ, users belonging to the `NAMESPACE-LDAP-GROUP` will be able to access resources within the `myNamespace` namespace.
 
 ### Technical
 
