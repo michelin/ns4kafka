@@ -311,29 +311,39 @@ public class ConnectorController extends NamespacedResourceController {
      * Import unsynchronized connectors.
      *
      * @param namespace The namespace
+     * @param name The name parameter
      * @param dryrun Is dry run mode or not?
      * @return The list of imported connectors
      */
-    @Post("/_/import{?dryrun}")
-    public Flux<Connector> importResources(String namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
+    @Post("/_/import")
+    public Flux<Connector> importResources(
+            String namespace,
+            @QueryValue(defaultValue = "*") String name,
+            @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
-        return connectorService.listUnsynchronizedConnectors(ns).map(unsynchronizedConnector -> {
-            unsynchronizedConnector.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
-            unsynchronizedConnector.getMetadata().setCluster(ns.getMetadata().getCluster());
-            unsynchronizedConnector.getMetadata().setNamespace(ns.getMetadata().getName());
+        return connectorService
+                .listUnsynchronizedConnectorsByWildcardName(ns, name)
+                .map(unsynchronizedConnector -> {
+                    unsynchronizedConnector.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
+                    unsynchronizedConnector
+                            .getMetadata()
+                            .setCluster(ns.getMetadata().getCluster());
+                    unsynchronizedConnector
+                            .getMetadata()
+                            .setNamespace(ns.getMetadata().getName());
 
-            if (dryrun) {
-                return unsynchronizedConnector;
-            }
+                    if (dryrun) {
+                        return unsynchronizedConnector;
+                    }
 
-            sendEventLog(
-                    unsynchronizedConnector,
-                    ApplyStatus.CREATED,
-                    null,
-                    unsynchronizedConnector.getSpec(),
-                    EMPTY_STRING);
+                    sendEventLog(
+                            unsynchronizedConnector,
+                            ApplyStatus.CREATED,
+                            null,
+                            unsynchronizedConnector.getSpec(),
+                            EMPTY_STRING);
 
-            return connectorService.createOrUpdate(unsynchronizedConnector);
-        });
+                    return connectorService.createOrUpdate(unsynchronizedConnector);
+                });
     }
 }
