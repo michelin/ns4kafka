@@ -51,6 +51,8 @@ import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -883,46 +885,6 @@ class TopicServiceTest {
     }
 
     @Test
-    void shouldNotValidateUpdateTopicCleanupPolicyDeleteToCompactOnCloud() {
-        Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
-                .build();
-
-        Topic existing = Topic.builder()
-                .metadata(Metadata.builder().name("test.topic").build())
-                .spec(Topic.TopicSpec.builder()
-                        .replicationFactor(3)
-                        .partitions(3)
-                        .configs(
-                                Map.of("cleanup.policy", "delete", "min.insync.replicas", "2", "retention.ms", "60000"))
-                        .build())
-                .build();
-
-        Topic topic = Topic.builder()
-                .metadata(Metadata.builder().name("test.topic").build())
-                .spec(Topic.TopicSpec.builder()
-                        .replicationFactor(3)
-                        .partitions(3)
-                        .configs(Map.of(
-                                "cleanup.policy", "compact", "min.insync.replicas", "2", "retention.ms", "60000"))
-                        .build())
-                .build();
-
-        when(managedClusterProperties.stream())
-                .thenReturn(Stream.of(
-                        new ManagedClusterProperties("local", ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD)));
-
-        List<String> actual = topicService.validateTopicUpdate(ns, existing, topic);
-
-        assertEquals(1, actual.size());
-        assertLinesMatch(
-                List.of("Invalid value \"compact\" for field \"cleanup.policy\": altering topic cleanup policy "
-                        + "from delete to compact is not currently supported in Confluent Cloud. "
-                        + "Please create a new topic with compact policy instead."),
-                actual);
-    }
-
-    @Test
     void shouldValidateUpdateTopicWhenEmptyCleanUpPolicy() {
         Namespace ns = Namespace.builder()
                 .metadata(Metadata.builder().name("namespace").cluster("local").build())
@@ -955,8 +917,24 @@ class TopicServiceTest {
         assertEquals(0, actual.size());
     }
 
-    @Test
-    void shouldValidateUpdateTopicCleanupPolicyCompactToDeleteOnCloud() {
+    @ParameterizedTest
+    @CsvSource(
+            value = {
+                "compact;delete;CONFLUENT_CLOUD",
+                "delete;compact;CONFLUENT_CLOUD",
+                "compact;delete,compact;CONFLUENT_CLOUD",
+                "delete,compact;compact;CONFLUENT_CLOUD",
+                "delete,compact;delete;CONFLUENT_CLOUD",
+                "compact;delete;SELF_MANAGED",
+                "delete;compact;SELF_MANAGED",
+                "compact;delete,compact;SELF_MANAGED",
+                "delete;delete,compact;SELF_MANAGED",
+                "delete,compact;compact;SELF_MANAGED",
+                "delete,compact;delete;SELF_MANAGED"
+            },
+            delimiterString = ";")
+    void shouldValidateUpdateTopicCleanUpPolicy(
+            String oldCleanUpPolicy, String newCleanUpPolicy, ManagedClusterProperties.KafkaProvider provider) {
         Namespace ns = Namespace.builder()
                 .metadata(Metadata.builder().name("namespace").cluster("local").build())
                 .build();
@@ -967,7 +945,12 @@ class TopicServiceTest {
                         .replicationFactor(3)
                         .partitions(3)
                         .configs(Map.of(
-                                "cleanup.policy", "compact", "min.insync.replicas", "2", "retention.ms", "60000"))
+                                "cleanup.policy",
+                                oldCleanUpPolicy,
+                                "min.insync.replicas",
+                                "2",
+                                "retention.ms",
+                                "60000"))
                         .build())
                 .build();
 
@@ -976,8 +959,59 @@ class TopicServiceTest {
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(3)
                         .partitions(3)
-                        .configs(
-                                Map.of("cleanup.policy", "delete", "min.insync.replicas", "2", "retention.ms", "60000"))
+                        .configs(Map.of(
+                                "cleanup.policy",
+                                newCleanUpPolicy,
+                                "min.insync.replicas",
+                                "2",
+                                "retention.ms",
+                                "60000"))
+                        .build())
+                .build();
+
+        when(managedClusterProperties.stream()).thenReturn(Stream.of(new ManagedClusterProperties("local", provider)));
+
+        List<String> actual = topicService.validateTopicUpdate(ns, existing, topic);
+
+        assertEquals(0, actual.size());
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+            value = {"delete;delete,compact;CONFLUENT_CLOUD", "delete;compact,delete;CONFLUENT_CLOUD"},
+            delimiterString = ";")
+    void shouldNotValidateUpdateTopicCleanUpPolicy(String oldCleanUpPolicy, String newCleanUpPolicy) {
+        Namespace ns = Namespace.builder()
+                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .build();
+
+        Topic existing = Topic.builder()
+                .metadata(Metadata.builder().name("test.topic").build())
+                .spec(Topic.TopicSpec.builder()
+                        .replicationFactor(3)
+                        .partitions(3)
+                        .configs(Map.of(
+                                "cleanup.policy",
+                                oldCleanUpPolicy,
+                                "min.insync.replicas",
+                                "2",
+                                "retention.ms",
+                                "60000"))
+                        .build())
+                .build();
+
+        Topic topic = Topic.builder()
+                .metadata(Metadata.builder().name("test.topic").build())
+                .spec(Topic.TopicSpec.builder()
+                        .replicationFactor(3)
+                        .partitions(3)
+                        .configs(Map.of(
+                                "cleanup.policy",
+                                newCleanUpPolicy,
+                                "min.insync.replicas",
+                                "2",
+                                "retention.ms",
+                                "60000"))
                         .build())
                 .build();
 
@@ -987,42 +1021,13 @@ class TopicServiceTest {
 
         List<String> actual = topicService.validateTopicUpdate(ns, existing, topic);
 
-        assertEquals(0, actual.size());
-    }
-
-    @Test
-    void shouldValidateUpdateTopicCleanupPolicyDeleteToCompactOnSelfManaged() {
-        Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
-                .build();
-
-        Topic existing = Topic.builder()
-                .metadata(Metadata.builder().name("test.topic").build())
-                .spec(Topic.TopicSpec.builder()
-                        .replicationFactor(3)
-                        .partitions(3)
-                        .configs(
-                                Map.of("cleanup.policy", "delete", "min.insync.replicas", "2", "retention.ms", "60000"))
-                        .build())
-                .build();
-
-        Topic topic = Topic.builder()
-                .metadata(Metadata.builder().name("test.topic").build())
-                .spec(Topic.TopicSpec.builder()
-                        .replicationFactor(3)
-                        .partitions(3)
-                        .configs(Map.of(
-                                "cleanup.policy", "compact", "min.insync.replicas", "2", "retention.ms", "60000"))
-                        .build())
-                .build();
-
-        when(managedClusterProperties.stream())
-                .thenReturn(Stream.of(
-                        new ManagedClusterProperties("local", ManagedClusterProperties.KafkaProvider.SELF_MANAGED)));
-
-        List<String> actual = topicService.validateTopicUpdate(ns, existing, topic);
-
-        assertEquals(0, actual.size());
+        assertEquals(1, actual.size());
+        assertLinesMatch(
+                List.of("Invalid value \"" + newCleanUpPolicy
+                        + "\" for field \"cleanup.policy\": altering topic configuration "
+                        + "from \"delete\" to \"compact\" and \"delete\" is not currently supported in Confluent Cloud. "
+                        + "Please create a new topic instead."),
+                actual);
     }
 
     @Test

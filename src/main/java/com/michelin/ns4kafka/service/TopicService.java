@@ -19,7 +19,7 @@
 package com.michelin.ns4kafka.service;
 
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidImmutableValue;
-import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidTopicCleanupPolicy;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidTopicCleanUpPolicy;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidTopicDeleteRecords;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidTopicTags;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidTopicTagsFormat;
@@ -235,8 +235,9 @@ public class TopicService {
 
         if (isConfluentCloud
                 && existingCleanUpPolicy.equals(CLEANUP_POLICY_DELETE)
-                && newCleanUpPolicy.equals(CLEANUP_POLICY_COMPACT)) {
-            validationErrors.add(invalidTopicCleanupPolicy(newCleanUpPolicy));
+                && (newCleanUpPolicy.equals(CLEANUP_POLICY_DELETE + "," + CLEANUP_POLICY_COMPACT)
+                        || newCleanUpPolicy.equals(CLEANUP_POLICY_COMPACT + "," + CLEANUP_POLICY_DELETE))) {
+            validationErrors.add(invalidTopicCleanUpPolicy(newCleanUpPolicy));
         }
 
         return validationErrors;

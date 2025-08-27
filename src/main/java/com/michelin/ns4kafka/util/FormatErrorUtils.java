@@ -760,16 +760,16 @@ public class FormatErrorUtils {
     /**
      * Invalid topic cleanup policy.
      *
-     * @param invalidCleanupPolicyValue the invalid cleanup policy value
+     * @param invalidCleanUpPolicyValue the invalid cleanup policy value
      * @return the error message
      */
-    public static String invalidTopicCleanupPolicy(String invalidCleanupPolicyValue) {
+    public static String invalidTopicCleanUpPolicy(String invalidCleanUpPolicyValue) {
         return String.format(
                 INVALID_FIELD,
-                invalidCleanupPolicyValue,
+                invalidCleanUpPolicyValue,
                 CLEANUP_POLICY_CONFIG,
-                "altering topic cleanup policy from delete to compact is not currently supported in Confluent Cloud. "
-                        + "Please create a new topic with compact policy instead");
+                "altering topic configuration from \"delete\" to \"compact\" and \"delete\" is not currently supported in Confluent Cloud. "
+                        + "Please create a new topic instead");
     }
 
     /**
