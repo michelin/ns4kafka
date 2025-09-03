@@ -156,7 +156,6 @@ public class SchemaService {
                                             subjectOptional.schemaType() == null
                                                     ? Schema.SchemaType.AVRO
                                                     : Schema.SchemaType.valueOf(subjectOptional.schemaType()))
-                                    .references(subjectOptional.references())
                                     .build())
                             .build();
                 });
