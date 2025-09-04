@@ -49,6 +49,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -79,6 +80,7 @@ public class TopicAsyncExecutor {
     public static final String CLUSTER_ID = "cluster.id";
     public static final String TOPIC_ENTITY_TYPE = "kafka_topic";
     private final ConcurrentHashMap<String, Topic> brokerTopics = new ConcurrentHashMap<>();
+    private final CopyOnWriteArrayList<Topic> ns4KafkaTopics = new CopyOnWriteArrayList<>();
 
     private final ManagedClusterProperties managedClusterProperties;
     private final NamespaceService namespaceService;
@@ -102,19 +104,21 @@ public class TopicAsyncExecutor {
             brokerTopics.clear();
             brokerTopics.putAll(freshBrokerTopics);
 
-            List<Topic> ns4kafkaTopics = topicRepository.findAllForCluster(managedClusterProperties.getName());
+            List<Topic> freshNs4KafkaTopics = topicRepository.findAllForCluster(managedClusterProperties.getName());
+            ns4KafkaTopics.clear();
+            ns4KafkaTopics.addAll(freshNs4KafkaTopics);
 
-            List<Topic> createTopics = ns4kafkaTopics.stream()
+            List<Topic> createTopics = ns4KafkaTopics.stream()
                     .filter(topic ->
                             !brokerTopics.containsKey(topic.getMetadata().getName()))
                     .toList();
 
-            List<Topic> checkTopics = ns4kafkaTopics.stream()
+            List<Topic> checkTopics = ns4KafkaTopics.stream()
                     .filter(topic ->
                             brokerTopics.containsKey(topic.getMetadata().getName()))
                     .toList();
 
-            Set<String> ns4KafkaTopicNames = ns4kafkaTopics.stream()
+            Set<String> ns4KafkaTopicNames = ns4KafkaTopics.stream()
                     .map(topic -> topic.getMetadata().getName())
                     .collect(Collectors.toSet());
 
@@ -325,7 +329,10 @@ public class TopicAsyncExecutor {
         // re-imported
         // This can happen if a changelog or repartition topic is deleted after the broker topics are listed
         // but before the Ns4Kafka topics are listed during synchronization
-        topicsNames.forEach(brokerTopics.keySet()::remove);
+        topicsNames.forEach(topicName -> {
+            brokerTopics.remove(topicName);
+            ns4KafkaTopics.removeIf(topic -> topic.getMetadata().getName().equals(topicName));
+        });
 
         log.info(
                 "Success deleting topics {} on cluster {}",
