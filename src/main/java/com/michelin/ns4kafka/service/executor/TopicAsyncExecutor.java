@@ -48,6 +48,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -77,6 +79,8 @@ import reactor.core.publisher.Mono;
 public class TopicAsyncExecutor {
     public static final String CLUSTER_ID = "cluster.id";
     public static final String TOPIC_ENTITY_TYPE = "kafka_topic";
+    private final ConcurrentHashMap<String, Topic> brokerTopics = new ConcurrentHashMap<>();
+    private final CopyOnWriteArrayList<Topic> ns4KafkaTopics = new CopyOnWriteArrayList<>();
 
     private final ManagedClusterProperties managedClusterProperties;
     private final NamespaceService namespaceService;
@@ -96,20 +100,25 @@ public class TopicAsyncExecutor {
         log.debug("Starting topic collection for cluster {}", managedClusterProperties.getName());
 
         try {
-            Map<String, Topic> brokerTopics = collectBrokerTopics();
-            List<Topic> ns4kafkaTopics = topicRepository.findAllForCluster(managedClusterProperties.getName());
+            Map<String, Topic> freshBrokerTopics = collectBrokerTopics();
+            brokerTopics.clear();
+            brokerTopics.putAll(freshBrokerTopics);
 
-            List<Topic> createTopics = ns4kafkaTopics.stream()
+            List<Topic> freshNs4KafkaTopics = topicRepository.findAllForCluster(managedClusterProperties.getName());
+            ns4KafkaTopics.clear();
+            ns4KafkaTopics.addAll(freshNs4KafkaTopics);
+
+            List<Topic> createTopics = ns4KafkaTopics.stream()
                     .filter(topic ->
                             !brokerTopics.containsKey(topic.getMetadata().getName()))
                     .toList();
 
-            List<Topic> checkTopics = ns4kafkaTopics.stream()
+            List<Topic> checkTopics = ns4KafkaTopics.stream()
                     .filter(topic ->
                             brokerTopics.containsKey(topic.getMetadata().getName()))
                     .toList();
 
-            Set<String> ns4KafkaTopicNames = ns4kafkaTopics.stream()
+            Set<String> ns4KafkaTopicNames = ns4KafkaTopics.stream()
                     .map(topic -> topic.getMetadata().getName())
                     .collect(Collectors.toSet());
 
@@ -212,7 +221,7 @@ public class TopicAsyncExecutor {
                     Optional<Namespace> namespace = namespaceService.findByTopicName(
                             namespaces, topic.getMetadata().getName());
                     if (namespace.isEmpty()) {
-                        log.debug(
+                        log.trace(
                                 "No namespace found for topic {}. Skipping import.",
                                 topic.getMetadata().getName());
                         return null;
@@ -315,6 +324,15 @@ public class TopicAsyncExecutor {
                 .deleteTopics(topicsNames)
                 .all()
                 .get(managedClusterProperties.getTimeout().getTopic().getDelete(), TimeUnit.MILLISECONDS);
+
+        // Immediately delete topics from the local cache to prevent Kafka Streams internal topics from being
+        // re-imported
+        // This can happen if a changelog or repartition topic is deleted after the broker topics are listed
+        // but before the Ns4Kafka topics are listed during synchronization
+        topicsNames.forEach(topicName -> {
+            brokerTopics.remove(topicName);
+            ns4KafkaTopics.removeIf(topic -> topic.getMetadata().getName().equals(topicName));
+        });
 
         log.info(
                 "Success deleting topics {} on cluster {}",
