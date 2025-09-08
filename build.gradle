@@ -24,7 +24,7 @@ dependencies {
     annotationProcessor("io.micronaut.security:micronaut-security-annotations")
     annotationProcessor("io.micronaut.validation:micronaut-validation-processor")
 
-    implementation("io.micronaut:micronaut-http-client:4.9.10")
+    implementation("io.micronaut:micronaut-http-client:4.9.11")
     implementation("io.micronaut:micronaut-jackson-databind")
     implementation("io.micronaut.kafka:micronaut-kafka")
     implementation("io.micronaut:micronaut-management")
