@@ -89,7 +89,7 @@ class AkhqClaimProviderControllerV3Test {
                 .build();
 
         AccessControlEntry ace1Ns1Cluster1 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().cluster("cluster1").build())
+                .metadata(Metadata.builder().name("acl").cluster("cluster1").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -132,7 +132,7 @@ class AkhqClaimProviderControllerV3Test {
                 .build();
 
         AccessControlEntry ace1Ns1Cluster1 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().cluster("cluster1").build())
+                .metadata(Metadata.builder().name("acl1").cluster("cluster1").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -141,7 +141,7 @@ class AkhqClaimProviderControllerV3Test {
                 .build();
 
         AccessControlEntry ace2Ns1Cluster1 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().cluster("cluster1").build())
+                .metadata(Metadata.builder().name("acl2").cluster("cluster1").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.GROUP)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -183,7 +183,7 @@ class AkhqClaimProviderControllerV3Test {
                 .build();
 
         AccessControlEntry ace1Ns1Cluster1 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().cluster("cluster1").build())
+                .metadata(Metadata.builder().name("acl").cluster("cluster1").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -226,7 +226,7 @@ class AkhqClaimProviderControllerV3Test {
                 .build();
 
         AccessControlEntry ace1Ns1Cluster1 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().cluster("cluster1").build())
+                .metadata(Metadata.builder().name("acl1").cluster("cluster1").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -295,15 +295,6 @@ class AkhqClaimProviderControllerV3Test {
                         .build())
                 .build();
 
-        AccessControlEntry ace1Ns1Cluster1 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().cluster("cluster1").build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .resource("project1_t.")
-                        .build())
-                .build();
-
         when(ns4KafkaProperties.getAkhq()).thenReturn(buildAkhqProperties());
         when(managedClusters.stream())
                 .thenReturn(
@@ -337,7 +328,7 @@ class AkhqClaimProviderControllerV3Test {
                 .build();
 
         AccessControlEntry ace1Ns1Cluster1 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().cluster("cluster1").build())
+                .metadata(Metadata.builder().name("acl").cluster("cluster1").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -353,7 +344,7 @@ class AkhqClaimProviderControllerV3Test {
         when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Ns1Cluster1));
 
         AccessControlEntry ace1Ns1Cluster2 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().cluster("cluster2").build())
+                .metadata(Metadata.builder().name("acl").cluster("cluster2").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -399,7 +390,7 @@ class AkhqClaimProviderControllerV3Test {
                 .build();
 
         AccessControlEntry ace1Ns1Cluster1 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().cluster("cluster1").build())
+                .metadata(Metadata.builder().name("acl").cluster("cluster1").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -415,7 +406,7 @@ class AkhqClaimProviderControllerV3Test {
         when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Ns1Cluster1));
 
         AccessControlEntry ace2Ns2Cluster1 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().cluster("cluster1").build())
+                .metadata(Metadata.builder().name("acl").cluster("cluster1").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -463,7 +454,7 @@ class AkhqClaimProviderControllerV3Test {
                 .build();
 
         AccessControlEntry ace1Cluster1 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().cluster("cluster1").build())
+                .metadata(Metadata.builder().name("acl").cluster("cluster1").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -479,7 +470,7 @@ class AkhqClaimProviderControllerV3Test {
         when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Cluster1));
 
         AccessControlEntry ace1Cluster2 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().cluster("cluster2").build())
+                .metadata(Metadata.builder().name("acl").cluster("cluster2").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -525,7 +516,7 @@ class AkhqClaimProviderControllerV3Test {
                 .build();
 
         AccessControlEntry ace1Ns1Cluster1 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().cluster("cluster1").build())
+                .metadata(Metadata.builder().name("acl").cluster("cluster1").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -541,7 +532,7 @@ class AkhqClaimProviderControllerV3Test {
         when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Ns1Cluster1));
 
         AccessControlEntry ace1Ns2Cluster2 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().cluster("cluster2").build())
+                .metadata(Metadata.builder().name("acl").cluster("cluster2").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -588,7 +579,10 @@ class AkhqClaimProviderControllerV3Test {
 
         List<AccessControlEntry> inputAcls = List.of(
                 AccessControlEntry.builder()
-                        .metadata(Metadata.builder().cluster("cluster1").build())
+                        .metadata(Metadata.builder()
+                                .name("acl1")
+                                .cluster("cluster1")
+                                .build())
                         .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
                                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -596,7 +590,10 @@ class AkhqClaimProviderControllerV3Test {
                                 .build())
                         .build(),
                 AccessControlEntry.builder()
-                        .metadata(Metadata.builder().cluster("cluster1").build())
+                        .metadata(Metadata.builder()
+                                .name("acl2")
+                                .cluster("cluster1")
+                                .build())
                         .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
                                 .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
@@ -604,7 +601,10 @@ class AkhqClaimProviderControllerV3Test {
                                 .build())
                         .build(),
                 AccessControlEntry.builder()
-                        .metadata(Metadata.builder().cluster("cluster1").build())
+                        .metadata(Metadata.builder()
+                                .name("acl3")
+                                .cluster("cluster1")
+                                .build())
                         .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                                 .resourceType(AccessControlEntry.ResourceType.CONNECT)
                                 .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
@@ -612,7 +612,10 @@ class AkhqClaimProviderControllerV3Test {
                                 .build())
                         .build(),
                 AccessControlEntry.builder()
-                        .metadata(Metadata.builder().cluster("cluster1").build())
+                        .metadata(Metadata.builder()
+                                .name("acl4")
+                                .cluster("cluster1")
+                                .build())
                         .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
                                 .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
@@ -620,7 +623,10 @@ class AkhqClaimProviderControllerV3Test {
                                 .build())
                         .build(),
                 AccessControlEntry.builder()
-                        .metadata(Metadata.builder().cluster("cluster1").build())
+                        .metadata(Metadata.builder()
+                                .name("acl5")
+                                .cluster("cluster1")
+                                .build())
                         .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
                                 .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
@@ -628,7 +634,10 @@ class AkhqClaimProviderControllerV3Test {
                                 .build())
                         .build(),
                 AccessControlEntry.builder()
-                        .metadata(Metadata.builder().cluster("cluster1").build())
+                        .metadata(Metadata.builder()
+                                .name("acl6")
+                                .cluster("cluster1")
+                                .build())
                         .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
                                 .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
@@ -636,7 +645,10 @@ class AkhqClaimProviderControllerV3Test {
                                 .build())
                         .build(),
                 AccessControlEntry.builder()
-                        .metadata(Metadata.builder().cluster("cluster1").build())
+                        .metadata(Metadata.builder()
+                                .name("acl8")
+                                .cluster("cluster1")
+                                .build())
                         .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                                 .resourceType(AccessControlEntry.ResourceType.CONNECT)
                                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -644,7 +656,10 @@ class AkhqClaimProviderControllerV3Test {
                                 .build())
                         .build(),
                 AccessControlEntry.builder()
-                        .metadata(Metadata.builder().cluster("cluster1").build())
+                        .metadata(Metadata.builder()
+                                .name("acl9")
+                                .cluster("cluster1")
+                                .build())
                         .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
                                 .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
@@ -652,7 +667,10 @@ class AkhqClaimProviderControllerV3Test {
                                 .build())
                         .build(),
                 AccessControlEntry.builder()
-                        .metadata(Metadata.builder().cluster("cluster1").build())
+                        .metadata(Metadata.builder()
+                                .name("acl10")
+                                .cluster("cluster1")
+                                .build())
                         .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
                                 .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
@@ -660,7 +678,10 @@ class AkhqClaimProviderControllerV3Test {
                                 .build())
                         .build(),
                 AccessControlEntry.builder()
-                        .metadata(Metadata.builder().cluster("cluster1").build())
+                        .metadata(Metadata.builder()
+                                .name("acl11")
+                                .cluster("cluster1")
+                                .build())
                         .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
                                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -719,7 +740,10 @@ class AkhqClaimProviderControllerV3Test {
 
         List<AccessControlEntry> inputAcls = List.of(
                 AccessControlEntry.builder()
-                        .metadata(Metadata.builder().cluster("cluster1").build())
+                        .metadata(Metadata.builder()
+                                .name("acl1")
+                                .cluster("cluster1")
+                                .build())
                         .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
                                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -727,7 +751,10 @@ class AkhqClaimProviderControllerV3Test {
                                 .build())
                         .build(),
                 AccessControlEntry.builder()
-                        .metadata(Metadata.builder().cluster("cluster2").build())
+                        .metadata(Metadata.builder()
+                                .name("acl2")
+                                .cluster("cluster2")
+                                .build())
                         .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
                                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -735,7 +762,10 @@ class AkhqClaimProviderControllerV3Test {
                                 .build())
                         .build(),
                 AccessControlEntry.builder()
-                        .metadata(Metadata.builder().cluster("cluster1").build())
+                        .metadata(Metadata.builder()
+                                .name("acl3")
+                                .cluster("cluster1")
+                                .build())
                         .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
                                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -743,7 +773,10 @@ class AkhqClaimProviderControllerV3Test {
                                 .build())
                         .build(),
                 AccessControlEntry.builder()
-                        .metadata(Metadata.builder().cluster("cluster1").build())
+                        .metadata(Metadata.builder()
+                                .name("acl4")
+                                .cluster("cluster1")
+                                .build())
                         .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
                                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -751,7 +784,10 @@ class AkhqClaimProviderControllerV3Test {
                                 .build())
                         .build(),
                 AccessControlEntry.builder()
-                        .metadata(Metadata.builder().cluster("cluster2").build())
+                        .metadata(Metadata.builder()
+                                .name("acl5")
+                                .cluster("cluster2")
+                                .build())
                         .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
                                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -759,7 +795,10 @@ class AkhqClaimProviderControllerV3Test {
                                 .build())
                         .build(),
                 AccessControlEntry.builder()
-                        .metadata(Metadata.builder().cluster("cluster3").build())
+                        .metadata(Metadata.builder()
+                                .name("acl6")
+                                .cluster("cluster3")
+                                .build())
                         .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                                 .resourceType(AccessControlEntry.ResourceType.TOPIC)
                                 .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -795,6 +834,86 @@ class AkhqClaimProviderControllerV3Test {
         assertEquals(List.of("^\\Qproject3.\\E.*$"), groups.get(2).getPatterns());
         assertEquals(
                 List.of("^cluster1$", "^cluster2$", "^cluster3$"), groups.get(2).getClusters());
+    }
+
+    @Test
+    void shouldGenerateClaimAndOptimizePatternsForSameResourceAcls() {
+        Namespace ns = Namespace.builder()
+                .metadata(Metadata.builder()
+                        .name("ns")
+                        .cluster("cluster")
+                        .labels(Map.of("support-group", "GP-PROJECT-SUPPORT"))
+                        .build())
+                .build();
+
+        List<AccessControlEntry> inputAcls = List.of(
+                // prefixed & literal ACLs on same resource, with literal ACL first in alphanumerical order
+                AccessControlEntry.builder()
+                        .metadata(Metadata.builder()
+                                .name("acl1")
+                                .cluster("cluster")
+                                .build())
+                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                                .resource("project1.")
+                                .build())
+                        .build(),
+                AccessControlEntry.builder()
+                        .metadata(Metadata.builder()
+                                .name("acl2")
+                                .cluster("cluster")
+                                .build())
+                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                                .resource("project1.")
+                                .build())
+                        .build(),
+                // prefixed & literal ACLs on same resource, with prefixed ACL first in alphanumerical order
+                AccessControlEntry.builder()
+                        .metadata(Metadata.builder()
+                                .name("aclA")
+                                .cluster("cluster")
+                                .build())
+                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                                .resource("project2.")
+                                .build())
+                        .build(),
+                AccessControlEntry.builder()
+                        .metadata(Metadata.builder()
+                                .name("aclB")
+                                .cluster("cluster")
+                                .build())
+                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                                .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                                .resource("project2.")
+                                .build())
+                        .build());
+
+        when(ns4KafkaProperties.getAkhq()).thenReturn(buildAkhqProperties());
+        when(managedClusters.stream())
+                .thenReturn(
+                        Stream.of(new ManagedClusterProperties("cluster"), new ManagedClusterProperties("cluster2")));
+        when(namespaceService.findAll()).thenReturn(List.of(ns));
+        when(aclService.findAllGrantedToNamespace(ns)).thenReturn(inputAcls);
+
+        AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
+                .groups(List.of("GP-PROJECT-SUPPORT"))
+                .build();
+        AkhqClaimProviderController.AkhqClaimResponseV3 actual = akhqClaimProviderController.generateClaimV3(request);
+
+        List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups =
+                actual.getGroups().get("group");
+        assertEquals(2, groups.size());
+        assertEquals("topic-read", groups.getFirst().getRole());
+        assertEquals(
+                List.of("^\\Qproject1.\\E.*$", "^\\Qproject2.\\E.*$"),
+                groups.getFirst().getPatterns());
+        assertEquals(List.of("^cluster$"), groups.getFirst().getClusters());
     }
 
     private Ns4KafkaProperties.AkhqProperties buildAkhqProperties() {
