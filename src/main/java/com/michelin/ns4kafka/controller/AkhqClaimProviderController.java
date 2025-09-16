@@ -184,7 +184,8 @@ public class AkhqClaimProviderController {
 
             String role =
                     ns4KafkaProperties.getAkhq().getRoles().get(acl.getSpec().getResourceType());
-            String key = role + "-" + acl.getSpec().getResource();
+            String key = role + "-" + acl.getSpec().getResource() + "-"
+                    + acl.getSpec().getResourcePatternType();
 
             // If we already have permissions for the role and cluster, add the pattern to the existing one
             if (bindings.containsKey(key)) {
@@ -257,7 +258,7 @@ public class AkhqClaimProviderController {
                         !aclOther.getMetadata()
                                         .getName()
                                         .equals(acl.getMetadata().getName())
-                                // Keep PREFIXED ACL on the same resource type and cluster
+                                // Check PREFIXED ACL on the same resource type and cluster
                                 && aclOther.getSpec()
                                         .getResourcePatternType()
                                         .equals(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -267,6 +268,7 @@ public class AkhqClaimProviderController {
                                 && aclOther.getMetadata()
                                         .getCluster()
                                         .equals(acl.getMetadata().getCluster())
+                                // Check the resource is included in another acl
                                 && acl.getSpec()
                                         .getResource()
                                         .startsWith(aclOther.getSpec().getResource())));
