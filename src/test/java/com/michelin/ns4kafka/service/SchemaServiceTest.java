@@ -18,8 +18,8 @@
  */
 package com.michelin.ns4kafka.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static com.michelin.ns4kafka.util.config.TopicConfig.VALUE_SUBJECT_NAME_STRATEGY;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.eq;
@@ -30,13 +30,15 @@ import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.schema.Schema;
+import com.michelin.ns4kafka.model.schema.SubjectNameStrategy;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityCheckResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import com.michelin.ns4kafka.validation.ResourceValidator;
+import com.michelin.ns4kafka.validation.TopicValidator;
+import com.michelin.ns4kafka.validation.ValidSubjectNameStrategies;
+import java.util.*;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -477,13 +479,44 @@ class SchemaServiceTest {
         when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(), "header-value", "1"))
                 .thenReturn(Mono.empty());
 
+        String errorSubjectNameStrategy = "Invalid value \"wrongSubjectName\" for field \"name\": "
+                + "value must follow TopicNameStrategy with format {topic}-{key|value}.";
+        String errorHeaderValueForReferences = "Invalid value \"header-value\" for field \"references\": "
+                + "subject header-value version 1 not found.";
         StepVerifier.create(schemaService.validateSchema(namespace, schema))
                 .consumeNextWith(errors -> {
-                    assertTrue(errors.contains("Invalid value \"wrongSubjectName\" for field \"name\": "
-                            + "value must end with -key or -value."));
-                    assertTrue(errors.contains("Invalid value \"header-value\" for field \"references\": "
-                            + "subject header-value version 1 not found."));
+                    assertTrue(errors.contains(errorSubjectNameStrategy));
+                    assertTrue(errors.contains(errorHeaderValueForReferences));
                 })
+                .verifyComplete();
+    }
+
+    @Test
+    void shouldValidateSchemaWithOnlyTopicRecordNameStrategy() {
+        TopicValidator topicValidator = TopicValidator.builder()
+                .validationConstraints(Map.of(
+                        VALUE_SUBJECT_NAME_STRATEGY,
+                        ResourceValidator.ValidString.optionalIn(SubjectNameStrategy.TOPIC_RECORD_NAME.toString())))
+                .build();
+
+        Namespace namespace = Namespace.builder()
+                .metadata(
+                        Metadata.builder().name("myNamespace").cluster("local").build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .topicValidator(topicValidator)
+                        .build())
+                .build();
+
+        Schema schema = Schema.builder()
+                .metadata(Metadata.builder().name("mytopic-User").build())
+                .spec(Schema.SchemaSpec.builder()
+                        .schema("{\"name\":\"User\",\"type\":\"record\",\"fields\":[]}")
+                        .schemaType(Schema.SchemaType.AVRO)
+                        .build())
+                .build();
+
+        StepVerifier.create(schemaService.validateSchema(namespace, schema))
+                .consumeNextWith(errors -> assertTrue(errors.isEmpty()))
                 .verifyComplete();
     }
 
@@ -574,11 +607,164 @@ class SchemaServiceTest {
                 .verifyComplete();
     }
 
+    @Test
+    void shouldValidateSubjectForTopicNameStrategy() {
+        String subject = "mytopic-key";
+        String schemaContent = "{\"name\":\"User\"}";
+        Schema schema = Schema.builder()
+                .metadata(Metadata.builder().name(subject).build())
+                .spec(Schema.SchemaSpec.builder().schema(schemaContent).build())
+                .build();
+        boolean result = SchemaService.validateSubjectName(
+                new ValidSubjectNameStrategies(
+                        List.of(SubjectNameStrategy.TOPIC_NAME), List.of(SubjectNameStrategy.TOPIC_NAME)),
+                schema);
+        assertTrue(result);
+    }
+
+    @Test
+    void shouldNotValidateSubjectForTopicNameStrategy() {
+        String subject = "mytopic";
+        String schemaContent = "{\"name\":\"User\", \"namespace\":\"namespace\"}";
+        Schema schema = Schema.builder()
+                .metadata(Metadata.builder().name(subject).build())
+                .spec(Schema.SchemaSpec.builder().schema(schemaContent).build())
+                .build();
+        boolean result = SchemaService.validateSubjectName(
+                new ValidSubjectNameStrategies(
+                        List.of(SubjectNameStrategy.TOPIC_NAME), List.of(SubjectNameStrategy.TOPIC_NAME)),
+                schema);
+        assertFalse(result);
+    }
+
+    @Test
+    void shouldValidateSubjectForTopicRecordNameStrategy() {
+        String subject = "mytopic-namespace.User";
+        String schemaContent = "{\"namespace\":\"namespace\",\"name\":\"User\",\"type\":\"record\",\"fields\":[]}";
+        Schema schema = Schema.builder()
+                .metadata(Metadata.builder().name(subject).build())
+                .spec(Schema.SchemaSpec.builder().schema(schemaContent).build())
+                .build();
+        boolean result = SchemaService.validateSubjectName(
+                new ValidSubjectNameStrategies(
+                        List.of(SubjectNameStrategy.TOPIC_RECORD_NAME), List.of(SubjectNameStrategy.TOPIC_RECORD_NAME)),
+                schema);
+        assertTrue(result);
+    }
+
+    @Test
+    void shouldValidateSubjectNameForRecordNameStrategy() {
+        String subject = "User";
+        String schemaContent = "{\"name\":\"User\",\"type\":\"record\",\"fields\":[]}";
+        Schema schema = Schema.builder()
+                .metadata(Metadata.builder().name(subject).build())
+                .spec(Schema.SchemaSpec.builder().schema(schemaContent).build())
+                .build();
+        boolean result = SchemaService.validateSubjectName(
+                new ValidSubjectNameStrategies(
+                        List.of(SubjectNameStrategy.RECORD_NAME), List.of(SubjectNameStrategy.RECORD_NAME)),
+                schema);
+        assertTrue(result);
+    }
+
+    @Test
+    void shouldExtractRecordName() {
+        String schemaContent = "{\"name\":\"com.example.User\", \"type\":\"record\", \"fields\":[]}";
+        Optional<String> recordName = SchemaService.extractRecordName(schemaContent, Schema.SchemaType.AVRO);
+        assertEquals("com.example.User", recordName.get());
+    }
+
+    @Test
+    void shouldExtractTopicNameStrategy() {
+        Optional<String> topic =
+                SchemaService.extractTopicName("mytopic-with-dashes-key", SubjectNameStrategy.TOPIC_NAME);
+        assertEquals("mytopic-with-dashes", topic.get());
+    }
+
+    @Test
+    void shouldExtractTopicRecordNameStrategy() {
+        Optional<String> topic =
+                SchemaService.extractTopicName("mytopic-with-dashes-User", SubjectNameStrategy.TOPIC_RECORD_NAME);
+        assertEquals("mytopic-with-dashes", topic.get());
+    }
+
+    @Test
+    void shouldTestValidateTopicRecordNameOKCases() {
+        ValidSubjectNameStrategies nameStrategies = new ValidSubjectNameStrategies(
+                List.of(SubjectNameStrategy.TOPIC_RECORD_NAME), List.of(SubjectNameStrategy.TOPIC_RECORD_NAME));
+        String schemaContent = "{\"namespace\":\"com.example\",\"name\":\"User\",\"type\":\"record\",\"fields\":[]}";
+        String subject = "mytopic-com.example.User";
+        Schema.SchemaBuilder schemaBuilder = Schema.builder()
+                .metadata(Metadata.builder().name(subject).build())
+                .spec(Schema.SchemaSpec.builder().schema(schemaContent).build());
+
+        Schema schema = schemaBuilder.build();
+        boolean result = SchemaService.validateSubjectName(nameStrategies, schema);
+        assertTrue(result);
+
+        var multipleDashSubjectNameSchema = schemaBuilder
+                .metadata(Metadata.builder()
+                        .name("mytopic-with-multiple-dashes-com.example.User")
+                        .build())
+                .build();
+        assertTrue(SchemaService.validateSubjectName(nameStrategies, multipleDashSubjectNameSchema));
+    }
+
+    @Test
+    void shouldTestValidateTopicRecordNameKOCases() {
+        ValidSubjectNameStrategies nameStrategies = new ValidSubjectNameStrategies(
+                List.of(SubjectNameStrategy.TOPIC_RECORD_NAME), List.of(SubjectNameStrategy.TOPIC_RECORD_NAME));
+        Optional<String> topic = SchemaService.extractTopicName("mytopicUser", SubjectNameStrategy.TOPIC_RECORD_NAME);
+        assertTrue(topic.isEmpty());
+
+        String schemaContent =
+                "{\"namespace\":\"com.different.namespace\",\"name\":\"User\",\"type\":\"record\",\"fields\":[]}";
+        String subject = "mytopic-WrongRecordName";
+        Schema.SchemaBuilder schemaBuilder = Schema.builder()
+                .metadata(Metadata.builder().name(subject).build())
+                .spec(Schema.SchemaSpec.builder().schema(schemaContent).build());
+
+        Schema schema = schemaBuilder.build();
+        boolean result = SchemaService.validateSubjectName(nameStrategies, schema);
+        assertFalse(result);
+
+        var noDashSubjectNameSchema = schemaBuilder
+                .metadata(Metadata.builder()
+                        .name("mytopiccom.different.namespace.User")
+                        .build())
+                .build();
+        assertFalse(SchemaService.validateSubjectName(nameStrategies, noDashSubjectNameSchema));
+    }
+
+    @Test
+    void shouldTestExtractRecordNameWithUnionReference() {
+        String subject = "ns1-subject-com.michelin.kafka.producer.showcase.avro.Avro";
+        String avroSchemaArray =
+                """
+                                                [
+                                                  "io.confluent.examples.avro.Customer",
+                                                  "io.confluent.examples.avro.Product",
+                                                  "io.confluent.examples.avro.Payment"
+                                                ]
+                                """;
+
+        Schema reference = Schema.builder()
+                .metadata(Metadata.builder().name(subject).build())
+                .spec(Schema.SchemaSpec.builder().schema(avroSchemaArray).build())
+                .build();
+
+        var recordName = SchemaService.extractRecordName(reference.getSpec().getSchema(), Schema.SchemaType.AVRO);
+        assertTrue(recordName.isPresent());
+        assertEquals(SchemaService.UNION_AVRO_RECORD_CLASS_NAME, recordName.get());
+    }
+
     private Namespace buildNamespace() {
         return Namespace.builder()
                 .metadata(
                         Metadata.builder().name("myNamespace").cluster("local").build())
-                .spec(Namespace.NamespaceSpec.builder().build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .topicValidator(TopicValidator.makeDefaultOneBroker())
+                        .build())
                 .build();
     }
 
