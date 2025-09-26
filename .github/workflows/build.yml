@@ -86,14 +86,50 @@ jobs:
           name: ns4kafka
           path: ${{ github.workspace }}/build/libs/ns4kafka-${{ steps.metadata.outputs.current_version }}.jar
 
-      - name: Docker
-        run: ./gradlew dockerBuild
+  build-docker:
+    name: Build Docker ${{ matrix.platform }}
+    runs-on: ubuntu-latest
+    needs: build-jar
+    strategy:
+      matrix:
+        platform: [ 'linux/amd64', 'linux/arm64' ]
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: ns4kafka
+          path: build/libs
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Metadata
+        id: metadata
+        run: echo image_name=michelin/ns4kafka:${{ needs.build.outputs.current_version }}-$(echo ${{ matrix.platform }} | sed 's/\//-/g') >> $GITHUB_OUTPUT
+
+      - name: Docker build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: .docker/Dockerfile
+          platforms: ${{ matrix.platform }}
+          build-args: VERSION=${{ needs.build.outputs.current_version }}
+          push: false
+          load: true
+          tags: ${{ steps.metadata.outputs.image_name }}
+        env:
+          DOCKER_BUILD_SUMMARY: false
 
       - name: Grype Docker image
         id: grype_docker_image
         uses: anchore/scan-action@v7
         with:
-          image: michelin/ns4kafka:${{ steps.metadata.outputs.current_version }}
+          image: ${{ steps.metadata.outputs.image_name }}
           fail-build: true
           severity-cutoff: high
           only-fixed: true
@@ -103,15 +139,42 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: ${{ steps.grype_docker_image.outputs.sarif }}
-          category: 'docker-image'
+          category: docker-image-${{ matrix.platform }}
+
+  push-docker:
+    name: Push Docker
+    runs-on: ubuntu-latest
+    needs: [ build, build-docker ]
+    if: github.ref == 'refs/heads/master'
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: ns4kafka
+          path: build/libs
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Docker login
-        if: github.ref == 'refs/heads/master'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.MICHELIN_DOCKER_HUB_USERNAME }}
           password: ${{ secrets.MICHELIN_DOCKER_HUB_PASSWD }}
 
       - name: Docker push
-        if: github.ref == 'refs/heads/master'
-        run: ./gradlew dockerBuild dockerPush
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: .docker/Dockerfile
+          build-args: VERSION=${{ needs.build.outputs.current_version }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: michelin/ns4kafka:${{ needs.build.outputs.current_version }}
+        env:
+          DOCKER_BUILD_SUMMARY: false
