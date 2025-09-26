@@ -92,7 +92,7 @@ jobs:
     needs: build-jar
     strategy:
       matrix:
-        platform: [ 'linux/amd64', 'linux/arm64' ]
+        platform: ['linux/amd64', 'linux/arm64']
     steps:
       - name: Checkout project
         uses: actions/checkout@v5
