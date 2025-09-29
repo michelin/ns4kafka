@@ -184,7 +184,8 @@ public class AkhqClaimProviderController {
 
             String role =
                     ns4KafkaProperties.getAkhq().getRoles().get(acl.getSpec().getResourceType());
-            String key = role + "-" + acl.getSpec().getResource();
+            String key = role + "-" + acl.getSpec().getResource() + "-"
+                    + acl.getSpec().getResourcePatternType();
 
             // If we already have permissions for the role and cluster, add the pattern to the existing one
             if (bindings.containsKey(key)) {
@@ -248,32 +249,29 @@ public class AkhqClaimProviderController {
      * Remove ACL that are already included by another ACL on the same resource and cluster. Ex: LITERAL ACL1 with
      * project.topic1 resource + PREFIXED ACL2 with project -> return ACL2 only
      *
-     * @param acl the input list of acl to optimize
+     * @param acls the input list of acl to optimize
      */
-    private void optimizeAcl(List<AccessControlEntry> acl) {
-        acl.removeIf(accessControlEntry -> acl.stream()
-                // Keep PREFIXED ACL with a different resource but same resource type and cluster
-                .filter(accessControlEntryOther -> accessControlEntryOther
-                                .getSpec()
-                                .getResourcePatternType()
-                                .equals(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        && !accessControlEntryOther
-                                .getSpec()
-                                .getResource()
-                                .equals(accessControlEntry.getSpec().getResource())
-                        && accessControlEntryOther
-                                .getSpec()
-                                .getResourceType()
-                                .equals(accessControlEntry.getSpec().getResourceType())
-                        && accessControlEntryOther
-                                .getMetadata()
-                                .getCluster()
-                                .equals(accessControlEntry.getMetadata().getCluster()))
-                .map(accessControlEntryOther ->
-                        accessControlEntryOther.getSpec().getResource())
-                // Remove the ACL if there is one that contains the current resource
-                .anyMatch(escapedString ->
-                        accessControlEntry.getSpec().getResource().startsWith(escapedString)));
+    private void optimizeAcl(List<AccessControlEntry> acls) {
+        acls.removeIf(acl -> acls.stream()
+                .anyMatch(aclOther ->
+                        // Not comparing the ACL with itself
+                        !aclOther.getMetadata()
+                                        .getName()
+                                        .equals(acl.getMetadata().getName())
+                                // Check PREFIXED ACL on the same resource type and cluster
+                                && aclOther.getSpec()
+                                        .getResourcePatternType()
+                                        .equals(AccessControlEntry.ResourcePatternType.PREFIXED)
+                                && aclOther.getSpec()
+                                        .getResourceType()
+                                        .equals(acl.getSpec().getResourceType())
+                                && aclOther.getMetadata()
+                                        .getCluster()
+                                        .equals(acl.getMetadata().getCluster())
+                                // Check the resource is included in another acl
+                                && acl.getSpec()
+                                        .getResource()
+                                        .startsWith(aclOther.getSpec().getResource())));
     }
 
     /**
