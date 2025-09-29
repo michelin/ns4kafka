@@ -38,7 +38,7 @@ dependencies {
     implementation("io.swagger.core.v3:swagger-annotations")
     implementation("jakarta.annotation:jakarta.annotation-api")
     implementation("jakarta.validation:jakarta.validation-api")
-    implementation("io.confluent:kafka-schema-registry-client:8.0.0")
+    implementation("io.confluent:kafka-schema-registry-client:8.0.1")
 
     compileOnly("org.projectlombok:lombok")
     compileOnly("com.google.code.findbugs:jsr305") // https://github.com/micronaut-projects/micronaut-core/pull/5691
