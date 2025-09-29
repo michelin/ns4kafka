@@ -15,6 +15,8 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    outputs:
+      current_version: ${{ steps.metadata.outputs.current_version }}
     steps:
       - name: Checkout project
         uses: actions/checkout@v5
@@ -74,7 +76,7 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: ${{ steps.grype_source_code.outputs.sarif }}
-          category: 'source-code'
+          category: source-code
 
       - name: Metadata
         id: metadata
@@ -84,16 +86,54 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ns4kafka
-          path: ${{ github.workspace }}/build/libs/ns4kafka-${{ steps.metadata.outputs.current_version }}.jar
+          path: build/libs/ns4kafka-${{ steps.metadata.outputs.current_version }}.jar
 
-      - name: Docker
-        run: ./gradlew dockerBuild
+  build-docker:
+    name: Build Docker ${{ matrix.platform }}
+    runs-on: ubuntu-latest
+    needs: build
+    strategy:
+      matrix:
+        platform: [ 'linux/amd64', 'linux/arm64' ]
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Download artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: ns4kafka
+          path: build/libs
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Metadata
+        id: metadata
+        run: |
+          platform_slug=$(echo ${{ matrix.platform }} | sed 's/\//-/g')
+          echo platform_slug=$platform_slug >> $GITHUB_OUTPUT
+          echo image_name=michelin/ns4kafka:${{ needs.build.outputs.current_version }}-$(echo ${{ matrix.platform }} | sed 's/\//-/g') >> $GITHUB_OUTPUT
+
+      - name: Docker build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: .docker/Dockerfile
+          platforms: ${{ matrix.platform }}
+          push: false
+          load: true
+          tags: ${{ steps.metadata.outputs.image_name }}
+        env:
+          DOCKER_BUILD_SUMMARY: false
 
       - name: Grype Docker image
         id: grype_docker_image
         uses: anchore/scan-action@v7
         with:
-          image: michelin/ns4kafka:${{ steps.metadata.outputs.current_version }}
+          image: ${{ steps.metadata.outputs.image_name }}
           fail-build: true
           severity-cutoff: high
           only-fixed: true
@@ -103,15 +143,41 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: ${{ steps.grype_docker_image.outputs.sarif }}
-          category: 'docker-image'
+          category: docker-image-${{ steps.metadata.outputs.platform_slug }}
+
+  push-docker:
+    name: Push Docker
+    runs-on: ubuntu-latest
+    needs: [ build, build-docker ]
+    if: github.ref == 'refs/heads/master'
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Download artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: ns4kafka
+          path: build/libs
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Docker login
-        if: github.ref == 'refs/heads/master'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.MICHELIN_DOCKER_HUB_USERNAME }}
           password: ${{ secrets.MICHELIN_DOCKER_HUB_PASSWD }}
 
       - name: Docker push
-        if: github.ref == 'refs/heads/master'
-        run: ./gradlew dockerBuild dockerPush
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: .docker/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: michelin/ns4kafka:${{ needs.build.outputs.current_version }}
+        env:
+          DOCKER_BUILD_SUMMARY: false

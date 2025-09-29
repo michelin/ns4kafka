@@ -84,21 +84,6 @@ shadowJar {
     dependsOn(distTar, distZip)
 }
 
-dockerfile {
-    baseImage = "eclipse-temurin:21-jre-alpine"
-    runCommand("apk update && apk upgrade && rm -rf /var/cache/apk/*")
-}
-
-if (project.hasProperty("releaseLatest")) {
-    dockerBuild {
-        images.set(["michelin/ns4kafka:" + version, "michelin/ns4kafka:latest"])
-    }
-} else {
-    dockerBuild {
-        images.set(["michelin/ns4kafka:" + version])
-    }
-}
-
 tasks.withType(JavaCompile).configureEach {
     options.fork = true
     options.forkOptions.jvmArgs << "-Dmicronaut.openapi.views.spec=rapidoc.enabled=true"
