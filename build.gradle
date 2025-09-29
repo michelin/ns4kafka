@@ -1,5 +1,5 @@
 plugins {
-    id("com.gradleup.shadow") version "8.3.8"
+    id("com.gradleup.shadow") version "9.2.2"
     id("io.micronaut.application") version "4.5.4"
     id("jacoco")
     id("org.sonarqube") version "6.3.1.5724"
