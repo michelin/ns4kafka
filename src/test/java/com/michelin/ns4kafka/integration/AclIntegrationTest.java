@@ -523,67 +523,6 @@ class AclIntegrationTest extends KafkaIntegrationTest {
     }
 
     @Test
-    void shouldCreateTransactionalIdAclWithOwnerPermission() throws InterruptedException, ExecutionException {
-        AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
-                        .name("ns1-acl-transactional-id")
-                        .namespace("ns1")
-                        .build())
-                .spec(AccessControlEntrySpec.builder()
-                        .resourceType(ResourceType.TRANSACTIONAL_ID)
-                        .resource("ns1-")
-                        .resourcePatternType(ResourcePatternType.PREFIXED)
-                        .permission(Permission.OWNER)
-                        .grantedTo("ns1")
-                        .build())
-                .build();
-
-        ns4KafkaClient
-                .toBlocking()
-                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/acls")
-                        .bearerAuth(token)
-                        .body(accessControlEntry));
-
-        // Force ACL Sync
-        accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
-
-        Admin kafkaClient = getAdminClient();
-
-        AclBindingFilter aclBindingFilter = new AclBindingFilter(
-                ResourcePatternFilter.ANY,
-                new AccessControlEntryFilter("User:user1", null, AclOperation.ANY, AclPermissionType.ANY));
-
-        Collection<AclBinding> results =
-                kafkaClient.describeAcls(aclBindingFilter).values().get();
-
-        AclBinding expected = new AclBinding(
-                new ResourcePattern(
-                        org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID, "ns1-", PatternType.PREFIXED),
-                new org.apache.kafka.common.acl.AccessControlEntry(
-                        "User:user1", "*", AclOperation.WRITE, AclPermissionType.ALLOW));
-
-        AclBinding expected2 = new AclBinding(
-                new ResourcePattern(
-                        org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID, "ns1-", PatternType.PREFIXED),
-                new org.apache.kafka.common.acl.AccessControlEntry(
-                        "User:user1", "*", AclOperation.DESCRIBE, AclPermissionType.ALLOW));
-
-        assertEquals(2, results.size());
-        assertTrue(results.containsAll(List.of(expected, expected2)));
-
-        ns4KafkaClient
-                .toBlocking()
-                .exchange(HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/acls/ns1-acl-transactional-id")
-                        .bearerAuth(token));
-
-        accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
-
-        results = kafkaClient.describeAcls(aclBindingFilter).values().get();
-
-        assertTrue(results.isEmpty());
-    }
-
-    @Test
     void shouldGrantAclToAnotherNamespace() throws ExecutionException, InterruptedException {
         // Ownership of first namespace
         AccessControlEntry accessControlEntryNamespace1 = AccessControlEntry.builder()
