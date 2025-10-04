@@ -41,7 +41,6 @@ dependencies {
     implementation("io.confluent:kafka-schema-registry-client:8.0.1")
 
     compileOnly("org.projectlombok:lombok")
-    compileOnly("com.google.code.findbugs:jsr305") // https://github.com/micronaut-projects/micronaut-core/pull/5691
 
     runtimeOnly("ch.qos.logback:logback-classic")
 
@@ -55,6 +54,8 @@ dependencies {
 
     testAnnotationProcessor("org.projectlombok:lombok")
     testCompileOnly("org.projectlombok:lombok")
+
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 application {
