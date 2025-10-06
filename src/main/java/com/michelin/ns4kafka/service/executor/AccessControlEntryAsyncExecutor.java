@@ -394,8 +394,7 @@ public class AccessControlEntryAsyncExecutor {
         if (managedClusterProperties.isManageAcls()) {
             List<AclBinding> results = new ArrayList<>();
 
-            if (List.of(TOPIC, GROUP)
-                    .contains(accessControlEntry.getSpec().getResourceType())) {
+            if (List.of(TOPIC, GROUP).contains(accessControlEntry.getSpec().getResourceType())) {
                 results.addAll(convertAccessControlEntryToAclBinding(accessControlEntry));
             }
 
