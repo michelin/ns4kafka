@@ -55,8 +55,7 @@ public class AccessControlEntry extends MetadataResource {
         GROUP,
         CONNECT,
         CONNECT_CLUSTER,
-        SCHEMA,
-        TRANSACTIONAL_ID
+        SCHEMA
     }
 
     /** Resource pattern type. */

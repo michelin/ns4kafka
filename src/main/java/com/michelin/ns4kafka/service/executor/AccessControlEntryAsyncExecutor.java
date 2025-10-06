@@ -20,7 +20,6 @@ package com.michelin.ns4kafka.service.executor;
 
 import static com.michelin.ns4kafka.model.AccessControlEntry.ResourceType.GROUP;
 import static com.michelin.ns4kafka.model.AccessControlEntry.ResourceType.TOPIC;
-import static com.michelin.ns4kafka.model.AccessControlEntry.ResourceType.TRANSACTIONAL_ID;
 import static com.michelin.ns4kafka.service.AclService.PUBLIC_GRANTED_TO;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
@@ -137,10 +136,10 @@ public class AccessControlEntryAsyncExecutor {
     private List<AclBinding> collectNs4KafkaAcls() {
         List<Namespace> namespaces = namespaceRepository.findAllForCluster(managedClusterProperties.getName());
 
-        // Converts topic, group and transaction Ns4Kafka ACLs to topic and group Kafka AclBindings
+        // Converts topic and group Ns4Kafka ACLs to topic and group Kafka AclBindings
         Stream<AclBinding> aclBindingsFromAcls = namespaces.stream()
                 .flatMap(namespace -> aclService.findAllGrantedToNamespace(namespace).stream()
-                        .filter(accessControlEntry -> List.of(TOPIC, GROUP, TRANSACTIONAL_ID)
+                        .filter(accessControlEntry -> List.of(TOPIC, GROUP)
                                 .contains(accessControlEntry.getSpec().getResourceType()))
                         .flatMap(accessControlEntry ->
                                 convertAccessControlEntryToAclBinding(accessControlEntry).stream())
@@ -190,8 +189,7 @@ public class AccessControlEntryAsyncExecutor {
             throws ExecutionException, InterruptedException, TimeoutException {
         List<ResourceType> validResourceTypes = List.of(
                 org.apache.kafka.common.resource.ResourceType.TOPIC,
-                org.apache.kafka.common.resource.ResourceType.GROUP,
-                org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID);
+                org.apache.kafka.common.resource.ResourceType.GROUP);
 
         AccessControlEntryFilter accessControlEntryFilter = new AccessControlEntryFilter(
                 managedClusterProperties.getProvider().equals(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD)
@@ -244,7 +242,7 @@ public class AccessControlEntryAsyncExecutor {
     }
 
     /**
-     * Convert Ns4Kafka topic, group and transactional ACL into Kafka ACL.
+     * Convert Ns4Kafka topic and group ACL into Kafka ACL.
      *
      * @param accessControlEntry The Ns4Kafka ACL
      * @return A list of Kafka ACLs
@@ -361,7 +359,6 @@ public class AccessControlEntryAsyncExecutor {
         return switch (resourceType) {
             case TOPIC -> List.of(AclOperation.WRITE, AclOperation.READ, AclOperation.DESCRIBE_CONFIGS);
             case GROUP -> List.of(AclOperation.READ);
-            case TRANSACTIONAL_ID -> List.of(AclOperation.DESCRIBE, AclOperation.WRITE);
             default -> throw new IllegalArgumentException("Not implemented yet: " + resourceType);
         };
     }
@@ -397,8 +394,7 @@ public class AccessControlEntryAsyncExecutor {
         if (managedClusterProperties.isManageAcls()) {
             List<AclBinding> results = new ArrayList<>();
 
-            if (List.of(TOPIC, GROUP, TRANSACTIONAL_ID)
-                    .contains(accessControlEntry.getSpec().getResourceType())) {
+            if (List.of(TOPIC, GROUP).contains(accessControlEntry.getSpec().getResourceType())) {
                 results.addAll(convertAccessControlEntryToAclBinding(accessControlEntry));
             }
 
