@@ -466,6 +466,19 @@ public class AclService {
     }
 
     /**
+     * Find all owner-ACLs on a resource.
+     *
+     * @param resourceType The resource
+     * @return A list of ACLs
+     */
+    public List<AccessControlEntry> findAllResourceOwner(String cluster, AccessControlEntry.ResourceType resourceType) {
+        return findAllForCluster(cluster).stream()
+                .filter(acl -> acl.getSpec().getPermission() == AccessControlEntry.Permission.OWNER
+                        && acl.getSpec().getResourceType() == resourceType)
+                .toList();
+    }
+
+    /**
      * Find all public granted ACLs.
      *
      * @return A list of ACLs

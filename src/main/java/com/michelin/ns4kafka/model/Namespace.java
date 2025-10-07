@@ -62,6 +62,7 @@ public class Namespace extends MetadataResource {
         @NotBlank private String kafkaUser;
 
         private boolean protectionEnabled;
+        private boolean transactionEnabled;
 
         @Builder.Default
         private List<String> connectClusters = List.of();
