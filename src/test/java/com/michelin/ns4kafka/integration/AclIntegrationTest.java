@@ -481,23 +481,14 @@ class AclIntegrationTest extends KafkaIntegrationTest {
                 new org.apache.kafka.common.acl.AccessControlEntry(
                         "User:user1", "*", AclOperation.DELETE, AclPermissionType.ALLOW));
 
-        AclBinding aclBindingTransactionalForKafkaStreams = new AclBinding(
-                new ResourcePattern(
-                        org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID,
-                        "ns1-stream1",
-                        PatternType.PREFIXED),
-                new org.apache.kafka.common.acl.AccessControlEntry(
-                        "User:user1", "*", AclOperation.WRITE, AclPermissionType.ALLOW));
-
-        assertEquals(7, results.size());
+        assertEquals(6, results.size());
         assertTrue(results.containsAll(List.of(
                 aclBindingTopicRead,
                 aclBindingTopicWrite,
                 aclBindingGroupRead,
                 aclBindingTopicDescribeConfigs,
                 aclBindingTopicCreateForKafkaStreams,
-                aclBindingTopicDeleteForKafkaStreams,
-                aclBindingTransactionalForKafkaStreams)));
+                aclBindingTopicDeleteForKafkaStreams)));
 
         // DELETE the Stream & ACL and verify
         ns4KafkaClient
@@ -626,5 +617,132 @@ class AclIntegrationTest extends KafkaIntegrationTest {
 
         assertEquals(1, results.size());
         assertTrue(results.contains(expectedNamespace1TopicReadAcl));
+    }
+
+    @Test
+    void shouldCreateTransactionalIdAclsFromGroupAclWhenTransactionsAreAllowed() throws ExecutionException, InterruptedException {
+        Admin kafkaClient = getAdminClient();
+
+        // Verify namespace has no TransactionalId ACL
+        var aclTransactionalId = kafkaClient
+                .describeAcls(new AclBindingFilter(
+                        new ResourcePatternFilter(
+                                org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID,
+                                null,
+                                PatternType.PREFIXED),
+                        AccessControlEntryFilter.ANY))
+                .values()
+                .get();
+
+        assertTrue(aclTransactionalId.isEmpty());
+
+        // Create Group ACL
+        AccessControlEntry accessControlEntryNamespace1 = AccessControlEntry.builder()
+                .metadata(Metadata.builder()
+                        .name("ns1-group-owner")
+                        .namespace("ns1")
+                        .build())
+                .spec(AccessControlEntrySpec.builder()
+                        .resourceType(ResourceType.GROUP)
+                        .resource("ns1-")
+                        .resourcePatternType(ResourcePatternType.PREFIXED)
+                        .permission(Permission.OWNER)
+                        .grantedTo("ns1")
+                        .build())
+                .build();
+
+        ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/acls")
+                        .bearerAuth(token)
+                        .body(accessControlEntryNamespace1));
+
+        // Force ACLs synchronization
+        accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
+
+        // Verify the 4 TransactionalId ACLs are created
+        aclTransactionalId = kafkaClient
+                .describeAcls(new AclBindingFilter(
+                        new ResourcePatternFilter(
+                                org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID,
+                                "ns1-",
+                                PatternType.PREFIXED),
+                        AccessControlEntryFilter.ANY))
+                .values()
+                .get();
+
+        assertEquals(2, aclTransactionalId.size());
+        assertTrue(aclTransactionalId.stream().map(acl -> acl.entry().operation()).toList().containsAll(List.of(AclOperation.WRITE, AclOperation.DESCRIBE)));
+
+        aclTransactionalId = kafkaClient
+                .describeAcls(new AclBindingFilter(
+                        new ResourcePatternFilter(
+                                org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID,
+                                "connect-cluster-ns1-",
+                                PatternType.PREFIXED),
+                        AccessControlEntryFilter.ANY))
+                .values()
+                .get();
+
+        assertEquals(2, aclTransactionalId.size());
+        assertTrue(aclTransactionalId.stream().map(acl -> acl.entry().operation()).toList().containsAll(List.of(AclOperation.WRITE, AclOperation.DESCRIBE)));
+
+    }
+    @Test
+    void shouldNotCreateTransactionalIdAclsWhenTransactionsAreForbidden() throws ExecutionException, InterruptedException {
+        // Create namespace without transactions enabled
+        Namespace namespace = Namespace.builder()
+                .metadata(Metadata.builder().name("ns3").cluster("test-cluster").build())
+                .spec(NamespaceSpec.builder()
+                        .kafkaUser("user3")
+                        .transactionsEnabled(false)
+                        .topicValidator(TopicValidator.makeDefaultOneBroker())
+                        .build())
+                .build();
+
+        ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces")
+                        .bearerAuth(token)
+                        .body(namespace));
+
+        // Create Group ACL
+        AccessControlEntry accessControlEntryNamespace1 = AccessControlEntry.builder()
+                .metadata(Metadata.builder()
+                        .name("ns3-group-owner")
+                        .namespace("ns3")
+                        .build())
+                .spec(AccessControlEntrySpec.builder()
+                        .resourceType(ResourceType.GROUP)
+                        .resource("ns3-")
+                        .resourcePatternType(ResourcePatternType.PREFIXED)
+                        .permission(Permission.OWNER)
+                        .grantedTo("ns3")
+                        .build())
+                .build();
+
+        ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns3/acls")
+                        .bearerAuth(token)
+                        .body(accessControlEntryNamespace1));
+
+        // Force ACLs synchronization
+        accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
+
+        // Verify the 4 TransactionalId ACLs are created
+        Admin kafkaClient = getAdminClient();
+
+        var aclTransactionalId = kafkaClient
+                .describeAcls(new AclBindingFilter(
+                        new ResourcePatternFilter(
+                                org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID,
+                                "ns3-",
+                                PatternType.PREFIXED),
+                        AccessControlEntryFilter.ANY))
+                .values()
+                .get();
+
+        assertTrue(aclTransactionalId.isEmpty());
     }
 }
