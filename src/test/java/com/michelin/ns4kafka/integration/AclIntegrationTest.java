@@ -620,7 +620,8 @@ class AclIntegrationTest extends KafkaIntegrationTest {
     }
 
     @Test
-    void shouldCreateTransactionalIdAclsFromGroupAclWhenTransactionsAreAllowed() throws ExecutionException, InterruptedException {
+    void shouldCreateTransactionalIdAclsFromGroupAclWhenTransactionsAreAllowed()
+            throws ExecutionException, InterruptedException {
         Admin kafkaClient = getAdminClient();
 
         // Verify namespace has no TransactionalId ACL
@@ -672,7 +673,10 @@ class AclIntegrationTest extends KafkaIntegrationTest {
                 .get();
 
         assertEquals(2, aclTransactionalId.size());
-        assertTrue(aclTransactionalId.stream().map(acl -> acl.entry().operation()).toList().containsAll(List.of(AclOperation.WRITE, AclOperation.DESCRIBE)));
+        assertTrue(aclTransactionalId.stream()
+                .map(acl -> acl.entry().operation())
+                .toList()
+                .containsAll(List.of(AclOperation.WRITE, AclOperation.DESCRIBE)));
 
         aclTransactionalId = kafkaClient
                 .describeAcls(new AclBindingFilter(
@@ -685,11 +689,15 @@ class AclIntegrationTest extends KafkaIntegrationTest {
                 .get();
 
         assertEquals(2, aclTransactionalId.size());
-        assertTrue(aclTransactionalId.stream().map(acl -> acl.entry().operation()).toList().containsAll(List.of(AclOperation.WRITE, AclOperation.DESCRIBE)));
-
+        assertTrue(aclTransactionalId.stream()
+                .map(acl -> acl.entry().operation())
+                .toList()
+                .containsAll(List.of(AclOperation.WRITE, AclOperation.DESCRIBE)));
     }
+
     @Test
-    void shouldNotCreateTransactionalIdAclsWhenTransactionsAreForbidden() throws ExecutionException, InterruptedException {
+    void shouldNotCreateTransactionalIdAclsWhenTransactionsAreForbidden()
+            throws ExecutionException, InterruptedException {
         // Create namespace without transactions enabled
         Namespace namespace = Namespace.builder()
                 .metadata(Metadata.builder().name("ns3").cluster("test-cluster").build())
