@@ -347,8 +347,11 @@ class AclIntegrationTest extends KafkaIntegrationTest {
         Admin kafkaClient = getAdminClient();
 
         AclBindingFilter user1Filter = new AclBindingFilter(
-                ResourcePatternFilter.ANY,
-                new AccessControlEntryFilter("User:user1", null, AclOperation.ANY, AclPermissionType.ANY));
+                new ResourcePatternFilter(
+                        org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID,
+                        "connect-ns1-",
+                        PatternType.PREFIXED),
+                new AccessControlEntryFilter("User:user1", null, AclOperation.READ, AclPermissionType.ANY));
 
         Collection<AclBinding> results =
                 kafkaClient.describeAcls(user1Filter).values().get();
@@ -666,7 +669,7 @@ class AclIntegrationTest extends KafkaIntegrationTest {
                 .describeAcls(new AclBindingFilter(
                         new ResourcePatternFilter(
                                 org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID,
-                                "ns1-",
+                                "connect-cluster-ns1-",
                                 PatternType.PREFIXED),
                         AccessControlEntryFilter.ANY))
                 .values()
@@ -682,7 +685,7 @@ class AclIntegrationTest extends KafkaIntegrationTest {
                 .describeAcls(new AclBindingFilter(
                         new ResourcePatternFilter(
                                 org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID,
-                                "connect-cluster-ns1-",
+                                "ns1-",
                                 PatternType.PREFIXED),
                         AccessControlEntryFilter.ANY))
                 .values()

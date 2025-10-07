@@ -181,7 +181,8 @@ public class AccessControlEntryAsyncExecutor {
             throws ExecutionException, InterruptedException, TimeoutException {
         List<ResourceType> validResourceTypes = List.of(
                 org.apache.kafka.common.resource.ResourceType.TOPIC,
-                org.apache.kafka.common.resource.ResourceType.GROUP);
+                org.apache.kafka.common.resource.ResourceType.GROUP,
+                org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID);
 
         AccessControlEntryFilter accessControlEntryFilter = new AccessControlEntryFilter(
                 managedClusterProperties.getProvider().equals(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD)
