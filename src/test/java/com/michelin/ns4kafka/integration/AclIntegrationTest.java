@@ -777,7 +777,7 @@ class AclIntegrationTest extends KafkaIntegrationTest {
         // Force ACLs synchronization
         accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
 
-        // Verify the 4 TransactionalId ACLs are created
+        // Verify no TransactionalId ACLs are created
         Admin kafkaClient = getAdminClient();
 
         var aclTransactionalId = kafkaClient
