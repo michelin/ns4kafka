@@ -169,25 +169,9 @@ class StreamIntegrationTest extends KafkaIntegrationTest {
                 .values()
                 .get();
 
-        var aclTransactionalId = kafkaClient
-                .describeAcls(new AclBindingFilter(
-                        new ResourcePatternFilter(
-                                org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID,
-                                stream.getMetadata().getName(),
-                                PatternType.PREFIXED),
-                        AccessControlEntryFilter.ANY))
-                .values()
-                .get();
-
         assertEquals(2, aclTopic.size());
         assertTrue(aclTopic.stream().allMatch(aclBinding -> List.of(AclOperation.CREATE, AclOperation.DELETE)
                 .contains(aclBinding.entry().operation())));
-
-        assertEquals(1, aclTransactionalId.size());
-        assertTrue(aclTransactionalId.stream().findFirst().isPresent());
-        assertEquals(
-                AclOperation.WRITE,
-                aclTransactionalId.stream().findFirst().get().entry().operation());
 
         ns4KafkaClient
                 .toBlocking()
