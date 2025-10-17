@@ -430,7 +430,7 @@ class StreamServiceTest {
         when(topicService.findByWildcardName(eq(namespace), anyString())).thenReturn(allTopics);
 
         streamService.delete(namespace, stream);
-        verify(aceAsyncExecutor).deleteKafkaStreams(namespace, stream);
+        verify(aceAsyncExecutor).deleteKafkaStreams(stream);
         verify(topicService)
                 .deleteTopics(argThat(topics -> topics.stream().anyMatch(topic -> topic.getMetadata()
                                 .getName()
@@ -513,7 +513,7 @@ class StreamServiceTest {
         when(topicService.findByWildcardName(eq(namespace), anyString())).thenReturn(allTopics);
 
         streamService.delete(namespace, stream);
-        verify(aceAsyncExecutor).deleteKafkaStreams(namespace, stream);
+        verify(aceAsyncExecutor).deleteKafkaStreams(stream);
         verify(topicService)
                 .deleteTopics(argThat(topics -> topics.stream().anyMatch(topic -> topic.getMetadata()
                                 .getName()

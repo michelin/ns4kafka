@@ -51,6 +51,16 @@ public class StreamService {
     private TopicService topicService;
 
     /**
+     * Find all Kafka Streams of given cluster.
+     *
+     * @param cluster The cluster
+     * @return A list of Kafka Streams
+     */
+    public List<KafkaStream> findAllForCluster(String cluster) {
+        return streamRepository.findAllForCluster(cluster);
+    }
+
+    /**
      * Find all Kafka Streams of a given namespace.
      *
      * @param namespace The namespace
@@ -135,7 +145,7 @@ public class StreamService {
         AccessControlEntryAsyncExecutor accessControlEntryAsyncExecutor = applicationContext.getBean(
                 AccessControlEntryAsyncExecutor.class,
                 Qualifiers.byName(stream.getMetadata().getCluster()));
-        accessControlEntryAsyncExecutor.deleteKafkaStreams(namespace, stream);
+        accessControlEntryAsyncExecutor.deleteKafkaStreams(stream);
 
         List<KafkaStream> overlapKafkaStreams = findAllForNamespace(namespace).stream()
                 .filter(kafkaStream -> kafkaStream
