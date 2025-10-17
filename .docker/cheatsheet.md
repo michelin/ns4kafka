@@ -18,3 +18,9 @@ docker exec -it broker sh
 ```bash
 kafka-acls --bootstrap-server localhost:9092 --command-config client.properties --list
 ```
+
+### Create
+
+```bash
+kafka-acls --bootstrap-server localhost:9092 --command-config client.properties --add --allow-principal User:<username> --operation <operation> --topic <topic-name>
+```
