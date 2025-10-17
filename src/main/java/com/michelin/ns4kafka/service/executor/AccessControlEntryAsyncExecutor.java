@@ -21,7 +21,6 @@ package com.michelin.ns4kafka.service.executor;
 import static com.michelin.ns4kafka.model.AccessControlEntry.ResourceType.GROUP;
 import static com.michelin.ns4kafka.model.AccessControlEntry.ResourceType.TOPIC;
 import static com.michelin.ns4kafka.service.AclService.PUBLIC_GRANTED_TO;
-import static java.util.stream.Stream.concat;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.KafkaStream;
@@ -270,13 +269,14 @@ public class AccessControlEntryAsyncExecutor {
                     namespaceRepository.findByName(acl.getSpec().getGrantedTo()).orElseThrow();
             kafkaUser = namespace.getSpec().getKafkaUser();
 
-            // build transactionalId ACLs from GROUP ACL to allow transactions
-            if (acl.getSpec().getResourceType() == GROUP && namespace.getSpec().isTransactionsEnabled()) {
+            // Build transactionalId ACLs from GROUP ACL to allow transactions
+            if (GROUP.equals(acl.getSpec().getResourceType())
+                    && namespace.getSpec().isTransactionsEnabled()) {
                 transactionalIdAcls = buildTransactionalIdAclBindingsFromGroupAcl(acl, kafkaUser);
             }
         }
 
-        return concat(
+        return Stream.concat(
                         transactionalIdAcls,
                         aclOperations.stream()
                                 .map(aclOperation -> new AclBinding(
@@ -294,10 +294,11 @@ public class AccessControlEntryAsyncExecutor {
      *
      * @param stream The Kafka Stream resource
      * @return A list of Kafka ACLs
+     * @see <a
+     *     href="https://docs.confluent.io/platform/current/streams/developer-guide/security.html#required-acl-setting-for-secure-ak-clusters">Required
+     *     ACL setting for secure Kafka clusters</a>
      */
     private List<AclBinding> buildAclBindingsFromKafkaStream(KafkaStream stream) {
-        // As per
-        // https://docs.confluent.io/platform/current/streams/developer-guide/security.html#required-acl-setting-for-secure-ak-clusters
         String kafkaUser = namespaceRepository
                 .findByName(stream.getMetadata().getNamespace())
                 .orElseThrow()
@@ -305,7 +306,8 @@ public class AccessControlEntryAsyncExecutor {
                 .getKafkaUser();
 
         return List.of(
-                // CREATE and DELETE on Stream Topics
+                // Kafka Streams needs "create" and "delete" on the topics with the stream application id as prefix
+                // to create changelog and repartition topics.
                 new AclBinding(
                         new ResourcePattern(
                                 org.apache.kafka.common.resource.ResourceType.TOPIC,
@@ -350,18 +352,17 @@ public class AccessControlEntryAsyncExecutor {
     }
 
     /**
-     * Build Transactional ID Kafka ACLs from the given Ns4kafka Group ACL, to allow transactions.
+     * Build Transactional ID Kafka ACLs from the given Ns4Kafka Group ACL, to allow transactions.
      *
      * @param acl The Ns4kafka ACL
      * @param kafkaUser The kafka user
      * @return A list of Kafka ACLs
+     * @see <a
+     *     href="https://cwiki.apache.org/confluence/pages/viewpage.action?pageId=153816406#KIP618:ExactlyOnceSupportforSourceConnectors-Workerprincipalpermissions">ExactlyOnceSupportforSourceConnectors</a>
      */
     private Stream<AclBinding> buildTransactionalIdAclBindingsFromGroupAcl(AccessControlEntry acl, String kafkaUser) {
-        // As per the doc
-        // https://cwiki.apache.org/confluence/pages/viewpage.action?pageId=153816406#KIP618:ExactlyOnceSupportforSourceConnectors-Workerprincipalpermissions
-
         return Stream.of(
-                // Prefixed Transactional ID Kafka ACLs on "connect-cluster-<group_prefix>"
+                // EOS connectors need "write" and "describe" on "connect-cluster-${groupId}".
                 new AclBinding(
                         new ResourcePattern(
                                 org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID,
@@ -377,7 +378,9 @@ public class AccessControlEntryAsyncExecutor {
                         new org.apache.kafka.common.acl.AccessControlEntry(
                                 USER_PRINCIPAL + kafkaUser, "*", AclOperation.DESCRIBE, AclPermissionType.ALLOW)),
 
-                // Prefixed Transactional ID Kafka ACLs on "<group_prefix>"
+                // EOS connectors needs "write" and "describe" on "${groupId}-${connector}-${taskId}".
+                // Just create PREFIXED ACLs to cover all tasks.
+                // Also covers the Kafka Streams EOS.
                 new AclBinding(
                         new ResourcePattern(
                                 org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID,
