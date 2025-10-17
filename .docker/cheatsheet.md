@@ -22,5 +22,5 @@ kafka-acls --bootstrap-server localhost:9092 --command-config client.properties 
 ### Create
 
 ```bash
-kafka-acls --bootstrap-server localhost:9092 --command-config client.properties --add --allow-principal User:<username> --operation <operation> --topic <topic-name>
+kafka-acls --bootstrap-server localhost:9092 --command-config client.properties --add --allow-principal User:<username> --operation <operation> --resource-pattern-type <pattern> --topic <topic-name>
 ```
