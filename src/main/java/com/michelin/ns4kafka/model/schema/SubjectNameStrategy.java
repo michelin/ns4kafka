@@ -28,7 +28,7 @@ public enum SubjectNameStrategy {
     TOPIC_RECORD_NAME("io.confluent.kafka.serializers.subject.TopicRecordNameStrategy"),
     RECORD_NAME("io.confluent.kafka.serializers.subject.RecordNameStrategy");
 
-    private static final String STRATEGY_PREFIX = "io.confluent.kafka.serializers.subject.";
+    private static final String STRATEGY_PACKAGE_NAME = "io.confluent.kafka.serializers.subject.";
     private final String value;
 
     /**
@@ -76,7 +76,12 @@ public enum SubjectNameStrategy {
                 .orElseThrow(() -> new IllegalArgumentException("Unknown strategy: " + stringValue));
     }
 
+    /**
+     * Shortens the strategy name by removing the package name.
+     *
+     * @return The shortened strategy name
+     */
     public String toShortName() {
-        return value.replace(STRATEGY_PREFIX, "");
+        return value.replace(STRATEGY_PACKAGE_NAME, "");
     }
 }
