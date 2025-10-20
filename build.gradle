@@ -3,7 +3,7 @@ plugins {
     id("io.micronaut.application") version "4.6.0"
     id("jacoco")
     id("org.sonarqube") version "7.0.0.6105"
-    id("pl.allegro.tech.build.axion-release") version "1.20.1"
+    id("pl.allegro.tech.build.axion-release") version "1.21.0"
     id("com.diffplug.spotless") version "8.0.0"
 }
 
@@ -38,7 +38,7 @@ dependencies {
     implementation("io.swagger.core.v3:swagger-annotations")
     implementation("jakarta.annotation:jakarta.annotation-api")
     implementation("jakarta.validation:jakarta.validation-api")
-    implementation("io.confluent:kafka-schema-registry-client:8.0.2")
+    implementation("io.confluent:kafka-schema-registry-client:8.1.0")
 
     compileOnly("org.projectlombok:lombok")
 
