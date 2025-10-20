@@ -28,44 +28,52 @@ public enum SubjectNameStrategy {
     TOPIC_RECORD_NAME("io.confluent.kafka.serializers.subject.TopicRecordNameStrategy"),
     RECORD_NAME("io.confluent.kafka.serializers.subject.RecordNameStrategy");
 
-    private final String STRATEGY_PREFIX = "io.confluent.kafka.serializers.subject.";
-    public static final SubjectNameStrategy DEFAULT = SubjectNameStrategy.TOPIC_NAME;
-
+    private static final String STRATEGY_PREFIX = "io.confluent.kafka.serializers.subject.";
     private final String value;
 
+    /**
+     * Convert the SubjectNameStrategy to its string representation.
+     *
+     * @return The string representation of the SubjectNameStrategy
+     */
     @Override
     public String toString() {
         return value;
     }
 
     /**
-     * @return The format for subject value (i.e. the SchemaResource metadata name) according to subject name strategy
+     * Convenience method to get the expected format of the subject name according to the strategy.
+     *
+     * @return the expected format of the subject name
      */
     public String toExpectedFormat() {
-        switch (this) {
-            case TOPIC_NAME:
-                return "{topic}-{key|value}";
-            case TOPIC_RECORD_NAME:
-                return "{topic}-{recordName}";
-            case RECORD_NAME:
-                return "{recordName}";
-            default:
-                throw new IllegalArgumentException("Unknown SubjectNameStrategy: " + this);
-        }
+        return switch (this) {
+            case TOPIC_NAME -> "{topic}-{key|value}";
+            case TOPIC_RECORD_NAME -> "{topic}-{recordName}";
+            case RECORD_NAME -> "{recordName}";
+        };
     }
 
     /**
-     * Return SubjectNameStrategy enum value corresponding to confluent's strategy value given as a String
+     * Get the default SubjectNameStrategy.
      *
-     * @param strategyRealValue The value of the strategy as defined in Confluent's documentation e.g.:
-     *     io.confluent.kafka.serializers.subject.TopicNameStrategy
-     * @return SubjectNameStrategy enum value from given confluent's strategy value
+     * @return The default SubjectNameStrategy
      */
-    public static SubjectNameStrategy fromConfigValue(final String strategyRealValue) {
+    public static SubjectNameStrategy defaultStrategy() {
+        return TOPIC_NAME;
+    }
+
+    /**
+     * Get SubjectNameStrategy from its string representation.
+     *
+     * @param stringValue The string representation of the SubjectNameStrategy
+     * @return The SubjectNameStrategy
+     */
+    public static SubjectNameStrategy from(final String stringValue) {
         return Arrays.stream(values())
-                .filter(s -> s.value.equals(strategyRealValue))
+                .filter(s -> s.value.equals(stringValue))
                 .findFirst()
-                .orElseThrow();
+                .orElseThrow(() -> new IllegalArgumentException("Unknown strategy: " + stringValue));
     }
 
     public String toShortName() {

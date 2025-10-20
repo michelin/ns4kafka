@@ -28,6 +28,7 @@ import static com.michelin.ns4kafka.util.config.TopicConfig.*;
 
 import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.model.schema.SubjectNameStrategy;
+import io.micronaut.core.util.CollectionUtils;
 import io.micronaut.core.util.StringUtils;
 import java.util.ArrayList;
 import java.util.List;
@@ -97,33 +98,36 @@ public class TopicValidator extends ResourceValidator {
     }
 
     /**
-     * Get the valid subject name strategies for value and key as defined in the namespace.
+     * Get the authorized subject name strategies for key and value.
      *
-     * @return The valid subject name strategies for value and key
+     * @return The authorized subject name strategies
      */
-    public ValidSubjectNameStrategies getValidSubjectNameStrategies() {
-        List<SubjectNameStrategy> validValueStrategies = List.of(SubjectNameStrategy.DEFAULT);
-        List<SubjectNameStrategy> validKeysStrategies = List.of(SubjectNameStrategy.DEFAULT);
+    public AuthorizedSubjectNameStrategy getAuthorizedSubjectNameStrategies() {
+        final List<SubjectNameStrategy> valueStrategies = extractStrategies(VALUE_SUBJECT_NAME_STRATEGY);
+        final List<SubjectNameStrategy> keyStrategies = extractStrategies(KEY_SUBJECT_NAME_STRATEGY);
 
-        ResourceValidator.Validator valueNamingStrategies =
-                getValidationConstraints().get(VALUE_SUBJECT_NAME_STRATEGY);
-        if (valueNamingStrategies instanceof ResourceValidator.ValidString validString
-                && validString.getValidStrings() != null) {
-            validValueStrategies = validString.getValidStrings().stream()
-                    .map(SubjectNameStrategy::fromConfigValue)
+        return AuthorizedSubjectNameStrategy.builder()
+                .keyStrategies(keyStrategies)
+                .valueStrategies(valueStrategies)
+                .build();
+    }
+
+    /**
+     * Extract subject name strategies from the validation constraints.
+     *
+     * @param configKey The configuration key, either for key or value subject name strategy
+     * @return The list of subject name strategies
+     */
+    private List<SubjectNameStrategy> extractStrategies(String configKey) {
+        ResourceValidator.Validator validator = getValidationConstraints().get(configKey);
+        if (validator instanceof ResourceValidator.ValidString validString
+                && CollectionUtils.isNotEmpty(validString.getValidStrings())) {
+            return validString.getValidStrings().stream()
+                    .map(SubjectNameStrategy::from)
                     .toList();
         }
 
-        ResourceValidator.Validator keyNamingStrategies =
-                getValidationConstraints().get(KEY_SUBJECT_NAME_STRATEGY);
-        if (keyNamingStrategies instanceof ResourceValidator.ValidString validString
-                && validString.getValidStrings() != null) {
-            validKeysStrategies = validString.getValidStrings().stream()
-                    .map(SubjectNameStrategy::fromConfigValue)
-                    .toList();
-        }
-
-        return new ValidSubjectNameStrategies(validValueStrategies, validKeysStrategies);
+        return List.of(SubjectNameStrategy.defaultStrategy());
     }
 
     /**
@@ -166,24 +170,26 @@ public class TopicValidator extends ResourceValidator {
 
         validationConstraints.forEach((key, value) -> {
             try {
-                if (key.equals(PARTITIONS)) {
-                    value.ensureValid(key, topic.getSpec().getPartitions());
-                } else if (key.equals(REPLICATION_FACTOR)) {
-                    value.ensureValid(key, topic.getSpec().getReplicationFactor());
-                } else if (key.equals(VALUE_SUBJECT_NAME_STRATEGY)) {
-                    value.ensureValid(
-                            key, topic.getSpec().getSubjectNameStrategy().toString());
-                } else {
-                    if (topic.getSpec().getConfigs() != null) {
-                        value.ensureValid(key, topic.getSpec().getConfigs().get(key));
-                    } else {
-                        validationErrors.add(invalidFieldValidationNull(key));
+                switch (key) {
+                    case PARTITIONS -> value.ensureValid(key, topic.getSpec().getPartitions());
+                    case REPLICATION_FACTOR ->
+                        value.ensureValid(key, topic.getSpec().getReplicationFactor());
+                    case VALUE_SUBJECT_NAME_STRATEGY ->
+                        value.ensureValid(
+                                key, topic.getSpec().getSubjectNameStrategy().toString());
+                    default -> {
+                        if (topic.getSpec().getConfigs() != null) {
+                            value.ensureValid(key, topic.getSpec().getConfigs().get(key));
+                        } else {
+                            validationErrors.add(invalidFieldValidationNull(key));
+                        }
                     }
                 }
             } catch (FieldValidationException e) {
                 validationErrors.add(e.getMessage());
             }
         });
+
         return validationErrors;
     }
 }
