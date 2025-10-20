@@ -21,19 +21,39 @@ package com.michelin.ns4kafka.validation;
 import com.michelin.ns4kafka.model.schema.SubjectNameStrategy;
 import java.util.List;
 import java.util.stream.Stream;
-import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
 
 /**
  * Valid subject name strategies for value and key. This class is used to validate the subject name strategies for Kafka
  * topics.
  */
-@AllArgsConstructor
-public class ValidSubjectNameStrategies {
-    public List<SubjectNameStrategy> validValueStrategies;
-    public List<SubjectNameStrategy> validKeyStrategies;
+@Getter
+@Builder
+public class AuthorizedSubjectNameStrategy {
+    private List<SubjectNameStrategy> keyStrategies;
+    private List<SubjectNameStrategy> valueStrategies;
 
+    /**
+     * Build default authorized subject name strategies.
+     *
+     * @return The default authorized subject name strategies
+     */
+    public static AuthorizedSubjectNameStrategy defaultStrategies() {
+        return AuthorizedSubjectNameStrategy.builder()
+                .keyStrategies(List.of(SubjectNameStrategy.defaultStrategy()))
+                .valueStrategies(List.of(SubjectNameStrategy.defaultStrategy()))
+                .build();
+    }
+
+    /**
+     * Get all valid subject name strategies (key and value) without duplicates.
+     *
+     * @return List of all valid subject name strategies
+     */
     public List<SubjectNameStrategy> all() {
-        return Stream.concat(validValueStrategies.stream(), validKeyStrategies.stream())
+        return Stream.of(valueStrategies, keyStrategies)
+                .flatMap(List::stream)
                 .distinct()
                 .toList();
     }
