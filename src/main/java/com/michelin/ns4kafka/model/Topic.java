@@ -23,7 +23,6 @@ import static com.michelin.ns4kafka.util.enumation.Kind.TOPIC;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.Nulls;
-import com.michelin.ns4kafka.model.schema.SubjectNameStrategy;
 import io.micronaut.core.annotation.Introspected;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
@@ -74,9 +73,6 @@ public class Topic extends MetadataResource {
     public static class TopicSpec {
         private int replicationFactor;
         private int partitions;
-
-        @Builder.Default
-        private SubjectNameStrategy subjectNameStrategy = SubjectNameStrategy.DEFAULT;
 
         @Builder.Default
         @JsonSetter(nulls = Nulls.AS_EMPTY)
