@@ -18,6 +18,7 @@
  */
 package com.michelin.ns4kafka.service;
 
+import static com.michelin.ns4kafka.model.AccessControlEntry.ResourceType.TOPIC;
 import static com.michelin.ns4kafka.model.schema.Schema.SchemaType.AVRO;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidSchemaReference;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidSchemaResource;
@@ -47,6 +48,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -54,6 +56,9 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @Singleton
 public class SchemaService {
+    private static final String KEY_SCHEMA_SUFFIX = "-key";
+    private static final String VALUE_SCHEMA_SUFFIX = "-value";
+
     @Inject
     private AclService aclService;
 
@@ -67,17 +72,10 @@ public class SchemaService {
      * @return A list of schemas
      */
     public Flux<Schema> findAllForNamespace(Namespace namespace) {
-        List<AccessControlEntry> acls =
-                aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.TOPIC);
-        List<SubjectNameStrategy> namingStrategies =
-                getAuthorizedSubjectNameStrategies(namespace).all();
+        List<AccessControlEntry> acls = aclService.findResourceOwnerGrantedToNamespace(namespace, TOPIC);
         return schemaRegistryClient
                 .getSubjects(namespace.getMetadata().getCluster())
-                .filter(subject -> {
-                    String underlyingTopicName =
-                            extractTopicName(subject, namingStrategies).orElse("");
-                    return aclService.isResourceCoveredByAcls(acls, underlyingTopicName);
-                })
+                .filter(subject -> aclService.isResourceCoveredByAcls(acls, extractResourceNameFromSubject(subject)))
                 .map(subject -> Schema.builder()
                         .metadata(Metadata.builder()
                                 .cluster(namespace.getMetadata().getCluster())
@@ -207,7 +205,7 @@ public class SchemaService {
                     .flatMap(isValid -> {
                         List<String> validationErrors = new ArrayList<>();
 
-                        if (!isValid) {
+                        if (Boolean.FALSE.equals(isValid)) {
                             validationErrors.add(invalidSchemaSubjectName(
                                     schema.getMetadata().getName(), authorizedStrategies.all()));
                         }
@@ -356,17 +354,19 @@ public class SchemaService {
     /**
      * Does the namespace is owner of the given schema.
      *
+     * <p>For topic name strategy and topic record name strategy, the validation is done against the topic name.
+     *
+     * <p>For record name strategy, the validation is done against the record name. This requires having a prefixed ACL
+     * with a dot (e.g., "abc.") to cover the record name "abc.package.name.MyRecord". There's probably a better way to
+     * handle this.
+     *
      * @param namespace The namespace
      * @param subjectName The name of the subject
      * @return true if it's owner, false otherwise
      */
     public boolean isNamespaceOwnerOfSubject(Namespace namespace, String subjectName) {
-        List<SubjectNameStrategy> namingStrategies =
-                getAuthorizedSubjectNameStrategies(namespace).all();
-        String underlyingTopicName =
-                extractTopicName(subjectName, namingStrategies).orElse("");
         return aclService.isNamespaceOwnerOfResource(
-                namespace.getMetadata().getName(), AccessControlEntry.ResourceType.TOPIC, underlyingTopicName);
+                namespace.getMetadata().getName(), TOPIC, extractResourceNameFromSubject(subjectName));
     }
 
     /**
@@ -447,7 +447,9 @@ public class SchemaService {
      * @return A list of valid subject name strategies
      */
     private AuthorizedSubjectNameStrategy getAuthorizedSubjectNameStrategies(Namespace namespace) {
-        if (namespace.getSpec().getTopicValidator() != null) {
+        if (namespace.getSpec().getTopicValidator() != null
+                && CollectionUtils.isNotEmpty(
+                        namespace.getSpec().getTopicValidator().getValidationConstraints())) {
             return namespace.getSpec().getTopicValidator().getAuthorizedSubjectNameStrategies();
         }
 
@@ -456,7 +458,9 @@ public class SchemaService {
 
     /**
      * Validate the subject name of a schema according to the allowed strategies. If the schema is a key schema (i.e.
-     * subject name ends with -key), only the key strategies are considered. Otherwise, all strategies are considered.
+     * subject name ends with -key), only the key strategies are considered. If the schema is a value schema (i.e.
+     * subject name ends with -value), only the value strategies are considered. Otherwise, all strategies are
+     * considered.
      *
      * @param namespace The namespace
      * @param schema The schema
@@ -465,8 +469,14 @@ public class SchemaService {
      */
     public Mono<Boolean> validateSubjectStrategy(
             Namespace namespace, Schema schema, AuthorizedSubjectNameStrategy authorizedStrategies) {
-        if (schema.getMetadata().getName().endsWith("-key")) {
+        if (schema.getMetadata().getName().endsWith(KEY_SCHEMA_SUFFIX)) {
             return Flux.fromIterable(authorizedStrategies.getKeyStrategies())
+                    .flatMap(strategy -> matchesStrategy(namespace, strategy, schema))
+                    .any(matches -> matches);
+        }
+
+        if (schema.getMetadata().getName().endsWith(VALUE_SCHEMA_SUFFIX)) {
+            return Flux.fromIterable(authorizedStrategies.getValueStrategies())
                     .flatMap(strategy -> matchesStrategy(namespace, strategy, schema))
                     .any(matches -> matches);
         }
@@ -494,12 +504,13 @@ public class SchemaService {
         }
 
         return switch (strategy) {
-            case TOPIC_NAME -> Mono.just(subjectName.endsWith("-key") || subjectName.endsWith("-value"));
+            case TOPIC_NAME ->
+                Mono.just(subjectName.endsWith(KEY_SCHEMA_SUFFIX) || subjectName.endsWith(VALUE_SCHEMA_SUFFIX));
             case RECORD_NAME ->
                 extractRecordName(namespace, schema).map(subjectName::equals).defaultIfEmpty(false);
             case TOPIC_RECORD_NAME ->
                 extractRecordName(namespace, schema)
-                        .map(recordName -> recordName.equals(subjectName) && subjectName.endsWith("-" + recordName))
+                        .map(recordName -> subjectName.endsWith("-" + recordName))
                         .defaultIfEmpty(false);
         };
     }
@@ -512,8 +523,7 @@ public class SchemaService {
      * @return The record name if it can be determined
      */
     public Mono<String> extractRecordName(Namespace namespace, Schema schema) {
-        if (schema.getSpec().getSchema() == null
-                || schema.getSpec().getSchema().trim().isEmpty()) {
+        if (StringUtils.isBlank(schema.getSpec().getSchema())) {
             return Mono.empty();
         }
 
@@ -527,40 +537,25 @@ public class SchemaService {
     }
 
     /**
-     * Extracts the topic name from a subject name based on the naming strategy.
+     * From a subject that could be named with any strategy, extract the resource name to validate ownership. For topic
+     * name strategy and topic record name strategy, the resource name is the topic name. For record name strategy, the
+     * resource name is the record name.
      *
-     * @param subjectName The subject name (assumed to be not empty)
-     * @param strategy The naming strategy
-     * @return The topic name if it can be determined
-     */
-    public static Optional<String> extractTopicName(String subjectName, SubjectNameStrategy strategy) {
-        switch (strategy) {
-            case TOPIC_NAME:
-                return Optional.of(subjectName.replaceAll("(-key|-value)$", ""));
-            case TOPIC_RECORD_NAME:
-                int indexOfLastDash = subjectName.lastIndexOf("-");
-                return (indexOfLastDash == -1)
-                        ? Optional.empty()
-                        : Optional.of(subjectName.substring(0, indexOfLastDash));
-            default:
-                return Optional.empty();
-        }
-    }
-
-    /**
-     * Extracts the topic name from a subject name according to the allowed strategies.
-     *
-     * @param subjectName The subject name (assumed to be not empty)
-     * @param strategies The list of strategies to try
+     * @param subject The subject
      * @return The topic name if it can be determined by any of the strategies
      */
-    public static Optional<String> extractTopicName(String subjectName, List<SubjectNameStrategy> strategies) {
-        for (SubjectNameStrategy strategy : strategies) {
-            Optional<String> topicName = extractTopicName(subjectName, strategy);
-            if (topicName.isPresent()) {
-                return topicName;
-            }
+    public String extractResourceNameFromSubject(String subject) {
+        // Topic name strategy
+        if (subject.endsWith(KEY_SCHEMA_SUFFIX) || subject.endsWith(VALUE_SCHEMA_SUFFIX)) {
+            return subject.replaceAll("(-key|-value)$", "");
         }
-        return Optional.empty();
+
+        // Record name strategy
+        if (!subject.contains("-")) {
+            return subject;
+        }
+
+        // Topic record name strategy
+        return subject.substring(0, subject.lastIndexOf("-"));
     }
 }

@@ -174,9 +174,6 @@ public class TopicValidator extends ResourceValidator {
                     case PARTITIONS -> value.ensureValid(key, topic.getSpec().getPartitions());
                     case REPLICATION_FACTOR ->
                         value.ensureValid(key, topic.getSpec().getReplicationFactor());
-                    case VALUE_SUBJECT_NAME_STRATEGY ->
-                        value.ensureValid(
-                                key, topic.getSpec().getSubjectNameStrategy().toString());
                     default -> {
                         if (topic.getSpec().getConfigs() != null) {
                             value.ensureValid(key, topic.getSpec().getConfigs().get(key));
