@@ -41,6 +41,36 @@ ns4kafka:
           alter-quotas: 15008
           alter-scram-credentials: 15009
           describe-quotas: 15010
+    test-cluster-confluent-cloud:
+      config:
+        bootstrap.servers: "localhost:9092"
+        sasl.jaas.config: "org.apache.kafka.common.security.plain.PlainLoginModule\
+          \ required username=\"admin\" password=\"admin\";"
+        sasl.mechanism: "PLAIN"
+        security.protocol: "SASL_PLAINTEXT"
+      connects:
+        test-connect:
+          url: "localhost:8083"
+      manage-acls: true
+      manage-connectors: true
+      manage-topics: true
+      manage-users: true
+      provider: "CONFLUENT_CLOUD"
+      timeout:
+        acl:
+          create: 15000
+          delete: 15001
+          describe: 15002
+        topic:
+          alter-configs: 15003
+          create: 15004
+          delete: 15006
+          describe-configs: 15005
+          list: 15007
+        user:
+          alter-quotas: 15008
+          alter-scram-credentials: 15009
+          describe-quotas: 15010
   security:
     admin-group: "adminGroup"
     local-users:

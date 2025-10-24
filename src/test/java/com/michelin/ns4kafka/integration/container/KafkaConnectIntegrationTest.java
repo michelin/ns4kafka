@@ -74,6 +74,8 @@ public abstract class KafkaConnectIntegrationTest extends KafkaIntegrationTest {
 
         Map<String, String> properties = new HashMap<>(brokerProperties);
         properties.put("ns4kafka.managed-clusters.test-cluster.connects.test-connect.url", getConnectUrl());
+        properties.put(
+                "ns4kafka.managed-clusters.test-cluster-confluent-cloud.connects.test-connect.url", getConnectUrl());
         return properties;
     }
 
