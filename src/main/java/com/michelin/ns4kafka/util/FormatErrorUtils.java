@@ -681,10 +681,8 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidSchemaSubjectName(String subjectName, List<SubjectNameStrategy> strategies) {
-        String formattedStrategies = strategies
-                .stream()
-                .map(SubjectNameStrategy::toShortName)
-                .collect(Collectors.joining(", "));
+        String formattedStrategies =
+                strategies.stream().map(SubjectNameStrategy::toShortName).collect(Collectors.joining(", "));
 
         return String.format(
                 INVALID_FIELD,
