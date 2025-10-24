@@ -23,6 +23,7 @@ import static com.michelin.ns4kafka.util.config.TopicConfig.KEY_SUBJECT_NAME_STR
 import static com.michelin.ns4kafka.util.config.TopicConfig.VALUE_SUBJECT_NAME_STRATEGY;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.verify;
@@ -451,11 +452,15 @@ class SchemaServiceTest {
     void shouldNamespaceBeOwnerOfSchema() {
         Namespace ns = buildNamespace();
         when(aclService.isNamespaceOwnerOfResource(
-                        "myNamespace", AccessControlEntry.ResourceType.TOPIC, "prefix.schema-one"))
+                        eq("myNamespace"),
+                        eq(AccessControlEntry.ResourceType.TOPIC),
+                        argThat(arg -> arg.equals("prefix.schema-one") || arg.equals("com.michelin.User"))))
                 .thenReturn(true);
 
         assertTrue(schemaService.isNamespaceOwnerOfSubject(ns, "prefix.schema-one-key"));
         assertTrue(schemaService.isNamespaceOwnerOfSubject(ns, "prefix.schema-one-value"));
+        assertTrue(schemaService.isNamespaceOwnerOfSubject(ns, "prefix.schema-one-com.michelin.User"));
+        assertTrue(schemaService.isNamespaceOwnerOfSubject(ns, "com.michelin.User"));
     }
 
     @Test

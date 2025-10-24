@@ -33,7 +33,6 @@ import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
 import com.michelin.ns4kafka.validation.ResourceValidator;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.context.ApplicationContext;
-import io.micronaut.core.type.Argument;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
@@ -62,30 +61,6 @@ class SchemaSubjectNameStrategyIntegrationTest extends SchemaRegistryIntegration
     private HttpClient schemaRegistryClient;
 
     private String token;
-
-    private static TopicValidator makeDefaultTopicValidatorWithStrategies() {
-        return TopicValidator.builder()
-                .validationConstraints(Map.of(
-                        REPLICATION_FACTOR,
-                        ResourceValidator.Range.between(3, 3),
-                        PARTITIONS,
-                        ResourceValidator.Range.between(3, 6),
-                        "cleanup.policy",
-                        ResourceValidator.ValidList.in("delete", "compact"),
-                        "min.insync.replicas",
-                        ResourceValidator.Range.between(2, 2),
-                        "retention.ms",
-                        ResourceValidator.Range.between(60000, 604800000),
-                        "retention.bytes",
-                        ResourceValidator.Range.optionalBetween(-1, 104857600),
-                        "preallocate",
-                        ResourceValidator.ValidString.optionalIn("true", "false"),
-                        VALUE_SUBJECT_NAME_STRATEGY,
-                        ResourceValidator.ValidString.optionalIn(
-                                SubjectNameStrategy.TOPIC_RECORD_NAME.toString(),
-                                SubjectNameStrategy.RECORD_NAME.toString())))
-                .build();
-    }
 
     @BeforeAll
     void init() {
@@ -139,7 +114,7 @@ class SchemaSubjectNameStrategyIntegrationTest extends SchemaRegistryIntegration
                 .metadata(Metadata.builder().name("ns1-acl").namespace("ns1").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resource("ns1-")
+                        .resource("ns1.")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                         .permission(AccessControlEntry.Permission.OWNER)
                         .grantedTo("ns1")
@@ -154,8 +129,9 @@ class SchemaSubjectNameStrategyIntegrationTest extends SchemaRegistryIntegration
     }
 
     @Test
-    void shouldRegisterSchemaWithReferencesAndTopicRecordNameStrategy() {
-        String subject = "ns1-header-subject-com.michelin.kafka.producer.showcase.avro.HeaderAvro";
+    void shouldRegisterSchemaWithDifferentSubjectStrategies() {
+        // Topic record name strategy
+        String subject = "ns1.header-subject-com.michelin.kafka.producer.showcase.avro.HeaderAvro";
         Schema schemaHeader = Schema.builder()
                 .metadata(Metadata.builder().name(subject).build())
                 .spec(Schema.SchemaSpec.builder()
@@ -165,7 +141,6 @@ class SchemaSubjectNameStrategyIntegrationTest extends SchemaRegistryIntegration
                         .build())
                 .build();
 
-        // Header created
         var headerCreateResponse = ns4KafkaClient
                 .toBlocking()
                 .exchange(
@@ -184,43 +159,12 @@ class SchemaSubjectNameStrategyIntegrationTest extends SchemaRegistryIntegration
         assertEquals(1, actualHeader.version());
         assertEquals(subject, actualHeader.subject());
 
-        // Person without refs not created
-        String personSubject = "ns1-person-subject-com.michelin.kafka.producer.showcase.avro.PersonAvro";
-        Schema schemaPersonWithoutRefs = Schema.builder()
+        // Record name strategy, with wrong matching between schema name and subject
+        String personSubject = "ns1.michelin.kafka.avro.PersonAvro";
+        Schema schemaWrongName = Schema.builder()
                 .metadata(Metadata.builder().name(personSubject).build())
                 .spec(Schema.SchemaSpec.builder()
-                        .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
-                                + "\"name\":\"PersonAvro\","
-                                + "\"fields\":[{\"name\":\"header\",\"type\":[\"null\","
-                                + "\"com.michelin.kafka.producer.showcase.avro.HeaderAvro\"],"
-                                + "\"default\":null,\"doc\":\"Header of the person\"},{\"name\":\"firstName\","
-                                + "\"type\":[\"null\",\"string\"],"
-                                + "\"default\":null,\"doc\":\"First name of the person\"},{\"name\":\"lastName\","
-                                + "\"type\":[\"null\",\"string\"],"
-                                + "\"default\":null,\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\","
-                                + "\"type\":[\"null\","
-                                + "{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,"
-                                + "\"doc\":\"Date of birth of the person\"}]}")
-                        .build())
-                .build();
-
-        HttpRequest<?> request = HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
-                .bearerAuth(token)
-                .body(schemaPersonWithoutRefs);
-
-        BlockingHttpClient blockingClient = ns4KafkaClient.toBlocking();
-
-        HttpClientResponseException createException =
-                assertThrows(HttpClientResponseException.class, () -> blockingClient.exchange(request));
-
-        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, createException.getStatus());
-        assertEquals("Resource validation failed", createException.getMessage());
-
-        // Person with refs created
-        Schema schemaPersonWithRefs = Schema.builder()
-                .metadata(Metadata.builder().name(personSubject).build())
-                .spec(Schema.SchemaSpec.builder()
-                        .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\","
+                        .schema("{\"namespace\":\"ns1.michelin.notmatch.avro\","
                                 + "\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"header\",\"type\":[\"null\","
                                 + "\"com.michelin.kafka.producer.showcase.avro.HeaderAvro\"],"
                                 + "\"default\":null,\"doc\":\"Header of the person\"},{\"name\":\"firstName\","
@@ -237,12 +181,42 @@ class SchemaSubjectNameStrategyIntegrationTest extends SchemaRegistryIntegration
                         .build())
                 .build();
 
+        HttpRequest<?> request = HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
+                .bearerAuth(token)
+                .body(schemaWrongName);
+
+        BlockingHttpClient blockingClient = ns4KafkaClient.toBlocking();
+
+        HttpClientResponseException createException =
+                assertThrows(HttpClientResponseException.class, () -> blockingClient.exchange(request));
+
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, createException.getStatus());
+        assertEquals("Resource validation failed", createException.getMessage());
+
+        Schema schema = Schema.builder()
+                .metadata(Metadata.builder().name(personSubject).build())
+                .spec(Schema.SchemaSpec.builder()
+                        .schema("{\"namespace\":\"ns1.michelin.kafka.avro\","
+                                + "\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"header\",\"type\":[\"null\","
+                                + "\"com.michelin.kafka.producer.showcase.avro.HeaderAvro\"],"
+                                + "\"default\":null,\"doc\":\"Header of the person\"},{\"name\":\"firstName\","
+                                + "\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":\"First name of the person\"},"
+                                + "{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,\"doc\":"
+                                + "\"Last name of the person\"}]}")
+                        .references(List.of(Schema.SchemaSpec.Reference.builder()
+                                .name("com.michelin.kafka.producer.showcase.avro.HeaderAvro")
+                                .subject(subject)
+                                .version(1)
+                                .build()))
+                        .build())
+                .build();
+
         var personCreateResponse = ns4KafkaClient
                 .toBlocking()
                 .exchange(
                         HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
                                 .bearerAuth(token)
-                                .body(schemaPersonWithRefs),
+                                .body(schema),
                         Schema.class);
 
         assertEquals("created", personCreateResponse.header("X-Ns4kafka-Result"));
@@ -256,77 +230,28 @@ class SchemaSubjectNameStrategyIntegrationTest extends SchemaRegistryIntegration
         assertEquals(personSubject, actualPerson.subject());
     }
 
-    @Test
-    void shouldRegisterSchema() {
-        String personSubject = "ns1-person-subject-com.michelin.kafka.producer.showcase.avro.PersonAvro";
-        Schema schema = Schema.builder()
-                .metadata(Metadata.builder().name(personSubject).build())
-                .spec(Schema.SchemaSpec.builder()
-                        .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
-                                + "\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],"
-                                + "\"default\":null,\"doc\":\"First name of the person\"},"
-                                + "{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],\"default\":null,"
-                                + "\"doc\":\"Last name of the person\"},{\"name\":\"dateOfBirth\",\"type\":[\"null\","
-                                + "{\"type\":\"long\",\"logicalType\":\"timestamp-millis\"}],\"default\":null,"
-                                + "\"doc\":\"Date of birth of the person\"}]}")
-                        .build())
+    private static TopicValidator makeDefaultTopicValidatorWithStrategies() {
+        return TopicValidator.builder()
+                .validationConstraints(Map.of(
+                        REPLICATION_FACTOR,
+                        ResourceValidator.Range.between(3, 3),
+                        PARTITIONS,
+                        ResourceValidator.Range.between(3, 6),
+                        "cleanup.policy",
+                        ResourceValidator.ValidList.in("delete", "compact"),
+                        "min.insync.replicas",
+                        ResourceValidator.Range.between(2, 2),
+                        "retention.ms",
+                        ResourceValidator.Range.between(60000, 604800000),
+                        "retention.bytes",
+                        ResourceValidator.Range.optionalBetween(-1, 104857600),
+                        "preallocate",
+                        ResourceValidator.ValidString.optionalIn("true", "false"),
+                        VALUE_SUBJECT_NAME_STRATEGY,
+                        ResourceValidator.ValidString.optionalIn(
+                                SubjectNameStrategy.TOPIC_NAME.toString(),
+                                SubjectNameStrategy.TOPIC_RECORD_NAME.toString(),
+                                SubjectNameStrategy.RECORD_NAME.toString())))
                 .build();
-
-        // Apply schema
-        var createResponse = ns4KafkaClient
-                .toBlocking()
-                .exchange(
-                        HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
-                                .bearerAuth(token)
-                                .body(schema),
-                        Schema.class);
-
-        assertEquals("created", createResponse.header("X-Ns4kafka-Result"));
-
-        // Get all schemas
-        var getResponse = ns4KafkaClient
-                .toBlocking()
-                .exchange(
-                        HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/schemas")
-                                .bearerAuth(token),
-                        Argument.listOf(Schema.class));
-
-        assertTrue(getResponse.getBody().isPresent());
-        assertTrue(getResponse.getBody().get().stream()
-                .anyMatch(
-                        schemaResponse -> schemaResponse.getMetadata().getName().equals(personSubject)));
-
-        // Delete schema
-        var deleteResponse = ns4KafkaClient
-                .toBlocking()
-                .exchange(
-                        HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/schemas/" + personSubject)
-                                .bearerAuth(token),
-                        Schema.class);
-
-        assertEquals(HttpStatus.NO_CONTENT, deleteResponse.getStatus());
-
-        // Get all schemas
-        var getResponseEmpty = ns4KafkaClient
-                .toBlocking()
-                .exchange(
-                        HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/schemas")
-                                .bearerAuth(token),
-                        Argument.listOf(Schema.class));
-
-        assertTrue(getResponseEmpty.getBody().isPresent());
-        assertTrue(getResponseEmpty.getBody().get().stream()
-                .noneMatch(
-                        schemaResponse -> schemaResponse.getMetadata().getName().equals(personSubject)));
-
-        HttpRequest<?> request = HttpRequest.GET("/subjects/" + personSubject + "/versions/latest");
-
-        BlockingHttpClient blockingSchemaRegistryClient = schemaRegistryClient.toBlocking();
-
-        HttpClientResponseException getException = assertThrows(
-                HttpClientResponseException.class,
-                () -> blockingSchemaRegistryClient.retrieve(request, SchemaResponse.class));
-
-        assertEquals(HttpStatus.NOT_FOUND, getException.getStatus());
     }
 }

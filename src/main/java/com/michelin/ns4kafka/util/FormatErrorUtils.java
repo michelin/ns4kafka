@@ -681,15 +681,16 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidSchemaSubjectName(String subjectName, List<SubjectNameStrategy> strategies) {
-        String strategiesString =
-                strategies.stream().map(SubjectNameStrategy::toShortName).collect(Collectors.joining(" or "));
-        String formatsString =
-                strategies.stream().map(SubjectNameStrategy::toExpectedFormat).collect(Collectors.joining(" or "));
+        String formattedStrategies = strategies
+                .stream()
+                .map(SubjectNameStrategy::toShortName)
+                .collect(Collectors.joining(", "));
+
         return String.format(
                 INVALID_FIELD,
                 subjectName,
                 FIELD_NAME,
-                String.format("value must follow %s with format %s", strategiesString, formatsString));
+                String.format("value must follow authorized strategies: %s", formattedStrategies));
     }
 
     /**
