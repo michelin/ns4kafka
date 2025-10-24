@@ -202,22 +202,15 @@ public class SchemaService {
         return Mono.defer(() -> {
             AuthorizedSubjectNameStrategy authorizedStrategies = getAuthorizedSubjectNameStrategies(namespace);
             return validateSubjectStrategy(namespace, schema, authorizedStrategies)
-                    .flatMap(isValid -> {
-                        List<String> validationErrors = new ArrayList<>();
-
-                        if (Boolean.FALSE.equals(isValid)) {
-                            validationErrors.add(invalidSchemaSubjectName(
-                                    schema.getMetadata().getName(), authorizedStrategies.all()));
+                    .flatMap(errors -> {
+                        if (CollectionUtils.isEmpty(schema.getSpec().getReferences())) {
+                            return Mono.just(errors);
                         }
 
-                        if (!CollectionUtils.isEmpty(schema.getSpec().getReferences())) {
-                            return validateReferences(namespace, schema).map(referenceErrors -> {
-                                validationErrors.addAll(referenceErrors);
-                                return validationErrors;
-                            });
-                        }
-
-                        return Mono.just(validationErrors);
+                        return validateReferences(namespace, schema).map(referenceErrors -> {
+                            errors.addAll(referenceErrors);
+                            return errors;
+                        });
                     });
         });
     }
@@ -465,25 +458,51 @@ public class SchemaService {
      * @param namespace The namespace
      * @param schema The schema
      * @param authorizedStrategies The valid subject name strategies
-     * @return Mono of true if the subject name is valid, false otherwise
+     * @return A list of errors
      */
-    public Mono<Boolean> validateSubjectStrategy(
+    private Mono<List<String>> validateSubjectStrategy(
             Namespace namespace, Schema schema, AuthorizedSubjectNameStrategy authorizedStrategies) {
+        List<String> errors = new ArrayList<>();
+
         if (schema.getMetadata().getName().endsWith(KEY_SCHEMA_SUFFIX)) {
             return Flux.fromIterable(authorizedStrategies.getKeyStrategies())
                     .flatMap(strategy -> matchesStrategy(namespace, strategy, schema))
-                    .any(matches -> matches);
+                    .any(matches -> matches)
+                    .map(valid -> {
+                        if (Boolean.FALSE.equals(valid)) {
+                            errors.add(invalidSchemaSubjectName(
+                                    schema.getMetadata().getName(), authorizedStrategies.getKeyStrategies()));
+                        }
+
+                        return errors;
+                    });
         }
 
         if (schema.getMetadata().getName().endsWith(VALUE_SCHEMA_SUFFIX)) {
             return Flux.fromIterable(authorizedStrategies.getValueStrategies())
                     .flatMap(strategy -> matchesStrategy(namespace, strategy, schema))
-                    .any(matches -> matches);
+                    .any(matches -> matches)
+                    .map(valid -> {
+                        if (Boolean.FALSE.equals(valid)) {
+                            errors.add(invalidSchemaSubjectName(
+                                    schema.getMetadata().getName(), authorizedStrategies.getValueStrategies()));
+                        }
+
+                        return errors;
+                    });
         }
 
         return Flux.fromIterable(authorizedStrategies.all())
                 .flatMap(strategy -> matchesStrategy(namespace, strategy, schema))
-                .any(matches -> matches);
+                .any(matches -> matches)
+                .map(valid -> {
+                    if (Boolean.FALSE.equals(valid)) {
+                        errors.add(invalidSchemaSubjectName(
+                                schema.getMetadata().getName(), authorizedStrategies.all()));
+                    }
+
+                    return errors;
+                });
     }
 
     /**
