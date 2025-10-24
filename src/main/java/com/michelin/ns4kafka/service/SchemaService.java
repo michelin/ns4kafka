@@ -29,6 +29,7 @@ import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.schema.Schema;
 import com.michelin.ns4kafka.model.schema.SubjectNameStrategy;
+import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityRequest;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityResponse;
@@ -70,6 +71,9 @@ public class SchemaService {
         this.aclService = aclService;
         this.schemaRegistryClient = schemaRegistryClient;
     }
+
+    @Inject
+    private List<ManagedClusterProperties> managedClusterProperties;
 
     /**
      * Get all the schemas of a given namespace.
@@ -440,13 +444,23 @@ public class SchemaService {
     }
 
     /**
-     * Get the authorized subject name strategies for a namespace.
+     * Get the authorized subject name strategies for a namespace. For Confluent Cloud clusters, it retrieves the
+     * strategies from the namespace topic validator if defined. For self-managed clusters, it returns the default
+     * strategies.
      *
      * @param namespace The namespace
      * @return A list of valid subject name strategies
      */
     private AuthorizedSubjectNameStrategy getAuthorizedSubjectNameStrategies(Namespace namespace) {
-        if (namespace.getSpec().getTopicValidator() != null
+        Optional<ManagedClusterProperties> topicCluster = managedClusterProperties.stream()
+                .filter(cluster -> namespace.getMetadata().getCluster().equals(cluster.getName()))
+                .findFirst();
+
+        boolean isConfluentCloud =
+                topicCluster.isPresent() && topicCluster.get().isConfluentCloud();
+
+        if (isConfluentCloud
+                && namespace.getSpec().getTopicValidator() != null
                 && CollectionUtils.isNotEmpty(
                         namespace.getSpec().getTopicValidator().getValidationConstraints())) {
             return namespace.getSpec().getTopicValidator().getAuthorizedSubjectNameStrategies();
@@ -503,8 +517,8 @@ public class SchemaService {
                 .any(matches -> matches)
                 .map(valid -> {
                     if (Boolean.FALSE.equals(valid)) {
-                        errors.add(invalidSchemaSubjectName(
-                                schema.getMetadata().getName(), authorizedStrategies.all()));
+                        errors.add(
+                                invalidSchemaSubjectName(schema.getMetadata().getName(), authorizedStrategies.all()));
                     }
 
                     return errors;

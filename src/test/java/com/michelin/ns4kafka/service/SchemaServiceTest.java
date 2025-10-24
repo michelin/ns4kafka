@@ -33,6 +33,7 @@ import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.schema.Schema;
+import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityCheckResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityResponse;
@@ -56,14 +57,17 @@ import reactor.test.StepVerifier;
 
 @ExtendWith(MockitoExtension.class)
 class SchemaServiceTest {
-    @InjectMocks
-    SchemaService schemaService;
+    @Mock
+    List<ManagedClusterProperties> managedClusterProperties;
 
     @Mock
     AclService aclService;
 
     @Mock
     SchemaRegistryClient schemaRegistryClient;
+
+    @InjectMocks
+    SchemaService schemaService;
 
     @Test
     void shouldListSchemasWithoutParameter() {
@@ -480,8 +484,8 @@ class SchemaServiceTest {
     }
 
     @ParameterizedTest
-    @MethodSource("provideStrategyAndSubjectCombinations")
-    void shouldVerifySubjectCompatibility(
+    @MethodSource("subjectStrategiesForConfluentCloud")
+    void shouldVerifySubjectCompatibilityOnConfluentCloud(
             Map<String, ResourceValidator.Validator> validators,
             String subjectName,
             String schemaContent,
@@ -510,6 +514,47 @@ class SchemaServiceTest {
                 .build();
         SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
 
+        when(managedClusterProperties.stream())
+                .thenReturn(Stream.of(
+                        new ManagedClusterProperties("local", ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD)));
+        when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(), "header-value", "1"))
+                .thenReturn(Mono.just(buildSchemaResponse("subject-reference")));
+        when(schemaRegistryClient.getCurrentCompatibilityBySubject(any(), any()))
+                .thenReturn(Mono.just(compatibilityResponse));
+
+        StepVerifier.create(schemaService.validateSchema(namespace, schema))
+                .consumeNextWith(errors -> assertEquals(expectedResult, errors.isEmpty()))
+                .verifyComplete();
+    }
+
+    @ParameterizedTest
+    @MethodSource("subjectStrategiesForSelfManaged")
+    void shouldVerifySubjectCompatibilityOnSelfManaged(
+            String subjectName, String schemaContent, boolean expectedResult) {
+        Namespace namespace = Namespace.builder()
+                .metadata(
+                        Metadata.builder().name("myNamespace").cluster("local").build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .topicValidator(TopicValidator.makeDefault())
+                        .build())
+                .build();
+
+        Schema schema = Schema.builder()
+                .metadata(Metadata.builder().name(subjectName).build())
+                .spec(Schema.SchemaSpec.builder()
+                        .schema(schemaContent)
+                        .references(List.of(Schema.SchemaSpec.Reference.builder()
+                                .name("HeaderAvro")
+                                .subject("header-value")
+                                .version(1)
+                                .build()))
+                        .build())
+                .build();
+        SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
+
+        when(managedClusterProperties.stream())
+                .thenReturn(Stream.of(
+                        new ManagedClusterProperties("local", ManagedClusterProperties.KafkaProvider.SELF_MANAGED)));
         when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(), "header-value", "1"))
                 .thenReturn(Mono.just(buildSchemaResponse("subject-reference")));
         when(schemaRegistryClient.getCurrentCompatibilityBySubject(any(), any()))
@@ -744,7 +789,7 @@ class SchemaServiceTest {
                         "abc.topic-name-com.michelin.kafka.producer.showcase.avro.PersonAvro"));
     }
 
-    private static Stream<Arguments> provideStrategyAndSubjectCombinations() {
+    private static Stream<Arguments> subjectStrategiesForConfluentCloud() {
         Map<String, ResourceValidator.Validator> defaultKeyTopicNameStrategy = Map.of(
                 KEY_SUBJECT_NAME_STRATEGY,
                 ResourceValidator.ValidString.optionalIn(defaultStrategy().toString()));
@@ -834,6 +879,36 @@ class SchemaServiceTest {
                 Arguments.of(
                         defaultValueTopicRecordNameStrategy,
                         "abc.topic-name-org.sample.LoginEvent",
+                        "{\"name\":\"User\",\"namespace\":\"com.example\",\"type\":\"record\",\"fields\":[]}",
+                        false));
+    }
+
+    private static Stream<Arguments> subjectStrategiesForSelfManaged() {
+        return Stream.of(
+                // Invalid: Missing -key suffix
+                Arguments.of("abc.topic-name-missingpart", "{\"name\":\"User\"}", false),
+                // Invalid: Missing -value suffix
+                Arguments.of("abc.topic-name-missingpart", "{\"name\":\"User\"}", false),
+                // Valid: Value strategy set to topic name strategy by default
+                Arguments.of("abc.topic-name-value", "{\"name\":\"User\"}", true),
+                // Valid: Key strategy set to topic name strategy by default
+                Arguments.of("abc.topic-name-key", "{\"name\":\"User\"}", true),
+                // Valid: No strategy defined, default to topic name strategy
+                Arguments.of("abc.topic-name-key", "{\"name\":\"User\"}", true),
+                // Valid: No strategy defined, default to topic name strategy
+                Arguments.of("abc.topic-name-value", "{\"name\":\"User\"}", true),
+                // Valid: Key subject with topic name strategy
+                Arguments.of("abc.topic-name-key", "{\"name\":\"User\"}", true),
+                // Valid: Value subject with topic name strategy
+                Arguments.of("abc.topic-name-value", "{\"name\":\"User\"}", true),
+                // Invalid: Wrong strategy for given subject
+                Arguments.of(
+                        "com.example.User",
+                        "{\"name\":\"User\",\"namespace\":\"com.example\",\"type\":\"record\",\"fields\":[]}",
+                        false),
+                // Valid: Key subject with topic record name strategy
+                Arguments.of(
+                        "abc.topic-name-com.example.User",
                         "{\"name\":\"User\",\"namespace\":\"com.example\",\"type\":\"record\",\"fields\":[]}",
                         false));
     }
