@@ -68,7 +68,10 @@ class SchemaSubjectNameStrategyIntegrationTest extends SchemaRegistryIntegration
         schemaRegistryClient = applicationContext.createBean(HttpClient.class, getSchemaRegistryUrl());
 
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder().name("ns1").cluster("test-cluster").build())
+                .metadata(Metadata.builder()
+                        .name("ns1")
+                        .cluster("test-cluster-confluent-cloud")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .kafkaUser("user1")
                         .topicValidator(makeDefaultTopicValidatorWithStrategies())
