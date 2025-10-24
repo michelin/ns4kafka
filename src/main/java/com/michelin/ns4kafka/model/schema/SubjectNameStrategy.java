@@ -42,19 +42,6 @@ public enum SubjectNameStrategy {
     }
 
     /**
-     * Convenience method to get the expected format of the subject name according to the strategy.
-     *
-     * @return the expected format of the subject name
-     */
-    public String toExpectedFormat() {
-        return switch (this) {
-            case TOPIC_NAME -> "{topic}-{key|value}";
-            case TOPIC_RECORD_NAME -> "{topic}-{recordName}";
-            case RECORD_NAME -> "{recordName}";
-        };
-    }
-
-    /**
      * Get the default SubjectNameStrategy.
      *
      * @return The default SubjectNameStrategy
