@@ -30,4 +30,5 @@ import lombok.Builder;
  */
 @Builder
 public record ConnectorSpecs(
-        @JsonAnyGetter @JsonInclude(value = JsonInclude.Include.NON_ABSENT) Map<String, String> config) {}
+        @JsonAnyGetter @JsonInclude(value = JsonInclude.Include.NON_ABSENT)
+        Map<String, String> config) {}
