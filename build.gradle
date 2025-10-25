@@ -115,7 +115,7 @@ test {
 spotless {
     java {
         target "src/main/java/**/*.java", "src/test/java/**/*.java"
-        palantirJavaFormat("2.58.0").style("PALANTIR").formatJavadoc(true)
+        palantirJavaFormat("2.81.0").style("PALANTIR").formatJavadoc(true)
         removeUnusedImports()
         formatAnnotations()
         importOrder()

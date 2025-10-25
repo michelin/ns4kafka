@@ -27,4 +27,5 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @param configValue Config value
  */
 public record ConfigInfo(
-        @JsonProperty("definition") ConfigKeyInfo configKey, @JsonProperty("value") ConfigValueInfo configValue) {}
+        @JsonProperty("definition") ConfigKeyInfo configKey,
+        @JsonProperty("value") ConfigValueInfo configValue) {}
