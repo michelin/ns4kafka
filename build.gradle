@@ -13,7 +13,7 @@ group = "com.michelin.ns4kafka"
 repositories {
     mavenCentral()
     maven {
-        url "https://packages.confluent.io/maven"
+        url = uri("https://packages.confluent.io/maven")
     }
 }
 
@@ -63,8 +63,8 @@ application {
 }
 
 java {
-    sourceCompatibility = JavaVersion.toVersion('21')
-    targetCompatibility = JavaVersion.toVersion('21')
+    sourceCompatibility = JavaVersion.toVersion('25')
+    targetCompatibility = JavaVersion.toVersion('25')
 }
 
 run {
@@ -142,7 +142,10 @@ spotless {
 import org.apache.tools.ant.filters.ReplaceTokens
 
 processResources {
+    Property<String> version = project.objects.property(String)
+    version.set(project.version.toString())
+
     filesMatching("application.yml") {
-        filter(ReplaceTokens, tokens: [version: project.version])
+        filter(ReplaceTokens, tokens: [version: version.get()])
     }
 }
