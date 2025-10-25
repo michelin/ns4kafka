@@ -18,20 +18,25 @@
  */
 package com.michelin.ns4kafka.service;
 
+import static com.michelin.ns4kafka.model.AccessControlEntry.ResourceType.TOPIC;
+import static com.michelin.ns4kafka.model.schema.Schema.SchemaType.AVRO;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidSchemaReference;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidSchemaResource;
-import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidSchemaSuffix;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidSchemaSubjectName;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.schema.Schema;
+import com.michelin.ns4kafka.model.schema.SubjectNameStrategy;
+import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityRequest;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaRequest;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
 import com.michelin.ns4kafka.util.RegexUtils;
+import com.michelin.ns4kafka.validation.AuthorizedSubjectNameStrategy;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
 import io.micronaut.core.util.CollectionUtils;
@@ -44,6 +49,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -51,11 +57,17 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @Singleton
 public class SchemaService {
+    private static final String KEY_SCHEMA_SUFFIX = "-key";
+    private static final String VALUE_SCHEMA_SUFFIX = "-value";
+
     @Inject
     private AclService aclService;
 
     @Inject
     private SchemaRegistryClient schemaRegistryClient;
+
+    @Inject
+    private List<ManagedClusterProperties> managedClusterProperties;
 
     /**
      * Get all the schemas of a given namespace.
@@ -64,14 +76,10 @@ public class SchemaService {
      * @return A list of schemas
      */
     public Flux<Schema> findAllForNamespace(Namespace namespace) {
-        List<AccessControlEntry> acls =
-                aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.TOPIC);
+        List<AccessControlEntry> acls = aclService.findResourceOwnerGrantedToNamespace(namespace, TOPIC);
         return schemaRegistryClient
                 .getSubjects(namespace.getMetadata().getCluster())
-                .filter(subject -> {
-                    String underlyingTopicName = subject.replaceAll("-(key|value)$", "");
-                    return aclService.isResourceCoveredByAcls(acls, underlyingTopicName);
-                })
+                .filter(subject -> aclService.isResourceCoveredByAcls(acls, extractResourceNameFromSubject(subject)))
                 .map(subject -> Schema.builder()
                         .metadata(Metadata.builder()
                                 .cluster(namespace.getMetadata().getCluster())
@@ -117,7 +125,7 @@ public class SchemaService {
                                 .schema(subjectResponse.schema())
                                 .schemaType(
                                         subjectResponse.schemaType() == null
-                                                ? Schema.SchemaType.AVRO
+                                                ? AVRO
                                                 : Schema.SchemaType.valueOf(subjectResponse.schemaType()))
                                 .references(subjectResponse.references())
                                 .build())
@@ -154,7 +162,7 @@ public class SchemaService {
                                     .schema(subjectOptional.schema())
                                     .schemaType(
                                             subjectOptional.schemaType() == null
-                                                    ? Schema.SchemaType.AVRO
+                                                    ? AVRO
                                                     : Schema.SchemaType.valueOf(subjectOptional.schemaType()))
                                     .references(subjectOptional.references())
                                     .build())
@@ -196,23 +204,18 @@ public class SchemaService {
      */
     public Mono<List<String>> validateSchema(Namespace namespace, Schema schema) {
         return Mono.defer(() -> {
-            List<String> validationErrors = new ArrayList<>();
+            AuthorizedSubjectNameStrategy authorizedStrategies = getAuthorizedSubjectNameStrategies(namespace);
+            return validateSubjectStrategy(namespace, schema, authorizedStrategies)
+                    .flatMap(errors -> {
+                        if (CollectionUtils.isEmpty(schema.getSpec().getReferences())) {
+                            return Mono.just(errors);
+                        }
 
-            // Validate TopicNameStrategy
-            // https://github.com/confluentinc/schema-registry/blob/master/schema-serializer/src/main/java/io/confluent/kafka/serializers/subject/TopicNameStrategy.java
-            if (!schema.getMetadata().getName().endsWith("-key")
-                    && !schema.getMetadata().getName().endsWith("-value")) {
-                validationErrors.add(invalidSchemaSuffix(schema.getMetadata().getName()));
-            }
-
-            if (!CollectionUtils.isEmpty(schema.getSpec().getReferences())) {
-                return validateReferences(namespace, schema).map(referenceErrors -> {
-                    validationErrors.addAll(referenceErrors);
-                    return validationErrors;
-                });
-            }
-
-            return Mono.just(validationErrors);
+                        return validateReferences(namespace, schema).map(referenceErrors -> {
+                            errors.addAll(referenceErrors);
+                            return errors;
+                        });
+                    });
         });
     }
 
@@ -348,24 +351,29 @@ public class SchemaService {
     /**
      * Does the namespace is owner of the given schema.
      *
+     * <p>For topic name strategy and topic record name strategy, the validation is done against the topic name.
+     *
+     * <p>For record name strategy, the validation is done against the record name. This requires having a prefixed ACL
+     * with a dot (e.g., "abc.") to cover the record name "abc.package.name.MyRecord". There's probably a better way to
+     * handle this.
+     *
      * @param namespace The namespace
      * @param subjectName The name of the subject
      * @return true if it's owner, false otherwise
      */
     public boolean isNamespaceOwnerOfSubject(Namespace namespace, String subjectName) {
-        String underlyingTopicName = subjectName.replaceAll("(-key|-value)$", "");
         return aclService.isNamespaceOwnerOfResource(
-                namespace.getMetadata().getName(), AccessControlEntry.ResourceType.TOPIC, underlyingTopicName);
+                namespace.getMetadata().getName(), TOPIC, extractResourceNameFromSubject(subjectName));
     }
 
     /**
      * Get all the schema of all the references for a given schema.
      *
-     * @param schema The schema
      * @param namespace The namespace
+     * @param schema The schema
      * @return The schema references
      */
-    public Mono<Map<String, String>> getSchemaReferences(Schema schema, Namespace namespace) {
+    public Mono<Map<String, String>> getSchemaReferences(Namespace namespace, Schema schema) {
         if (CollectionUtils.isEmpty(schema.getSpec().getReferences())) {
             return Mono.just(Collections.emptyMap());
         }
@@ -402,11 +410,11 @@ public class SchemaService {
      * @return true as Mono if it exists, false otherwise
      */
     public Mono<Boolean> existInOldVersions(Namespace namespace, Schema schema, List<Schema> oldSchemas) {
-        return getSchemaReferences(schema, namespace)
+        return getSchemaReferences(namespace, schema)
                 .flatMap(schemaRefs ->
                         // If new schema matches any of the existing schemas, return unchanged
                         Flux.fromIterable(oldSchemas)
-                                .flatMap(oldSchema -> getSchemaReferences(oldSchema, namespace)
+                                .flatMap(oldSchema -> getSchemaReferences(namespace, oldSchema)
                                         .map(oldSchemaRefs -> {
                                             var currentSchema = new AvroSchema(
                                                     oldSchema.getSpec().getSchema(),
@@ -427,5 +435,160 @@ public class SchemaService {
                                                             newSchema.references(), currentSchema.references());
                                         }))
                                 .any(subjectComparison -> subjectComparison));
+    }
+
+    /**
+     * Get the authorized subject name strategies for a namespace. For Confluent Cloud clusters, it retrieves the
+     * strategies from the namespace topic validator if defined. For self-managed clusters, it returns the default
+     * strategies.
+     *
+     * @param namespace The namespace
+     * @return A list of valid subject name strategies
+     */
+    private AuthorizedSubjectNameStrategy getAuthorizedSubjectNameStrategies(Namespace namespace) {
+        Optional<ManagedClusterProperties> topicCluster = managedClusterProperties.stream()
+                .filter(cluster -> namespace.getMetadata().getCluster().equals(cluster.getName()))
+                .findFirst();
+
+        boolean isConfluentCloud =
+                topicCluster.isPresent() && topicCluster.get().isConfluentCloud();
+
+        if (isConfluentCloud
+                && namespace.getSpec().getTopicValidator() != null
+                && CollectionUtils.isNotEmpty(
+                        namespace.getSpec().getTopicValidator().getValidationConstraints())) {
+            return namespace.getSpec().getTopicValidator().getAuthorizedSubjectNameStrategies();
+        }
+
+        return AuthorizedSubjectNameStrategy.defaultStrategies();
+    }
+
+    /**
+     * Validate the subject name of a schema according to the allowed strategies. If the schema is a key schema (i.e.
+     * subject name ends with -key), only the key strategies are considered. If the schema is a value schema (i.e.
+     * subject name ends with -value), only the value strategies are considered. Otherwise, all strategies are
+     * considered.
+     *
+     * @param namespace The namespace
+     * @param schema The schema
+     * @param authorizedStrategies The valid subject name strategies
+     * @return A list of errors
+     */
+    private Mono<List<String>> validateSubjectStrategy(
+            Namespace namespace, Schema schema, AuthorizedSubjectNameStrategy authorizedStrategies) {
+        List<String> errors = new ArrayList<>();
+
+        if (schema.getMetadata().getName().endsWith(KEY_SCHEMA_SUFFIX)) {
+            return Flux.fromIterable(authorizedStrategies.getKeyStrategies())
+                    .flatMap(strategy -> matchesStrategy(namespace, strategy, schema))
+                    .any(matches -> matches)
+                    .map(valid -> {
+                        if (Boolean.FALSE.equals(valid)) {
+                            errors.add(invalidSchemaSubjectName(
+                                    schema.getMetadata().getName(), authorizedStrategies.getKeyStrategies()));
+                        }
+
+                        return errors;
+                    });
+        }
+
+        if (schema.getMetadata().getName().endsWith(VALUE_SCHEMA_SUFFIX)) {
+            return Flux.fromIterable(authorizedStrategies.getValueStrategies())
+                    .flatMap(strategy -> matchesStrategy(namespace, strategy, schema))
+                    .any(matches -> matches)
+                    .map(valid -> {
+                        if (Boolean.FALSE.equals(valid)) {
+                            errors.add(invalidSchemaSubjectName(
+                                    schema.getMetadata().getName(), authorizedStrategies.getValueStrategies()));
+                        }
+
+                        return errors;
+                    });
+        }
+
+        return Flux.fromIterable(authorizedStrategies.all())
+                .flatMap(strategy -> matchesStrategy(namespace, strategy, schema))
+                .any(matches -> matches)
+                .map(valid -> {
+                    if (Boolean.FALSE.equals(valid)) {
+                        errors.add(
+                                invalidSchemaSubjectName(schema.getMetadata().getName(), authorizedStrategies.all()));
+                    }
+
+                    return errors;
+                });
+    }
+
+    /**
+     * Validates that a subject matches the given naming strategy.
+     *
+     * @param namespace The namespace
+     * @param strategy The naming strategy for a schema subject name
+     * @param schema The schema to validate
+     * @return Mono of true if the subject name is valid for the given strategy, false otherwise
+     * @see <a href=
+     *     "https://github.com/confluentinc/schema-registry/blob/master/schema-serializer/src/main/java/io/confluent/kafka/serializers/subject">Schema
+     *     Registry strategies</a>
+     */
+    public Mono<Boolean> matchesStrategy(Namespace namespace, SubjectNameStrategy strategy, Schema schema) {
+        String subjectName = schema.getMetadata().getName();
+        if (subjectName == null || subjectName.trim().isEmpty()) {
+            return Mono.just(false);
+        }
+
+        return switch (strategy) {
+            case TOPIC_NAME ->
+                Mono.just(subjectName.endsWith(KEY_SCHEMA_SUFFIX) || subjectName.endsWith(VALUE_SCHEMA_SUFFIX));
+            case RECORD_NAME ->
+                extractRecordName(namespace, schema).map(subjectName::equals).defaultIfEmpty(false);
+            case TOPIC_RECORD_NAME ->
+                extractRecordName(namespace, schema)
+                        .map(recordName -> subjectName.endsWith("-" + recordName))
+                        .defaultIfEmpty(false);
+        };
+    }
+
+    /**
+     * Extracts the record name from schema.
+     *
+     * @param namespace The namespace
+     * @param schema The schema
+     * @return The record name if it can be determined
+     */
+    public Mono<String> extractRecordName(Namespace namespace, Schema schema) {
+        if (StringUtils.isBlank(schema.getSpec().getSchema())) {
+            return Mono.empty();
+        }
+
+        if (AVRO.equals(schema.getSpec().getSchemaType())) {
+            return getSchemaReferences(namespace, schema).map(schemaRefs -> new AvroSchema(
+                            schema.getSpec().getSchema(), getReferences(schema), schemaRefs, null)
+                    .name());
+        }
+
+        return Mono.empty();
+    }
+
+    /**
+     * From a subject that could be named with any strategy, extract the resource name to validate ownership. For topic
+     * name strategy and topic record name strategy, the resource name is the topic name. For record name strategy, the
+     * resource name is the record name.
+     *
+     * @param subject The subject
+     * @return The topic name if it can be determined by any of the strategies
+     */
+    public String extractResourceNameFromSubject(String subject) {
+        // Topic name strategy
+        if (subject.endsWith(KEY_SCHEMA_SUFFIX) || subject.endsWith(VALUE_SCHEMA_SUFFIX)) {
+            return subject.replaceAll("(-key|-value)$", "");
+        }
+
+        // Record name strategy
+        if (!subject.contains("-")) {
+            return subject;
+        }
+
+        // Topic record name strategy
+        return subject.substring(0, subject.lastIndexOf("-"));
     }
 }
