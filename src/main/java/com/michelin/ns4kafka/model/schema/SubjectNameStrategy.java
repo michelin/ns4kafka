@@ -71,4 +71,17 @@ public enum SubjectNameStrategy {
     public String toShortName() {
         return value.replace(STRATEGY_PACKAGE_NAME, "");
     }
+
+    /**
+     * Get the expected format for the subject name based on the strategy.
+     *
+     * @return The expected format for the subject name
+     */
+    public String toExpectedFormat() {
+        return switch (this) {
+            case TOPIC_NAME -> "{topic}-{key|value}";
+            case TOPIC_RECORD_NAME -> "{topic}-{recordName}";
+            case RECORD_NAME -> "{recordName}";
+        };
+    }
 }
