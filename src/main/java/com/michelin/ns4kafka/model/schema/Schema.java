@@ -24,6 +24,8 @@ import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.MetadataResource;
 import io.micronaut.core.annotation.Introspected;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -88,7 +90,7 @@ public class Schema extends MetadataResource {
         @Builder.Default
         private Compatibility compatibility = Compatibility.GLOBAL;
 
-        private List<Reference> references;
+        @Valid private List<Reference> references;
 
         /** Schema reference. */
         @Getter
@@ -98,9 +100,11 @@ public class Schema extends MetadataResource {
         @NoArgsConstructor
         @AllArgsConstructor
         public static class Reference {
-            private String name;
-            private String subject;
-            private Integer version;
+            @NotBlank private String name;
+
+            @NotBlank private String subject;
+
+            @NotNull private Integer version;
         }
     }
 }
