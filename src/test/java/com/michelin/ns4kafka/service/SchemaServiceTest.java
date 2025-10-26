@@ -673,8 +673,7 @@ class SchemaServiceTest {
         Namespace namespace = buildNamespace();
         Schema schema = Schema.builder()
                 .spec(Schema.SchemaSpec.builder()
-                        .schema(
-                                """
+                        .schema("""
                             {
                              "type": "record",
                              "namespace": "com.michelin.kafka.avro",
