@@ -40,7 +40,7 @@ jobs:
           echo is_latest_version=$(echo $(test "$LATEST_VERSION" == "$CURRENT_VERSION" && echo true || echo false)) >> $GITHUB_OUTPUT
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ns4kafka
           path: build/libs/ns4kafka-${{ steps.metadata.outputs.current_version }}.jar
