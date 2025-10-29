@@ -249,6 +249,9 @@ public class TopicService {
      * @param topicA The first topic
      * @param topicB The second topic
      * @return true if it does, false otherwise
+     * @see <a
+     *     href="https://github.com/apache/kafka/blob/trunk/clients/src/main/java/org/apache/kafka/common/internals/Topic.java#L108-L110">Topic
+     *     Collision</a>
      */
     private boolean hasCollision(String topicA, String topicB) {
         return topicA.replace('.', '_').equals(topicB.replace('.', '_'));
