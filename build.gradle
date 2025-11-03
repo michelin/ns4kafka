@@ -1,6 +1,6 @@
 plugins {
     id("com.gradleup.shadow") version "9.2.2"
-    id("io.micronaut.application") version "4.6.0"
+    id("io.micronaut.application") version "4.6.1"
     id("jacoco")
     id("org.sonarqube") version "7.0.1.6134"
     id("pl.allegro.tech.build.axion-release") version "1.21.0"
