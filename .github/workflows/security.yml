@@ -52,7 +52,6 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: maven
 
       - name: Cache Gradle packages
         uses: actions/cache@v4
