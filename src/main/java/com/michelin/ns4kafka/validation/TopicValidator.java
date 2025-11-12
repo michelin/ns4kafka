@@ -24,10 +24,11 @@ import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNameLength;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNameSpecChars;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidTopicName;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidTopicSpec;
-import static com.michelin.ns4kafka.util.config.TopicConfig.PARTITIONS;
-import static com.michelin.ns4kafka.util.config.TopicConfig.REPLICATION_FACTOR;
+import static com.michelin.ns4kafka.util.config.TopicConfig.*;
 
 import com.michelin.ns4kafka.model.Topic;
+import com.michelin.ns4kafka.model.schema.SubjectNameStrategy;
+import io.micronaut.core.util.CollectionUtils;
 import io.micronaut.core.util.StringUtils;
 import java.util.ArrayList;
 import java.util.List;
@@ -54,9 +55,9 @@ public class TopicValidator extends ResourceValidator {
     public static TopicValidator makeDefault() {
         return TopicValidator.builder()
                 .validationConstraints(Map.of(
-                        "replication.factor",
+                        REPLICATION_FACTOR,
                         ResourceValidator.Range.between(3, 3),
-                        "partitions",
+                        PARTITIONS,
                         ResourceValidator.Range.between(3, 6),
                         "cleanup.policy",
                         ResourceValidator.ValidList.in("delete", "compact"),
@@ -79,9 +80,9 @@ public class TopicValidator extends ResourceValidator {
     public static TopicValidator makeDefaultOneBroker() {
         return TopicValidator.builder()
                 .validationConstraints(Map.of(
-                        "replication.factor",
+                        REPLICATION_FACTOR,
                         ResourceValidator.Range.between(1, 1),
-                        "partitions",
+                        PARTITIONS,
                         ResourceValidator.Range.between(3, 6),
                         "cleanup.policy",
                         ResourceValidator.ValidList.in("delete", "compact"),
@@ -97,12 +98,45 @@ public class TopicValidator extends ResourceValidator {
     }
 
     /**
+     * Get the authorized subject name strategies for key and value.
+     *
+     * @return The authorized subject name strategies
+     */
+    public AuthorizedSubjectNameStrategy getAuthorizedSubjectNameStrategies() {
+        final List<SubjectNameStrategy> valueStrategies = extractStrategies(VALUE_SUBJECT_NAME_STRATEGY);
+        final List<SubjectNameStrategy> keyStrategies = extractStrategies(KEY_SUBJECT_NAME_STRATEGY);
+
+        return AuthorizedSubjectNameStrategy.builder()
+                .keyStrategies(keyStrategies)
+                .valueStrategies(valueStrategies)
+                .build();
+    }
+
+    /**
+     * Extract subject name strategies from the validation constraints.
+     *
+     * @param configKey The configuration key, either for key or value subject name strategy
+     * @return The list of subject name strategies
+     */
+    private List<SubjectNameStrategy> extractStrategies(String configKey) {
+        ResourceValidator.Validator validator = getValidationConstraints().get(configKey);
+        if (validator instanceof ResourceValidator.ValidString validString
+                && CollectionUtils.isNotEmpty(validString.getValidStrings())) {
+            return validString.getValidStrings().stream()
+                    .map(SubjectNameStrategy::from)
+                    .toList();
+        }
+
+        return List.of(SubjectNameStrategy.defaultStrategy());
+    }
+
+    /**
      * Validate a given topic.
      *
      * @param topic The topic
      * @return A list of validation errors
-     * @see <a
-     *     href="https://github.com/apache/kafka/blob/trunk/clients/src/main/java/org/apache/kafka/common/internals/Topic.java#L36">
+     * @see <a href=
+     *     "https://github.com/apache/kafka/blob/trunk/clients/src/main/java/org/apache/kafka/common/internals/Topic.java#L36">
      *     GitHub</a>
      */
     public List<String> validate(Topic topic) {
@@ -136,21 +170,23 @@ public class TopicValidator extends ResourceValidator {
 
         validationConstraints.forEach((key, value) -> {
             try {
-                if (key.equals(PARTITIONS)) {
-                    value.ensureValid(key, topic.getSpec().getPartitions());
-                } else if (key.equals(REPLICATION_FACTOR)) {
-                    value.ensureValid(key, topic.getSpec().getReplicationFactor());
-                } else {
-                    if (topic.getSpec().getConfigs() != null) {
-                        value.ensureValid(key, topic.getSpec().getConfigs().get(key));
-                    } else {
-                        validationErrors.add(invalidFieldValidationNull(key));
+                switch (key) {
+                    case PARTITIONS -> value.ensureValid(key, topic.getSpec().getPartitions());
+                    case REPLICATION_FACTOR ->
+                        value.ensureValid(key, topic.getSpec().getReplicationFactor());
+                    default -> {
+                        if (topic.getSpec().getConfigs() != null) {
+                            value.ensureValid(key, topic.getSpec().getConfigs().get(key));
+                        } else {
+                            validationErrors.add(invalidFieldValidationNull(key));
+                        }
                     }
                 }
             } catch (FieldValidationException e) {
                 validationErrors.add(e.getMessage());
             }
         });
+
         return validationErrors;
     }
 }
