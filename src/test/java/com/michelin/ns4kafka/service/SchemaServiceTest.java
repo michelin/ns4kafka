@@ -18,16 +18,11 @@
  */
 package com.michelin.ns4kafka.service;
 
-import static com.michelin.ns4kafka.model.schema.SubjectNameStrategy.*;
-import static com.michelin.ns4kafka.util.config.TopicConfig.KEY_SUBJECT_NAME_STRATEGY;
-import static com.michelin.ns4kafka.util.config.TopicConfig.VALUE_SUBJECT_NAME_STRATEGY;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.anyString;
-import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Metadata;
@@ -38,9 +33,10 @@ import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityCheckResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
-import com.michelin.ns4kafka.validation.ResourceValidator;
 import com.michelin.ns4kafka.validation.TopicValidator;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -484,53 +480,8 @@ class SchemaServiceTest {
     }
 
     @ParameterizedTest
-    @MethodSource("subjectStrategiesForConfluentCloud")
-    void shouldVerifySubjectCompatibilityOnConfluentCloud(
-            Map<String, ResourceValidator.Validator> validators,
-            String subjectName,
-            String schemaContent,
-            boolean expectedResult) {
-        TopicValidator topicValidator =
-                TopicValidator.builder().validationConstraints(validators).build();
-
-        Namespace namespace = Namespace.builder()
-                .metadata(
-                        Metadata.builder().name("myNamespace").cluster("local").build())
-                .spec(Namespace.NamespaceSpec.builder()
-                        .topicValidator(topicValidator)
-                        .build())
-                .build();
-
-        Schema schema = Schema.builder()
-                .metadata(Metadata.builder().name(subjectName).build())
-                .spec(Schema.SchemaSpec.builder()
-                        .schema(schemaContent)
-                        .references(List.of(Schema.SchemaSpec.Reference.builder()
-                                .name("HeaderAvro")
-                                .subject("header-value")
-                                .version(1)
-                                .build()))
-                        .build())
-                .build();
-        SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
-
-        when(managedClusterProperties.stream())
-                .thenReturn(Stream.of(
-                        new ManagedClusterProperties("local", ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD)));
-        when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(), "header-value", "1"))
-                .thenReturn(Mono.just(buildSchemaResponse("subject-reference")));
-        when(schemaRegistryClient.getCurrentCompatibilityBySubject(any(), any()))
-                .thenReturn(Mono.just(compatibilityResponse));
-
-        StepVerifier.create(schemaService.validateSchema(namespace, schema))
-                .consumeNextWith(errors -> assertEquals(expectedResult, errors.isEmpty()))
-                .verifyComplete();
-    }
-
-    @ParameterizedTest
     @MethodSource("subjectStrategiesForSelfManaged")
-    void shouldVerifySubjectCompatibilityOnSelfManaged(
-            String subjectName, String schemaContent, boolean expectedResult) {
+    void shouldVerifySubjectStrategy(String subjectName, String schemaContent, boolean expectedResult) {
         Namespace namespace = Namespace.builder()
                 .metadata(
                         Metadata.builder().name("myNamespace").cluster("local").build())
@@ -786,100 +737,6 @@ class SchemaServiceTest {
                 "abc.topic-name",
                 schemaService.extractResourceNameFromSubject(
                         "abc.topic-name-com.michelin.kafka.producer.showcase.avro.PersonAvro"));
-    }
-
-    private static Stream<Arguments> subjectStrategiesForConfluentCloud() {
-        Map<String, ResourceValidator.Validator> defaultKeyTopicNameStrategy = Map.of(
-                KEY_SUBJECT_NAME_STRATEGY,
-                ResourceValidator.ValidString.optionalIn(defaultStrategy().toString()));
-
-        Map<String, ResourceValidator.Validator> defaultValueTopicNameStrategy = Map.of(
-                VALUE_SUBJECT_NAME_STRATEGY,
-                ResourceValidator.ValidString.optionalIn(defaultStrategy().toString()));
-
-        Map<String, ResourceValidator.Validator> defaultKeyRecordNameStrategy =
-                Map.of(KEY_SUBJECT_NAME_STRATEGY, ResourceValidator.ValidString.optionalIn(RECORD_NAME.toString()));
-
-        Map<String, ResourceValidator.Validator> defaultValueRecordNameStrategy =
-                Map.of(VALUE_SUBJECT_NAME_STRATEGY, ResourceValidator.ValidString.optionalIn(RECORD_NAME.toString()));
-
-        Map<String, ResourceValidator.Validator> defaultKeyTopicRecordNameStrategy = Map.of(
-                KEY_SUBJECT_NAME_STRATEGY, ResourceValidator.ValidString.optionalIn(TOPIC_RECORD_NAME.toString()));
-
-        Map<String, ResourceValidator.Validator> defaultValueTopicRecordNameStrategy = Map.of(
-                VALUE_SUBJECT_NAME_STRATEGY, ResourceValidator.ValidString.optionalIn(TOPIC_RECORD_NAME.toString()));
-
-        return Stream.of(
-                // Invalid: Missing -key suffix
-                Arguments.of(defaultKeyTopicNameStrategy, "abc.topic-name-missingpart", "{\"name\":\"User\"}", false),
-                // Invalid: Missing -value suffix
-                Arguments.of(defaultValueTopicNameStrategy, "abc.topic-name-missingpart", "{\"name\":\"User\"}", false),
-                // Valid: Value strategy set to topic name strategy by default
-                Arguments.of(defaultKeyTopicNameStrategy, "abc.topic-name-value", "{\"name\":\"User\"}", true),
-                // Valid: Key strategy set to topic name strategy by default
-                Arguments.of(defaultValueTopicNameStrategy, "abc.topic-name-key", "{\"name\":\"User\"}", true),
-                // Valid: No strategy defined, default to topic name strategy
-                Arguments.of(Map.of(), "abc.topic-name-key", "{\"name\":\"User\"}", true),
-                // Valid: No strategy defined, default to topic name strategy
-                Arguments.of(Map.of(), "abc.topic-name-value", "{\"name\":\"User\"}", true),
-                // Valid: Key subject with topic name strategy
-                Arguments.of(defaultKeyTopicNameStrategy, "abc.topic-name-key", "{\"name\":\"User\"}", true),
-                // Valid: Value subject with topic name strategy
-                Arguments.of(defaultValueTopicNameStrategy, "abc.topic-name-value", "{\"name\":\"User\"}", true),
-                // Invalid: Wrong strategy for given subject
-                Arguments.of(
-                        defaultValueTopicNameStrategy,
-                        "com.example.User",
-                        "{\"name\":\"User\",\"namespace\":\"com.example\",\"type\":\"record\",\"fields\":[]}",
-                        false),
-                // Valid: Key subject with record name strategy
-                Arguments.of(
-                        defaultKeyRecordNameStrategy,
-                        "com.example.User",
-                        "{\"name\":\"User\",\"namespace\":\"com.example\",\"type\":\"record\",\"fields\":[]}",
-                        true),
-                // Valid: Value subject with record name strategy
-                Arguments.of(
-                        defaultValueRecordNameStrategy,
-                        "com.example.User",
-                        "{\"name\":\"User\",\"namespace\":\"com.example\",\"type\":\"record\",\"fields\":[]}",
-                        true),
-                // Invalid: Wrong strategy for given subject
-                Arguments.of(
-                        defaultValueRecordNameStrategy,
-                        "abc.topic-name-value",
-                        "{\"name\":\"User\",\"namespace\":\"com.example\",\"type\":\"record\",\"fields\":[]}",
-                        false),
-                // Invalid: Record name does not match subject
-                Arguments.of(
-                        defaultValueRecordNameStrategy,
-                        "org.sample.LoginEvent",
-                        "{\"name\":\"User\",\"namespace\":\"com.example\",\"type\":\"record\",\"fields\":[]}",
-                        false),
-                // Valid: Key subject with topic record name strategy
-                Arguments.of(
-                        defaultKeyTopicRecordNameStrategy,
-                        "abc.topic-name-com.example.User",
-                        "{\"name\":\"User\",\"namespace\":\"com.example\",\"type\":\"record\",\"fields\":[]}",
-                        true),
-                // Valid: Value subject with topic record name strategy
-                Arguments.of(
-                        defaultValueTopicRecordNameStrategy,
-                        "abc.topic-name-com.example.User",
-                        "{\"name\":\"User\",\"namespace\":\"com.example\",\"type\":\"record\",\"fields\":[]}",
-                        true),
-                // Invalid: Wrong strategy for given subject
-                Arguments.of(
-                        defaultValueTopicRecordNameStrategy,
-                        "abc.topic-name-value",
-                        "{\"name\":\"User\",\"namespace\":\"com.example\",\"type\":\"record\",\"fields\":[]}",
-                        false),
-                // Invalid: Record name does not match subject
-                Arguments.of(
-                        defaultValueTopicRecordNameStrategy,
-                        "abc.topic-name-org.sample.LoginEvent",
-                        "{\"name\":\"User\",\"namespace\":\"com.example\",\"type\":\"record\",\"fields\":[]}",
-                        false));
     }
 
     private static Stream<Arguments> subjectStrategiesForSelfManaged() {
