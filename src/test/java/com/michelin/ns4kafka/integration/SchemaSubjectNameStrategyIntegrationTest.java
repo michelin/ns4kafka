@@ -30,7 +30,6 @@ import com.michelin.ns4kafka.model.RoleBinding;
 import com.michelin.ns4kafka.model.schema.Schema;
 import com.michelin.ns4kafka.model.schema.SubjectNameStrategy;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
-import com.michelin.ns4kafka.validation.ResourceValidator;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.http.HttpMethod;
@@ -45,7 +44,6 @@ import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import jakarta.inject.Inject;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -74,7 +72,11 @@ class SchemaSubjectNameStrategyIntegrationTest extends SchemaRegistryIntegration
                         .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .kafkaUser("user1")
-                        .topicValidator(makeDefaultTopicValidatorWithStrategies())
+                        .topicValidator(TopicValidator.makeDefaultOneBroker())
+                        .subjectNameStrategies(List.of(
+                                SubjectNameStrategy.RECORD_NAME,
+                                SubjectNameStrategy.TOPIC_RECORD_NAME,
+                                SubjectNameStrategy.TOPIC_NAME))
                         .build())
                 .build();
 
@@ -231,30 +233,5 @@ class SchemaSubjectNameStrategyIntegrationTest extends SchemaRegistryIntegration
         assertNotNull(actualPerson.id());
         assertEquals(1, actualPerson.version());
         assertEquals(personSubject, actualPerson.subject());
-    }
-
-    private static TopicValidator makeDefaultTopicValidatorWithStrategies() {
-        return TopicValidator.builder()
-                .validationConstraints(Map.of(
-                        REPLICATION_FACTOR,
-                        ResourceValidator.Range.between(3, 3),
-                        PARTITIONS,
-                        ResourceValidator.Range.between(3, 6),
-                        "cleanup.policy",
-                        ResourceValidator.ValidList.in("delete", "compact"),
-                        "min.insync.replicas",
-                        ResourceValidator.Range.between(2, 2),
-                        "retention.ms",
-                        ResourceValidator.Range.between(60000, 604800000),
-                        "retention.bytes",
-                        ResourceValidator.Range.optionalBetween(-1, 104857600),
-                        "preallocate",
-                        ResourceValidator.ValidString.optionalIn("true", "false"),
-                        VALUE_SUBJECT_NAME_STRATEGY,
-                        ResourceValidator.ValidString.optionalIn(
-                                SubjectNameStrategy.TOPIC_NAME.toString(),
-                                SubjectNameStrategy.TOPIC_RECORD_NAME.toString(),
-                                SubjectNameStrategy.RECORD_NAME.toString())))
-                .build();
     }
 }

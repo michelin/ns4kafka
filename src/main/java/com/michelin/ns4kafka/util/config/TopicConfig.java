@@ -26,6 +26,4 @@ import lombok.NoArgsConstructor;
 public final class TopicConfig {
     public static final String PARTITIONS = "partitions";
     public static final String REPLICATION_FACTOR = "replication.factor";
-    public static final String KEY_SUBJECT_NAME_STRATEGY = "confluent.key.subject.name.strategy";
-    public static final String VALUE_SUBJECT_NAME_STRATEGY = "confluent.value.subject.name.strategy";
 }

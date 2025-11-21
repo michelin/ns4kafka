@@ -682,7 +682,7 @@ public class FormatErrorUtils {
      */
     public static String invalidSchemaSubjectName(String subjectName, List<SubjectNameStrategy> strategies) {
         String formattedStrategies = strategies.stream()
-                .map(subject -> subject.toShortName() + " " + subject.toExpectedFormat())
+                .map(subject -> subject + " " + subject.toExpectedFormat())
                 .collect(Collectors.joining(", "));
 
         return String.format(
