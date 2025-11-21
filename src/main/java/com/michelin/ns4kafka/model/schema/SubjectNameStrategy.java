@@ -18,17 +18,18 @@
  */
 package com.michelin.ns4kafka.model.schema;
 
+import com.fasterxml.jackson.annotation.JsonValue;
 import java.util.Arrays;
+import java.util.List;
 import lombok.AllArgsConstructor;
 
 /** Schema subject naming strategies supported by Schema Registry. */
 @AllArgsConstructor
 public enum SubjectNameStrategy {
-    TOPIC_NAME("io.confluent.kafka.serializers.subject.TopicNameStrategy"),
-    TOPIC_RECORD_NAME("io.confluent.kafka.serializers.subject.TopicRecordNameStrategy"),
-    RECORD_NAME("io.confluent.kafka.serializers.subject.RecordNameStrategy");
+    TOPIC_NAME("TopicNameStrategy"),
+    TOPIC_RECORD_NAME("TopicRecordNameStrategy"),
+    RECORD_NAME("RecordNameStrategy");
 
-    private static final String STRATEGY_PACKAGE_NAME = "io.confluent.kafka.serializers.subject.";
     private final String value;
 
     /**
@@ -36,6 +37,7 @@ public enum SubjectNameStrategy {
      *
      * @return The string representation of the SubjectNameStrategy
      */
+    @JsonValue
     @Override
     public String toString() {
         return value;
@@ -46,8 +48,8 @@ public enum SubjectNameStrategy {
      *
      * @return The default SubjectNameStrategy
      */
-    public static SubjectNameStrategy defaultStrategy() {
-        return TOPIC_NAME;
+    public static List<SubjectNameStrategy> defaultStrategy() {
+        return List.of(TOPIC_NAME);
     }
 
     /**
@@ -61,15 +63,6 @@ public enum SubjectNameStrategy {
                 .filter(s -> s.value.equals(stringValue))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Unknown strategy: " + stringValue));
-    }
-
-    /**
-     * Shortens the strategy name by removing the package name.
-     *
-     * @return The shortened strategy name
-     */
-    public String toShortName() {
-        return value.replace(STRATEGY_PACKAGE_NAME, "");
     }
 
     /**

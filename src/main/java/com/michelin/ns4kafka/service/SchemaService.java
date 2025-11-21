@@ -36,7 +36,6 @@ import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityR
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaRequest;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
 import com.michelin.ns4kafka.util.RegexUtils;
-import com.michelin.ns4kafka.validation.AuthorizedSubjectNameStrategy;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
 import io.micronaut.core.util.CollectionUtils;
@@ -203,20 +202,16 @@ public class SchemaService {
      * @return A list of errors
      */
     public Mono<List<String>> validateSchema(Namespace namespace, Schema schema) {
-        return Mono.defer(() -> {
-            AuthorizedSubjectNameStrategy authorizedStrategies = getAuthorizedSubjectNameStrategies(namespace);
-            return validateSubjectStrategy(namespace, schema, authorizedStrategies)
-                    .flatMap(errors -> {
-                        if (CollectionUtils.isEmpty(schema.getSpec().getReferences())) {
-                            return Mono.just(errors);
-                        }
+        return Mono.defer(() -> validateSubjectStrategy(namespace, schema).flatMap(errors -> {
+            if (CollectionUtils.isEmpty(schema.getSpec().getReferences())) {
+                return Mono.just(errors);
+            }
 
-                        return validateReferences(namespace, schema).map(referenceErrors -> {
-                            errors.addAll(referenceErrors);
-                            return errors;
-                        });
-                    });
-        });
+            return validateReferences(namespace, schema).map(referenceErrors -> {
+                errors.addAll(referenceErrors);
+                return errors;
+            });
+        }));
     }
 
     /**
@@ -438,32 +433,6 @@ public class SchemaService {
     }
 
     /**
-     * Get the authorized subject name strategies for a namespace. For Confluent Cloud clusters, it retrieves the
-     * strategies from the namespace topic validator if defined. For self-managed clusters, it returns the default
-     * strategies.
-     *
-     * @param namespace The namespace
-     * @return A list of valid subject name strategies
-     */
-    private AuthorizedSubjectNameStrategy getAuthorizedSubjectNameStrategies(Namespace namespace) {
-        Optional<ManagedClusterProperties> topicCluster = managedClusterProperties.stream()
-                .filter(cluster -> namespace.getMetadata().getCluster().equals(cluster.getName()))
-                .findFirst();
-
-        boolean isConfluentCloud =
-                topicCluster.isPresent() && topicCluster.get().isConfluentCloud();
-
-        if (isConfluentCloud
-                && namespace.getSpec().getTopicValidator() != null
-                && CollectionUtils.isNotEmpty(
-                        namespace.getSpec().getTopicValidator().getValidationConstraints())) {
-            return namespace.getSpec().getTopicValidator().getAuthorizedSubjectNameStrategies();
-        }
-
-        return AuthorizedSubjectNameStrategy.defaultStrategies();
-    }
-
-    /**
      * Validate the subject name of a schema according to the allowed strategies. If the schema is a key schema (i.e.
      * subject name ends with -key), only the key strategies are considered. If the schema is a value schema (i.e.
      * subject name ends with -value), only the value strategies are considered. Otherwise, all strategies are
@@ -471,48 +440,19 @@ public class SchemaService {
      *
      * @param namespace The namespace
      * @param schema The schema
-     * @param authorizedStrategies The valid subject name strategies
      * @return A list of errors
      */
-    private Mono<List<String>> validateSubjectStrategy(
-            Namespace namespace, Schema schema, AuthorizedSubjectNameStrategy authorizedStrategies) {
+    private Mono<List<String>> validateSubjectStrategy(Namespace namespace, Schema schema) {
         List<String> errors = new ArrayList<>();
 
-        if (schema.getMetadata().getName().endsWith(KEY_SCHEMA_SUFFIX)) {
-            return Flux.fromIterable(authorizedStrategies.getKeyStrategies())
-                    .flatMap(strategy -> matchesStrategy(namespace, strategy, schema))
-                    .any(matches -> matches)
-                    .map(valid -> {
-                        if (Boolean.FALSE.equals(valid)) {
-                            errors.add(invalidSchemaSubjectName(
-                                    schema.getMetadata().getName(), authorizedStrategies.getKeyStrategies()));
-                        }
-
-                        return errors;
-                    });
-        }
-
-        if (schema.getMetadata().getName().endsWith(VALUE_SCHEMA_SUFFIX)) {
-            return Flux.fromIterable(authorizedStrategies.getValueStrategies())
-                    .flatMap(strategy -> matchesStrategy(namespace, strategy, schema))
-                    .any(matches -> matches)
-                    .map(valid -> {
-                        if (Boolean.FALSE.equals(valid)) {
-                            errors.add(invalidSchemaSubjectName(
-                                    schema.getMetadata().getName(), authorizedStrategies.getValueStrategies()));
-                        }
-
-                        return errors;
-                    });
-        }
-
-        return Flux.fromIterable(authorizedStrategies.all())
+        return Flux.fromIterable(namespace.getSpec().getSubjectNameStrategies())
                 .flatMap(strategy -> matchesStrategy(namespace, strategy, schema))
                 .any(matches -> matches)
                 .map(valid -> {
                     if (Boolean.FALSE.equals(valid)) {
-                        errors.add(
-                                invalidSchemaSubjectName(schema.getMetadata().getName(), authorizedStrategies.all()));
+                        errors.add(invalidSchemaSubjectName(
+                                schema.getMetadata().getName(),
+                                namespace.getSpec().getSubjectNameStrategies()));
                     }
 
                     return errors;

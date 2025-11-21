@@ -27,8 +27,6 @@ import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidTopicSpec;
 import static com.michelin.ns4kafka.util.config.TopicConfig.*;
 
 import com.michelin.ns4kafka.model.Topic;
-import com.michelin.ns4kafka.model.schema.SubjectNameStrategy;
-import io.micronaut.core.util.CollectionUtils;
 import io.micronaut.core.util.StringUtils;
 import java.util.ArrayList;
 import java.util.List;
@@ -95,39 +93,6 @@ public class TopicValidator extends ResourceValidator {
                         "preallocate",
                         ResourceValidator.ValidString.optionalIn("true", "false")))
                 .build();
-    }
-
-    /**
-     * Get the authorized subject name strategies for key and value.
-     *
-     * @return The authorized subject name strategies
-     */
-    public AuthorizedSubjectNameStrategy getAuthorizedSubjectNameStrategies() {
-        final List<SubjectNameStrategy> valueStrategies = extractStrategies(VALUE_SUBJECT_NAME_STRATEGY);
-        final List<SubjectNameStrategy> keyStrategies = extractStrategies(KEY_SUBJECT_NAME_STRATEGY);
-
-        return AuthorizedSubjectNameStrategy.builder()
-                .keyStrategies(keyStrategies)
-                .valueStrategies(valueStrategies)
-                .build();
-    }
-
-    /**
-     * Extract subject name strategies from the validation constraints.
-     *
-     * @param configKey The configuration key, either for key or value subject name strategy
-     * @return The list of subject name strategies
-     */
-    private List<SubjectNameStrategy> extractStrategies(String configKey) {
-        ResourceValidator.Validator validator = getValidationConstraints().get(configKey);
-        if (validator instanceof ResourceValidator.ValidString validString
-                && CollectionUtils.isNotEmpty(validString.getValidStrings())) {
-            return validString.getValidStrings().stream()
-                    .map(SubjectNameStrategy::from)
-                    .toList();
-        }
-
-        return List.of(SubjectNameStrategy.defaultStrategy());
     }
 
     /**
