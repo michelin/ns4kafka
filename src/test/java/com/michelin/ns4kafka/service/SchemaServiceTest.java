@@ -28,7 +28,6 @@ import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.schema.Schema;
-import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityCheckResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityResponse;
@@ -53,8 +52,6 @@ import reactor.test.StepVerifier;
 
 @ExtendWith(MockitoExtension.class)
 class SchemaServiceTest {
-    @Mock
-    List<ManagedClusterProperties> managedClusterProperties;
 
     @Mock
     AclService aclService;
@@ -503,9 +500,6 @@ class SchemaServiceTest {
                 .build();
         SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
 
-        when(managedClusterProperties.stream())
-                .thenReturn(Stream.of(
-                        new ManagedClusterProperties("local", ManagedClusterProperties.KafkaProvider.SELF_MANAGED)));
         when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(), "header-value", "1"))
                 .thenReturn(Mono.just(buildSchemaResponse("subject-reference")));
         when(schemaRegistryClient.getCurrentCompatibilityBySubject(any(), any()))

@@ -29,7 +29,6 @@ import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.schema.Schema;
 import com.michelin.ns4kafka.model.schema.SubjectNameStrategy;
-import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityRequest;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityResponse;
@@ -70,9 +69,6 @@ public class SchemaService {
         this.aclService = aclService;
         this.schemaRegistryClient = schemaRegistryClient;
     }
-
-    @Inject
-    private List<ManagedClusterProperties> managedClusterProperties;
 
     /**
      * Get all the schemas of a given namespace.
