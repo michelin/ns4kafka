@@ -4,7 +4,7 @@ plugins {
     id("jacoco")
     id("org.sonarqube") version "7.1.0.6387"
     id("pl.allegro.tech.build.axion-release") version "1.21.0"
-    id("com.diffplug.spotless") version "8.0.0"
+    id("com.diffplug.spotless") version "8.1.0"
 }
 
 version = scmVersion.version
