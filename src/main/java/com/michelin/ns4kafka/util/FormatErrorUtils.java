@@ -334,17 +334,18 @@ public class FormatErrorUtils {
      * Invalid operation on consumer group.
      *
      * @param consumerGroup the consumer group
-     * @param state the state
+     * @param targetState the target state
+     * @param currentState the current state
      * @return the error message
      */
-    public static String invalidConsumerGroupOperation(String consumerGroup, String state) {
+    public static String invalidConsumerGroupOperation(String consumerGroup, String targetState, String currentState) {
         return String.format(
                 INVALID_OPERATION,
                 "reset offset",
                 String.format(
-                        "assignments can only be reset if the consumer group \"%s\" "
-                                + "is inactive but the current state is %s",
-                        consumerGroup, state));
+                        "offsets can only be reset if the consumer group \"%s\" "
+                                + "is %s but the current state is %s. Stop the consumption and wait \"session.timeout.ms\" before retrying",
+                        consumerGroup, targetState, currentState));
     }
 
     /**

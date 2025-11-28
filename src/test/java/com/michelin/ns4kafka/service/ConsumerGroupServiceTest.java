@@ -36,6 +36,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import org.apache.kafka.clients.admin.ConsumerGroupDescription;
+import org.apache.kafka.common.GroupState;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -345,5 +347,50 @@ class ConsumerGroupServiceTest {
         assertTrue(result.containsKey(topicPartition2));
         assertEquals(5, result.get(topicPartition1));
         assertEquals(10, result.get(topicPartition2));
+    }
+
+    @Test
+    void shouldGetConsumerGroupStatusWhenDescribeCompletesNormally() throws InterruptedException, ExecutionException {
+        Namespace namespace = Namespace.builder()
+                .metadata(Metadata.builder().cluster("test").build())
+                .build();
+
+        String groupId = "testGroup";
+        ConsumerGroupDescription consumerGroupDescription =
+                new ConsumerGroupDescription(null, true, null, null, null, GroupState.STABLE, null, null, null, null);
+
+        ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor = mock(ConsumerGroupAsyncExecutor.class);
+        when(applicationContext.getBean(
+                        ConsumerGroupAsyncExecutor.class,
+                        Qualifiers.byName(namespace.getMetadata().getCluster())))
+                .thenReturn(consumerGroupAsyncExecutor);
+        when(consumerGroupAsyncExecutor.describeConsumerGroups(List.of(groupId)))
+                .thenReturn(Map.of(groupId, consumerGroupDescription));
+
+        GroupState result = consumerGroupService.getConsumerGroupStatus(namespace, groupId);
+
+        assertEquals(GroupState.STABLE, result);
+    }
+
+    @Test
+    void shouldGetConsumerGroupStatusWhenDescribeCompletesExceptionally()
+            throws InterruptedException, ExecutionException {
+        Namespace namespace = Namespace.builder()
+                .metadata(Metadata.builder().cluster("test").build())
+                .build();
+
+        String groupId = "testGroup";
+
+        ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor = mock(ConsumerGroupAsyncExecutor.class);
+        when(applicationContext.getBean(
+                        ConsumerGroupAsyncExecutor.class,
+                        Qualifiers.byName(namespace.getMetadata().getCluster())))
+                .thenReturn(consumerGroupAsyncExecutor);
+        when(consumerGroupAsyncExecutor.describeConsumerGroups(List.of(groupId)))
+                .thenThrow(new ExecutionException("", new Exception()));
+
+        GroupState result = consumerGroupService.getConsumerGroupStatus(namespace, groupId);
+
+        assertEquals(GroupState.EMPTY, result);
     }
 }
