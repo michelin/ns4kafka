@@ -356,8 +356,8 @@ class ConsumerGroupServiceTest {
                 .build();
 
         String groupId = "testGroup";
-        ConsumerGroupDescription consumerGroupDescription = new ConsumerGroupDescription(
-                null, true, null, null, null, GroupState.STABLE, null, null, null, null);
+        ConsumerGroupDescription consumerGroupDescription =
+                new ConsumerGroupDescription(null, true, null, null, null, GroupState.STABLE, null, null, null, null);
 
         ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor = mock(ConsumerGroupAsyncExecutor.class);
         when(applicationContext.getBean(
