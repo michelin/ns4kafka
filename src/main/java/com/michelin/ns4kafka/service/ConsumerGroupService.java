@@ -44,6 +44,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.apache.kafka.common.GroupState;
 import org.apache.kafka.common.TopicPartition;
 
 /** Service to manage the consumer groups. */
@@ -133,19 +134,20 @@ public class ConsumerGroupService {
      * @param namespace The namespace
      * @param groupId The consumer group
      * @return The consumer group status
-     * @throws ExecutionException Any execution exception during consumer groups description
      * @throws InterruptedException Any interrupted exception during consumer groups description
      */
-    public String getConsumerGroupStatus(Namespace namespace, String groupId)
-            throws ExecutionException, InterruptedException {
+    public GroupState getConsumerGroupStatus(Namespace namespace, String groupId) throws InterruptedException {
         ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor = applicationContext.getBean(
                 ConsumerGroupAsyncExecutor.class,
                 Qualifiers.byName(namespace.getMetadata().getCluster()));
-        return consumerGroupAsyncExecutor
-                .describeConsumerGroups(List.of(groupId))
-                .get(groupId)
-                .groupState()
-                .toString();
+        try {
+            return consumerGroupAsyncExecutor
+                    .describeConsumerGroups(List.of(groupId))
+                    .get(groupId)
+                    .groupState();
+        } catch (ExecutionException e) {
+            return GroupState.EMPTY;
+        }
     }
 
     /**

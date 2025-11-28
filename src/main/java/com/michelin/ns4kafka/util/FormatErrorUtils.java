@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import org.apache.kafka.common.GroupState;
 
 /** Format error utils. */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
@@ -342,9 +343,9 @@ public class FormatErrorUtils {
                 INVALID_OPERATION,
                 "reset offset",
                 String.format(
-                        "assignments can only be reset if the consumer group \"%s\" "
-                                + "is inactive but the current state is %s",
-                        consumerGroup, state));
+                        "offsets can only be reset if the consumer group \"%s\" "
+                                + "is %s but the current state is %s. Stop the consumption and wait \"session.timeout.ms\" before retrying",
+                        consumerGroup, GroupState.EMPTY.toString().toLowerCase(), state));
     }
 
     /**
