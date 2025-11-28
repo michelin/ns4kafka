@@ -145,7 +145,10 @@ public class ConsumerGroupService {
                     .describeConsumerGroups(List.of(groupId))
                     .get(groupId)
                     .groupState();
-        } catch (ExecutionException e) {
+        } catch (ExecutionException _) {
+            // If the consumer group doesn't exist, describeConsumerGroups throw an ExecutionException
+            // Check KIP1043
+            // https://cwiki.apache.org/confluence/display/KAFKA/KIP-1043%3A+Administration+of+groups#KIP1043:Administrationofgroups-Compatibility,Deprecation,andMigrationPlan
             return GroupState.EMPTY;
         }
     }

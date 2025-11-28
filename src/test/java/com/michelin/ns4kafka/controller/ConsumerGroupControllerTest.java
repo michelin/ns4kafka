@@ -254,7 +254,7 @@ class ConsumerGroupControllerTest {
     }
 
     @Test
-    void shouldNotResetConsumerGroupWhenItIsActive() throws ExecutionException, InterruptedException {
+    void shouldNotResetConsumerGroupWhenItIsStable() throws InterruptedException {
         Namespace ns = Namespace.builder()
                 .metadata(Metadata.builder().name("test").cluster("local").build())
                 .build();

@@ -88,14 +88,16 @@ public class ConsumerGroupController extends NamespacedResourceController {
         try {
             // Starting from here, all the code is from Kafka kafka-consumer-group command
             // https://github.com/apache/kafka/blob/trunk/core/src/main/scala/kafka/admin/ConsumerGroupCommand.scala#L421
-            // Validate Consumer Group is dead or inactive
+            // Validate Consumer Group is empty
             GroupState currentState = consumerGroupService.getConsumerGroupStatus(ns, consumerGroup);
-            if (!(GroupState.EMPTY == currentState)) {
+            if (GroupState.EMPTY != currentState) {
                 throw new ResourceValidationException(
                         CONSUMER_GROUP_RESET_OFFSET,
                         consumerGroup,
                         invalidConsumerGroupOperation(
-                                consumerGroup, currentState.toString().toLowerCase()));
+                                consumerGroup,
+                                GroupState.EMPTY.toString().toLowerCase(),
+                                currentState.toString().toLowerCase()));
             }
 
             // List partitions
