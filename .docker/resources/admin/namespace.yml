@@ -8,6 +8,10 @@ metadata:
 spec:
   kafkaUser: "user1"
   transactionsEnabled: true
+  subjectNameStrategies:
+    - "TopicNameStrategy"
+    - "RecordNameStrategy"
+    - "TopicRecordNameStrategy"
   connectClusters:
   - "local"
   topicValidator:
