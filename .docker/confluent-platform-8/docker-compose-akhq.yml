@@ -1,7 +1,7 @@
 ---
 services:
   broker:
-    image: confluentinc/cp-kafka:7.6.1
+    image: confluentinc/cp-kafka:8.0.0
     hostname: broker
     container_name: broker
     networks:
@@ -10,9 +10,9 @@ services:
       - "9092:9092"
       - "9101:9101"
     volumes:
-      - ./config/broker/kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf
-      - ./config/broker/client.properties:/home/appuser/client.properties
-      - ./config/broker/create-user.sh:/home/appuser/create-user.sh
+      - ../config/broker/kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf
+      - ../config/broker/client.properties:/home/appuser/client.properties
+      - ../config/broker/create-user.sh:/home/appuser/create-user.sh
     command: bash -c '/home/appuser/create-user.sh && /etc/confluent/docker/run'
     environment:
       KAFKA_NODE_ID: 1
@@ -29,8 +29,6 @@ services:
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_JMX_PORT: 9101
-      KAFKA_JMX_HOSTNAME: localhost
       KAFKA_PROCESS_ROLES: 'broker,controller'
       KAFKA_CONTROLLER_QUORUM_VOTERS: '1@broker:29093'
       KAFKA_AUTHORIZER_CLASS_NAME: org.apache.kafka.metadata.authorizer.StandardAuthorizer
@@ -41,7 +39,7 @@ services:
       KAFKA_OPTS: -Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf
 
   schema-registry:
-    image: confluentinc/cp-schema-registry:7.6.1
+    image: confluentinc/cp-schema-registry:8.0.0
     hostname: schema-registry
     container_name: schema-registry
     depends_on:
@@ -120,7 +118,7 @@ services:
       - "9021:8080"
     restart: unless-stopped
     volumes:
-      - ./config/akhq/application.yml:/app/application.yml:ro
+      - ../config/akhq/application.yml:/app/application.yml:ro
 
   ns4kafka:
     image: michelin/ns4kafka:1.17.0
@@ -136,13 +134,13 @@ services:
       - "80:8080"
     restart: unless-stopped
     volumes:
-      - ./config/ns4kafka/application.yml:/home/app/application.yml:ro
-      - ./config/ns4kafka/logback.xml:/home/app/resources/logback.xml:ro
+      - ../config/ns4kafka/application.yml:/home/app/application.yml:ro
+      - ../config/ns4kafka/logback.xml:/home/app/resources/logback.xml:ro
     environment:
       - MICRONAUT_CONFIG_FILES=/home/app/application.yml
 
   kafkactl:
-    image: michelin/kafkactl:1.17.0-native
+    image: michelin/kafkactl:1.17.2-native
     hostname: kafkactl
     container_name: kafkactl
     networks:
@@ -153,8 +151,8 @@ services:
       - connect
     entrypoint: [ "tail", "-f", "/dev/null" ]
     volumes:
-      - ./config/kafkactl/config.yml:/root/.kafkactl/config.yml
-      - ./resources:/resources
+      - ../config/kafkactl/config.yml:/root/.kafkactl/config.yml
+      - ../resources:/resources
 
 networks:
   ns4kafka-network:
