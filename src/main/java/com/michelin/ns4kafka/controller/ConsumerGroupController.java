@@ -42,6 +42,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import org.apache.kafka.common.GroupState;
 import org.apache.kafka.common.TopicPartition;
 
 /** Controller to manage the consumer groups. */
@@ -85,15 +86,17 @@ public class ConsumerGroupController extends NamespacedResourceController {
 
         List<ConsumerGroupResetOffsetsResponse> topicPartitionOffsets = null;
         try {
-            // Starting from here, all the code is from Kafka kafka-consumer-group command
-            // https://github.com/apache/kafka/blob/trunk/core/src/main/scala/kafka/admin/ConsumerGroupCommand.scala#L421
-            // Validate Consumer Group is dead or inactive
-            String currentState = consumerGroupService.getConsumerGroupStatus(ns, consumerGroup);
-            if (!List.of("Empty", "Dead").contains(currentState)) {
+            // Validate Consumer Group is empty or dead
+            // The check for DEAD state is for retro compatibility with Kafka server 3.X
+            GroupState currentState = consumerGroupService.getConsumerGroupStatus(ns, consumerGroup);
+            if (!List.of(GroupState.EMPTY, GroupState.DEAD).contains(currentState)) {
                 throw new ResourceValidationException(
                         CONSUMER_GROUP_RESET_OFFSET,
                         consumerGroup,
-                        invalidConsumerGroupOperation(consumerGroup, currentState.toLowerCase()));
+                        invalidConsumerGroupOperation(
+                                consumerGroup,
+                                GroupState.EMPTY.toString().toLowerCase(),
+                                currentState.toString().toLowerCase()));
             }
 
             // List partitions

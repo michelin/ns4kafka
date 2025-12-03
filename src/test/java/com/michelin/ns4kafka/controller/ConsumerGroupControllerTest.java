@@ -49,6 +49,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
+import org.apache.kafka.common.GroupState;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -97,7 +98,7 @@ class ConsumerGroupControllerTest {
         when(consumerGroupService.validateResetOffsets(resetOffset)).thenReturn(List.of());
         when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
                 .thenReturn(true);
-        when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn("Empty");
+        when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(GroupState.EMPTY);
         when(consumerGroupService.getPartitionsToReset(ns, "groupID", "topic1")).thenReturn(topicPartitions);
         when(consumerGroupService.prepareOffsetsToReset(
                         ns, "groupID", null, topicPartitions, ResetOffsetsMethod.TO_EARLIEST))
@@ -151,7 +152,7 @@ class ConsumerGroupControllerTest {
         when(consumerGroupService.validateResetOffsets(resetOffset)).thenReturn(List.of());
         when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
                 .thenReturn(true);
-        when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn("Empty");
+        when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(GroupState.EMPTY);
         when(consumerGroupService.getPartitionsToReset(ns, "groupID", "topic1")).thenReturn(topicPartitions);
         when(consumerGroupService.prepareOffsetsToReset(
                         ns, "groupID", null, topicPartitions, ResetOffsetsMethod.TO_EARLIEST))
@@ -197,7 +198,7 @@ class ConsumerGroupControllerTest {
         when(consumerGroupService.validateResetOffsets(resetOffset)).thenReturn(List.of());
         when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
                 .thenReturn(true);
-        when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn("Empty");
+        when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(GroupState.EMPTY);
         when(consumerGroupService.getPartitionsToReset(ns, "groupID", "topic1"))
                 .thenThrow(new ExecutionException("Error during getPartitionsToReset", new Throwable()));
 
@@ -253,7 +254,7 @@ class ConsumerGroupControllerTest {
     }
 
     @Test
-    void shouldNotResetConsumerGroupWhenItIsActive() throws ExecutionException, InterruptedException {
+    void shouldNotResetConsumerGroupWhenItIsStable() throws InterruptedException {
         Namespace ns = Namespace.builder()
                 .metadata(Metadata.builder().name("test").cluster("local").build())
                 .build();
@@ -270,15 +271,17 @@ class ConsumerGroupControllerTest {
         when(consumerGroupService.validateResetOffsets(resetOffset)).thenReturn(new ArrayList<>());
         when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
                 .thenReturn(true);
-        when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn("Active");
+        when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(GroupState.STABLE);
 
         ResourceValidationException result = assertThrows(
                 ResourceValidationException.class,
                 () -> consumerGroupController.resetOffsets("test", "groupID", resetOffset, false));
 
         assertEquals(
-                "Invalid \"reset offset\" operation: assignments can only be reset if the consumer group "
-                        + "\"groupID\" is inactive but the current state is active.",
+                "Invalid \"reset offset\" operation: offsets can only be reset if the consumer group "
+                        + "\"groupID\" is " + GroupState.EMPTY.toString().toLowerCase() + " but the current state is "
+                        + GroupState.STABLE.toString().toLowerCase()
+                        + ". Stop the consumption and wait \"session.timeout.ms\" before retrying.",
                 result.getValidationErrors().getFirst());
     }
 }
