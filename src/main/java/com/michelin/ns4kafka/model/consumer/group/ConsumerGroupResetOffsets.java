@@ -73,7 +73,7 @@ public class ConsumerGroupResetOffsets extends MetadataResource {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ConsumerGroupResetOffsetsSpec {
-        @NotNull @NotBlank private String topic;
+        @NotBlank private String topic;
 
         @NotNull private ResetOffsetsMethod method;
 
