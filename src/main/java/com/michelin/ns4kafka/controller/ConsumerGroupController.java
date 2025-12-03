@@ -86,11 +86,10 @@ public class ConsumerGroupController extends NamespacedResourceController {
 
         List<ConsumerGroupResetOffsetsResponse> topicPartitionOffsets = null;
         try {
-            // Starting from here, all the code is from Kafka kafka-consumer-group command
-            // https://github.com/apache/kafka/blob/trunk/core/src/main/scala/kafka/admin/ConsumerGroupCommand.scala#L421
-            // Validate Consumer Group is empty
+            // Validate Consumer Group is empty or dead
+            // The check for DEAD state is for retro compatibility with Kafka server 3.X
             GroupState currentState = consumerGroupService.getConsumerGroupStatus(ns, consumerGroup);
-            if (GroupState.EMPTY != currentState) {
+            if (!List.of(GroupState.EMPTY, GroupState.DEAD).contains(currentState)) {
                 throw new ResourceValidationException(
                         CONSUMER_GROUP_RESET_OFFSET,
                         consumerGroup,
