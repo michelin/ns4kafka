@@ -515,6 +515,18 @@ ns4kafka:
 
 The key must be 256 bits long (32 characters).
 
+#### Connect
+
+Connect API returns masked value for sensitive connector configuration fields.
+The masked values prevent the connectors synchronisation from working correctly so the mask value is used to ignore these fields.
+
+```yaml
+ns4kafka:
+  connect:
+    self-managed:
+      sensitive-field-mask: '••••••••••••'
+```
+
 #### HTTP Client
 
 Ns4Kafka includes multiple HTTP clients:

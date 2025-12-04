@@ -158,6 +158,10 @@ public class ConnectorController extends NamespacedResourceController {
                     return Mono.just(formatHttpResponse(connector, status));
                 }
 
+                // Set a toDeploy flag
+                // Without this trick, if only sensitive fields were updated, the executor wouldn't apply the difference
+                connector.getStatus().setToDeploy(true);
+
                 sendEventLog(
                         connector,
                         status,
