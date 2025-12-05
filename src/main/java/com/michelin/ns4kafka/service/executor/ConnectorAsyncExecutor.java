@@ -307,15 +307,11 @@ public class ConnectorAsyncExecutor {
                         // comparison for the concerned fields
                         // 2) Store the mask string and ignore the comparison when the "actual"
                         // value corresponds to this mask
-                        // Solution 2 is chosen because it is more simple and efficient (no additional API
-                        // calls)
-                        || (e.getValue() != null
-                                && Arrays.asList(
-                                                expectedMap.get(e.getKey()),
-                                                connectProperties
-                                                        .getSelfManaged()
-                                                        .getSensitiveFieldMask())
-                                        .contains(e.getValue())));
+                        // Solution 2 is chosen since it's simpler and has no additional API calls
+                        || (Arrays.asList(
+                                        expectedMap.get(e.getKey()),
+                                        connectProperties.getSelfManaged().getSensitiveFieldMask())
+                                .contains(e.getValue())));
     }
 
     /**
