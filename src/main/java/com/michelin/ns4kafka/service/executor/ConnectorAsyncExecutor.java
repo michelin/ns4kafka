@@ -32,6 +32,7 @@ import com.michelin.ns4kafka.service.client.connect.entities.ConnectorStatus;
 import io.micronaut.context.annotation.EachBean;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import jakarta.inject.Singleton;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -289,7 +290,7 @@ public class ConnectorAsyncExecutor {
      * @param actual The second connector
      * @return true it they are, false otherwise
      */
-    private boolean connectorsAreSame(Connector expected, Connector actual) {
+    boolean connectorsAreSame(Connector expected, Connector actual) {
         Map<String, String> expectedMap = expected.getSpec().getConfig();
         Map<String, String> actualMap = actual.getSpec().getConfig();
 
@@ -309,7 +310,7 @@ public class ConnectorAsyncExecutor {
                         // Solution 2 is chosen because it is more simple and efficient (no additional API
                         // calls)
                         || (e.getValue() != null
-                                && List.of(
+                                && Arrays.asList(
                                                 expectedMap.get(e.getKey()),
                                                 connectProperties
                                                         .getSelfManaged()
