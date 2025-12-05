@@ -98,6 +98,7 @@ public class Connector extends MetadataResource {
         private TaskState state;
         private String workerId;
         private List<TaskStatus> tasks;
+        private Boolean toDeploy;
 
         @JsonFormat(shape = JsonFormat.Shape.STRING)
         private Date lastUpdateTime;

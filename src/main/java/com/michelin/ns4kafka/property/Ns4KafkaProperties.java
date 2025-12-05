@@ -120,4 +120,18 @@ public class Ns4KafkaProperties {
             }
         }
     }
+
+    @Getter
+    @Setter
+    @ConfigurationProperties("connect")
+    public static class ConnectProperties {
+        private SelfManagedProperties selfManaged = new SelfManagedProperties();
+
+        @Getter
+        @Setter
+        @ConfigurationProperties("self-managed")
+        public static class SelfManagedProperties {
+            private String sensitiveFieldMask = "••••••••••••";
+        }
+    }
 }

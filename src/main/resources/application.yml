@@ -144,6 +144,9 @@ ns4kafka:
   security:
     admin-group: "_"
     aes256-encryption-key: "changeitchangeitchangeitchangeit"
+  connect:
+    self-managed:
+      sensitive-field-mask: "••••••••••••"
   store:
     kafka:
       enabled: true
