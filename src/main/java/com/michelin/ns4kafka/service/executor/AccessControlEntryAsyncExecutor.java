@@ -143,9 +143,11 @@ public class AccessControlEntryAsyncExecutor {
                 .distinct();
 
         // Converts KafkaStream resources to topic (CREATE/DELETE) AclBindings
-        Stream<AclBinding> aclBindingFromKstream =
-                streamService.findAllForCluster(managedClusterProperties.getName()).stream()
-                        .flatMap(kafkaStream -> buildAclBindingsFromKafkaStream(kafkaStream).stream());
+        List<Namespace> namespaces = namespaceRepository.findAllForCluster(managedClusterProperties.getName());
+
+        Stream<AclBinding> aclBindingFromKstream = namespaces.stream()
+                .flatMap(namespace -> streamService.findAllForNamespace(namespace).stream()
+                        .flatMap(kafkaStream -> buildAclBindingsFromKafkaStream(kafkaStream).stream()));
 
         // Converts connect ACLs to group AclBindings (connect-)
         Stream<AclBinding> aclBindingFromConnect = acls.stream()
