@@ -143,6 +143,7 @@ public class AccessControlEntryAsyncExecutor {
                 .distinct();
 
         // Converts KafkaStream resources to topic (CREATE/DELETE) AclBindings
+        // Looping over namespaces because some Kafka Streams might have a non-existing namespace
         List<Namespace> namespaces = namespaceRepository.findAllForCluster(managedClusterProperties.getName());
 
         Stream<AclBinding> aclBindingFromKstream = namespaces.stream()
