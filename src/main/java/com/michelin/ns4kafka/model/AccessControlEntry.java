@@ -55,7 +55,8 @@ public class AccessControlEntry extends MetadataResource {
         GROUP,
         CONNECT,
         CONNECT_CLUSTER,
-        SCHEMA
+        SCHEMA,
+        TRANSACTIONAL_ID // kept for retro compatibility (record deserialization in ns4kafka topic)
     }
 
     /** Resource pattern type. */
