@@ -51,6 +51,7 @@ import reactor.core.publisher.Mono;
 public class ConnectorAsyncExecutor {
     private final Set<String> healthyConnectClusters = new HashSet<>();
     private final Set<String> idleConnectClusters = new HashSet<>();
+    private final String sensitiveFieldMask = "••••••••••••";
 
     private final ManagedClusterProperties managedClusterProperties;
     private final Ns4KafkaProperties.ConnectProperties connectProperties;
@@ -308,9 +309,7 @@ public class ConnectorAsyncExecutor {
                         // 2) Store the mask string and ignore the comparison when the "actual"
                         // value corresponds to this mask
                         // Solution 2 is chosen since it's simpler and has no additional API calls
-                        || (Arrays.asList(
-                                        expectedMap.get(e.getKey()),
-                                        connectProperties.getSelfManaged().getSensitiveFieldMask())
+                        || (Arrays.asList(expectedMap.get(e.getKey()), sensitiveFieldMask)
                                 .contains(e.getValue())));
     }
 
