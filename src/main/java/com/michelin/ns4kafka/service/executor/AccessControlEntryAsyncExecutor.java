@@ -274,8 +274,8 @@ public class AccessControlEntryAsyncExecutor {
 
             // Build transactionalId ACLs from GROUP ACL to allow transactions
             if (GROUP.equals(acl.getSpec().getResourceType())
-                    && ((namespace.getSpec().isTransactionsEnabled()
-                            || !streamService.findAllForNamespace(namespace).isEmpty()))) {
+                    && (namespace.getSpec().isTransactionsEnabled()
+                            || !streamService.findAllForNamespace(namespace).isEmpty())) {
                 transactionalIdAcls = buildTransactionalIdAclBindingsFromGroupAcl(acl, kafkaUser);
             }
         }
