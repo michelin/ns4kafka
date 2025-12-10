@@ -64,7 +64,7 @@ public class Namespace extends MetadataResource {
         private boolean protectionEnabled;
 
         @Builder.Default
-        private boolean transactionsEnabled = true;
+        private boolean transactionsEnabled = false;
 
         @Builder.Default
         private List<String> connectClusters = List.of();

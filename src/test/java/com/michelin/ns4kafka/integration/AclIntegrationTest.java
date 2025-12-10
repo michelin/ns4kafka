@@ -478,16 +478,9 @@ class AclIntegrationTest extends KafkaIntegrationTest {
                 new org.apache.kafka.common.acl.AccessControlEntry(
                         "User:user1", "*", AclOperation.DESCRIBE, AclPermissionType.ALLOW));
 
-        assertEquals(8, results.size());
+        assertEquals(4, results.size());
         assertTrue(results.containsAll(List.of(
-                aclBindingTopicRead,
-                aclBindingTopicWrite,
-                aclBindingGroupRead,
-                aclBindingTopicDescribeConfigs,
-                aclBindingTransactionalWrite,
-                aclBindingTransactionalDescribe,
-                aclBindingTransactionalConnectWrite,
-                aclBindingTransactionalConnectDescribe)));
+                aclBindingTopicRead, aclBindingTopicWrite, aclBindingGroupRead, aclBindingTopicDescribeConfigs)));
 
         KafkaStream kafkaStream = KafkaStream.builder()
                 .metadata(
@@ -697,6 +690,24 @@ class AclIntegrationTest extends KafkaIntegrationTest {
                 .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/acls")
                         .bearerAuth(token)
                         .body(accessControlEntryNamespace1));
+
+        // allow transactions on the namespace
+        Namespace namespace = Namespace.builder()
+                .metadata(Metadata.builder().name("ns1").cluster("test-cluster").build())
+                .spec(NamespaceSpec.builder()
+                        .kafkaUser("user1")
+                        .protectionEnabled(Boolean.FALSE)
+                        .transactionsEnabled(Boolean.TRUE)
+                        .connectClusters(List.of("test-connect"))
+                        .topicValidator(TopicValidator.makeDefaultOneBroker())
+                        .build())
+                .build();
+
+        ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces")
+                        .bearerAuth(token)
+                        .body(namespace));
 
         // Force ACLs synchronization
         accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
