@@ -49,8 +49,6 @@ class ConnectorAsyncExecutorTest {
 
     @Test
     void shouldCompareSameConnectors() {
-        when(connectProperties.getSelfManaged()).thenReturn(selfManagedProperties);
-
         Connector expectedConnector = Connector.builder()
                 .metadata(Metadata.builder().name(CONNECTOR_NAME).build())
                 .spec(Connector.ConnectorSpec.builder()
@@ -89,8 +87,6 @@ class ConnectorAsyncExecutorTest {
 
     @Test
     void shouldCompareConnectorsWithDifferentConfigValues() {
-        when(connectProperties.getSelfManaged()).thenReturn(selfManagedProperties);
-
         Connector expectedConnector = Connector.builder()
                 .metadata(Metadata.builder().name(CONNECTOR_NAME).build())
                 .spec(Connector.ConnectorSpec.builder()
@@ -110,8 +106,6 @@ class ConnectorAsyncExecutorTest {
 
     @Test
     void shouldCompareConnectorsWithDifferentConfigKeys() {
-        when(connectProperties.getSelfManaged()).thenReturn(selfManagedProperties);
-
         Connector expectedConnector = Connector.builder()
                 .metadata(Metadata.builder().name(CONNECTOR_NAME).build())
                 .spec(Connector.ConnectorSpec.builder()
@@ -131,8 +125,6 @@ class ConnectorAsyncExecutorTest {
 
     @Test
     void shouldCompareConnectorsWithMaskedConfigFromConnect() {
-        when(connectProperties.getSelfManaged()).thenReturn(selfManagedProperties);
-
         Connector expectedConnector = Connector.builder()
                 .metadata(Metadata.builder().name(CONNECTOR_NAME).build())
                 .spec(Connector.ConnectorSpec.builder()
