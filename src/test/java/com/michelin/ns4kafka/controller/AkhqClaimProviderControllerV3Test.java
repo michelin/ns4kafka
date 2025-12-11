@@ -911,7 +911,7 @@ class AkhqClaimProviderControllerV3Test {
         assertEquals(2, groups.size());
         assertEquals("topic-read", groups.getFirst().getRole());
         assertEquals(
-                List.of("^\\Qproject1.\\E.*$", "^\\Qproject2.\\E.*$"),
+                List.of("^\\Qproject1.\\E$", "^\\Qproject1.\\E.*$", "^\\Qproject2.\\E.*$", "^\\Qproject2.\\E$"),
                 groups.getFirst().getPatterns());
         assertEquals(List.of("^cluster$"), groups.getFirst().getClusters());
     }
