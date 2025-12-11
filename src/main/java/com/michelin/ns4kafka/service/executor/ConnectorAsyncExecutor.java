@@ -31,6 +31,7 @@ import com.michelin.ns4kafka.service.client.connect.entities.ConnectorStatus;
 import io.micronaut.context.annotation.EachBean;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import jakarta.inject.Singleton;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +48,8 @@ import reactor.core.publisher.Mono;
 @Singleton
 @AllArgsConstructor
 public class ConnectorAsyncExecutor {
+    private static final String SENSITIVE_FIELD_MASK = "••••••••••••";
+
     private final Set<String> healthyConnectClusters = new HashSet<>();
     private final Set<String> idleConnectClusters = new HashSet<>();
 
@@ -179,15 +182,17 @@ public class ConnectorAsyncExecutor {
                             .toList();
 
                     List<Connector> toUpdate = ns4kafkaConnectors.stream()
-                            .filter(connector -> brokerConnectors.stream().anyMatch(connector1 -> {
-                                if (connector1
-                                        .getMetadata()
-                                        .getName()
-                                        .equals(connector.getMetadata().getName())) {
-                                    return !connectorsAreSame(connector, connector1);
-                                }
-                                return false;
-                            }))
+                            .filter(connector -> (connector.getStatus() != null
+                                            && connector.getStatus().getToDeploy())
+                                    || brokerConnectors.stream().anyMatch(connector1 -> {
+                                        if (connector1
+                                                .getMetadata()
+                                                .getName()
+                                                .equals(connector.getMetadata().getName())) {
+                                            return !connectorsAreSame(connector, connector1);
+                                        }
+                                        return false;
+                                    }))
                             .toList();
 
                     if (!toCreate.isEmpty()) {
@@ -285,7 +290,7 @@ public class ConnectorAsyncExecutor {
      * @param actual The second connector
      * @return true it they are, false otherwise
      */
-    private boolean connectorsAreSame(Connector expected, Connector actual) {
+    boolean connectorsAreSame(Connector expected, Connector actual) {
         Map<String, String> expectedMap = expected.getSpec().getConfig();
         Map<String, String> actualMap = actual.getSpec().getConfig();
 
@@ -293,9 +298,18 @@ public class ConnectorAsyncExecutor {
             return false;
         }
 
-        return expectedMap.entrySet().stream()
-                .allMatch(e -> (e.getValue() == null && actualMap.get(e.getKey()) == null)
-                        || (e.getValue() != null && e.getValue().equals(actualMap.get(e.getKey()))));
+        return actualMap.entrySet().stream()
+                .allMatch(e -> (e.getValue() == null && expectedMap.get(e.getKey()) == null)
+                        // Password fields are masked when returned by Connect API in cp 7.9.3+
+                        // so these fields mess up the comparison
+                        // 2 solutions:
+                        // 1) Check with Connect API which field is masked and ignore the
+                        // comparison for the concerned fields
+                        // 2) Store the mask string and ignore the comparison when the "actual"
+                        // value corresponds to this mask
+                        // Solution 2 is chosen since it's simpler and has no additional API calls
+                        || (Arrays.asList(expectedMap.get(e.getKey()), SENSITIVE_FIELD_MASK)
+                                .contains(e.getValue())));
     }
 
     /**
@@ -312,11 +326,14 @@ public class ConnectorAsyncExecutor {
                         ConnectorSpecs.builder()
                                 .config(connector.getSpec().getConfig())
                                 .build())
-                .doOnSuccess(httpResponse -> log.info(
-                        "Success deploying connector {} on Kafka Connect {} of Kafka cluster {}.",
-                        connector.getMetadata().getName(),
-                        connector.getSpec().getConnectCluster(),
-                        managedClusterProperties.getName()))
+                .doOnSuccess(httpResponse -> {
+                    connector.getStatus().setToDeploy(false);
+                    log.info(
+                            "Success deploying connector {} on Kafka Connect {} of Kafka cluster {}.",
+                            connector.getMetadata().getName(),
+                            connector.getSpec().getConnectCluster(),
+                            managedClusterProperties.getName());
+                })
                 .doOnError(httpError -> log.error(
                         "Error deploying connector {} on Kafka Connect {} of Kafka cluster {}: {}",
                         connector.getMetadata().getName(),
