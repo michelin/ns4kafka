@@ -49,7 +49,7 @@ import reactor.core.publisher.Mono;
 @AllArgsConstructor
 public class ConnectorAsyncExecutor {
     private static final String SENSITIVE_FIELD_MASK = "••••••••••••";
-    
+
     private final Set<String> healthyConnectClusters = new HashSet<>();
     private final Set<String> idleConnectClusters = new HashSet<>();
 
