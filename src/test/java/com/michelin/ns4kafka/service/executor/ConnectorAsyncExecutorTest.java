@@ -32,7 +32,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ConnectorAsyncExecutorTest {
     private static final String CONNECTOR_NAME = "myConnector";
-    private static final String MASK = "••••••••••••";
+    private static final String SENSITIVE_FIELD_MASK = "••••••••••••";
 
     @InjectMocks
     ConnectorAsyncExecutor connectorAsyncExecutor;
@@ -125,7 +125,7 @@ class ConnectorAsyncExecutorTest {
         Connector actualConnector = Connector.builder()
                 .metadata(Metadata.builder().name(CONNECTOR_NAME).build())
                 .spec(Connector.ConnectorSpec.builder()
-                        .config(Map.of("config1", MASK, "config2", "value2"))
+                        .config(Map.of("config1", SENSITIVE_FIELD_MASK, "config2", "value2"))
                         .build())
                 .build();
 

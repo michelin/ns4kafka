@@ -48,9 +48,10 @@ import reactor.core.publisher.Mono;
 @Singleton
 @AllArgsConstructor
 public class ConnectorAsyncExecutor {
+    private static final String SENSITIVE_FIELD_MASK = "••••••••••••";
+    
     private final Set<String> healthyConnectClusters = new HashSet<>();
     private final Set<String> idleConnectClusters = new HashSet<>();
-    private static final String sensitiveFieldMask = "••••••••••••";
 
     private final ManagedClusterProperties managedClusterProperties;
 
@@ -307,7 +308,7 @@ public class ConnectorAsyncExecutor {
                         // 2) Store the mask string and ignore the comparison when the "actual"
                         // value corresponds to this mask
                         // Solution 2 is chosen since it's simpler and has no additional API calls
-                        || (Arrays.asList(expectedMap.get(e.getKey()), sensitiveFieldMask)
+                        || (Arrays.asList(expectedMap.get(e.getKey()), SENSITIVE_FIELD_MASK)
                                 .contains(e.getValue())));
     }
 
