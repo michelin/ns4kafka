@@ -911,9 +911,66 @@ class AkhqClaimProviderControllerV3Test {
         assertEquals(2, groups.size());
         assertEquals("topic-read", groups.getFirst().getRole());
         assertEquals(
-                List.of("^\\Qproject1.\\E.*$", "^\\Qproject2.\\E.*$"),
+                List.of("^\\Qproject1.\\E$", "^\\Qproject1.\\E.*$", "^\\Qproject2.\\E.*$", "^\\Qproject2.\\E$"),
                 groups.getFirst().getPatterns());
         assertEquals(List.of("^cluster$"), groups.getFirst().getClusters());
+    }
+
+    @Test
+    void shouldGenerateClaimWithMultipleNamespacesWithSameGroup() {
+        Namespace ns1 = Namespace.builder()
+                .metadata(Metadata.builder()
+                        .name("ns1")
+                        .cluster("cluster")
+                        .labels(Map.of("support-group", "GP-PROJECT-SUPPORT"))
+                        .build())
+                .build();
+
+        Namespace ns2 = Namespace.builder()
+                .metadata(Metadata.builder()
+                        .name("ns2")
+                        .cluster("cluster")
+                        .labels(Map.of("support-group", "GP-PROJECT-SUPPORT"))
+                        .build())
+                .build();
+
+        List<AccessControlEntry> acls1 = List.of(AccessControlEntry.builder()
+                .metadata(Metadata.builder().name("acl1").cluster("cluster").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.READ)
+                        .resource("project1.")
+                        .build())
+                .build());
+
+        List<AccessControlEntry> acls2 = List.of(AccessControlEntry.builder()
+                .metadata(Metadata.builder().name("acl2").cluster("cluster").build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .resource("project1.")
+                        .build())
+                .build());
+
+        when(ns4KafkaProperties.getAkhq()).thenReturn(buildAkhqProperties());
+        when(managedClusters.stream()).thenReturn(Stream.of(new ManagedClusterProperties("cluster")));
+        when(namespaceService.findAll()).thenReturn(List.of(ns1, ns2));
+        when(aclService.findAllGrantedToNamespace(ns1)).thenReturn(acls1);
+        when(aclService.findAllGrantedToNamespace(ns2)).thenReturn(acls2);
+
+        AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
+                .groups(List.of("GP-PROJECT-SUPPORT"))
+                .build();
+        AkhqClaimProviderController.AkhqClaimResponseV3 actual = akhqClaimProviderController.generateClaimV3(request);
+
+        List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups =
+                actual.getGroups().get("group");
+        assertEquals(2, groups.size());
+        assertEquals("topic-read", groups.getFirst().getRole());
+        assertEquals(List.of("^\\Qproject1.\\E.*$"), groups.getFirst().getPatterns());
+        assertEquals(List.of("^.*$"), groups.getFirst().getClusters());
     }
 
     private Ns4KafkaProperties.AkhqProperties buildAkhqProperties() {

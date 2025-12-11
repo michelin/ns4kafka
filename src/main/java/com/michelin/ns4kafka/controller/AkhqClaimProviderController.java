@@ -253,25 +253,23 @@ public class AkhqClaimProviderController {
      */
     private void optimizeAcl(List<AccessControlEntry> acls) {
         acls.removeIf(acl -> acls.stream()
-                .anyMatch(aclOther ->
-                        // Not comparing the ACL with itself
-                        !aclOther.getMetadata()
-                                        .getName()
-                                        .equals(acl.getMetadata().getName())
-                                // Check PREFIXED ACL on the same resource type and cluster
-                                && aclOther.getSpec()
-                                        .getResourcePatternType()
-                                        .equals(AccessControlEntry.ResourcePatternType.PREFIXED)
-                                && aclOther.getSpec()
-                                        .getResourceType()
-                                        .equals(acl.getSpec().getResourceType())
-                                && aclOther.getMetadata()
-                                        .getCluster()
-                                        .equals(acl.getMetadata().getCluster())
-                                // Check the resource is included in another acl
-                                && acl.getSpec()
-                                        .getResource()
-                                        .startsWith(aclOther.getSpec().getResource())));
+                // Keep PREFIXED ACL with a different resource but same resource type and cluster
+                .filter(aclOther -> aclOther.getSpec()
+                                .getResourcePatternType()
+                                .equals(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        && !aclOther.getSpec()
+                                .getResource()
+                                .equals(acl.getSpec().getResource())
+                        && aclOther.getSpec()
+                                .getResourceType()
+                                .equals(acl.getSpec().getResourceType())
+                        && aclOther.getMetadata()
+                                .getCluster()
+                                .equals(acl.getMetadata().getCluster()))
+                .map(accessControlEntryOther ->
+                        accessControlEntryOther.getSpec().getResource())
+                // Remove the ACL if there is one that contains the current resource
+                .anyMatch(escapedString -> acl.getSpec().getResource().startsWith(escapedString)));
     }
 
     /**
