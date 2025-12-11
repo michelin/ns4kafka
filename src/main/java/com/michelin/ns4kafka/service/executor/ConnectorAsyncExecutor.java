@@ -22,7 +22,6 @@ import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.connect.cluster.ConnectCluster;
 import com.michelin.ns4kafka.model.connector.Connector;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
-import com.michelin.ns4kafka.property.Ns4KafkaProperties;
 import com.michelin.ns4kafka.repository.ConnectorRepository;
 import com.michelin.ns4kafka.service.ConnectClusterService;
 import com.michelin.ns4kafka.service.client.connect.KafkaConnectClient;
@@ -54,7 +53,6 @@ public class ConnectorAsyncExecutor {
     private static final String sensitiveFieldMask = "••••••••••••";
 
     private final ManagedClusterProperties managedClusterProperties;
-    private final Ns4KafkaProperties.ConnectProperties connectProperties;
 
     private ConnectorRepository connectorRepository;
 

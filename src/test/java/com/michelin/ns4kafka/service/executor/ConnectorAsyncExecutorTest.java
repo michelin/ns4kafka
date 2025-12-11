@@ -23,25 +23,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.connector.Connector;
-import com.michelin.ns4kafka.property.Ns4KafkaProperties.ConnectProperties;
-import com.michelin.ns4kafka.property.Ns4KafkaProperties.ConnectProperties.SelfManagedProperties;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class ConnectorAsyncExecutorTest {
     private static final String CONNECTOR_NAME = "myConnector";
     private static final String MASK = "••••••••••••";
-
-    @Mock
-    ConnectProperties connectProperties;
-
-    @Mock
-    SelfManagedProperties selfManagedProperties;
 
     @InjectMocks
     ConnectorAsyncExecutor connectorAsyncExecutor;
