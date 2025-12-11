@@ -20,7 +20,6 @@ package com.michelin.ns4kafka.service.executor;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.connector.Connector;
