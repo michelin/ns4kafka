@@ -51,7 +51,7 @@ import reactor.core.publisher.Mono;
 public class ConnectorAsyncExecutor {
     private final Set<String> healthyConnectClusters = new HashSet<>();
     private final Set<String> idleConnectClusters = new HashSet<>();
-    private final String sensitiveFieldMask = "••••••••••••";
+    private static final String sensitiveFieldMask = "••••••••••••";
 
     private final ManagedClusterProperties managedClusterProperties;
     private final Ns4KafkaProperties.ConnectProperties connectProperties;
