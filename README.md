@@ -111,7 +111,7 @@ java -jar ns4kafka.jar
 
 ## Demo Environment
 
-To run and try out the application, you can use the provided `docker-compose` files located in the `.docker/confluent-plaftorm-8` directory.
+To run and try out the application, you can use the provided `docker-compose` files located in the `.docker` directory.
 
 ```console
 docker-compose up -d
@@ -146,7 +146,7 @@ If you want to use GitLab, you can update the configuration files as follows and
 3. Define a GitLab group you belong to in the role bindings of the `.docker/resources/admin/namespace.yml` file. This is
    demonstrated in the example [here](https://github.com/michelin/kafkactl#role-binding).
 
-Alternatively, a `docker-compose` file running AKHQ instead of Control Center is available in the `.docker/confluent-platform-8` directory.
+Alternatively, a `docker-compose` file running AKHQ instead of Control Center is available in the `.docker` directory.
 
 ```console
 docker-compose -f docker-compose-akhq.yml up -d
