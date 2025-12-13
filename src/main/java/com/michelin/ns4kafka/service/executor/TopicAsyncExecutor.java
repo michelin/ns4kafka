@@ -329,7 +329,7 @@ public class TopicAsyncExecutor {
                 .get(managedClusterProperties.getTimeout().getTopic().getDelete(), TimeUnit.MILLISECONDS);
 
         // Immediately delete topics from the local cache to prevent Kafka Streams internal topics from being
-        // re-imported
+        // re-imported.
         // This can happen if a changelog or repartition topic is deleted after the broker topics are listed
         // but before the Ns4Kafka topics are listed during synchronization
         topicsNames.forEach(topicName -> {
