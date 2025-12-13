@@ -108,13 +108,11 @@ public class TopicController extends NamespacedResourceController {
         Optional<Topic> existingTopic =
                 topicService.findByName(ns, topic.getMetadata().getName());
 
-        // Request is valid ?
         List<String> validationErrors = ns.getSpec().getTopicValidator() != null
                 ? ns.getSpec().getTopicValidator().validate(topic)
                 : new ArrayList<>();
 
         if (existingTopic.isEmpty()) {
-            // Topic namespace ownership validation
             if (!topicService.isNamespaceOwnerOfTopic(
                     namespace, topic.getMetadata().getName())) {
                 validationErrors.add(invalidOwner(topic.getMetadata().getName()));
