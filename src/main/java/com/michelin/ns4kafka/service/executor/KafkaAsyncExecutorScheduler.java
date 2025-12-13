@@ -88,8 +88,8 @@ public class KafkaAsyncExecutorScheduler {
         Flux.interval(Duration.ofSeconds(5), Duration.ofMinutes(1))
                 .onBackpressureDrop(_ ->
                         log.debug("Skipping next Connect cluster health check. The previous one is still running."))
-                .concatMap(_ ->
-                        Flux.fromIterable(connectorAsyncExecutors).flatMap(ConnectorAsyncExecutor::runHealthCheck))
+                .concatMap(
+                        _ -> Flux.fromIterable(connectorAsyncExecutors).flatMap(ConnectorAsyncExecutor::runHealthCheck))
                 .onErrorContinue((error, _) ->
                         log.trace("Continue Connect cluster health check after error: {}.", error.getMessage()))
                 .subscribe(connectCluster -> log.trace(

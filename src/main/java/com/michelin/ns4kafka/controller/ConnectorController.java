@@ -39,7 +39,6 @@ import io.micronaut.http.annotation.Delete;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
-import io.micronaut.http.annotation.Status;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -185,7 +184,6 @@ public class ConnectorController extends NamespacedResourceController {
      */
     @Delete("/{connector}{?dryrun}")
     @Deprecated(since = "1.13.0")
-    @Status(HttpStatus.NO_CONTENT)
     public Mono<HttpResponse<Void>> delete(
             String namespace, String connector, @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
@@ -220,7 +218,6 @@ public class ConnectorController extends NamespacedResourceController {
      * @return A HTTP response
      */
     @Delete
-    @Status(HttpStatus.OK)
     public Mono<HttpResponse<List<Connector>>> bulkDelete(
             String namespace,
             @QueryValue(defaultValue = "*") String name,
