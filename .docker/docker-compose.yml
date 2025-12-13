@@ -10,9 +10,9 @@ services:
       - "9092:9092"
       - "9101:9101"
     volumes:
-      - ../config/broker/kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf
-      - ../config/broker/client.properties:/home/appuser/client.properties
-      - ../config/broker/create-user.sh:/home/appuser/create-user.sh
+      - ./config/broker/kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf
+      - ./config/broker/client.properties:/home/appuser/client.properties
+      - ./config/broker/create-user.sh:/home/appuser/create-user.sh
     command: bash -c '/home/appuser/create-user.sh && /etc/confluent/docker/run'
     environment:
       KAFKA_NODE_ID: 1
@@ -149,8 +149,8 @@ services:
       - "80:8080"
     restart: unless-stopped
     volumes:
-      - ../config/ns4kafka/application.yml:/home/app/application.yml:ro
-      - ../config/ns4kafka/logback.xml:/home/app/resources/logback.xml:ro
+      - ./config/ns4kafka/application.yml:/home/app/application.yml:ro
+      - ./config/ns4kafka/logback.xml:/home/app/resources/logback.xml:ro
     environment:
       - MICRONAUT_CONFIG_FILES=/home/app/application.yml
 
@@ -166,8 +166,8 @@ services:
       - connect
     entrypoint: [ "tail", "-f", "/dev/null" ]
     volumes:
-      - ../config/kafkactl/config.yml:/root/.kafkactl/config.yml
-      - ../resources:/resources
+      - ./config/kafkactl/config.yml:/root/.kafkactl/config.yml
+      - ./resources:/resources
 
 networks:
   ns4kafka-network:
