@@ -86,7 +86,7 @@ jobs:
           DOCKER_BUILD_SUMMARY: false
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: ns4kafka
           path: build/libs/ns4kafka-${{ steps.metadata.outputs.current_version }}.jar
