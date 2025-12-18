@@ -96,7 +96,7 @@ class ConnectClusterServiceTest {
         when(connectClusterRepository.findAll()).thenReturn(List.of(connectCluster));
         when(kafkaConnectClient.version(any(), any())).thenReturn(Mono.just(HttpResponse.ok()));
 
-        StepVerifier.create(connectClusterService.findAll(false, false))
+        StepVerifier.create(connectClusterService.findAll(false, true))
                 .consumeNextWith(result -> assertEquals(connectCluster, result))
                 .verifyComplete();
     }
