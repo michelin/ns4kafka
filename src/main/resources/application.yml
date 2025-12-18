@@ -158,4 +158,39 @@ ns4kafka:
           min.insync.replicas: 1
           segment.ms: "600000"
         replication-factor: 1
+  managed-clusters:
+    myCluster:
+      timeout:
+        acl:
+          create: 15000
+          delete: 15000
+          describe: 15000
+        topic:
+          alter-configs: 10000
+          create: 10000
+          describe-configs: 30000
+          delete: 30000
+          list: 30000
+        user:
+          alter-client-quotas: 10000
+          alter-scram-credentials: 10000
+          describe-quotas: 10000
+      provider: "SELF_MANAGED"
+      manage-users: true
+      manage-acls: true
+      manage-topics: true
+      manage-connectors: true
+      drop-unsync-acls: true
+      sync-kstream-topics: true
+      connects: null
+      config:
+        bootstrap.servers: "localhost:9092"
+        security.protocol: "SASL_SSL"
+        sasl.mechanism: "PLAIN"
+        sasl.jaas.config: "changeit"
+        cluster.id: "lkc-xxxx"
+      schema-registry:
+        url: "https://psrc-xxxxx.confluent.cloud"
+        basicAuthUsername: "changeit"
+        basicAuthPassword: "changeitchangeit"
   version: "@version@"

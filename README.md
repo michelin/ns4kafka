@@ -317,6 +317,7 @@ ns4kafka:
       manage-topics: true
       manage-connectors: true
       drop-unsync-acls: true
+      sync-kstream-topics: true
       provider: "SELF_MANAGED"
       config:
         bootstrap.servers: "localhost:9092"
@@ -360,6 +361,7 @@ of your namespace descriptors.
 | manage-topics                        | boolean | No       | Does the cluster manages topics (Default: false)                                                                                                                                                               |
 | manage-users                         | boolean | No       | Does the cluster manages users (Default: false)                                                                                                                                                                |
 | drop-unsync-acls                     | boolean | No       | Should unsynchronized acls be dropped (Default: true)                                                                                                                                                          |
+| sync-kstream-topics                  | boolean | No       | Should automatically import kstream internal topics into Ns4kafka (Default: true)                                                                                                                              |
 | timeout.acl.create                   | int     | No       | The timeout in milliseconds used by the AdminClient to create acls (Default: 30000ms)                                                                                                                          |
 | timeout.acl.describe                 | int     | No       | The timeout in milliseconds used by the AdminClient to describe acls (Default: 30000ms)                                                                                                                        |
 | timeout.acl.delete                   | int     | No       | The timeout in milliseconds used by the AdminClient to delete acls (Default: 30000ms)                                                                                                                          |
