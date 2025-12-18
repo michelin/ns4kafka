@@ -81,7 +81,7 @@ class ConnectClusterServiceTest {
     void shouldFindAllConnectClustersWhenEmpty() {
         when(connectClusterRepository.findAll()).thenReturn(List.of());
 
-        StepVerifier.create(connectClusterService.findAll(false)).verifyComplete();
+        StepVerifier.create(connectClusterService.findAll(false, false)).verifyComplete();
     }
 
     @Test
@@ -96,7 +96,7 @@ class ConnectClusterServiceTest {
         when(connectClusterRepository.findAll()).thenReturn(List.of(connectCluster));
         when(kafkaConnectClient.version(any(), any())).thenReturn(Mono.just(HttpResponse.ok()));
 
-        StepVerifier.create(connectClusterService.findAll(false))
+        StepVerifier.create(connectClusterService.findAll(false, true))
                 .consumeNextWith(result -> assertEquals(connectCluster, result))
                 .verifyComplete();
     }
@@ -120,7 +120,7 @@ class ConnectClusterServiceTest {
                 .thenReturn(Mono.just(HttpResponse.ok()))
                 .thenReturn(Mono.error(new Exception("error")));
 
-        StepVerifier.create(connectClusterService.findAll(true))
+        StepVerifier.create(connectClusterService.findAll(true, true))
                 .consumeNextWith(result -> {
                     assertEquals("connect-cluster", result.getMetadata().getName());
                     assertEquals(ConnectCluster.Status.HEALTHY, result.getSpec().getStatus());
@@ -153,7 +153,7 @@ class ConnectClusterServiceTest {
                 .thenReturn(Mono.just(HttpResponse.ok()))
                 .thenReturn(Mono.error(new Exception("error")));
 
-        StepVerifier.create(connectClusterService.findAll(true))
+        StepVerifier.create(connectClusterService.findAll(true, true))
                 .consumeNextWith(result -> {
                     assertEquals("connect-cluster", result.getMetadata().getName());
                     assertEquals(ConnectCluster.Status.HEALTHY, result.getSpec().getStatus());

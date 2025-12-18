@@ -44,6 +44,7 @@ Ns4Kafka brings a namespace-based deployment model for Kafka resources, inspired
       * [Stream Catalog](#stream-catalog)
       * [AKHQ](#akhq)
     * [Technical](#technical)
+      * [Connect](#connect)
       * [Security](#security)
       * [HTTP Client](#http-client)
         * [Timeout](#timeout)
@@ -501,6 +502,16 @@ metadata:
 Once the configuration is in place, after successful authentication in AKHQ, users belonging to the `NAMESPACE-LDAP-GROUP` will be able to access resources within the `myNamespace` namespace.
 
 ### Technical
+
+#### Connect
+
+Ns4kafka performs regular health check on declared Kafka Connect clusters. The check timeout can be configured.
+
+```yaml
+ns4kafka:
+  connect-cluster:
+    get-version-timeout: 10000
+```
 
 #### Security
 

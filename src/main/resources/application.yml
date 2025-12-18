@@ -132,6 +132,8 @@ ns4kafka:
       GROUP: "group-read"
       SCHEMA: "registry-read"
       TOPIC: "topic-read"
+  connect-cluster:
+    get-version-timeout: 10000
   log:
     console:
       enabled: true

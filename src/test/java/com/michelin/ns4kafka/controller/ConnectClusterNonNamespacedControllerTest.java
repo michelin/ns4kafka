@@ -49,9 +49,10 @@ class ConnectClusterNonNamespacedControllerTest {
                 .metadata(Metadata.builder().name("connect-cluster").build())
                 .build();
 
-        when(connectClusterService.findAll(anyBoolean())).thenReturn(Flux.fromIterable(List.of(connectCluster)));
+        when(connectClusterService.findAll(anyBoolean(), anyBoolean()))
+                .thenReturn(Flux.fromIterable(List.of(connectCluster)));
 
-        StepVerifier.create(connectClusterNonNamespacedController.listAll(false))
+        StepVerifier.create(connectClusterNonNamespacedController.listAll(false, false))
                 .consumeNextWith(result ->
                         assertEquals("connect-cluster", result.getMetadata().getName()))
                 .verifyComplete();
