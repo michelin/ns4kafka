@@ -39,6 +39,7 @@ public class ManagedClusterProperties {
     private boolean manageTopics;
     private boolean manageUsers;
     private boolean dropUnsyncAcls = true;
+    private boolean syncKstreamTopics = true;
     private TimeoutProperties timeout = new TimeoutProperties();
     private KafkaProvider provider;
     private Properties config;
