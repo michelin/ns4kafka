@@ -109,12 +109,6 @@ public class TopicAsyncExecutor {
                             brokerTopics.containsKey(topic.getMetadata().getName()))
                     .toList();
 
-            Set<String> ns4KafkaTopicNames = ns4kafkaTopics.stream()
-                    .map(topic -> topic.getMetadata().getName())
-                    .collect(Collectors.toSet());
-
-            List<Topic> unsyncStreamInternalTopics = getUnsyncStreamsInternalTopics(brokerTopics, ns4KafkaTopicNames);
-
             Map<ConfigResource, Collection<AlterConfigOp>> updateTopics = checkTopics.stream()
                     .map(topic -> {
                         Map<String, String> actualConf = brokerTopics
@@ -168,17 +162,26 @@ public class TopicAsyncExecutor {
                 }
             }
 
-            if (!unsyncStreamInternalTopics.isEmpty()) {
-                log.debug(
-                        "Kafka Streams internal topics(s) to import: {}",
-                        String.join(
-                                ", ",
-                                unsyncStreamInternalTopics.stream()
-                                        .map(topic -> topic.getMetadata().getName())
-                                        .toList()));
+            if (managedClusterProperties.isSyncKstreamTopics()) {
+                HashSet<String> ns4KafkaTopicNames = ns4KafkaTopics.stream()
+                        .map(topic -> topic.getMetadata().getName())
+                        .collect(Collectors.toCollection(HashSet::new));
+
+                List<Topic> unsyncStreamInternalTopics =
+                        getUnsyncStreamsInternalTopics(brokerTopics, ns4KafkaTopicNames);
+
+                if (!unsyncStreamInternalTopics.isEmpty()) {
+                    log.debug(
+                            "Kafka Streams internal topics(s) to import: {}",
+                            String.join(
+                                    ", ",
+                                    unsyncStreamInternalTopics.stream()
+                                            .map(topic -> topic.getMetadata().getName())
+                                            .toList()));
+                }
+                importTopics(unsyncStreamInternalTopics);
             }
 
-            importTopics(unsyncStreamInternalTopics);
             createTopics(createTopics);
             alterTopics(updateTopics, checkTopics);
             alterCatalogInfo(checkTopics, brokerTopics);
@@ -198,15 +201,15 @@ public class TopicAsyncExecutor {
      * @return A list of unsynchronized Kafka Streams internal topics
      */
     private List<Topic> getUnsyncStreamsInternalTopics(
-            Map<String, Topic> brokerTopics, Set<String> ns4KafkaTopicNames) {
+            Map<String, Topic> brokerTopics, HashSet<String> ns4KafkaTopicNames) {
         List<Namespace> namespaces = namespaceService.findAll();
         return brokerTopics.values().stream()
-                // Keep topics that are not already in Ns4Kafka
-                .filter(topic ->
-                        !ns4KafkaTopicNames.contains(topic.getMetadata().getName()))
                 // Keep Kafka Streams topics
                 .filter(topic -> topic.getMetadata().getName().endsWith("-changelog")
                         || topic.getMetadata().getName().endsWith("-repartition"))
+                // Keep topics that are not already in Ns4Kafka
+                .filter(topic ->
+                        !ns4KafkaTopicNames.contains(topic.getMetadata().getName()))
                 .map(topic -> {
                     // Ignore internal cluster topics. Only keep topics covered by Ns4Kafka.
                     Optional<Namespace> namespace = namespaceService.findByTopicName(
