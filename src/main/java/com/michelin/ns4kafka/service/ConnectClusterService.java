@@ -78,7 +78,7 @@ public class ConnectClusterService {
      * @param all Include hard-declared Connect clusters
      * @return A list of Connect clusters
      */
-    public Flux<ConnectCluster> findAll(boolean all) {
+    public Flux<ConnectCluster> findAll(boolean all, boolean status) {
         List<ConnectCluster> results = connectClusterRepository.findAll();
 
         if (all) {
@@ -101,20 +101,22 @@ public class ConnectClusterService {
                     .toList());
         }
 
-        return Flux.fromIterable(results).flatMap(connectCluster -> kafkaConnectClient
-                .version(
-                        connectCluster.getMetadata().getCluster(),
-                        connectCluster.getMetadata().getName())
-                .doOnError(error -> {
-                    connectCluster.getSpec().setStatus(ConnectCluster.Status.IDLE);
-                    connectCluster.getSpec().setStatusMessage(error.getMessage());
-                })
-                .doOnSuccess(response -> {
-                    connectCluster.getSpec().setStatus(ConnectCluster.Status.HEALTHY);
-                    connectCluster.getSpec().setStatusMessage(null);
-                })
-                .map(response -> connectCluster)
-                .onErrorReturn(connectCluster));
+        return status
+                ? Flux.fromIterable(results).flatMap(connectCluster -> kafkaConnectClient
+                        .version(
+                                connectCluster.getMetadata().getCluster(),
+                                connectCluster.getMetadata().getName())
+                        .doOnError(error -> {
+                            connectCluster.getSpec().setStatus(ConnectCluster.Status.IDLE);
+                            connectCluster.getSpec().setStatusMessage(error.getMessage());
+                        })
+                        .doOnSuccess(response -> {
+                            connectCluster.getSpec().setStatus(ConnectCluster.Status.HEALTHY);
+                            connectCluster.getSpec().setStatusMessage(null);
+                        })
+                        .map(response -> connectCluster)
+                        .onErrorReturn(connectCluster))
+                : Flux.fromIterable(results);
     }
 
     /**
