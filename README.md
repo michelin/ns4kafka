@@ -553,7 +553,7 @@ micronaut:
 
 | Client                     | Description                                                                                                                                        |
 |----------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| GitLab                     | Client used to connect to GitLab for user authentication.                                                                                          |     |
+| GitLab                     | Client used to connect to GitLab for user authentication.                                                                                          |
 | Kafka Connect              | Client used to connect to Kafka Connect clusters to manage connectors.                                                                             |
 | Kafka Connect Health Check | Dedicated client used to perform health checks on Kafka Connect clusters. This client uses lower timeouts to quickly detect unresponsive clusters. |
 | Schema Registry            | Client used to connect to the Schema Registry to manage schemas.                                                                                   |
