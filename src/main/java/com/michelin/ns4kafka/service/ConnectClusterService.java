@@ -76,6 +76,7 @@ public class ConnectClusterService {
      * Find all self deployed Connect clusters.
      *
      * @param all Include hard-declared Connect clusters
+     * @param status Include status information
      * @return A list of Connect clusters
      */
     public Flux<ConnectCluster> findAll(boolean all, boolean status) {

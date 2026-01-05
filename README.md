@@ -9,7 +9,7 @@
 [![GitHub Stars](https://img.shields.io/github/stars/michelin/ns4kafka?logo=github&style=for-the-badge)](https://github.com/michelin/ns4kafka)
 [![Docker Pulls](https://img.shields.io/docker/pulls/michelin/ns4kafka?label=Pulls&logo=docker&style=for-the-badge)](https://hub.docker.com/r/michelin/ns4kafka/tags)
 [![SonarCloud Coverage](https://img.shields.io/sonar/coverage/michelin_ns4kafka?logo=sonarcloud&server=https%3A%2F%2Fsonarcloud.io&style=for-the-badge)](https://sonarcloud.io/component_measures?id=michelin_ns4kafka&metric=coverage&view=list)
-[![SonarCloud Tests](https://img.shields.io/sonar/tests/michelin_ns4kafka/master?server=https%3A%2F%2Fsonarcloud.io&style=for-the-badge&logo=sonarcloud)](https://sonarcloud.io/component_measures?metric=tests&view=list&id=michelin_kstreamplify)
+[![SonarCloud Tests](https://img.shields.io/sonar/tests/michelin_ns4kafka/master?server=https%3A%2F%2Fsonarcloud.io&style=for-the-badge&logo=sonarcloud)](https://sonarcloud.io/component_measures?metric=tests&view=list&id=michelin_ns4kafka)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg?logo=apache&style=for-the-badge)](https://opensource.org/licenses/Apache-2.0)
 
 [Download](#download) • [Install](#install) • [Kafkactl](https://github.com/michelin/kafkactl)
@@ -44,7 +44,6 @@ Ns4Kafka brings a namespace-based deployment model for Kafka resources, inspired
       * [Stream Catalog](#stream-catalog)
       * [AKHQ](#akhq)
     * [Technical](#technical)
-      * [Connect](#connect)
       * [Security](#security)
       * [HTTP Client](#http-client)
         * [Timeout](#timeout)
@@ -362,7 +361,7 @@ of your namespace descriptors.
 | manage-topics                        | boolean | No       | Does the cluster manages topics (Default: false)                                                                                                                                                               |
 | manage-users                         | boolean | No       | Does the cluster manages users (Default: false)                                                                                                                                                                |
 | drop-unsync-acls                     | boolean | No       | Should unsynchronized acls be dropped (Default: true)                                                                                                                                                          |
-| sync-kstream-topics                  | boolean | No       | Should automatically import kstream internal topics into Ns4kafka (Default: true)                                                                                                                              |
+| sync-kstream-topics                  | boolean | No       | Should Kafka Streams internal topics be automatically imported into Ns4kafka (Default: false)                                                                                                                  |
 | timeout.acl.create                   | int     | No       | The timeout in milliseconds used by the AdminClient to create acls (Default: 30000ms)                                                                                                                          |
 | timeout.acl.describe                 | int     | No       | The timeout in milliseconds used by the AdminClient to describe acls (Default: 30000ms)                                                                                                                        |
 | timeout.acl.delete                   | int     | No       | The timeout in milliseconds used by the AdminClient to delete acls (Default: 30000ms)                                                                                                                          |
@@ -503,16 +502,6 @@ Once the configuration is in place, after successful authentication in AKHQ, use
 
 ### Technical
 
-#### Connect
-
-Ns4kafka performs regular health check on declared Kafka Connect clusters. The check timeout can be configured.
-
-```yaml
-ns4kafka:
-  connect-cluster:
-    get-version-timeout: 10000
-```
-
 #### Security
 
 Ns4Kafka encrypts sensitive data at rest in topics using AES-256 GCM encryption. 
@@ -551,11 +540,23 @@ micronaut:
         connect-timeout: '10s'
         read-idle-timeout: '10s'
         read-timeout: '10s'
+      kafka-connect-health-check:
+        connect-timeout: '5s'
+        event-loop-group: 'connect-health-check'
+        read-idle-timeout: '5s'
+        read-timeout: '5s'
       schema-registry:
         connect-timeout: '10s'
         read-idle-timeout: '10s'
         read-timeout: '10s'
 ```
+
+| Client                     | Description                                                                                                                                        |
+|----------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
+| GitLab                     | Client used to connect to GitLab for user authentication.                                                                                          |     |
+| Kafka Connect              | Client used to connect to Kafka Connect clusters to manage connectors.                                                                             |
+| Kafka Connect Health Check | Dedicated client used to perform health checks on Kafka Connect clusters. This client uses lower timeouts to quickly detect unresponsive clusters. |
+| Schema Registry            | Client used to connect to the Schema Registry to manage schemas.                                                                                   |
 
 ##### Retry
 
