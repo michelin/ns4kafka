@@ -176,7 +176,7 @@ public class ConnectorAsyncExecutor {
 
                     Set<Connector> toDeploy = ns4kafkaConnectors.stream()
                             .filter(connector -> connector.getStatus() != null
-                                    && connector.getStatus().getToDeploy())
+                                    && connector.getStatus().isToDeploy())
                             .collect(Collectors.toSet());
 
                     List<Connector> toCreate = ns4kafkaConnectors.stream()
