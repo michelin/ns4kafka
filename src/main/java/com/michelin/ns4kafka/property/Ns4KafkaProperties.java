@@ -53,7 +53,6 @@ import lombok.Setter;
 public class Ns4KafkaProperties {
     private AkhqProperties akhq = new AkhqProperties();
     private ConfluentCloudProperties confluentCloud = new ConfluentCloudProperties();
-    private ConnectClusterProperties connectCluster = new ConnectClusterProperties();
     private SecurityProperties security = new SecurityProperties();
     private StoreProperties store = new StoreProperties();
     private String version;
@@ -94,13 +93,6 @@ public class Ns4KafkaProperties {
         private List<LocalUser> localUsers;
         private String adminGroup;
         private String aes256EncryptionKey;
-    }
-
-    @Getter
-    @Setter
-    @ConfigurationProperties("connect-cluster")
-    public static class ConnectClusterProperties {
-        private int getVersionTimeout = 10000;
     }
 
     @Getter

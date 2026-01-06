@@ -44,7 +44,6 @@ import jakarta.inject.Singleton;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -67,6 +66,10 @@ public class KafkaConnectClient {
     private HttpClient httpClient;
 
     @Inject
+    @Client(id = "kafka-connect-health-check")
+    private HttpClient httpClientHealthCheck;
+
+    @Inject
     private List<ManagedClusterProperties> managedClusterProperties;
 
     @Inject
@@ -82,9 +85,7 @@ public class KafkaConnectClient {
         HttpRequest<?> request = HttpRequest.GET(URI.create(StringUtils.prependUri(config.getUrl(), "/")))
                 .basicAuth(config.getUsername(), config.getPassword());
 
-        return Mono.from(httpClient.exchange(request, ServerInfo.class))
-                .timeout(
-                        Duration.ofMillis(ns4KafkaProperties.getConnectCluster().getGetVersionTimeout()));
+        return Mono.from(httpClientHealthCheck.exchange(request, ServerInfo.class));
     }
 
     /**

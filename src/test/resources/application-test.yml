@@ -24,6 +24,7 @@ ns4kafka:
       manage-connectors: true
       manage-topics: true
       manage-users: true
+      sync-kstream-topics: true
       provider: "SELF_MANAGED"
       timeout:
         acl:
