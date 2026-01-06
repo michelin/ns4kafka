@@ -188,14 +188,14 @@ public class ConnectorAsyncExecutor {
 
                     List<Connector> toUpdate = ns4kafkaConnectors.stream()
                             .filter(connector -> brokerConnectors.stream().anyMatch(connector1 -> {
-                                        if (connector1
-                                                .getMetadata()
-                                                .getName()
-                                                .equals(connector.getMetadata().getName())) {
-                                            return !connectorsAreSame(connector, connector1);
-                                        }
-                                        return false;
-                                    }))
+                                if (connector1
+                                        .getMetadata()
+                                        .getName()
+                                        .equals(connector.getMetadata().getName())) {
+                                    return !connectorsAreSame(connector, connector1);
+                                }
+                                return false;
+                            }))
                             .toList();
 
                     if (!toDeploy.isEmpty()) {
@@ -234,8 +234,7 @@ public class ConnectorAsyncExecutor {
                     toDeploy.addAll(toCreate);
                     toDeploy.addAll(toUpdate);
 
-                    return Flux.fromStream(toDeploy.stream())
-                            .flatMap(this::deployConnector);
+                    return Flux.fromStream(toDeploy.stream()).flatMap(this::deployConnector);
                 });
     }
 
