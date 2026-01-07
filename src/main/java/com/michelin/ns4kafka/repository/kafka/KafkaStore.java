@@ -19,11 +19,8 @@
 package com.michelin.ns4kafka.repository.kafka;
 
 import com.michelin.ns4kafka.property.Ns4KafkaProperties;
-import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.TaskScheduler;
 import jakarta.annotation.PostConstruct;
-import jakarta.inject.Inject;
-import jakarta.inject.Named;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
@@ -57,28 +54,41 @@ import org.apache.kafka.common.errors.TopicExistsException;
  */
 @Slf4j
 public abstract class KafkaStore<T> {
-    @Inject
-    private AdminClient adminClient;
-
-    @Inject
-    private Ns4KafkaProperties ns4KafkaProperties;
-
-    @Inject
-    @Named(TaskExecutors.SCHEDULED)
-    private TaskScheduler taskScheduler;
+    private final String kafkaTopic;
+    private final Producer<String, T> kafkaProducer;
+    private final AdminClient adminClient;
+    private final Ns4KafkaProperties ns4KafkaProperties;
+    private final TaskScheduler taskScheduler;
 
     private final Map<String, T> store;
     private final AtomicBoolean initialized = new AtomicBoolean(false);
     private final ReentrantLock offsetUpdateLock;
     private final Condition offsetReachedThreshold;
-    String kafkaTopic;
-    Producer<String, T> kafkaProducer;
-    long currentOffset = -1;
-    long lastWrittenOffset = -1;
 
-    KafkaStore(String kafkaTopic, Producer<String, T> kafkaProducer) {
+    private long currentOffset = -1;
+    private long lastWrittenOffset = -1;
+
+    /**
+     * Constructor.
+     *
+     * @param kafkaTopic The Kafka topic used as store
+     * @param kafkaProducer The Kafka producer
+     * @param adminClient The Kafka admin client
+     * @param ns4KafkaProperties The Ns4Kafka properties
+     * @param taskScheduler The task scheduler
+     */
+    protected KafkaStore(
+            String kafkaTopic,
+            Producer<String, T> kafkaProducer,
+            AdminClient adminClient,
+            Ns4KafkaProperties ns4KafkaProperties,
+            TaskScheduler taskScheduler) {
         this.kafkaTopic = kafkaTopic;
         this.kafkaProducer = kafkaProducer;
+        this.adminClient = adminClient;
+        this.ns4KafkaProperties = ns4KafkaProperties;
+        this.taskScheduler = taskScheduler;
+
         this.store = new ConcurrentHashMap<>();
         this.offsetUpdateLock = new ReentrantLock();
         this.offsetReachedThreshold = offsetUpdateLock.newCondition();

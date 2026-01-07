@@ -27,7 +27,7 @@ import io.micronaut.core.util.StringUtils;
 
 @KafkaClient
 @Requires(property = "ns4kafka.log.kafka.enabled", value = StringUtils.TRUE)
-interface KafkaLogProducer {
+public interface KafkaLogProducer {
 
     @Topic(value = "${ns4kafka.log.kafka.topic}")
     void sendAuditLog(@KafkaKey String namespace, AuditLog log);

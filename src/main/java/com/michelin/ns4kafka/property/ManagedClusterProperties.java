@@ -47,10 +47,21 @@ public class ManagedClusterProperties {
     private SchemaRegistryProperties schemaRegistry;
     private Admin adminClient = null;
 
+    /**
+     * Constructor.
+     *
+     * @param name The managed cluster name
+     */
     public ManagedClusterProperties(@Parameter String name) {
         this.name = name;
     }
 
+    /**
+     * Constructor.
+     *
+     * @param name The managed cluster name
+     * @param provider The Kafka provider
+     */
     public ManagedClusterProperties(@Parameter String name, @Parameter KafkaProvider provider) {
         this.name = name;
         this.provider = provider;

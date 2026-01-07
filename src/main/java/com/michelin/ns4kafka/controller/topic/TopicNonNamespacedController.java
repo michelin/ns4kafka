@@ -18,24 +18,40 @@
  */
 package com.michelin.ns4kafka.controller.topic;
 
-import com.michelin.ns4kafka.controller.generic.NonNamespacedResourceController;
+import com.michelin.ns4kafka.controller.generic.ResourceController;
+import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.service.TopicService;
+import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
+import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
-import jakarta.inject.Inject;
 import java.util.List;
 
 /** Non namespaced controller for topics. */
 @Tag(name = "Topics", description = "Manage the topics.")
 @Controller(value = "/api/topics")
 @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
-public class TopicNonNamespacedController extends NonNamespacedResourceController {
-    @Inject
-    private TopicService topicService;
+public class TopicNonNamespacedController extends ResourceController {
+    private final TopicService topicService;
+
+    /**
+     * Constructor.
+     *
+     * @param topicService The topic service
+     * @param securityService The security service
+     * @param applicationEventPublisher The application event publisher
+     */
+    protected TopicNonNamespacedController(
+            TopicService topicService,
+            SecurityService securityService,
+            ApplicationEventPublisher<AuditLog> applicationEventPublisher) {
+        super(securityService, applicationEventPublisher);
+        this.topicService = topicService;
+    }
 
     /**
      * List topics.

@@ -34,7 +34,6 @@ import io.micronaut.http.HttpRequest;
 import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.rules.SecurityRule;
 import io.micronaut.security.rules.SecurityRuleResult;
-import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -54,11 +53,19 @@ public class ResourceBasedSecurityRule implements SecurityRule<HttpRequest<?>> {
             Pattern.compile("^/api/namespaces/(?<namespace>" + RESOURCE_PATTERN + "+)" + "/(?<resourceType>[a-z_-]+)(/("
                     + RESOURCE_PATTERN + "+)(/(?<resourceSubtype>[a-z-]+))?)?$");
 
-    @Inject
-    private Ns4KafkaProperties ns4KafkaProperties;
+    private final Ns4KafkaProperties ns4KafkaProperties;
+    private final NamespaceRepository namespaceRepository;
 
-    @Inject
-    private NamespaceRepository namespaceRepository;
+    /**
+     * Constructor.
+     *
+     * @param ns4KafkaProperties The Ns4Kafka properties
+     * @param namespaceRepository The namespace repository
+     */
+    public ResourceBasedSecurityRule(Ns4KafkaProperties ns4KafkaProperties, NamespaceRepository namespaceRepository) {
+        this.ns4KafkaProperties = ns4KafkaProperties;
+        this.namespaceRepository = namespaceRepository;
+    }
 
     @Override
     public Publisher<SecurityRuleResult> check(

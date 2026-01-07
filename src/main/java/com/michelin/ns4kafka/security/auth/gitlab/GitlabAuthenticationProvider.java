@@ -27,7 +27,6 @@ import io.micronaut.security.authentication.AuthenticationFailed;
 import io.micronaut.security.authentication.AuthenticationRequest;
 import io.micronaut.security.authentication.AuthenticationResponse;
 import io.micronaut.security.authentication.provider.ReactiveAuthenticationProvider;
-import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
@@ -37,11 +36,20 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @Singleton
 public class GitlabAuthenticationProvider implements ReactiveAuthenticationProvider<HttpRequest<?>, String, String> {
-    @Inject
-    private GitlabAuthenticationService gitlabAuthenticationService;
+    private final GitlabAuthenticationService gitlabAuthenticationService;
+    private final AuthenticationService authenticationService;
 
-    @Inject
-    private AuthenticationService authenticationService;
+    /**
+     * Constructor.
+     *
+     * @param gitlabAuthenticationService The Gitlab authentication service
+     * @param authenticationService The authentication service
+     */
+    public GitlabAuthenticationProvider(
+            GitlabAuthenticationService gitlabAuthenticationService, AuthenticationService authenticationService) {
+        this.gitlabAuthenticationService = gitlabAuthenticationService;
+        this.authenticationService = authenticationService;
+    }
 
     /**
      * Perform user authentication with GitLab.

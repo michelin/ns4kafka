@@ -21,10 +21,13 @@ package com.michelin.ns4kafka.controller;
 import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 
 import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
+import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.RoleBinding;
+import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.RoleBindingService;
 import com.michelin.ns4kafka.util.enumation.ApplyStatus;
+import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
@@ -34,8 +37,8 @@ import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
+import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.Date;
@@ -47,8 +50,24 @@ import java.util.Optional;
 @Controller(value = "/api/namespaces/{namespace}/role-bindings")
 @ExecuteOn(TaskExecutors.IO)
 public class RoleBindingController extends NamespacedResourceController {
-    @Inject
-    private RoleBindingService roleBindingService;
+    private final RoleBindingService roleBindingService;
+
+    /**
+     * Constructor.
+     *
+     * @param roleBindingService The role binding service
+     * @param namespaceService The namespace service
+     * @param securityService The security service
+     * @param applicationEventPublisher The application event publisher
+     */
+    public RoleBindingController(
+            RoleBindingService roleBindingService,
+            NamespaceService namespaceService,
+            SecurityService securityService,
+            ApplicationEventPublisher<AuditLog> applicationEventPublisher) {
+        super(namespaceService, securityService, applicationEventPublisher);
+        this.roleBindingService = roleBindingService;
+    }
 
     /**
      * List role bindings by namespace, filtered by name parameter.

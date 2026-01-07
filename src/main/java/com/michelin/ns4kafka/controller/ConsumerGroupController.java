@@ -24,18 +24,21 @@ import static com.michelin.ns4kafka.util.enumation.Kind.CONSUMER_GROUP_RESET_OFF
 import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 
 import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
+import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.consumer.group.ConsumerGroupResetOffsets;
 import com.michelin.ns4kafka.model.consumer.group.ConsumerGroupResetOffsetsResponse;
 import com.michelin.ns4kafka.service.ConsumerGroupService;
+import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.util.enumation.ApplyStatus;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
+import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
+import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.Date;
@@ -49,8 +52,23 @@ import org.apache.kafka.common.TopicPartition;
 @Tag(name = "Consumer Groups", description = "Manage the consumer groups.")
 @Controller("/api/namespaces/{namespace}/consumer-groups")
 public class ConsumerGroupController extends NamespacedResourceController {
-    @Inject
-    private ConsumerGroupService consumerGroupService;
+    private final ConsumerGroupService consumerGroupService;
+
+    /**
+     * Constructor.
+     *
+     * @param namespaceService The namespace service
+     * @param securityService The security service
+     * @param applicationEventPublisher The application event publisher
+     */
+    public ConsumerGroupController(
+            ConsumerGroupService consumerGroupService,
+            NamespaceService namespaceService,
+            SecurityService securityService,
+            ApplicationEventPublisher<AuditLog> applicationEventPublisher) {
+        super(namespaceService, securityService, applicationEventPublisher);
+        this.consumerGroupService = consumerGroupService;
+    }
 
     /**
      * Reset offsets by topic and consumer group.

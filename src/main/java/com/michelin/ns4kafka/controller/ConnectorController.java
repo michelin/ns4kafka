@@ -23,13 +23,16 @@ import static com.michelin.ns4kafka.util.enumation.Kind.CONNECTOR;
 import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 
 import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
+import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.connector.ChangeConnectorState;
 import com.michelin.ns4kafka.model.connector.Connector;
 import com.michelin.ns4kafka.service.ConnectorService;
+import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.ResourceQuotaService;
 import com.michelin.ns4kafka.util.enumation.ApplyStatus;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
+import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MutableHttpResponse;
@@ -41,8 +44,8 @@ import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
+import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.Date;
@@ -56,11 +59,28 @@ import reactor.core.publisher.Mono;
 @Controller(value = "/api/namespaces/{namespace}/connectors")
 @ExecuteOn(TaskExecutors.IO)
 public class ConnectorController extends NamespacedResourceController {
-    @Inject
-    private ConnectorService connectorService;
+    private final ConnectorService connectorService;
+    private final ResourceQuotaService resourceQuotaService;
 
-    @Inject
-    private ResourceQuotaService resourceQuotaService;
+    /**
+     * Constructor.
+     *
+     * @param connectorService The connector service
+     * @param resourceQuotaService The resource quota service
+     * @param namespaceService The namespace service
+     * @param securityService The security service
+     * @param applicationEventPublisher The application event publisher
+     */
+    public ConnectorController(
+            ConnectorService connectorService,
+            ResourceQuotaService resourceQuotaService,
+            NamespaceService namespaceService,
+            SecurityService securityService,
+            ApplicationEventPublisher<AuditLog> applicationEventPublisher) {
+        super(namespaceService, securityService, applicationEventPublisher);
+        this.connectorService = connectorService;
+        this.resourceQuotaService = resourceQuotaService;
+    }
 
     /**
      * List connectors by namespace, filtered by name parameter.
