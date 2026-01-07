@@ -154,7 +154,7 @@ public class ConsumerGroupAsyncExecutor {
     public Map<TopicPartition, Long> getLogStartOffsets(List<TopicPartition> partitionsToReset)
             throws ExecutionException, InterruptedException {
         Map<TopicPartition, OffsetSpec> startOffsets =
-                partitionsToReset.stream().collect(Collectors.toMap(Function.identity(), v -> OffsetSpec.earliest()));
+                partitionsToReset.stream().collect(Collectors.toMap(Function.identity(), _ -> OffsetSpec.earliest()));
         return listOffsets(startOffsets);
     }
 
@@ -169,7 +169,7 @@ public class ConsumerGroupAsyncExecutor {
     public Map<TopicPartition, Long> getLogEndOffsets(List<TopicPartition> partitionsToReset)
             throws ExecutionException, InterruptedException {
         Map<TopicPartition, OffsetSpec> endOffsets =
-                partitionsToReset.stream().collect(Collectors.toMap(Function.identity(), v -> OffsetSpec.latest()));
+                partitionsToReset.stream().collect(Collectors.toMap(Function.identity(), _ -> OffsetSpec.latest()));
         return listOffsets(endOffsets);
     }
 
@@ -185,7 +185,7 @@ public class ConsumerGroupAsyncExecutor {
     public Map<TopicPartition, Long> getLogTimestampOffsets(List<TopicPartition> partitionsToReset, long timestamp)
             throws ExecutionException, InterruptedException {
         Map<TopicPartition, OffsetSpec> dateOffsets = partitionsToReset.stream()
-                .collect(Collectors.toMap(Function.identity(), e -> OffsetSpec.forTimestamp(timestamp)));
+                .collect(Collectors.toMap(Function.identity(), _ -> OffsetSpec.forTimestamp(timestamp)));
         // list offsets for this timestamp
         Map<TopicPartition, Long> offsets = listOffsets(dateOffsets);
 

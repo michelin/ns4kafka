@@ -209,10 +209,8 @@ public class SchemaController extends NamespacedResourceController {
                         return Mono.just(HttpResponse.notFound());
                     }
 
-                    List<Schema> schemas = optionalSchemas.stream()
-                            .filter(Optional::isPresent)
-                            .map(Optional::get)
-                            .toList();
+                    List<Schema> schemas =
+                            optionalSchemas.stream().flatMap(Optional::stream).toList();
 
                     if (dryrun) {
                         return Mono.just(HttpResponse.ok(schemas));

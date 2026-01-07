@@ -49,7 +49,7 @@ class ExceptionHandlerControllerTest {
 
         assertEquals(TOPIC, status.getDetails().getKind());
         assertEquals("Name", status.getDetails().getName());
-        assertEquals("Error1", status.getDetails().getCauses().get(0));
+        assertEquals("Error1", status.getDetails().getCauses().getFirst());
         assertEquals("Error2", status.getDetails().getCauses().get(1));
     }
 

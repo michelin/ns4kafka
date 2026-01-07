@@ -23,6 +23,6 @@ public class UnknownNamespaceException extends RuntimeException {
     private static final String MESSAGE = "Accessing unknown namespace \"%s\"";
 
     public UnknownNamespaceException(String namespace) {
-        super(String.format(MESSAGE, namespace));
+        super(MESSAGE.formatted(namespace));
     }
 }

@@ -74,8 +74,8 @@ public class KafkaAsyncExecutorScheduler {
     /** Schedule connector synchronization. */
     public void scheduleConnectorSynchronization() {
         Flux.interval(Duration.ofSeconds(12), Duration.ofSeconds(20))
-                .onBackpressureDrop(onDropped ->
-                        log.debug("Skipping next connector synchronization. The previous one is still running."))
+                .onBackpressureDrop(
+                        _ -> log.debug("Skipping next connector synchronization. The previous one is still running."))
                 .concatMap(_ -> Flux.fromIterable(connectorAsyncExecutors).flatMap(ConnectorAsyncExecutor::run))
                 .onErrorContinue((error, _) ->
                         log.trace("Continue connector synchronization after error: {}.", error.getMessage()))
