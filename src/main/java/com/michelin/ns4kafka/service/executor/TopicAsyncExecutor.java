@@ -431,8 +431,15 @@ public class TopicAsyncExecutor {
                 && managedClusterProperties.isConfluentCloud()) {
             try {
                 enrichWithGraphQlCatalogInfo(topics);
-            } catch (Exception _) {
-                enrichWithRestCatalogInfo(topics);
+            } catch (Exception graphQLError) {
+                try {
+                    enrichWithRestCatalogInfo(topics);
+                } catch (Exception restError) {
+                    log.error(
+                            "Error while enriching topics with catalog info:\r\nGraphQL error: {}\r\nRest API error: {}",
+                            graphQLError.getMessage(),
+                            restError.getMessage());
+                }
             }
         }
     }
