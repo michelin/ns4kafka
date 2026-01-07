@@ -20,6 +20,7 @@ package com.michelin.ns4kafka.service.executor;
 
 import static com.michelin.ns4kafka.service.executor.TopicAsyncExecutor.CLUSTER_ID;
 import static com.michelin.ns4kafka.service.executor.TopicAsyncExecutor.TOPIC_ENTITY_TYPE;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -617,6 +618,29 @@ class TopicAsyncExecutorTest {
                         .tags(List.of(TAG1))
                         .build(),
                 brokerTopics.get(TOPIC_NAME).getSpec());
+    }
+
+    @Test
+    void shouldNotThrowExceptionAfterExceptionInGraphQlAndInRest() {
+        when(ns4KafkaProperties.getConfluentCloud()).thenReturn(buildConfluentCloudProperties(true));
+        when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
+        when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
+
+        int limit = 500;
+
+        Map<String, Topic> brokerTopics = Map.of(
+                TOPIC_NAME,
+                Topic.builder()
+                        .metadata(Metadata.builder().name(TOPIC_NAME).build())
+                        .spec(Topic.TopicSpec.builder().build())
+                        .build());
+
+        when(schemaRegistryClient.getTopicsWithDescriptionWithGraphQl(LOCAL_CLUSTER))
+                .thenThrow(new RuntimeException());
+        when(schemaRegistryClient.getTopicsWithStreamCatalog(LOCAL_CLUSTER, limit, 0))
+                .thenThrow(new RuntimeException());
+
+        assertDoesNotThrow(() -> topicAsyncExecutor.enrichWithCatalogInfo(brokerTopics));
     }
 
     @Test
