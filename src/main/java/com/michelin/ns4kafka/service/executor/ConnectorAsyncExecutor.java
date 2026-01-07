@@ -344,6 +344,8 @@ public class ConnectorAsyncExecutor {
                                 .build())
                 .doOnSuccess(_ -> {
                     connector.getStatus().setToDeploy(false);
+                    connectorRepository.create(connector);
+
                     log.info(
                             "Success deploying connector {} on Kafka Connect {} of Kafka cluster {}.",
                             connector.getMetadata().getName(),
