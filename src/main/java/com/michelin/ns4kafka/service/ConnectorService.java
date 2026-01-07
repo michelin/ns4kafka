@@ -242,10 +242,11 @@ public class ConnectorService {
                     connectorRepository.delete(connector);
 
                     if (log.isInfoEnabled()) {
-                        log.info("Success removing Connector ["
-                                + connector.getMetadata().getName()
-                                + "] on Kafka [" + namespace.getMetadata().getName()
-                                + "] Connect [" + connector.getSpec().getConnectCluster() + "]");
+                        log.info(
+                                "Success removing Connector [{}] on Kafka [{}] Connect [{}]",
+                                connector.getMetadata().getName(),
+                                namespace.getMetadata().getName(),
+                                connector.getSpec().getConnectCluster());
                     }
 
                     return httpResponse;
