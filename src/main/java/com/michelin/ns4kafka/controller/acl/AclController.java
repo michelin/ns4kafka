@@ -33,14 +33,12 @@ import com.michelin.ns4kafka.service.AclService;
 import com.michelin.ns4kafka.util.enumation.ApplyStatus;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.http.HttpResponse;
-import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Delete;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
-import io.micronaut.http.annotation.Status;
 import io.micronaut.security.authentication.Authentication;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Inject;
@@ -180,7 +178,6 @@ public class AclController extends NamespacedResourceController {
      * @return An HTTP response
      */
     @Delete
-    @Status(HttpStatus.OK)
     public HttpResponse<List<AccessControlEntry>> bulkDelete(
             Authentication authentication,
             String namespace,
@@ -233,7 +230,6 @@ public class AclController extends NamespacedResourceController {
      */
     @Delete("/{name}{?dryrun}")
     @Deprecated(since = "1.13.0")
-    @Status(HttpStatus.NO_CONTENT)
     public HttpResponse<Void> delete(
             Authentication authentication,
             String namespace,

@@ -342,7 +342,7 @@ public class ConnectorAsyncExecutor {
                         ConnectorSpecs.builder()
                                 .config(connector.getSpec().getConfig())
                                 .build())
-                .doOnSuccess(httpResponse -> {
+                .doOnSuccess(_ -> {
                     connector.getStatus().setToDeploy(false);
                     log.info(
                             "Success deploying connector {} on Kafka Connect {} of Kafka cluster {}.",

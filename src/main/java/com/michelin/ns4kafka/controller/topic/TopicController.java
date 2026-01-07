@@ -33,14 +33,12 @@ import com.michelin.ns4kafka.service.TopicService;
 import com.michelin.ns4kafka.util.enumation.ApplyStatus;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.http.HttpResponse;
-import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Delete;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
-import io.micronaut.http.annotation.Status;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
@@ -108,13 +106,11 @@ public class TopicController extends NamespacedResourceController {
         Optional<Topic> existingTopic =
                 topicService.findByName(ns, topic.getMetadata().getName());
 
-        // Request is valid ?
         List<String> validationErrors = ns.getSpec().getTopicValidator() != null
                 ? ns.getSpec().getTopicValidator().validate(topic)
                 : new ArrayList<>();
 
         if (existingTopic.isEmpty()) {
-            // Topic namespace ownership validation
             if (!topicService.isNamespaceOwnerOfTopic(
                     namespace, topic.getMetadata().getName())) {
                 validationErrors.add(invalidOwner(topic.getMetadata().getName()));
@@ -178,7 +174,6 @@ public class TopicController extends NamespacedResourceController {
      * @return An HTTP response
      */
     @Delete
-    @Status(HttpStatus.OK)
     public HttpResponse<List<Topic>> bulkDelete(
             String namespace,
             @QueryValue(defaultValue = "*") String name,
@@ -214,7 +209,6 @@ public class TopicController extends NamespacedResourceController {
      */
     @Delete("/{topic}{?dryrun}")
     @Deprecated(since = "1.13.0")
-    @Status(HttpStatus.NO_CONTENT)
     public HttpResponse<Void> delete(String namespace, String topic, @QueryValue(defaultValue = "false") boolean dryrun)
             throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = getNamespace(namespace);

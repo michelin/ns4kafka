@@ -53,11 +53,8 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidAclCollision(String invalidAclName, String collidingAclName) {
-        return String.format(
-                INVALID_FIELD,
-                invalidAclName,
-                FIELD_NAME,
-                String.format("collision with existing ACL %s", collidingAclName));
+        return INVALID_FIELD.formatted(
+                invalidAclName, FIELD_NAME, "collision with existing ACL %s".formatted(collidingAclName));
     }
 
     /**
@@ -67,7 +64,7 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidAclDeleteOnlyAdmin(String invalidAclName) {
-        return String.format(INVALID_FIELD, invalidAclName, FIELD_NAME, "only administrators can delete this ACL");
+        return INVALID_FIELD.formatted(invalidAclName, FIELD_NAME, "only administrators can delete this ACL");
     }
 
     /**
@@ -77,11 +74,8 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidSelfAssignedAclDelete(String invalidAclName, String acls) {
-        return String.format(
-                INVALID_FIELD,
-                invalidAclName,
-                FIELD_NAME,
-                "only administrators can delete the following self-assigned ACLs: " + acls);
+        return INVALID_FIELD.formatted(
+                invalidAclName, FIELD_NAME, "only administrators can delete the following self-assigned ACLs: " + acls);
     }
 
     /**
@@ -94,11 +88,8 @@ public class FormatErrorUtils {
      */
     public static String invalidValueMustBeOneOf(
             String invalidFieldName, String invalidFieldValue, String allowedFieldTypes) {
-        return String.format(
-                INVALID_FIELD,
-                invalidFieldValue,
-                invalidFieldName,
-                String.format("value must be one of \"%s\"", allowedFieldTypes));
+        return INVALID_FIELD.formatted(
+                invalidFieldValue, invalidFieldName, "value must be one of \"%s\"".formatted(allowedFieldTypes));
     }
 
     /**
@@ -108,7 +99,7 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidAclGrantedToMyself(String invalidGrantedToValue) {
-        return String.format(INVALID_FIELD, invalidGrantedToValue, "grantedTo", "cannot grant ACL to yourself");
+        return INVALID_FIELD.formatted(invalidGrantedToValue, "grantedTo", "cannot grant ACL to yourself");
     }
 
     /**
@@ -120,8 +111,7 @@ public class FormatErrorUtils {
      */
     public static String invalidAclNotOwnerOfTopLevel(
             String invalidResourceValue, AccessControlEntry.ResourcePatternType invalidResourcePatternTypeValue) {
-        return String.format(
-                INVALID_FIELDS,
+        return INVALID_FIELDS.formatted(
                 invalidResourceValue,
                 invalidResourcePatternTypeValue,
                 "resource",
@@ -170,8 +160,7 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidConnectClusterDeleteOperation(String connectCluster, List<Connector> connectors) {
-        return String.format(
-                INVALID_OPERATION,
+        return INVALID_OPERATION.formatted(
                 "delete",
                 String.format(
                         "The Kafka Connect \"%s\" has %s deployed connector(s): %s. "
@@ -189,8 +178,7 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidConnectClusterEncryptionConfig() {
-        return String.format(
-                INVALID_EMPTY_FIELDS,
+        return INVALID_EMPTY_FIELDS.formatted(
                 String.join(", ", "aes256Key", "aes256Salt"),
                 "Both AES key and salt are required to activate encryption");
     }
@@ -202,8 +190,7 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidConnectClusterNameAlreadyExistGlobally(String invalidNameValue) {
-        return String.format(
-                INVALID_FIELD,
+        return INVALID_FIELD.formatted(
                 invalidNameValue,
                 FIELD_NAME,
                 "a Kafka Connect is already defined globally with this name. Please provide a different name");
@@ -215,10 +202,8 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidConnectClusterNoEncryptionConfig() {
-        return String.format(
-                INVALID_EMPTY_FIELDS,
-                String.join(", ", "aes256Key", "aes256Salt"),
-                "Both AES key and salt are required for encryption");
+        return INVALID_EMPTY_FIELDS.formatted(
+                String.join(", ", "aes256Key", "aes256Salt"), "Both AES key and salt are required for encryption");
     }
 
     /**
@@ -229,10 +214,8 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidConnectClusterNotHealthy(String name, String errorMessage) {
-        return String.format(
-                INVALID_RESOURCE,
-                name,
-                String.format("the Kafka Connect is not healthy (%s)", errorMessage.toLowerCase()));
+        return INVALID_RESOURCE.formatted(
+                name, "the Kafka Connect is not healthy (%s)".formatted(errorMessage.toLowerCase()));
     }
 
     /**
@@ -262,13 +245,11 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidConnectorNoPlugin(String invalidConnectorClassValue) {
-        return String.format(
-                INVALID_FIELD,
+        return INVALID_FIELD.formatted(
                 invalidConnectorClassValue,
                 "connector.class",
-                String.format(
-                        "failed to find any class that implements connector and which name matches %s",
-                        invalidConnectorClassValue));
+                "failed to find any class that implements connector and which name matches %s"
+                        .formatted(invalidConnectorClassValue));
     }
 
     /**
@@ -279,7 +260,7 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidConnectorRemote(String name, String remoteError) {
-        return String.format(INVALID_RESOURCE, name, remoteError.toLowerCase());
+        return INVALID_RESOURCE.formatted(name, remoteError.toLowerCase());
     }
 
     /**
@@ -289,8 +270,7 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidConsumerGroupDatetime(String invalidDateTimeValue) {
-        return String.format(
-                INVALID_FIELD,
+        return INVALID_FIELD.formatted(
                 invalidDateTimeValue,
                 "to-datetime",
                 "value must be an ISO 8601 DateTime with Time zone [ yyyy-MM-dd'T'HH:mm:ss.SSSXXX ]");
@@ -303,11 +283,8 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidConsumerGroupDuration(String invalidDurationValue) {
-        return String.format(
-                INVALID_FIELD,
-                invalidDurationValue,
-                "by-duration",
-                "value must be an ISO 8601 duration [ PnDTnHnMnS ]");
+        return INVALID_FIELD.formatted(
+                invalidDurationValue, "by-duration", "value must be an ISO 8601 duration [ PnDTnHnMnS ]");
     }
 
     /**
@@ -317,7 +294,7 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidConsumerGroupOffsetInteger(String invalidOffsetValue) {
-        return String.format(INVALID_FIELD, invalidOffsetValue, "to-offset", "value must be an integer");
+        return INVALID_FIELD.formatted(invalidOffsetValue, "to-offset", "value must be an integer");
     }
 
     /**
@@ -327,7 +304,7 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidConsumerGroupOffsetNegative(String invalidOffsetValue) {
-        return String.format(INVALID_FIELD, invalidOffsetValue, "to-offset", "value must be >= 0");
+        return INVALID_FIELD.formatted(invalidOffsetValue, "to-offset", "value must be >= 0");
     }
 
     /**
@@ -339,8 +316,7 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidConsumerGroupOperation(String consumerGroup, String targetState, String currentState) {
-        return String.format(
-                INVALID_OPERATION,
+        return INVALID_OPERATION.formatted(
                 "reset offset",
                 String.format(
                         "offsets can only be reset if the consumer group \"%s\" "
@@ -355,7 +331,7 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidConsumerGroupShiftBy(String invalidShiftByValue) {
-        return String.format(INVALID_FIELD, invalidShiftByValue, "shift-by", "value must be an integer");
+        return INVALID_FIELD.formatted(invalidShiftByValue, "shift-by", "value must be an integer");
     }
 
     /**
@@ -365,8 +341,7 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidConsumerGroupTopic(String invalidTopicValue) {
-        return String.format(
-                INVALID_FIELD, invalidTopicValue, "topic", "value must match [*, <topic>, <topic:partition>]");
+        return INVALID_FIELD.formatted(invalidTopicValue, "topic", "value must match [*, <topic>, <topic:partition>]");
     }
 
     /**
@@ -378,8 +353,7 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidFieldValidationAtLeast(String invalidFieldName, String invalidFieldValue, Number min) {
-        return String.format(
-                INVALID_FIELD, invalidFieldValue, invalidFieldName, String.format("value must be at least %s", min));
+        return INVALID_FIELD.formatted(invalidFieldValue, invalidFieldName, "value must be at least %s".formatted(min));
     }
 
     /**
@@ -391,11 +365,8 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidFieldValidationAtMost(String invalidFieldName, String invalidFieldValue, Number max) {
-        return String.format(
-                INVALID_FIELD,
-                invalidFieldValue,
-                invalidFieldName,
-                String.format("value must be no more than %s", max));
+        return INVALID_FIELD.formatted(
+                invalidFieldValue, invalidFieldName, "value must be no more than %s".formatted(max));
     }
 
     /**
@@ -405,7 +376,7 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidFieldValidationEmpty(String invalidFieldName) {
-        return String.format(INVALID_EMPTY_FIELD, invalidFieldName, "string must not be empty");
+        return INVALID_EMPTY_FIELD.formatted(invalidFieldName, "string must not be empty");
     }
 
     /**
@@ -415,7 +386,7 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidFieldValidationNull(String invalidFieldName) {
-        return String.format(INVALID_EMPTY_FIELD, invalidFieldName, "value must not be null");
+        return INVALID_EMPTY_FIELD.formatted(invalidFieldName, "value must not be null");
     }
 
     /**
@@ -426,7 +397,7 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidFieldValidationNumber(String invalidFieldName, String invalidFieldValue) {
-        return String.format(INVALID_FIELD, invalidFieldValue, invalidFieldName, "value must be a number");
+        return INVALID_FIELD.formatted(invalidFieldValue, invalidFieldName, "value must be a number");
     }
 
     /**
@@ -452,11 +423,8 @@ public class FormatErrorUtils {
      */
     public static String invalidFieldValidationContains(
             String invalidFieldName, String invalidFieldValue, String mandatoryFieldValues) {
-        return String.format(
-                INVALID_FIELD,
-                invalidFieldValue,
-                invalidFieldName,
-                String.format("value must contain \"%s\"", mandatoryFieldValues));
+        return INVALID_FIELD.formatted(
+                invalidFieldValue, invalidFieldName, "value must contain \"%s\"".formatted(mandatoryFieldValues));
     }
 
     /**
@@ -467,7 +435,7 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidImmutableValue(String invalidFieldName, String invalidFieldValue) {
-        return String.format(INVALID_FIELD, invalidFieldValue, invalidFieldName, "value is immutable");
+        return INVALID_FIELD.formatted(invalidFieldValue, invalidFieldName, "value is immutable");
     }
 
     /**
@@ -477,8 +445,7 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidImmutableField(String invalidFieldName) {
-        return String.format(
-                INVALID_OPERATION, OPERATION_APPLY, String.format("field \"%s\" is immutable", invalidFieldName));
+        return INVALID_OPERATION.formatted(OPERATION_APPLY, "field \"%s\" is immutable".formatted(invalidFieldName));
     }
 
     /**
@@ -488,7 +455,7 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidKafkaUser(String invalidKafkaUserValue) {
-        return String.format(INVALID_FIELD, invalidKafkaUserValue, "user", "user does not belong to namespace");
+        return INVALID_FIELD.formatted(invalidKafkaUserValue, "user", "user does not belong to namespace");
     }
 
     /**
@@ -498,10 +465,8 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidNamespaceDeleteOperation(String resourceName) {
-        return String.format(
-                INVALID_OPERATION,
-                "delete",
-                String.format("namespace resource %s must be deleted first", resourceName));
+        return INVALID_OPERATION.formatted(
+                "delete", "namespace resource %s must be deleted first".formatted(resourceName));
     }
 
     /**
@@ -511,8 +476,7 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidNamespaceNoConnectCluster(String invalidConnectClusterValue) {
-        return String.format(
-                INVALID_FIELD, invalidConnectClusterValue, "connectClusters", "connect cluster does not exist");
+        return INVALID_FIELD.formatted(invalidConnectClusterValue, "connectClusters", "connect cluster does not exist");
     }
 
     /**
@@ -522,7 +486,7 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidNamespaceNoCluster(String invalidClusterValue) {
-        return String.format(INVALID_FIELD, invalidClusterValue, "cluster", "cluster does not exist");
+        return INVALID_FIELD.formatted(invalidClusterValue, "cluster", "cluster does not exist");
     }
 
     /**
@@ -532,11 +496,8 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidNamespaceTopicValidatorKeyConfluentCloud(String invalidKey) {
-        return String.format(
-                INVALID_FIELD,
-                invalidKey,
-                "validationConstraints",
-                "configuration not editable on a Confluent Cloud cluster");
+        return INVALID_FIELD.formatted(
+                invalidKey, "validationConstraints", "configuration not editable on a Confluent Cloud cluster");
     }
 
     /**
@@ -546,7 +507,7 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidNamespaceUserAlreadyExist(String invalidKafkaValue) {
-        return String.format(INVALID_FIELD, invalidKafkaValue, "kafkaUser", "user already exists in another namespace");
+        return INVALID_FIELD.formatted(invalidKafkaValue, "kafkaUser", "user already exists in another namespace");
     }
 
     /**
@@ -555,7 +516,7 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidNameEmpty() {
-        return String.format(INVALID_EMPTY_FIELD, FIELD_NAME, "value must not be empty");
+        return INVALID_EMPTY_FIELD.formatted(FIELD_NAME, "value must not be empty");
     }
 
     /**
@@ -565,7 +526,7 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidNameLength(String invalidNameValue) {
-        return String.format(INVALID_FIELD, invalidNameValue, FIELD_NAME, "value must not be longer than 249");
+        return INVALID_FIELD.formatted(invalidNameValue, FIELD_NAME, "value must not be longer than 249");
     }
 
     /**
@@ -575,11 +536,8 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidNameSpecChars(String invalidNameValue) {
-        return String.format(
-                INVALID_FIELD,
-                invalidNameValue,
-                FIELD_NAME,
-                "value must only contain ASCII alphanumerics, '.', '_' or '-'");
+        return INVALID_FIELD.formatted(
+                invalidNameValue, FIELD_NAME, "value must only contain ASCII alphanumerics, '.', '_' or '-'");
     }
 
     /**
@@ -590,7 +548,7 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidNotFound(String invalidFieldName, String invalidFieldValue) {
-        return String.format(INVALID_FIELD, invalidFieldValue, invalidFieldName, "resource not found");
+        return INVALID_FIELD.formatted(invalidFieldValue, invalidFieldName, "resource not found");
     }
 
     /**
@@ -611,8 +569,7 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidOwner(String invalidFieldName, String invalidFieldValue) {
-        return String.format(
-                INVALID_FIELD, invalidFieldValue, invalidFieldName, "namespace is not owner of the resource");
+        return INVALID_FIELD.formatted(invalidFieldValue, invalidFieldName, "namespace is not owner of the resource");
     }
 
     /**
@@ -634,11 +591,10 @@ public class FormatErrorUtils {
      */
     public static String invalidQuotaFormat(
             ResourceQuota.ResourceQuotaSpecKey invalidQuotaName, String invalidQuotaValue) {
-        return String.format(
-                INVALID_FIELD,
+        return INVALID_FIELD.formatted(
                 invalidQuotaValue,
                 invalidQuotaName,
-                String.format("value must end with either %s, %s, %s or %s", BYTE, KIBIBYTE, MEBIBYTE, GIBIBYTE));
+                "value must end with either %s, %s, %s or %s".formatted(BYTE, KIBIBYTE, MEBIBYTE, GIBIBYTE));
     }
 
     /**
@@ -651,11 +607,10 @@ public class FormatErrorUtils {
      */
     public static String invalidQuotaAlreadyExceeded(
             ResourceQuota.ResourceQuotaSpecKey invalidQuotaName, String invalidQuotaValue, String used) {
-        return String.format(
-                INVALID_FIELD,
+        return INVALID_FIELD.formatted(
                 invalidQuotaValue,
                 invalidQuotaName,
-                String.format("quota already exceeded (%s/%s)", used, invalidQuotaValue));
+                "quota already exceeded (%s/%s)".formatted(used, invalidQuotaValue));
     }
 
     /**
@@ -665,10 +620,8 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidResetPasswordProvider(ManagedClusterProperties.KafkaProvider provider) {
-        return String.format(
-                INVALID_OPERATION,
-                "reset password",
-                String.format("Password reset is not available with provider %s", provider));
+        return INVALID_OPERATION.formatted(
+                "reset password", "Password reset is not available with provider %s".formatted(provider));
     }
 
     /**
@@ -680,10 +633,8 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidQuotaOperation(ResourceQuota.ResourceQuotaSpecKey quota, long used, long limit) {
-        return String.format(
-                INVALID_OPERATION,
-                OPERATION_APPLY,
-                String.format("exceeding quota for %s: %s/%s (used/limit)", quota, used, limit));
+        return INVALID_OPERATION.formatted(
+                OPERATION_APPLY, "exceeding quota for %s: %s/%s (used/limit)".formatted(quota, used, limit));
     }
 
     /**
@@ -697,10 +648,9 @@ public class FormatErrorUtils {
      */
     public static String invalidQuotaOperationCannotAdd(
             ResourceQuota.ResourceQuotaSpecKey quota, String used, String limit, String toAdd) {
-        return String.format(
-                INVALID_OPERATION,
+        return INVALID_OPERATION.formatted(
                 OPERATION_APPLY,
-                String.format("exceeding quota for %s: %s/%s (used/limit). Cannot add %s", quota, used, limit, toAdd));
+                "exceeding quota for %s: %s/%s (used/limit). Cannot add %s".formatted(quota, used, limit, toAdd));
     }
 
     /**
@@ -709,8 +659,8 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidProtectedNamespaceGrantAcl() {
-        return String.format(
-                INVALID_OPERATION, OPERATION_APPLY, "protected namespace can only grant ACL to protected namespaces");
+        return INVALID_OPERATION.formatted(
+                OPERATION_APPLY, "protected namespace can only grant ACL to protected namespaces");
     }
 
     /**
@@ -719,7 +669,7 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidProtectedNamespaceGrantPublicAcl() {
-        return String.format(INVALID_OPERATION, OPERATION_APPLY, "protected namespace can not grant public ACL");
+        return INVALID_OPERATION.formatted(OPERATION_APPLY, "protected namespace can not grant public ACL");
     }
 
     /**
@@ -729,7 +679,7 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidSchemaSuffix(String invalidNameValue) {
-        return String.format(INVALID_FIELD, invalidNameValue, FIELD_NAME, "value must end with -key or -value");
+        return INVALID_FIELD.formatted(invalidNameValue, FIELD_NAME, "value must end with -key or -value");
     }
 
     /**
@@ -740,11 +690,10 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidSchemaReference(String invalidSubjectValue, String invalidVersion) {
-        return String.format(
-                INVALID_FIELD,
+        return INVALID_FIELD.formatted(
                 invalidSubjectValue,
                 "references",
-                String.format("subject %s version %s not found", invalidSubjectValue, invalidVersion));
+                "subject %s version %s not found".formatted(invalidSubjectValue, invalidVersion));
     }
 
     /**
@@ -755,7 +704,7 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidSchemaResource(String name, String message) {
-        return String.format(INVALID_RESOURCE, name, message.toLowerCase());
+        return INVALID_RESOURCE.formatted(name, message.toLowerCase());
     }
 
     /**
@@ -765,8 +714,7 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidTopicCleanUpPolicy(String invalidCleanUpPolicyValue) {
-        return String.format(
-                INVALID_FIELD,
+        return INVALID_FIELD.formatted(
                 invalidCleanUpPolicyValue,
                 CLEANUP_POLICY_CONFIG,
                 "altering topic configuration from \"delete\" to \"compact\" and \"delete\" is not currently supported in Confluent Cloud. "
@@ -781,11 +729,8 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidTopicCollide(String invalidNameValue, String collidingTopicName) {
-        return String.format(
-                INVALID_FIELD,
-                invalidNameValue,
-                FIELD_NAME,
-                String.format("collision with existing topic %s", collidingTopicName));
+        return INVALID_FIELD.formatted(
+                invalidNameValue, FIELD_NAME, "collision with existing topic %s".formatted(collidingTopicName));
     }
 
     /**
@@ -794,10 +739,8 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidTopicDeleteRecords() {
-        return String.format(
-                INVALID_OPERATION,
-                "delete records",
-                "cannot delete records on a compacted topic. Please delete and recreate the topic");
+        return INVALID_OPERATION.formatted(
+                "delete records", "cannot delete records on a compacted topic. Please delete and recreate the topic");
     }
 
     /**
@@ -807,7 +750,7 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidTopicName(String invalidNameValue) {
-        return String.format(INVALID_FIELD, invalidNameValue, FIELD_NAME, "value must not be \".\" or \"..\"");
+        return INVALID_FIELD.formatted(invalidNameValue, FIELD_NAME, "value must not be \".\" or \"..\"");
     }
 
     /**
@@ -818,8 +761,8 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidTopicSpec(String invalidFieldName, String invalidFieldValue) {
-        return String.format(
-                INVALID_FIELD, invalidFieldValue, invalidFieldName, "configuration is not allowed on your namespace");
+        return INVALID_FIELD.formatted(
+                invalidFieldValue, invalidFieldName, "configuration is not allowed on your namespace");
     }
 
     /**
@@ -829,7 +772,7 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidTopicTags(String invalidTagValue) {
-        return String.format(INVALID_FIELD, invalidTagValue, "tags", "tags are not currently supported");
+        return INVALID_FIELD.formatted(invalidTagValue, "tags", "tags are not currently supported");
     }
 
     /**
@@ -839,8 +782,7 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidTopicTagsFormat(String invalidTagFormatValue) {
-        return String.format(
-                INVALID_FIELD,
+        return INVALID_FIELD.formatted(
                 invalidTagFormatValue,
                 "tags",
                 "tags should start with letter and be followed by alphanumeric or _ characters");

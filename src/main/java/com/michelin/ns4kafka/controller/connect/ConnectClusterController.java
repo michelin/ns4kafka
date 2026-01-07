@@ -34,14 +34,12 @@ import com.michelin.ns4kafka.util.enumation.ApplyStatus;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpResponse;
-import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Delete;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
-import io.micronaut.http.annotation.Status;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -161,7 +159,6 @@ public class ConnectClusterController extends NamespacedResourceController {
      */
     @Delete("/{connectCluster}{?dryrun}")
     @Deprecated(since = "1.13.0")
-    @Status(HttpStatus.NO_CONTENT)
     public HttpResponse<Void> delete(
             String namespace, String connectCluster, @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
@@ -212,7 +209,6 @@ public class ConnectClusterController extends NamespacedResourceController {
      * @return A HTTP response
      */
     @Delete
-    @Status(HttpStatus.OK)
     public HttpResponse<List<ConnectCluster>> bulkDelete(
             String namespace,
             @QueryValue(defaultValue = "*") String name,

@@ -616,11 +616,11 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
                 HttpResponse<ConnectorStateInfo> response = connectClient
                         .toBlocking()
                         .exchange(
-                                HttpRequest.GET(String.format("/connectors/%s/status", connector)),
+                                HttpRequest.GET("/connectors/%s/status".formatted(connector)),
                                 ConnectorStateInfo.class);
 
                 connectorInState = response.body().connector().getState().equals(state);
-            } catch (HttpClientResponseException ignored) {
+            } catch (HttpClientResponseException _) {
                 // Connector not found, retry
             }
         }

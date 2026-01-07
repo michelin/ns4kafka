@@ -30,7 +30,6 @@ import com.michelin.ns4kafka.service.SchemaService;
 import com.michelin.ns4kafka.util.enumation.ApplyStatus;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.http.HttpResponse;
-import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Delete;
@@ -38,7 +37,6 @@ import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.PathVariable;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
-import io.micronaut.http.annotation.Status;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -159,7 +157,7 @@ public class SchemaController extends NamespacedResourceController {
 
                                             return schemaService
                                                     .register(ns, schema)
-                                                    .map(id -> {
+                                                    .map(_ -> {
                                                         sendEventLog(
                                                                 schema,
                                                                 status,
@@ -189,7 +187,6 @@ public class SchemaController extends NamespacedResourceController {
      * @return A HTTP response
      */
     @Delete
-    @Status(HttpStatus.OK)
     public Mono<HttpResponse<List<Schema>>> bulkDelete(
             String namespace,
             @QueryValue(defaultValue = "*") String name,
@@ -212,10 +209,8 @@ public class SchemaController extends NamespacedResourceController {
                         return Mono.just(HttpResponse.notFound());
                     }
 
-                    List<Schema> schemas = optionalSchemas.stream()
-                            .filter(Optional::isPresent)
-                            .map(Optional::get)
-                            .toList();
+                    List<Schema> schemas =
+                            optionalSchemas.stream().flatMap(Optional::stream).toList();
 
                     if (dryrun) {
                         return Mono.just(HttpResponse.ok(schemas));
@@ -234,7 +229,7 @@ public class SchemaController extends NamespacedResourceController {
                                                 schema.getSpec(),
                                                 null,
                                                 versionOptional
-                                                        .map(v -> String.valueOf(deletedVersionIds))
+                                                        .map(_ -> String.valueOf(deletedVersionIds))
                                                         .orElse(EMPTY_STRING));
                                         return Mono.just(HttpResponse.noContent());
                                     }))
@@ -254,7 +249,6 @@ public class SchemaController extends NamespacedResourceController {
      */
     @Delete("/{subject}")
     @Deprecated(since = "1.13.0")
-    @Status(HttpStatus.NO_CONTENT)
     public Mono<HttpResponse<Void>> delete(
             String namespace,
             @PathVariable String subject,
@@ -295,7 +289,7 @@ public class SchemaController extends NamespacedResourceController {
                                         deletedSchema.getSpec(),
                                         null,
                                         versionOptional
-                                                .map(v -> String.valueOf(deletedVersionIds))
+                                                .map(_ -> String.valueOf(deletedVersionIds))
                                                 .orElse(EMPTY_STRING));
 
                                 return HttpResponse.noContent();
@@ -342,7 +336,7 @@ public class SchemaController extends NamespacedResourceController {
 
                     return schemaService
                             .updateSubjectCompatibility(ns, latestSubjectOptional.get(), compatibility)
-                            .map(schemaCompatibility -> {
+                            .map(_ -> {
                                 sendEventLog(
                                         latestSubjectOptional.get(),
                                         ApplyStatus.CHANGED,

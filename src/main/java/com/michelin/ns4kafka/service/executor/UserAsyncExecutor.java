@@ -261,7 +261,7 @@ public class UserAsyncExecutor {
                 log.error("Error", e);
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
-                log.error(String.format("Error while applying quotas for user %s", user), e);
+                log.error("Error while applying quotas for user %s".formatted(user), e);
             }
         }
     }

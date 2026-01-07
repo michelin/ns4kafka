@@ -28,14 +28,12 @@ import com.michelin.ns4kafka.service.ResourceQuotaService;
 import com.michelin.ns4kafka.util.enumation.ApplyStatus;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.http.HttpResponse;
-import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Delete;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
-import io.micronaut.http.annotation.Status;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -139,7 +137,6 @@ public class ResourceQuotaController extends NamespacedResourceController {
      * @return An HTTP response
      */
     @Delete
-    @Status(HttpStatus.OK)
     public HttpResponse<List<ResourceQuota>> bulkDelete(
             String namespace,
             @QueryValue(defaultValue = "*") String name,
@@ -174,7 +171,6 @@ public class ResourceQuotaController extends NamespacedResourceController {
      */
     @Delete("/{name}{?dryrun}")
     @Deprecated(since = "1.13.0")
-    @Status(HttpStatus.NO_CONTENT)
     public HttpResponse<Void> delete(
             String namespace, String name, @QueryValue(defaultValue = "false") boolean dryrun) {
         Optional<ResourceQuota> resourceQuota = resourceQuotaService.findByName(namespace, name);

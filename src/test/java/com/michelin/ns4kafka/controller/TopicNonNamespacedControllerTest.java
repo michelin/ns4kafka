@@ -54,7 +54,7 @@ class TopicNonNamespacedControllerTest {
         List<Topic> actual = topicController.listAll();
 
         assertEquals(2, actual.size());
-        assertEquals("topic1", actual.get(0).getMetadata().getName());
+        assertEquals("topic1", actual.getFirst().getMetadata().getName());
         assertEquals("topic2", actual.get(1).getMetadata().getName());
     }
 }

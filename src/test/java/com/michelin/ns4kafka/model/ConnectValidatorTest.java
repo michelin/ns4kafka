@@ -196,7 +196,7 @@ class ConnectValidatorTest {
                         + "oooooooooooooooooooooooooooooooooooooooooooooooooooooooooo"
                         + "oooooooooooooooooooooooooooooooooooooooooooooooooooooooooo"
                         + "ooooooooooooooongToBeAConnectorName$\" for field \"name\": value must not be longer than 249.",
-                actual.get(0));
+                actual.getFirst());
         assertEquals(
                 "Invalid value \"$thisNameIsDefinitelyToLooooooooooooooooooooooo"
                         + "ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo"

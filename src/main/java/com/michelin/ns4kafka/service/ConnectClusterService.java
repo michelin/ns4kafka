@@ -111,11 +111,11 @@ public class ConnectClusterService {
                             connectCluster.getSpec().setStatus(ConnectCluster.Status.IDLE);
                             connectCluster.getSpec().setStatusMessage(error.getMessage());
                         })
-                        .doOnSuccess(response -> {
+                        .doOnSuccess(_ -> {
                             connectCluster.getSpec().setStatus(ConnectCluster.Status.HEALTHY);
                             connectCluster.getSpec().setStatusMessage(null);
                         })
-                        .map(response -> connectCluster)
+                        .map(_ -> connectCluster)
                         .onErrorReturn(connectCluster))
                 : Flux.fromIterable(results);
     }
@@ -280,7 +280,7 @@ public class ConnectClusterService {
                         errors.add(invalidConnectClusterEncryptionConfig());
                     }
                 })
-                .map(response -> errors)
+                .map(_ -> errors)
                 .onErrorReturn(errors);
     }
 
@@ -379,8 +379,7 @@ public class ConnectClusterService {
                 .map(password -> VaultResponse.builder()
                         .spec(VaultResponse.VaultResponseSpec.builder()
                                 .clearText(password)
-                                .encrypted(String.format(
-                                        aes256Format,
+                                .encrypted(aes256Format.formatted(
                                         EncryptionUtils.encryptAesWithPrefix(password, aes256Key, aes256Salt)))
                                 .build())
                         .build())

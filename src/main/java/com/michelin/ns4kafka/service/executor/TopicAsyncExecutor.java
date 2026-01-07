@@ -329,7 +329,7 @@ public class TopicAsyncExecutor {
                 .get(managedClusterProperties.getTimeout().getTopic().getDelete(), TimeUnit.MILLISECONDS);
 
         // Immediately delete topics from the local cache to prevent Kafka Streams internal topics from being
-        // re-imported
+        // re-imported.
         // This can happen if a changelog or repartition topic is deleted after the broker topics are listed
         // but before the Ns4Kafka topics are listed during synchronization
         topicsNames.forEach(topicName -> {
@@ -395,7 +395,7 @@ public class TopicAsyncExecutor {
                 schemaRegistryClient
                         .updateDescription(managedClusterProperties.getName(), body)
                         .subscribe(
-                                success -> {
+                                _ -> {
                                     log.info(
                                             "Success update description {}",
                                             managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
@@ -431,7 +431,7 @@ public class TopicAsyncExecutor {
                 && managedClusterProperties.isConfluentCloud()) {
             try {
                 enrichWithGraphQlCatalogInfo(topics);
-            } catch (Exception e) {
+            } catch (Exception _) {
                 enrichWithRestCatalogInfo(topics);
             }
         }
@@ -675,13 +675,13 @@ public class TopicAsyncExecutor {
         schemaRegistryClient
                 .createTags(managedClusterProperties.getName(), tagsToCreate)
                 .subscribe(
-                        successCreation -> {
+                        _ -> {
                             log.info("Success creating tag {}.", tagsListString);
 
                             schemaRegistryClient
                                     .associateTags(managedClusterProperties.getName(), tagsToAssociate)
                                     .subscribe(
-                                            successAssociation -> topicTagsMapping.forEach((topic, tags) -> {
+                                            _ -> topicTagsMapping.forEach((topic, tags) -> {
                                                 log.info(
                                                         "Success associating tag {}.",
                                                         managedClusterProperties
@@ -738,7 +738,7 @@ public class TopicAsyncExecutor {
                                 + topic.getMetadata().getName(),
                         tag)
                 .subscribe(
-                        success -> {
+                        _ -> {
                             log.info(
                                     "Success dissociating tag {}.",
                                     managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
@@ -816,7 +816,7 @@ public class TopicAsyncExecutor {
                 getAdminClient().describeTopics(List.of(topic)).allTopicNames().get().entrySet().stream()
                         .flatMap(topicDescriptionEntry -> topicDescriptionEntry.getValue().partitions().stream())
                         .map(partitionInfo -> new TopicPartition(topic, partitionInfo.partition()))
-                        .collect(Collectors.toMap(Function.identity(), v -> OffsetSpec.latest()));
+                        .collect(Collectors.toMap(Function.identity(), _ -> OffsetSpec.latest()));
 
         // list all latest offsets for each partitions
         return getAdminClient().listOffsets(topicsPartitionsToDelete).all().get().entrySet().stream()

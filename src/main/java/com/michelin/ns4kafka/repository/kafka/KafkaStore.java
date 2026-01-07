@@ -73,7 +73,7 @@ public abstract class KafkaStore<T> {
     private final Condition offsetReachedThreshold;
     String kafkaTopic;
     Producer<String, T> kafkaProducer;
-    long offsetInSchemasTopic = -1;
+    long currentOffset = -1;
     long lastWrittenOffset = -1;
 
     KafkaStore(String kafkaTopic, Producer<String, T> kafkaProducer) {
@@ -183,7 +183,7 @@ public abstract class KafkaStore<T> {
                         kafkaTopic);
             }
 
-            throw new KafkaStoreException("The retention policy of the schema kafkaTopic " + kafkaTopic
+            throw new KafkaStoreException("The retention policy of the topic " + kafkaTopic
                     + " is incorrect. Expected cleanup.policy to be 'compact' but it is " + retentionPolicy);
         }
     }
@@ -210,26 +210,26 @@ public abstract class KafkaStore<T> {
             throw new KafkaStoreException("No live Kafka brokers.");
         }
 
-        int schemaTopicReplicationFactor = Math.min(
+        int replicationFactor = Math.min(
                 numLiveBrokers,
                 ns4KafkaProperties.getStore().getKafka().getTopics().getReplicationFactor());
-        if (schemaTopicReplicationFactor
+        if (replicationFactor
                         < ns4KafkaProperties.getStore().getKafka().getTopics().getReplicationFactor()
                 && log.isWarnEnabled()) {
             log.warn(
                     "Creating the kafkaTopic {} using a replication factor of {}, which is less than the desired one of {}. If this is a production environment, it's crucial to add more brokers and increase the replication factor of the kafkaTopic.",
                     kafkaTopic,
-                    schemaTopicReplicationFactor,
+                    replicationFactor,
                     ns4KafkaProperties.getStore().getKafka().getTopics().getReplicationFactor());
         }
 
-        NewTopic schemaTopicRequest = new NewTopic(kafkaTopic, 1, (short) schemaTopicReplicationFactor);
-        schemaTopicRequest.configs(
+        NewTopic topicRequest = new NewTopic(kafkaTopic, 1, (short) replicationFactor);
+        topicRequest.configs(
                 ns4KafkaProperties.getStore().getKafka().getTopics().getProps());
 
         try {
             adminClient
-                    .createTopics(Collections.singleton(schemaTopicRequest))
+                    .createTopics(Collections.singleton(topicRequest))
                     .all()
                     .get(ns4KafkaProperties.getStore().getKafka().getInitTimeout(), TimeUnit.MILLISECONDS);
         } catch (ExecutionException e) {
@@ -311,7 +311,7 @@ public abstract class KafkaStore<T> {
 
             try {
                 offsetUpdateLock.lock();
-                offsetInSchemasTopic = message.offset();
+                currentOffset = message.offset();
                 offsetReachedThreshold.signalAll();
             } finally {
                 offsetUpdateLock.unlock();
@@ -381,13 +381,13 @@ public abstract class KafkaStore<T> {
             throw new KafkaStoreException("Cannot wait for a negative offset.");
         }
 
-        log.trace("Waiting to read offset {}. Currently at offset {}.", offset, offsetInSchemasTopic);
+        log.trace("Waiting to read offset {}. Currently at offset {}.", offset, currentOffset);
 
         try {
             offsetUpdateLock.lock();
             long timeoutNs = TimeUnit.NANOSECONDS.convert(
                     ns4KafkaProperties.getStore().getKafka().getInitTimeout(), timeUnit);
-            while ((offsetInSchemasTopic < offset) && (timeoutNs > 0)) {
+            while ((currentOffset < offset) && (timeoutNs > 0)) {
                 try {
                     timeoutNs = offsetReachedThreshold.awaitNanos(timeoutNs);
                 } catch (InterruptedException e) {
@@ -403,9 +403,9 @@ public abstract class KafkaStore<T> {
             offsetUpdateLock.unlock();
         }
 
-        if (offsetInSchemasTopic < offset) {
+        if (currentOffset < offset) {
             throw new KafkaStoreException("Failed to reach target offset within the timeout interval. targetOffset: "
-                    + offset + ", offsetReached: " + offsetInSchemasTopic + ", timeout(ms): "
+                    + offset + ", offsetReached: " + currentOffset + ", timeout(ms): "
                     + TimeUnit.MILLISECONDS.convert(
                             ns4KafkaProperties.getStore().getKafka().getInitTimeout(), timeUnit));
         }
@@ -425,7 +425,7 @@ public abstract class KafkaStore<T> {
         if (isInitialized()) {
             log.info("{} is ready! ({} records)", kafkaTopic, store.size());
         } else {
-            log.info("Init in progress for {}... ({}/{})", kafkaTopic, offsetInSchemasTopic, lastWrittenOffset);
+            log.info("Init in progress for {}... ({}/{})", kafkaTopic, currentOffset, lastWrittenOffset);
         }
     }
 }

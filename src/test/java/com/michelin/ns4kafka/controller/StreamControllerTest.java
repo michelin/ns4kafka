@@ -140,7 +140,7 @@ class StreamControllerTest {
         List<KafkaStream> actual = streamController.list("test", "");
 
         assertEquals(2, actual.size());
-        assertEquals("prefix.s1", actual.get(0).getMetadata().getName());
+        assertEquals("prefix.s1", actual.getFirst().getMetadata().getName());
         assertEquals("prefix.s2", actual.get(1).getMetadata().getName());
     }
 

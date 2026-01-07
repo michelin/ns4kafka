@@ -269,7 +269,7 @@ public class SchemaService {
     public Mono<Integer[]> deleteAllVersions(Namespace namespace, String subject) {
         return schemaRegistryClient
                 .deleteSubject(namespace.getMetadata().getCluster(), subject, false)
-                .flatMap(softDeletedVersionIds -> schemaRegistryClient.deleteSubject(
+                .flatMap(_ -> schemaRegistryClient.deleteSubject(
                         namespace.getMetadata().getCluster(), subject, true));
     }
 
