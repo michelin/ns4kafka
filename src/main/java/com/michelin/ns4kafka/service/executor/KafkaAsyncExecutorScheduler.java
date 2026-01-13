@@ -73,7 +73,7 @@ public class KafkaAsyncExecutorScheduler {
 
     /** Schedule connector synchronization. */
     public void scheduleConnectorSynchronization() {
-        Flux.interval(Duration.ofSeconds(12), Duration.ofSeconds(20))
+        Flux.interval(Duration.ofSeconds(12), Duration.ofSeconds(30))
                 .onBackpressureDrop(
                         _ -> log.debug("Skipping next connector synchronization. The previous one is still running."))
                 .concatMap(_ -> Flux.fromIterable(connectorAsyncExecutors).flatMap(ConnectorAsyncExecutor::run))
@@ -85,7 +85,7 @@ public class KafkaAsyncExecutorScheduler {
 
     /** Schedule connector synchronization. */
     public void scheduleConnectHealthCheck() {
-        Flux.interval(Duration.ofSeconds(5), Duration.ofMinutes(1))
+        Flux.interval(Duration.ofSeconds(5), Duration.ofSeconds(60))
                 .onBackpressureDrop(_ ->
                         log.debug("Skipping next Connect cluster health check. The previous one is still running."))
                 .concatMap(
