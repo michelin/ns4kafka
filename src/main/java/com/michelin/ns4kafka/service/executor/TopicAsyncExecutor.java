@@ -108,15 +108,11 @@ public class TopicAsyncExecutor {
             ns4KafkaTopics.clear();
             ns4KafkaTopics.addAll(freshNs4KafkaTopics);
 
-            List<Topic> createTopics = ns4KafkaTopics.stream()
-                    .filter(topic ->
-                            !brokerTopics.containsKey(topic.getMetadata().getName()))
-                    .toList();
-
-            List<Topic> checkTopics = ns4KafkaTopics.stream()
-                    .filter(topic ->
-                            brokerTopics.containsKey(topic.getMetadata().getName()))
-                    .toList();
+            Map<Boolean, List<Topic>> partitioned = ns4KafkaTopics.stream()
+                    .collect(Collectors.partitioningBy(topic ->
+                            brokerTopics.containsKey(topic.getMetadata().getName())));
+            List<Topic> createTopics = partitioned.get(false);
+            List<Topic> checkTopics = partitioned.get(true);
 
             Map<ConfigResource, Collection<AlterConfigOp>> updateTopics = checkTopics.stream()
                     .map(topic -> {
