@@ -28,6 +28,7 @@ import com.michelin.ns4kafka.service.client.connect.KafkaConnectClient;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorInfo;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorSpecs;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorStatus;
+import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.context.annotation.EachBean;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import jakarta.inject.Singleton;
@@ -154,7 +155,9 @@ public class ConnectorAsyncExecutor {
 
         return collectBrokerConnectors(connectCluster)
                 .doOnError(error -> {
-                    if (error instanceof HttpClientResponseException httpClientResponseException) {
+                    if (error instanceof ResourceValidationException) {
+                        healthyConnectClusters.remove(connectCluster);
+                    } else if (error instanceof HttpClientResponseException httpClientResponseException) {
                         log.error(
                                 "Invalid HTTP response {} ({}) during connectors synchronization for Kafka cluster {}"
                                         + " and Kafka Connect {}.",
