@@ -92,14 +92,14 @@ public class ConsumerGroupService {
             case SHIFT_BY -> {
                 try {
                     Integer.parseInt(options);
-                } catch (NumberFormatException e) {
+                } catch (NumberFormatException _) {
                     validationErrors.add(invalidConsumerGroupShiftBy(options));
                 }
             }
             case BY_DURATION -> {
                 try {
                     Duration.parse(options);
-                } catch (NullPointerException | DateTimeParseException e) {
+                } catch (NullPointerException | DateTimeParseException _) {
                     validationErrors.add(invalidConsumerGroupDuration(options));
                 }
             }
@@ -107,7 +107,7 @@ public class ConsumerGroupService {
                 // OffsetDateTime is of format iso6801 with time zone
                 try {
                     OffsetDateTime.parse(options);
-                } catch (Exception e) {
+                } catch (Exception _) {
                     validationErrors.add(invalidConsumerGroupDatetime(options));
                 }
             }
@@ -117,7 +117,7 @@ public class ConsumerGroupService {
                     if (offset < 0) {
                         validationErrors.add(invalidConsumerGroupOffsetNegative(options));
                     }
-                } catch (NumberFormatException e) {
+                } catch (NumberFormatException _) {
                     validationErrors.add(invalidConsumerGroupOffsetInteger(options));
                 }
             }

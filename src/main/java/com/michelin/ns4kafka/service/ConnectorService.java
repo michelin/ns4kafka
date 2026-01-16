@@ -242,10 +242,11 @@ public class ConnectorService {
                     connectorRepository.delete(connector);
 
                     if (log.isInfoEnabled()) {
-                        log.info("Success removing Connector ["
-                                + connector.getMetadata().getName()
-                                + "] on Kafka [" + namespace.getMetadata().getName()
-                                + "] Connect [" + connector.getSpec().getConnectCluster() + "]");
+                        log.info(
+                                "Success removing Connector [{}] on Kafka [{}] Connect [{}]",
+                                connector.getMetadata().getName(),
+                                namespace.getMetadata().getName(),
+                                connector.getSpec().getConnectCluster());
                     }
 
                     return httpResponse;
@@ -305,7 +306,7 @@ public class ConnectorService {
                                 connector.getSpec().getConnectCluster(),
                                 connector.getMetadata().getName(),
                                 task.getId()))
-                        .doOnNext(restart -> log.info(
+                        .doOnNext(_ -> log.info(
                                 "Success restarting connector [{}] on namespace [{}] connect [{}]",
                                 connector.getMetadata().getName(),
                                 namespace.getMetadata().getName(),
@@ -326,7 +327,7 @@ public class ConnectorService {
                         namespace.getMetadata().getCluster(),
                         connector.getSpec().getConnectCluster(),
                         connector.getMetadata().getName())
-                .map(pause -> {
+                .map(_ -> {
                     log.info(
                             "Success pausing Connector [{}] on Namespace [{}] Connect [{}]",
                             connector.getMetadata().getName(),
@@ -350,7 +351,7 @@ public class ConnectorService {
                         namespace.getMetadata().getCluster(),
                         connector.getSpec().getConnectCluster(),
                         connector.getMetadata().getName())
-                .map(resume -> {
+                .map(_ -> {
                     log.info(
                             "Success resuming Connector [{}] on Namespace [{}] Connect [{}]",
                             connector.getMetadata().getName(),

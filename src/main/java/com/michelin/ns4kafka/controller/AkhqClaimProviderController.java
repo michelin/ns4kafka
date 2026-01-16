@@ -175,12 +175,12 @@ public class AkhqClaimProviderController {
 
             // Build the pattern regex based on the pattern type and the resource
             if (acl.getSpec().getResourcePatternType() == AccessControlEntry.ResourcePatternType.PREFIXED) {
-                patternRegex = String.format("^%s.*$", escapedString);
+                patternRegex = "^%s.*$".formatted(escapedString);
             } else {
-                patternRegex = String.format("^%s$", escapedString);
+                patternRegex = "^%s$".formatted(escapedString);
             }
             // Build the cluster regex
-            String patternCluster = String.format("^%s$", acl.getMetadata().getCluster());
+            String patternCluster = "^%s$".formatted(acl.getMetadata().getCluster());
 
             String role =
                     ns4KafkaProperties.getAkhq().getRoles().get(acl.getSpec().getResourceType());
@@ -282,18 +282,17 @@ public class AkhqClaimProviderController {
         List<AkhqClaimResponseV3.Group> result = new ArrayList<>();
 
         // Extract the clusters name from the managedClusters configuration
-        List<String> clusters = managedClusters.stream()
-                .map(c -> String.format("^%s$", c.getName()))
-                .toList();
+        List<String> clusters =
+                managedClusters.stream().map(c -> "^%s$".formatted(c.getName())).toList();
 
-        bindings.forEach((key, value) -> {
+        bindings.forEach((_, value) -> {
             // Same pattern on all the clusters, we remove all the clusters and keep the *
             if (new HashSet<>(value.getClusters()).containsAll(clusters)) {
                 value.setClusters(List.of("^.*$"));
             }
         });
 
-        bindings.forEach((key, value) -> result.stream()
+        bindings.forEach((_, value) -> result.stream()
                 // Search bindings with the same role and cluster filtering
                 .filter(r -> r.role.equals(value.role)
                         && r.clusters.size() == value.clusters.size()
@@ -358,9 +357,9 @@ public class AkhqClaimProviderController {
                             Pattern.quote(accessControlEntry.getSpec().getResource());
                     if (accessControlEntry.getSpec().getResourcePatternType()
                             == AccessControlEntry.ResourcePatternType.PREFIXED) {
-                        return String.format("^%s.*$", escapedString);
+                        return "^%s.*$".formatted(escapedString);
                     } else {
-                        return String.format("^%s$", escapedString);
+                        return "^%s$".formatted(escapedString);
                     }
                 })
                 .distinct()

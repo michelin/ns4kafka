@@ -73,11 +73,11 @@ public class KafkaAsyncExecutorScheduler {
 
     /** Schedule connector synchronization. */
     public void scheduleConnectorSynchronization() {
-        Flux.interval(Duration.ofSeconds(12), Duration.ofSeconds(20))
-                .onBackpressureDrop(onDropped ->
-                        log.debug("Skipping next connector synchronization. The previous one is still running."))
-                .concatMap(mapper -> Flux.fromIterable(connectorAsyncExecutors).flatMap(ConnectorAsyncExecutor::run))
-                .onErrorContinue((error, body) ->
+        Flux.interval(Duration.ofSeconds(12), Duration.ofSeconds(30))
+                .onBackpressureDrop(
+                        _ -> log.debug("Skipping next connector synchronization. The previous one is still running."))
+                .concatMap(_ -> Flux.fromIterable(connectorAsyncExecutors).flatMap(ConnectorAsyncExecutor::run))
+                .onErrorContinue((error, _) ->
                         log.trace("Continue connector synchronization after error: {}.", error.getMessage()))
                 .subscribe(connectorInfo ->
                         log.trace("Synchronization completed for connector \"{}\".", connectorInfo.name()));
@@ -85,12 +85,12 @@ public class KafkaAsyncExecutorScheduler {
 
     /** Schedule connector synchronization. */
     public void scheduleConnectHealthCheck() {
-        Flux.interval(Duration.ofSeconds(5), Duration.ofMinutes(1))
-                .onBackpressureDrop(onDropped ->
+        Flux.interval(Duration.ofSeconds(5), Duration.ofSeconds(60))
+                .onBackpressureDrop(_ ->
                         log.debug("Skipping next Connect cluster health check. The previous one is still running."))
-                .concatMap(mapper ->
-                        Flux.fromIterable(connectorAsyncExecutors).flatMap(ConnectorAsyncExecutor::runHealthCheck))
-                .onErrorContinue((error, body) ->
+                .concatMap(
+                        _ -> Flux.fromIterable(connectorAsyncExecutors).flatMap(ConnectorAsyncExecutor::runHealthCheck))
+                .onErrorContinue((error, _) ->
                         log.trace("Continue Connect cluster health check after error: {}.", error.getMessage()))
                 .subscribe(connectCluster -> log.trace(
                         "Health check completed for Connect cluster \"{}\".",

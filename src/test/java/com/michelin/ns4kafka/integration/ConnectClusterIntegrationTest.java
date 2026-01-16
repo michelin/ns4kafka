@@ -222,7 +222,8 @@ class ConnectClusterIntegrationTest extends KafkaConnectIntegrationTest {
 
         assertTrue(vaultResponse.getBody().isPresent());
         assertEquals(2, vaultResponse.getBody().get().size());
-        assertEquals("password1", vaultResponse.getBody().get().get(0).getSpec().getClearText());
+        assertEquals(
+                "password1", vaultResponse.getBody().get().getFirst().getSpec().getClearText());
         assertEquals("password2", vaultResponse.getBody().get().get(1).getSpec().getClearText());
 
         ns4KafkaClient

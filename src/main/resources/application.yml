@@ -51,6 +51,11 @@ micronaut:
         event-loop-group: "connect"
         read-idle-timeout: "10s"
         read-timeout: "10s"
+      kafka-connect-health-check:
+        connect-timeout: "5s"
+        event-loop-group: "connect-health-check"
+        read-idle-timeout: "5s"
+        read-timeout: "5s"
       schema-registry:
         connect-timeout: "10s"
         event-loop-group: "schema"
@@ -59,6 +64,8 @@ micronaut:
   netty:
     event-loops:
       connect:
+        num-threads: 4
+      connect-health-check:
         num-threads: 4
       default:
         num-threads: 8
@@ -132,8 +139,6 @@ ns4kafka:
       GROUP: "group-read"
       SCHEMA: "registry-read"
       TOPIC: "topic-read"
-  connect-cluster:
-    get-version-timeout: 10000
   log:
     console:
       enabled: true

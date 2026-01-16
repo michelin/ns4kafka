@@ -28,6 +28,7 @@ import com.michelin.ns4kafka.service.client.connect.KafkaConnectClient;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorInfo;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorSpecs;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorStatus;
+import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.context.annotation.EachBean;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import jakarta.inject.Singleton;
@@ -36,7 +37,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Stream;
+import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -154,7 +155,9 @@ public class ConnectorAsyncExecutor {
 
         return collectBrokerConnectors(connectCluster)
                 .doOnError(error -> {
-                    if (error instanceof HttpClientResponseException httpClientResponseException) {
+                    if (error instanceof ResourceValidationException) {
+                        healthyConnectClusters.remove(connectCluster);
+                    } else if (error instanceof HttpClientResponseException httpClientResponseException) {
                         log.error(
                                 "Invalid HTTP response {} ({}) during connectors synchronization for Kafka cluster {}"
                                         + " and Kafka Connect {}.",
@@ -174,6 +177,11 @@ public class ConnectorAsyncExecutor {
                 .flatMapMany(brokerConnectors -> {
                     List<Connector> ns4kafkaConnectors = collectNs4KafkaConnectors(connectCluster);
 
+                    Set<Connector> toDeploy = ns4kafkaConnectors.stream()
+                            .filter(connector -> connector.getStatus() != null
+                                    && connector.getStatus().isToDeploy())
+                            .collect(Collectors.toSet());
+
                     List<Connector> toCreate = ns4kafkaConnectors.stream()
                             .filter(connector -> brokerConnectors.stream().noneMatch(connector1 -> connector1
                                     .getMetadata()
@@ -182,18 +190,27 @@ public class ConnectorAsyncExecutor {
                             .toList();
 
                     List<Connector> toUpdate = ns4kafkaConnectors.stream()
-                            .filter(connector -> (connector.getStatus() != null
-                                            && connector.getStatus().getToDeploy())
-                                    || brokerConnectors.stream().anyMatch(connector1 -> {
-                                        if (connector1
-                                                .getMetadata()
-                                                .getName()
-                                                .equals(connector.getMetadata().getName())) {
-                                            return !connectorsAreSame(connector, connector1);
-                                        }
-                                        return false;
-                                    }))
+                            .filter(connector -> brokerConnectors.stream().anyMatch(connector1 -> {
+                                if (connector1
+                                        .getMetadata()
+                                        .getName()
+                                        .equals(connector.getMetadata().getName())) {
+                                    return !connectorsAreSame(connector, connector1);
+                                }
+                                return false;
+                            }))
                             .toList();
+
+                    if (!toDeploy.isEmpty()) {
+                        log.debug(
+                                "Connector(s) to deploy: {}",
+                                String.join(
+                                        ",",
+                                        toDeploy.stream()
+                                                .map(connector ->
+                                                        connector.getMetadata().getName())
+                                                .toList()));
+                    }
 
                     if (!toCreate.isEmpty()) {
                         log.debug(
@@ -217,8 +234,10 @@ public class ConnectorAsyncExecutor {
                                                 .toList()));
                     }
 
-                    return Flux.fromStream(Stream.concat(toCreate.stream(), toUpdate.stream()))
-                            .flatMap(this::deployConnector);
+                    toDeploy.addAll(toCreate);
+                    toDeploy.addAll(toUpdate);
+
+                    return Flux.fromStream(toDeploy.stream()).flatMap(this::deployConnector);
                 });
     }
 
@@ -326,8 +345,10 @@ public class ConnectorAsyncExecutor {
                         ConnectorSpecs.builder()
                                 .config(connector.getSpec().getConfig())
                                 .build())
-                .doOnSuccess(httpResponse -> {
+                .doOnSuccess(_ -> {
                     connector.getStatus().setToDeploy(false);
+                    connectorRepository.create(connector);
+
                     log.info(
                             "Success deploying connector {} on Kafka Connect {} of Kafka cluster {}.",
                             connector.getMetadata().getName(),

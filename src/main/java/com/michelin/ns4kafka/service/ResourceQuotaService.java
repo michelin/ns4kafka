@@ -181,7 +181,7 @@ public class ResourceQuotaService {
         if (StringUtils.hasText(producerByteRate)) {
             try {
                 Double.parseDouble(producerByteRate);
-            } catch (NumberFormatException e) {
+            } catch (NumberFormatException _) {
                 errors.add(invalidFieldValidationNumber(USER_PRODUCER_BYTE_RATE.toString(), producerByteRate));
             }
         }
@@ -190,7 +190,7 @@ public class ResourceQuotaService {
         if (StringUtils.hasText(consumerByteRate)) {
             try {
                 Double.parseDouble(consumerByteRate);
-            } catch (NumberFormatException e) {
+            } catch (NumberFormatException _) {
                 errors.add(invalidFieldValidationNumber(USER_CONSUMER_BYTE_RATE.toString(), consumerByteRate));
             }
         }
@@ -392,49 +392,40 @@ public class ResourceQuotaService {
             Optional<ResourceQuota> resourceQuota) {
         String countTopic = resourceQuota.isPresent()
                         && StringUtils.hasText(resourceQuota.get().getSpec().get(COUNT_TOPICS.getKey()))
-                ? String.format(
-                        QUOTA_RESPONSE_FORMAT,
-                        currentCountTopic,
-                        resourceQuota.get().getSpec().get(COUNT_TOPICS.getKey()))
-                : String.format(NO_QUOTA_RESPONSE_FORMAT, currentCountTopic);
+                ? QUOTA_RESPONSE_FORMAT.formatted(
+                        currentCountTopic, resourceQuota.get().getSpec().get(COUNT_TOPICS.getKey()))
+                : NO_QUOTA_RESPONSE_FORMAT.formatted(currentCountTopic);
 
         String countPartition = resourceQuota.isPresent()
                         && StringUtils.hasText(resourceQuota.get().getSpec().get(COUNT_PARTITIONS.getKey()))
-                ? String.format(
-                        QUOTA_RESPONSE_FORMAT,
-                        currentCountPartition,
-                        resourceQuota.get().getSpec().get(COUNT_PARTITIONS.getKey()))
-                : String.format(NO_QUOTA_RESPONSE_FORMAT, currentCountPartition);
+                ? QUOTA_RESPONSE_FORMAT.formatted(
+                        currentCountPartition, resourceQuota.get().getSpec().get(COUNT_PARTITIONS.getKey()))
+                : NO_QUOTA_RESPONSE_FORMAT.formatted(currentCountPartition);
 
         String diskTopic = resourceQuota.isPresent()
                         && StringUtils.hasText(resourceQuota.get().getSpec().get(DISK_TOPICS.getKey()))
-                ? String.format(
-                        QUOTA_RESPONSE_FORMAT,
+                ? QUOTA_RESPONSE_FORMAT.formatted(
                         BytesUtils.bytesToHumanReadable(currentDiskTopic),
                         resourceQuota.get().getSpec().get(DISK_TOPICS.getKey()))
-                : String.format(NO_QUOTA_RESPONSE_FORMAT, BytesUtils.bytesToHumanReadable(currentDiskTopic));
+                : NO_QUOTA_RESPONSE_FORMAT.formatted(BytesUtils.bytesToHumanReadable(currentDiskTopic));
 
         String countConnector = resourceQuota.isPresent()
                         && StringUtils.hasText(resourceQuota.get().getSpec().get(COUNT_CONNECTORS.getKey()))
-                ? String.format(
-                        QUOTA_RESPONSE_FORMAT,
-                        currentCountConnector,
-                        resourceQuota.get().getSpec().get(COUNT_CONNECTORS.getKey()))
-                : String.format(NO_QUOTA_RESPONSE_FORMAT, currentCountConnector);
+                ? QUOTA_RESPONSE_FORMAT.formatted(
+                        currentCountConnector, resourceQuota.get().getSpec().get(COUNT_CONNECTORS.getKey()))
+                : NO_QUOTA_RESPONSE_FORMAT.formatted(currentCountConnector);
 
         String consumerByteRate = resourceQuota.isPresent()
                         && StringUtils.hasText(resourceQuota.get().getSpec().get(USER_CONSUMER_BYTE_RATE.getKey()))
-                ? String.format(
-                        USER_QUOTA_RESPONSE_FORMAT,
+                ? USER_QUOTA_RESPONSE_FORMAT.formatted(
                         resourceQuota.get().getSpec().get(USER_CONSUMER_BYTE_RATE.getKey()))
-                : String.format(USER_QUOTA_RESPONSE_FORMAT, UserAsyncExecutor.BYTE_RATE_DEFAULT_VALUE);
+                : USER_QUOTA_RESPONSE_FORMAT.formatted(UserAsyncExecutor.BYTE_RATE_DEFAULT_VALUE);
 
         String producerByteRate = resourceQuota.isPresent()
                         && StringUtils.hasText(resourceQuota.get().getSpec().get(USER_PRODUCER_BYTE_RATE.getKey()))
-                ? String.format(
-                        USER_QUOTA_RESPONSE_FORMAT,
+                ? USER_QUOTA_RESPONSE_FORMAT.formatted(
                         resourceQuota.get().getSpec().get(USER_PRODUCER_BYTE_RATE.getKey()))
-                : String.format(USER_QUOTA_RESPONSE_FORMAT, UserAsyncExecutor.BYTE_RATE_DEFAULT_VALUE);
+                : USER_QUOTA_RESPONSE_FORMAT.formatted(UserAsyncExecutor.BYTE_RATE_DEFAULT_VALUE);
 
         return ResourceQuotaResponse.builder()
                 .metadata(resourceQuota
