@@ -32,11 +32,12 @@ import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.schema.Schema;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityCheckResponse;
-import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityResponse;
+import com.michelin.ns4kafka.service.client.schema.entities.SchemaConfigResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -253,12 +254,11 @@ class SchemaServiceTest {
     @Test
     void shouldGetSubjectLatestVersion() {
         Namespace namespace = buildNamespace();
-        SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
+        SchemaConfigResponse compatibilityResponse = buildCompatibilityResponse();
 
         when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(), "prefix.schema-one", "latest"))
                 .thenReturn(Mono.just(buildSchemaResponse("prefix.schema-one")));
-        when(schemaRegistryClient.getCurrentCompatibilityBySubject(any(), any()))
-                .thenReturn(Mono.just(compatibilityResponse));
+        when(schemaRegistryClient.getSubjectConfig(any(), any())).thenReturn(Mono.just(compatibilityResponse));
 
         StepVerifier.create(schemaService.getSubjectLatestVersion(namespace, "prefix.schema-one"))
                 .consumeNextWith(latestSubject -> {
@@ -409,35 +409,37 @@ class SchemaServiceTest {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
 
-        when(schemaRegistryClient.deleteCurrentCompatibilityBySubject(any(), any()))
-                .thenReturn(Mono.just(SchemaCompatibilityResponse.builder()
+        when(schemaRegistryClient.deleteSubjectConfig(any(), any()))
+                .thenReturn(Mono.just(SchemaConfigResponse.builder()
                         .compatibilityLevel(Schema.Compatibility.FORWARD)
                         .build()));
 
-        StepVerifier.create(schemaService.updateSubjectCompatibility(namespace, schema, Schema.Compatibility.GLOBAL))
+        StepVerifier.create(schemaService.updateSubjectConfig(
+                        namespace, schema, Schema.Compatibility.GLOBAL, Optional.empty()))
                 .consumeNextWith(schemaCompatibilityResponse ->
                         assertEquals(Schema.Compatibility.FORWARD, schemaCompatibilityResponse.compatibilityLevel()))
                 .verifyComplete();
 
-        verify(schemaRegistryClient).deleteCurrentCompatibilityBySubject(any(), any());
+        verify(schemaRegistryClient).deleteSubjectConfig(any(), any());
     }
 
     @Test
-    void shouldUpdateSubjectCompatibility() {
+    void shouldUpdateSubjectConfig() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
 
-        when(schemaRegistryClient.updateSubjectCompatibility(any(), any(), any()))
-                .thenReturn(Mono.just(SchemaCompatibilityResponse.builder()
+        when(schemaRegistryClient.createOrUpdateSubjectConfig(any(), any(), any()))
+                .thenReturn(Mono.just(SchemaConfigResponse.builder()
                         .compatibilityLevel(Schema.Compatibility.FORWARD)
                         .build()));
 
-        StepVerifier.create(schemaService.updateSubjectCompatibility(namespace, schema, Schema.Compatibility.FORWARD))
+        StepVerifier.create(schemaService.updateSubjectConfig(
+                        namespace, schema, Schema.Compatibility.FORWARD, Optional.empty()))
                 .consumeNextWith(schemaCompatibilityResponse ->
                         assertEquals(Schema.Compatibility.FORWARD, schemaCompatibilityResponse.compatibilityLevel()))
                 .verifyComplete();
 
-        verify(schemaRegistryClient).updateSubjectCompatibility(any(), any(), any());
+        verify(schemaRegistryClient).createOrUpdateSubjectConfig(any(), any(), any());
     }
 
     @Test
@@ -456,12 +458,11 @@ class SchemaServiceTest {
     void shouldValidateSchema() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
-        SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
+        SchemaConfigResponse compatibilityResponse = buildCompatibilityResponse();
 
         when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(), "header-value", "1"))
                 .thenReturn(Mono.just(buildSchemaResponse("subject-reference")));
-        when(schemaRegistryClient.getCurrentCompatibilityBySubject(any(), any()))
-                .thenReturn(Mono.just(compatibilityResponse));
+        when(schemaRegistryClient.getSubjectConfig(any(), any())).thenReturn(Mono.just(compatibilityResponse));
 
         StepVerifier.create(schemaService.validateSchema(namespace, schema))
                 .consumeNextWith(errors -> assertTrue(errors.isEmpty()))
@@ -503,12 +504,11 @@ class SchemaServiceTest {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
         SchemaResponse schemaResponse = buildReferenceSchemaResponse("header-value");
-        SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
+        SchemaConfigResponse compatibilityResponse = buildCompatibilityResponse();
 
         when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(), "header-value", "1"))
                 .thenReturn(Mono.just(schemaResponse));
-        when(schemaRegistryClient.getCurrentCompatibilityBySubject(any(), any()))
-                .thenReturn(Mono.just(compatibilityResponse));
+        when(schemaRegistryClient.getSubjectConfig(any(), any())).thenReturn(Mono.just(compatibilityResponse));
 
         StepVerifier.create(schemaService.getSchemaReferences(schema, namespace))
                 .consumeNextWith(refs -> assertTrue(
@@ -520,13 +520,12 @@ class SchemaServiceTest {
     void shouldBeEqualByCanonicalStringAndRefs() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
-        SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
+        SchemaConfigResponse compatibilityResponse = buildCompatibilityResponse();
         Schema schemaV2 = buildSchemaV2();
 
         when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(), "header-value", "1"))
                 .thenReturn(Mono.just(buildReferenceSchemaResponse("header-value")));
-        when(schemaRegistryClient.getCurrentCompatibilityBySubject(any(), any()))
-                .thenReturn(Mono.just(compatibilityResponse));
+        when(schemaRegistryClient.getSubjectConfig(any(), any())).thenReturn(Mono.just(compatibilityResponse));
 
         StepVerifier.create(schemaService.existInOldVersions(namespace, schema, List.of(schema, schemaV2)))
                 .consumeNextWith(Assertions::assertTrue)
@@ -562,12 +561,11 @@ class SchemaServiceTest {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
         Schema schemaV2 = buildSchemaV2();
-        SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
+        SchemaConfigResponse compatibilityResponse = buildCompatibilityResponse();
 
         when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(), "header-value", "1"))
                 .thenReturn(Mono.just(buildReferenceSchemaResponse("header-value")));
-        when(schemaRegistryClient.getCurrentCompatibilityBySubject(any(), any()))
-                .thenReturn(Mono.just(compatibilityResponse));
+        when(schemaRegistryClient.getSubjectConfig(any(), any())).thenReturn(Mono.just(compatibilityResponse));
 
         StepVerifier.create(schemaService.existInOldVersions(namespace, schemaV2, List.of(schema)))
                 .consumeNextWith(Assertions::assertFalse)
@@ -654,8 +652,8 @@ class SchemaServiceTest {
                 .build();
     }
 
-    private SchemaCompatibilityResponse buildCompatibilityResponse() {
-        return SchemaCompatibilityResponse.builder()
+    private SchemaConfigResponse buildCompatibilityResponse() {
+        return SchemaConfigResponse.builder()
                 .compatibilityLevel(Schema.Compatibility.BACKWARD)
                 .build();
     }

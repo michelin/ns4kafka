@@ -33,7 +33,7 @@ import com.michelin.ns4kafka.model.schema.Schema;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.SchemaService;
-import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityResponse;
+import com.michelin.ns4kafka.service.client.schema.entities.SchemaConfigResponse;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpStatus;
@@ -414,7 +414,7 @@ class SchemaControllerTest {
                 .consumeNextWith(response -> assertEquals(HttpStatus.NOT_FOUND, response.getStatus()))
                 .verifyComplete();
 
-        verify(schemaService, never()).updateSubjectCompatibility(any(), any(), any());
+        verify(schemaService, never()).updateSubjectConfig(any(), any(), any(), any());
     }
 
     @Test
@@ -428,8 +428,8 @@ class SchemaControllerTest {
                 .thenReturn(true);
         when(schemaService.getSubjectLatestVersion(namespace, "prefix.subject-value"))
                 .thenReturn(Mono.just(schema));
-        when(schemaService.updateSubjectCompatibility(namespace, schema, Schema.Compatibility.FORWARD))
-                .thenReturn(Mono.just(SchemaCompatibilityResponse.builder()
+        when(schemaService.updateSubjectConfig(namespace, schema, Schema.Compatibility.FORWARD, Optional.empty()))
+                .thenReturn(Mono.just(SchemaConfigResponse.builder()
                         .compatibilityLevel(Schema.Compatibility.FORWARD)
                         .build()));
 
@@ -475,7 +475,8 @@ class SchemaControllerTest {
                 })
                 .verifyComplete();
 
-        verify(schemaService, never()).updateSubjectCompatibility(namespace, schema, Schema.Compatibility.FORWARD);
+        verify(schemaService, never())
+                .updateSubjectConfig(namespace, schema, Schema.Compatibility.FORWARD, Optional.empty());
     }
 
     @Test
@@ -506,7 +507,7 @@ class SchemaControllerTest {
                 })
                 .verify();
 
-        verify(schemaService, never()).updateSubjectCompatibility(any(), any(), any());
+        verify(schemaService, never()).updateSubjectConfig(any(), any(), any(), any());
     }
 
     @Test

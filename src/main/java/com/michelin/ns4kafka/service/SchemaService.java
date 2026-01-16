@@ -26,9 +26,10 @@ import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.schema.Schema;
+import com.michelin.ns4kafka.repository.SchemaRepository;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
-import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityRequest;
-import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityResponse;
+import com.michelin.ns4kafka.service.client.schema.entities.SchemaConfigRequest;
+import com.michelin.ns4kafka.service.client.schema.entities.SchemaConfigResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaRequest;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
 import com.michelin.ns4kafka.util.RegexUtils;
@@ -52,6 +53,9 @@ import reactor.core.publisher.Mono;
 @Singleton
 public class SchemaService {
     @Inject
+    private SchemaRepository schemaRepository;
+
+    @Inject
     private AclService aclService;
 
     @Inject
@@ -68,17 +72,8 @@ public class SchemaService {
                 aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.TOPIC);
         return schemaRegistryClient
                 .getSubjects(namespace.getMetadata().getCluster())
-                .filter(subject -> {
-                    String underlyingTopicName = subject.replaceAll("-(key|value)$", "");
-                    return aclService.isResourceCoveredByAcls(acls, underlyingTopicName);
-                })
-                .map(subject -> Schema.builder()
-                        .metadata(Metadata.builder()
-                                .cluster(namespace.getMetadata().getCluster())
-                                .namespace(namespace.getMetadata().getName())
-                                .name(subject)
-                                .build())
-                        .build());
+                .filter(subjectName -> aclsCoverSubject(subjectName, acls))
+                .map(subjectName -> buildSubjectWithRepositoryInfo(namespace, subjectName));
     }
 
     /**
@@ -133,7 +128,7 @@ public class SchemaService {
      */
     public Mono<Schema> buildSchemaSpec(Namespace namespace, SchemaResponse subjectOptional) {
         return schemaRegistryClient
-                .getCurrentCompatibilityBySubject(namespace.getMetadata().getCluster(), subjectOptional.subject())
+                .getSubjectConfig(namespace.getMetadata().getCluster(), subjectOptional.subject())
                 .map(Optional::of)
                 .defaultIfEmpty(Optional.empty())
                 .map(currentCompatibilityOptional -> {
@@ -324,25 +319,43 @@ public class SchemaService {
     }
 
     /**
-     * Update the compatibility of a subject.
+     * Update the subject config with new compatibility and alias.
      *
      * @param namespace The namespace
      * @param schema The schema
      * @param compatibility The compatibility to apply
      */
-    public Mono<SchemaCompatibilityResponse> updateSubjectCompatibility(
-            Namespace namespace, Schema schema, Schema.Compatibility compatibility) {
-        if (compatibility.equals(Schema.Compatibility.GLOBAL)) {
-            return schemaRegistryClient.deleteCurrentCompatibilityBySubject(
+    public Mono<SchemaConfigResponse> updateSubjectConfig(
+            Namespace namespace, Schema schema, Schema.Compatibility compatibility, Optional<String> alias) {
+        if (alias.isEmpty() && compatibility.equals(Schema.Compatibility.GLOBAL)) {
+            return schemaRegistryClient.deleteSubjectConfig(
                     namespace.getMetadata().getCluster(), schema.getMetadata().getName());
         } else {
-            return schemaRegistryClient.updateSubjectCompatibility(
+            return schemaRegistryClient.createOrUpdateSubjectConfig(
                     namespace.getMetadata().getCluster(),
                     schema.getMetadata().getName(),
-                    SchemaCompatibilityRequest.builder()
+                    SchemaConfigRequest.builder()
                             .compatibility(compatibility.toString())
+                            .alias(alias.orElse(null))
                             .build());
         }
+    }
+
+    /**
+     * Delete the subject config.
+     *
+     * @param namespace The namespace
+     * @param schema The schema
+     */
+    public Mono<SchemaConfigResponse> deleteSubjectConfig(Namespace namespace, Schema schema) {
+        return schemaRegistryClient
+                .deleteSubjectConfig(
+                        namespace.getMetadata().getCluster(),
+                        schema.getMetadata().getName())
+                .map(response -> {
+                    schemaRepository.delete(schema);
+                    return response;
+                });
     }
 
     /**
@@ -427,5 +440,61 @@ public class SchemaService {
                                                             newSchema.references(), currentSchema.references());
                                         }))
                                 .any(subjectComparison -> subjectComparison));
+    }
+
+    /**
+     * Check if the given ACLs cover the given subject.
+     *
+     * @param subject The subject name
+     * @param acls The ACLs list
+     * @return true if the ACLs cover the subject, false otherwise
+     */
+    public boolean aclsCoverSubject(String subject, List<AccessControlEntry> acls) {
+        String underlyingTopicName = subject.replaceAll("-(key|value)$", "");
+        return aclService.isResourceCoveredByAcls(acls, underlyingTopicName);
+    }
+
+    /**
+     * Build the subject with subject repository information.
+     *
+     * @param subjectName The subject name
+     * @param namespace The namespace
+     * @return subject with additional subject config
+     */
+    public Schema buildSubjectWithRepositoryInfo(Namespace namespace, String subjectName) {
+        return Schema.builder()
+                .metadata(Metadata.builder()
+                        .cluster(namespace.getMetadata().getCluster())
+                        .namespace(namespace.getMetadata().getName())
+                        .name(subjectName)
+                        .build())
+                .spec(findRepositoryConfigByName(subjectName)
+                        .map(Schema::getSpec)
+                        .orElse(Schema.SchemaSpec.builder()
+                                .compatibility(Schema.Compatibility.GLOBAL)
+                                .build()))
+                .build();
+    }
+
+    /**
+     * Get the repository subject config by name.
+     *
+     * @param subjectName The subject name
+     * @return A list of schemas
+     */
+    public Optional<Schema> findRepositoryConfigByName(String subjectName) {
+        return schemaRepository.findAll().stream()
+                .filter(subject -> subjectName.equals(subject.getMetadata().getName()))
+                .findFirst();
+    }
+
+    /**
+     * Create a schema in internal topic.
+     *
+     * @param schema The schema
+     * @return The created schema
+     */
+    public Schema create(Schema schema) {
+        return schemaRepository.create(schema);
     }
 }

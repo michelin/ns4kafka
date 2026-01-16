@@ -21,8 +21,8 @@ package com.michelin.ns4kafka.service.client.schema;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.service.client.schema.entities.GraphQueryResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityCheckResponse;
-import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityRequest;
-import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityResponse;
+import com.michelin.ns4kafka.service.client.schema.entities.SchemaConfigRequest;
+import com.michelin.ns4kafka.service.client.schema.entities.SchemaConfigResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaRequest;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.TagInfo;
@@ -257,20 +257,20 @@ public class SchemaRegistryClient {
     }
 
     /**
-     * Update the subject compatibility.
+     * Update the subject config.
      *
      * @param kafkaCluster The Kafka cluster
      * @param subject The subject
-     * @param body The schema compatibility request
-     * @return The schema compatibility update
+     * @param body The schema config request
+     * @return The schema config update
      */
     @Retryable(
             delay = "${ns4kafka.retry.delay}",
             attempts = "${ns4kafka.retry.attempt}",
             multiplier = "${ns4kafka.retry.multiplier}",
             includes = ReadTimeoutException.class)
-    public Mono<SchemaCompatibilityResponse> updateSubjectCompatibility(
-            String kafkaCluster, String subject, SchemaCompatibilityRequest body) {
+    public Mono<SchemaConfigResponse> createOrUpdateSubjectConfig(
+            String kafkaCluster, String subject, SchemaConfigRequest body) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         String encodedSubject = URLEncoder.encode(subject, StandardCharsets.UTF_8);
 
@@ -278,22 +278,22 @@ public class SchemaRegistryClient {
                         URI.create(StringUtils.prependUri(config.getUrl(), CONFIG + encodedSubject)), body)
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
 
-        return Mono.from(httpClient.retrieve(request, SchemaCompatibilityResponse.class));
+        return Mono.from(httpClient.retrieve(request, SchemaConfigResponse.class));
     }
 
     /**
-     * Get the current compatibility by subject.
+     * Get the subject config.
      *
      * @param kafkaCluster The Kafka cluster
      * @param subject The subject
-     * @return The current schema compatibility
+     * @return The current schema config
      */
     @Retryable(
             delay = "${ns4kafka.retry.delay}",
             attempts = "${ns4kafka.retry.attempt}",
             multiplier = "${ns4kafka.retry.multiplier}",
             includes = ReadTimeoutException.class)
-    public Mono<SchemaCompatibilityResponse> getCurrentCompatibilityBySubject(String kafkaCluster, String subject) {
+    public Mono<SchemaConfigResponse> getSubjectConfig(String kafkaCluster, String subject) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         String encodedSubject = URLEncoder.encode(subject, StandardCharsets.UTF_8);
 
@@ -301,25 +301,25 @@ public class SchemaRegistryClient {
                         URI.create(StringUtils.prependUri(config.getUrl(), CONFIG + encodedSubject)))
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
 
-        return Mono.from(httpClient.retrieve(request, SchemaCompatibilityResponse.class))
+        return Mono.from(httpClient.retrieve(request, SchemaConfigResponse.class))
                 .onErrorResume(
                         HttpClientResponseException.class,
                         ex -> ex.getStatus().equals(HttpStatus.NOT_FOUND) ? Mono.empty() : Mono.error(ex));
     }
 
     /**
-     * Delete current compatibility by subject.
+     * Delete the subject config.
      *
      * @param kafkaCluster The Kafka cluster
      * @param subject The subject
-     * @return The deleted schema compatibility
+     * @return The deleted schema config
      */
     @Retryable(
             delay = "${ns4kafka.retry.delay}",
             attempts = "${ns4kafka.retry.attempt}",
             multiplier = "${ns4kafka.retry.multiplier}",
             includes = ReadTimeoutException.class)
-    public Mono<SchemaCompatibilityResponse> deleteCurrentCompatibilityBySubject(String kafkaCluster, String subject) {
+    public Mono<SchemaConfigResponse> deleteSubjectConfig(String kafkaCluster, String subject) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         String encodedSubject = URLEncoder.encode(subject, StandardCharsets.UTF_8);
 
@@ -327,7 +327,7 @@ public class SchemaRegistryClient {
                         URI.create(StringUtils.prependUri(config.getUrl(), CONFIG + encodedSubject)))
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
 
-        return Mono.from(httpClient.retrieve(request, SchemaCompatibilityResponse.class));
+        return Mono.from(httpClient.retrieve(request, SchemaConfigResponse.class));
     }
 
     /**

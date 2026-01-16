@@ -21,9 +21,9 @@ package com.michelin.ns4kafka.service.client.schema.entities;
 import lombok.Builder;
 
 /**
- * Schema compatibility request.
+ * Schema config request.
  *
  * @param compatibility The compatibility
  */
 @Builder
-public record SchemaCompatibilityRequest(String compatibility) {}
+public record SchemaConfigRequest(String compatibility, String alias) {}

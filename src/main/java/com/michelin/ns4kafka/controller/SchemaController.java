@@ -132,7 +132,9 @@ public class SchemaController extends NamespacedResourceController {
                             .existInOldVersions(ns, schema, oldSchemas)
                             .flatMap(exist -> {
                                 if (Boolean.TRUE.equals(exist)) {
-                                    return Mono.just(formatHttpResponse(schema, ApplyStatus.UNCHANGED));
+                                    return registerConfig(ns, schema)
+                                            .switchIfEmpty(
+                                                    Mono.just(formatHttpResponse(schema, ApplyStatus.UNCHANGED)));
                                 }
 
                                 return schemaService
@@ -157,23 +159,7 @@ public class SchemaController extends NamespacedResourceController {
                                                 return Mono.just(formatHttpResponse(schema, status));
                                             }
 
-                                            return schemaService
-                                                    .register(ns, schema)
-                                                    .map(id -> {
-                                                        sendEventLog(
-                                                                schema,
-                                                                status,
-                                                                oldSchemas.isEmpty()
-                                                                        ? null
-                                                                        : oldSchemas.stream()
-                                                                                .max(Comparator.comparingInt(
-                                                                                        (Schema s) -> s.getSpec()
-                                                                                                .getId())),
-                                                                schema.getSpec(),
-                                                                EMPTY_STRING);
-
-                                                        return formatHttpResponse(schema, status);
-                                                    });
+                                            return registerSubjectAndConfig(ns, schema, oldSchemas, status);
                                         });
                             }));
         });
@@ -236,7 +222,9 @@ public class SchemaController extends NamespacedResourceController {
                                                 versionOptional
                                                         .map(v -> String.valueOf(deletedVersionIds))
                                                         .orElse(EMPTY_STRING));
-                                        return Mono.just(HttpResponse.noContent());
+                                        return schemaService
+                                                .deleteSubjectConfig(ns, schema)
+                                                .flatMap(_ -> Mono.empty());
                                     }))
                             .then(Mono.just(HttpResponse.ok(schemas)));
                 });
@@ -310,8 +298,10 @@ public class SchemaController extends NamespacedResourceController {
      * @param subject The subject to update
      * @param compatibility The compatibility to apply
      * @return A schema compatibility state
+     * @deprecated use {@link #apply(String, Schema, boolean)} instead.
      */
     @Post("/{subject}/config")
+    @Deprecated(since = "1.19.0")
     public Mono<HttpResponse<SchemaCompatibilityState>> config(
             String namespace, @PathVariable String subject, Schema.Compatibility compatibility) {
         Namespace ns = getNamespace(namespace);
@@ -341,7 +331,7 @@ public class SchemaController extends NamespacedResourceController {
                     }
 
                     return schemaService
-                            .updateSubjectCompatibility(ns, latestSubjectOptional.get(), compatibility)
+                            .updateSubjectConfig(ns, latestSubjectOptional.get(), compatibility, Optional.empty())
                             .map(schemaCompatibility -> {
                                 sendEventLog(
                                         latestSubjectOptional.get(),
@@ -352,6 +342,69 @@ public class SchemaController extends NamespacedResourceController {
 
                                 return HttpResponse.ok(state);
                             });
+                });
+    }
+
+    /**
+     * Register subject and subject config.
+     *
+     * @param schema The schema
+     * @param oldSchemas The old schemas
+     * @param ns The namespace
+     * @param status The status
+     * @return A HTTP response
+     */
+    private Mono<HttpResponse<Schema>> registerSubjectAndConfig(
+            Namespace ns, Schema schema, List<Schema> oldSchemas, ApplyStatus status) {
+        return schemaService
+                .register(ns, schema)
+                .then(registerConfig(ns, schema))
+                .map(_ -> {
+                    sendEventLog(
+                            schema,
+                            status,
+                            oldSchemas.isEmpty()
+                                    ? null
+                                    : oldSchemas.stream().max(Comparator.comparingInt((Schema s) -> s.getSpec()
+                                            .getId())),
+                            schema.getSpec(),
+                            EMPTY_STRING);
+
+                    return formatHttpResponse(schema, status);
+                });
+    }
+
+    /**
+     * Register subject config.
+     *
+     * @param ns The namespace
+     * @param schema The schema
+     * @return A HTTP response
+     */
+    private Mono<HttpResponse<Schema>> registerConfig(Namespace ns, Schema schema) {
+        Schema.Compatibility compatibility = schema.getSpec().getCompatibility();
+        String alias = schema.getSpec().getAlias();
+
+        if (compatibility.equals(Schema.Compatibility.GLOBAL) && alias == null) {
+            return Mono.empty();
+        }
+
+        return schemaService
+                .updateSubjectConfig(ns, schema, compatibility, Optional.ofNullable(alias))
+                .map(_ -> {
+                    Optional<Schema> oldSchema = schemaService.findRepositoryConfigByName(
+                            schema.getMetadata().getName());
+                    schema.getSpec().setSchema(null);
+                    schema.getSpec().setReferences(null);
+
+                    sendEventLog(
+                            schema,
+                            ApplyStatus.CHANGED,
+                            oldSchema.map(Schema::getSpec).orElse(null),
+                            schema.getSpec(),
+                            EMPTY_STRING);
+
+                    return formatHttpResponse(schemaService.create(schema), ApplyStatus.CHANGED);
                 });
     }
 }
