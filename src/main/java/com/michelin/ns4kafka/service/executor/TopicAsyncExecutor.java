@@ -101,7 +101,8 @@ public class TopicAsyncExecutor {
 
         try {
             brokerTopics = new ConcurrentHashMap<>(collectBrokerTopics());
-            ns4KafkaTopics = new CopyOnWriteArrayList<>(topicRepository.findAllForCluster(managedClusterProperties.getName()));
+            ns4KafkaTopics =
+                    new CopyOnWriteArrayList<>(topicRepository.findAllForCluster(managedClusterProperties.getName()));
 
             Map<Boolean, List<Topic>> partitioned = ns4KafkaTopics.stream()
                     .collect(Collectors.partitioningBy(topic ->
