@@ -88,6 +88,8 @@ public class Schema extends MetadataResource {
         @Builder.Default
         private Compatibility compatibility = Compatibility.GLOBAL;
 
+        private String alias;
+
         private List<Reference> references;
 
         /** Schema reference. */

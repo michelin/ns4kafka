@@ -16,14 +16,40 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.michelin.ns4kafka.service.client.schema.entities;
+package com.michelin.ns4kafka.repository;
 
-import lombok.Builder;
+import com.michelin.ns4kafka.model.schema.Schema;
+import java.util.List;
 
-/**
- * Schema compatibility request.
- *
- * @param compatibility The compatibility
- */
-@Builder
-public record SchemaCompatibilityRequest(String compatibility) {}
+/** Schema repository. */
+public interface SchemaRepository {
+    /**
+     * Find all schemas.
+     *
+     * @return The list of schemas
+     */
+    List<Schema> findAll();
+
+    /**
+     * Find all schemas by cluster.
+     *
+     * @param cluster The cluster
+     * @return The list of schemas
+     */
+    List<Schema> findAllForCluster(String cluster);
+
+    /**
+     * Create a given schema.
+     *
+     * @param schema The schema to create
+     * @return The created schema
+     */
+    Schema create(Schema schema);
+
+    /**
+     * Delete a given schema.
+     *
+     * @param schema The schema to delete
+     */
+    void delete(Schema schema);
+}

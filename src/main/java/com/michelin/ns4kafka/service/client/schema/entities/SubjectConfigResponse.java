@@ -22,9 +22,10 @@ import com.michelin.ns4kafka.model.schema.Schema;
 import lombok.Builder;
 
 /**
- * Schema compatibility response.
+ * Subject config response.
  *
  * @param compatibilityLevel The compatibility level
+ * @param alias The alias
  */
 @Builder
-public record SchemaCompatibilityResponse(Schema.Compatibility compatibilityLevel) {}
+public record SubjectConfigResponse(Schema.Compatibility compatibilityLevel, String alias) {}
