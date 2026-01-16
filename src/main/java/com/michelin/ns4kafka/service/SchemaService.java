@@ -28,10 +28,10 @@ import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.schema.Schema;
 import com.michelin.ns4kafka.repository.SchemaRepository;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
-import com.michelin.ns4kafka.service.client.schema.entities.SubjectConfigRequest;
-import com.michelin.ns4kafka.service.client.schema.entities.SubjectConfigResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaRequest;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
+import com.michelin.ns4kafka.service.client.schema.entities.SubjectConfigRequest;
+import com.michelin.ns4kafka.service.client.schema.entities.SubjectConfigResponse;
 import com.michelin.ns4kafka.util.RegexUtils;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
@@ -264,6 +264,7 @@ public class SchemaService {
     public Mono<Integer[]> deleteAllVersions(Namespace namespace, String subject) {
         return schemaRegistryClient
                 .deleteSubject(namespace.getMetadata().getCluster(), subject, false)
+                // delete the subject config as well
                 .flatMap(_ -> schemaRegistryClient.deleteSubject(
                         namespace.getMetadata().getCluster(), subject, true));
     }
@@ -340,23 +341,6 @@ public class SchemaService {
                             .alias(alias.orElse(null))
                             .build());
         }
-    }
-
-    /**
-     * Delete the subject config.
-     *
-     * @param namespace The namespace
-     * @param schema The schema
-     */
-    public Mono<SubjectConfigResponse> deleteSubjectConfig(Namespace namespace, Schema schema) {
-        return schemaRegistryClient
-                .deleteSubjectConfig(
-                        namespace.getMetadata().getCluster(),
-                        schema.getMetadata().getName())
-                .map(response -> {
-                    schemaRepository.delete(schema);
-                    return response;
-                });
     }
 
     /**
@@ -497,5 +481,14 @@ public class SchemaService {
      */
     public Schema create(Schema schema) {
         return schemaRepository.create(schema);
+    }
+
+    /**
+     * Delete a schema in internal topic.
+     *
+     * @param schema The schema
+     */
+    public void delete(Schema schema) {
+        schemaRepository.delete(schema);
     }
 }
