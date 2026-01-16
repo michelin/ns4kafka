@@ -79,8 +79,8 @@ import reactor.core.publisher.Mono;
 public class TopicAsyncExecutor {
     public static final String CLUSTER_ID = "cluster.id";
     public static final String TOPIC_ENTITY_TYPE = "kafka_topic";
-    private final ConcurrentHashMap<String, Topic> brokerTopics = new ConcurrentHashMap<>();
-    private final CopyOnWriteArrayList<Topic> ns4KafkaTopics = new CopyOnWriteArrayList<>();
+    private static ConcurrentHashMap<String, Topic> brokerTopics;
+    private static CopyOnWriteArrayList<Topic> ns4KafkaTopics;
 
     private final ManagedClusterProperties managedClusterProperties;
     private final NamespaceService namespaceService;
@@ -100,13 +100,8 @@ public class TopicAsyncExecutor {
         log.debug("Starting topic collection for cluster {}", managedClusterProperties.getName());
 
         try {
-            Map<String, Topic> freshBrokerTopics = collectBrokerTopics();
-            brokerTopics.clear();
-            brokerTopics.putAll(freshBrokerTopics);
-
-            List<Topic> freshNs4KafkaTopics = topicRepository.findAllForCluster(managedClusterProperties.getName());
-            ns4KafkaTopics.clear();
-            ns4KafkaTopics.addAll(freshNs4KafkaTopics);
+            brokerTopics = new ConcurrentHashMap<>(collectBrokerTopics());
+            ns4KafkaTopics = new CopyOnWriteArrayList<>(topicRepository.findAllForCluster(managedClusterProperties.getName()));
 
             Map<Boolean, List<Topic>> partitioned = ns4KafkaTopics.stream()
                     .collect(Collectors.partitioningBy(topic ->
@@ -328,10 +323,12 @@ public class TopicAsyncExecutor {
         // re-imported.
         // This can happen if a changelog or repartition topic is deleted after the broker topics are listed
         // but before the Ns4Kafka topics are listed during synchronization
-        topicsNames.forEach(topicName -> {
-            brokerTopics.remove(topicName);
-            ns4KafkaTopics.removeIf(topic -> topic.getMetadata().getName().equals(topicName));
-        });
+        if (managedClusterProperties.isSyncKstreamTopics()) {
+            topicsNames.forEach(topicName -> {
+                ns4KafkaTopics.removeIf(topic -> topic.getMetadata().getName().equals(topicName));
+                brokerTopics.remove(topicName);
+            });
+        }
 
         log.info(
                 "Success deleting topics {} on cluster {}",
