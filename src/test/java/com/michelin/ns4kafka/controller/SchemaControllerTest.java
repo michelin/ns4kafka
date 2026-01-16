@@ -33,7 +33,7 @@ import com.michelin.ns4kafka.model.schema.Schema;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.SchemaService;
-import com.michelin.ns4kafka.service.client.schema.entities.SchemaConfigResponse;
+import com.michelin.ns4kafka.service.client.schema.entities.SubjectConfigResponse;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpStatus;
@@ -429,7 +429,7 @@ class SchemaControllerTest {
         when(schemaService.getSubjectLatestVersion(namespace, "prefix.subject-value"))
                 .thenReturn(Mono.just(schema));
         when(schemaService.updateSubjectConfig(namespace, schema, Schema.Compatibility.FORWARD, Optional.empty()))
-                .thenReturn(Mono.just(SchemaConfigResponse.builder()
+                .thenReturn(Mono.just(SubjectConfigResponse.builder()
                         .compatibilityLevel(Schema.Compatibility.FORWARD)
                         .build()));
 

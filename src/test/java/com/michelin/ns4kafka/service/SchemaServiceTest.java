@@ -32,7 +32,7 @@ import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.schema.Schema;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityCheckResponse;
-import com.michelin.ns4kafka.service.client.schema.entities.SchemaConfigResponse;
+import com.michelin.ns4kafka.service.client.schema.entities.SubjectConfigResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
 import java.util.Arrays;
 import java.util.Collections;
@@ -254,7 +254,7 @@ class SchemaServiceTest {
     @Test
     void shouldGetSubjectLatestVersion() {
         Namespace namespace = buildNamespace();
-        SchemaConfigResponse compatibilityResponse = buildCompatibilityResponse();
+        SubjectConfigResponse compatibilityResponse = buildCompatibilityResponse();
 
         when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(), "prefix.schema-one", "latest"))
                 .thenReturn(Mono.just(buildSchemaResponse("prefix.schema-one")));
@@ -410,7 +410,7 @@ class SchemaServiceTest {
         Schema schema = buildSchema();
 
         when(schemaRegistryClient.deleteSubjectConfig(any(), any()))
-                .thenReturn(Mono.just(SchemaConfigResponse.builder()
+                .thenReturn(Mono.just(SubjectConfigResponse.builder()
                         .compatibilityLevel(Schema.Compatibility.FORWARD)
                         .build()));
 
@@ -429,7 +429,7 @@ class SchemaServiceTest {
         Schema schema = buildSchema();
 
         when(schemaRegistryClient.createOrUpdateSubjectConfig(any(), any(), any()))
-                .thenReturn(Mono.just(SchemaConfigResponse.builder()
+                .thenReturn(Mono.just(SubjectConfigResponse.builder()
                         .compatibilityLevel(Schema.Compatibility.FORWARD)
                         .build()));
 
@@ -458,7 +458,7 @@ class SchemaServiceTest {
     void shouldValidateSchema() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
-        SchemaConfigResponse compatibilityResponse = buildCompatibilityResponse();
+        SubjectConfigResponse compatibilityResponse = buildCompatibilityResponse();
 
         when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(), "header-value", "1"))
                 .thenReturn(Mono.just(buildSchemaResponse("subject-reference")));
@@ -504,7 +504,7 @@ class SchemaServiceTest {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
         SchemaResponse schemaResponse = buildReferenceSchemaResponse("header-value");
-        SchemaConfigResponse compatibilityResponse = buildCompatibilityResponse();
+        SubjectConfigResponse compatibilityResponse = buildCompatibilityResponse();
 
         when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(), "header-value", "1"))
                 .thenReturn(Mono.just(schemaResponse));
@@ -520,7 +520,7 @@ class SchemaServiceTest {
     void shouldBeEqualByCanonicalStringAndRefs() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
-        SchemaConfigResponse compatibilityResponse = buildCompatibilityResponse();
+        SubjectConfigResponse compatibilityResponse = buildCompatibilityResponse();
         Schema schemaV2 = buildSchemaV2();
 
         when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(), "header-value", "1"))
@@ -561,7 +561,7 @@ class SchemaServiceTest {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
         Schema schemaV2 = buildSchemaV2();
-        SchemaConfigResponse compatibilityResponse = buildCompatibilityResponse();
+        SubjectConfigResponse compatibilityResponse = buildCompatibilityResponse();
 
         when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(), "header-value", "1"))
                 .thenReturn(Mono.just(buildReferenceSchemaResponse("header-value")));
@@ -652,8 +652,8 @@ class SchemaServiceTest {
                 .build();
     }
 
-    private SchemaConfigResponse buildCompatibilityResponse() {
-        return SchemaConfigResponse.builder()
+    private SubjectConfigResponse buildCompatibilityResponse() {
+        return SubjectConfigResponse.builder()
                 .compatibilityLevel(Schema.Compatibility.BACKWARD)
                 .build();
     }

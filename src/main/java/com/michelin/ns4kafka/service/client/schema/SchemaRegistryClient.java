@@ -21,8 +21,8 @@ package com.michelin.ns4kafka.service.client.schema;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.service.client.schema.entities.GraphQueryResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityCheckResponse;
-import com.michelin.ns4kafka.service.client.schema.entities.SchemaConfigRequest;
-import com.michelin.ns4kafka.service.client.schema.entities.SchemaConfigResponse;
+import com.michelin.ns4kafka.service.client.schema.entities.SubjectConfigRequest;
+import com.michelin.ns4kafka.service.client.schema.entities.SubjectConfigResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaRequest;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.TagInfo;
@@ -269,8 +269,8 @@ public class SchemaRegistryClient {
             attempts = "${ns4kafka.retry.attempt}",
             multiplier = "${ns4kafka.retry.multiplier}",
             includes = ReadTimeoutException.class)
-    public Mono<SchemaConfigResponse> createOrUpdateSubjectConfig(
-            String kafkaCluster, String subject, SchemaConfigRequest body) {
+    public Mono<SubjectConfigResponse> createOrUpdateSubjectConfig(
+            String kafkaCluster, String subject, SubjectConfigRequest body) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         String encodedSubject = URLEncoder.encode(subject, StandardCharsets.UTF_8);
 
@@ -278,7 +278,7 @@ public class SchemaRegistryClient {
                         URI.create(StringUtils.prependUri(config.getUrl(), CONFIG + encodedSubject)), body)
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
 
-        return Mono.from(httpClient.retrieve(request, SchemaConfigResponse.class));
+        return Mono.from(httpClient.retrieve(request, SubjectConfigResponse.class));
     }
 
     /**
@@ -293,7 +293,7 @@ public class SchemaRegistryClient {
             attempts = "${ns4kafka.retry.attempt}",
             multiplier = "${ns4kafka.retry.multiplier}",
             includes = ReadTimeoutException.class)
-    public Mono<SchemaConfigResponse> getSubjectConfig(String kafkaCluster, String subject) {
+    public Mono<SubjectConfigResponse> getSubjectConfig(String kafkaCluster, String subject) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         String encodedSubject = URLEncoder.encode(subject, StandardCharsets.UTF_8);
 
@@ -301,7 +301,7 @@ public class SchemaRegistryClient {
                         URI.create(StringUtils.prependUri(config.getUrl(), CONFIG + encodedSubject)))
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
 
-        return Mono.from(httpClient.retrieve(request, SchemaConfigResponse.class))
+        return Mono.from(httpClient.retrieve(request, SubjectConfigResponse.class))
                 .onErrorResume(
                         HttpClientResponseException.class,
                         ex -> ex.getStatus().equals(HttpStatus.NOT_FOUND) ? Mono.empty() : Mono.error(ex));
@@ -312,14 +312,14 @@ public class SchemaRegistryClient {
      *
      * @param kafkaCluster The Kafka cluster
      * @param subject The subject
-     * @return The deleted schema config
+     * @return The deleted subject config
      */
     @Retryable(
             delay = "${ns4kafka.retry.delay}",
             attempts = "${ns4kafka.retry.attempt}",
             multiplier = "${ns4kafka.retry.multiplier}",
             includes = ReadTimeoutException.class)
-    public Mono<SchemaConfigResponse> deleteSubjectConfig(String kafkaCluster, String subject) {
+    public Mono<SubjectConfigResponse> deleteSubjectConfig(String kafkaCluster, String subject) {
         ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
         String encodedSubject = URLEncoder.encode(subject, StandardCharsets.UTF_8);
 
@@ -327,7 +327,7 @@ public class SchemaRegistryClient {
                         URI.create(StringUtils.prependUri(config.getUrl(), CONFIG + encodedSubject)))
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
 
-        return Mono.from(httpClient.retrieve(request, SchemaConfigResponse.class));
+        return Mono.from(httpClient.retrieve(request, SubjectConfigResponse.class));
     }
 
     /**

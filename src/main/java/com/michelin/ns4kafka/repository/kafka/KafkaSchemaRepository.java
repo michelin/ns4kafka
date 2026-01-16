@@ -24,6 +24,7 @@ import io.micronaut.configuration.kafka.annotation.KafkaClient;
 import io.micronaut.configuration.kafka.annotation.KafkaListener;
 import io.micronaut.configuration.kafka.annotation.OffsetReset;
 import io.micronaut.configuration.kafka.annotation.OffsetStrategy;
+import io.micronaut.configuration.kafka.annotation.Topic;
 import io.micronaut.context.annotation.Value;
 import jakarta.inject.Singleton;
 import java.util.ArrayList;
@@ -77,7 +78,7 @@ public class KafkaSchemaRepository extends KafkaStore<Schema> implements SchemaR
     }
 
     @Override
-    @io.micronaut.configuration.kafka.annotation.Topic(value = "${ns4kafka.store.kafka.topics.prefix}.schemas")
+    @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.schemas")
     void receive(ConsumerRecord<String, Schema> message) {
         super.receive(message);
     }

@@ -28,8 +28,8 @@ import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.schema.Schema;
 import com.michelin.ns4kafka.repository.SchemaRepository;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
-import com.michelin.ns4kafka.service.client.schema.entities.SchemaConfigRequest;
-import com.michelin.ns4kafka.service.client.schema.entities.SchemaConfigResponse;
+import com.michelin.ns4kafka.service.client.schema.entities.SubjectConfigRequest;
+import com.michelin.ns4kafka.service.client.schema.entities.SubjectConfigResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaRequest;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
 import com.michelin.ns4kafka.util.RegexUtils;
@@ -172,7 +172,7 @@ public class SchemaService {
     }
 
     /**
-     * Get the last version of a schema by namespace and subject.
+     * Get the last version of a subject by namespace and name.
      *
      * @param namespace The namespace
      * @param subject The subject
@@ -255,26 +255,26 @@ public class SchemaService {
     }
 
     /**
-     * Delete all the schema versions under the given subject.
+     * Delete all the subject versions under the given subject.
      *
      * @param namespace The namespace
      * @param subject The subject to delete
-     * @return The list of deleted schema versions
+     * @return The list of deleted subject versions
      */
     public Mono<Integer[]> deleteAllVersions(Namespace namespace, String subject) {
         return schemaRegistryClient
                 .deleteSubject(namespace.getMetadata().getCluster(), subject, false)
-                .flatMap(softDeletedVersionIds -> schemaRegistryClient.deleteSubject(
+                .flatMap(_ -> schemaRegistryClient.deleteSubject(
                         namespace.getMetadata().getCluster(), subject, true));
     }
 
     /**
-     * Delete the schema version under the given subject.
+     * Delete the subject version under the given subject.
      *
      * @param namespace The namespace
      * @param subject The subject
-     * @param version The version of the schema to delete
-     * @return The deleted schema version
+     * @param version The version of the subject to delete
+     * @return The deleted subject version
      */
     public Mono<Integer> deleteVersion(Namespace namespace, String subject, String version) {
         return schemaRegistryClient
@@ -323,9 +323,10 @@ public class SchemaService {
      *
      * @param namespace The namespace
      * @param schema The schema
-     * @param compatibility The compatibility to apply
+     * @param compatibility The compatibility
+     * @param alias The alias
      */
-    public Mono<SchemaConfigResponse> updateSubjectConfig(
+    public Mono<SubjectConfigResponse> updateSubjectConfig(
             Namespace namespace, Schema schema, Schema.Compatibility compatibility, Optional<String> alias) {
         if (alias.isEmpty() && compatibility.equals(Schema.Compatibility.GLOBAL)) {
             return schemaRegistryClient.deleteSubjectConfig(
@@ -334,7 +335,7 @@ public class SchemaService {
             return schemaRegistryClient.createOrUpdateSubjectConfig(
                     namespace.getMetadata().getCluster(),
                     schema.getMetadata().getName(),
-                    SchemaConfigRequest.builder()
+                    SubjectConfigRequest.builder()
                             .compatibility(compatibility.toString())
                             .alias(alias.orElse(null))
                             .build());
@@ -347,7 +348,7 @@ public class SchemaService {
      * @param namespace The namespace
      * @param schema The schema
      */
-    public Mono<SchemaConfigResponse> deleteSubjectConfig(Namespace namespace, Schema schema) {
+    public Mono<SubjectConfigResponse> deleteSubjectConfig(Namespace namespace, Schema schema) {
         return schemaRegistryClient
                 .deleteSubjectConfig(
                         namespace.getMetadata().getCluster(),
@@ -359,11 +360,11 @@ public class SchemaService {
     }
 
     /**
-     * Does the namespace is owner of the given schema.
+     * Is the namespace owner of the given subject.
      *
      * @param namespace The namespace
      * @param subjectName The name of the subject
-     * @return true if it's owner, false otherwise
+     * @return true if owner, false otherwise
      */
     public boolean isNamespaceOwnerOfSubject(Namespace namespace, String subjectName) {
         String underlyingTopicName = subjectName.replaceAll("(-key|-value)$", "");
@@ -455,7 +456,7 @@ public class SchemaService {
     }
 
     /**
-     * Build the subject with subject repository information.
+     * Build the subject with subject repository information, including compatibility and alias.
      *
      * @param subjectName The subject name
      * @param namespace The namespace

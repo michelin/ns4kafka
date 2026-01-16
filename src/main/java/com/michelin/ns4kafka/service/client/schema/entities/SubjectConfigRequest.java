@@ -24,6 +24,7 @@ import lombok.Builder;
  * Schema config request.
  *
  * @param compatibility The compatibility
+ * @param alias The alias
  */
 @Builder
-public record SchemaConfigRequest(String compatibility, String alias) {}
+public record SubjectConfigRequest(String compatibility, String alias) {}
