@@ -79,8 +79,8 @@ import reactor.core.publisher.Mono;
 public class TopicAsyncExecutor {
     public static final String CLUSTER_ID = "cluster.id";
     public static final String TOPIC_ENTITY_TYPE = "kafka_topic";
-    private static ConcurrentHashMap<String, Topic> brokerTopics;
-    private static CopyOnWriteArrayList<Topic> ns4KafkaTopics;
+    private final ConcurrentHashMap<String, Topic> brokerTopics = new ConcurrentHashMap<>();
+    private final CopyOnWriteArrayList<Topic> ns4KafkaTopics = new CopyOnWriteArrayList<>();
 
     private final ManagedClusterProperties managedClusterProperties;
     private final NamespaceService namespaceService;
@@ -100,9 +100,13 @@ public class TopicAsyncExecutor {
         log.debug("Starting topic collection for cluster {}", managedClusterProperties.getName());
 
         try {
-            brokerTopics = new ConcurrentHashMap<>(collectBrokerTopics());
-            ns4KafkaTopics =
-                    new CopyOnWriteArrayList<>(topicRepository.findAllForCluster(managedClusterProperties.getName()));
+            Map<String, Topic> freshBrokerTopics = collectBrokerTopics();
+            brokerTopics.clear();
+            brokerTopics.putAll(freshBrokerTopics);
+
+            List<Topic> freshNs4KafkaTopics = topicRepository.findAllForCluster(managedClusterProperties.getName());
+            ns4KafkaTopics.clear();
+            ns4KafkaTopics.addAll(freshNs4KafkaTopics);
 
             Map<Boolean, List<Topic>> partitioned = ns4KafkaTopics.stream()
                     .collect(Collectors.partitioningBy(topic ->
