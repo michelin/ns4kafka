@@ -328,10 +328,12 @@ public class TopicAsyncExecutor {
         // re-imported.
         // This can happen if a changelog or repartition topic is deleted after the broker topics are listed
         // but before the Ns4Kafka topics are listed during synchronization
-        topicsNames.forEach(topicName -> {
-            brokerTopics.remove(topicName);
-            ns4KafkaTopics.removeIf(topic -> topic.getMetadata().getName().equals(topicName));
-        });
+        if (managedClusterProperties.isSyncKstreamTopics()) {
+            topicsNames.forEach(topicName -> {
+                ns4KafkaTopics.removeIf(topic -> topic.getMetadata().getName().equals(topicName));
+                brokerTopics.remove(topicName);
+            });
+        }
 
         log.info(
                 "Success deleting topics {} on cluster {}",
