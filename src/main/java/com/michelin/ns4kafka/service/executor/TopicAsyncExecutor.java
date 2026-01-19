@@ -49,7 +49,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -79,8 +78,7 @@ import reactor.core.publisher.Mono;
 public class TopicAsyncExecutor {
     public static final String CLUSTER_ID = "cluster.id";
     public static final String TOPIC_ENTITY_TYPE = "kafka_topic";
-    private final ConcurrentHashMap<String, Topic> brokerTopics = new ConcurrentHashMap<>();
-    private final CopyOnWriteArrayList<Topic> ns4KafkaTopics = new CopyOnWriteArrayList<>();
+    private final Set<String> topicsToIgnore = ConcurrentHashMap.newKeySet();
 
     private final ManagedClusterProperties managedClusterProperties;
     private final NamespaceService namespaceService;
@@ -100,19 +98,16 @@ public class TopicAsyncExecutor {
         log.debug("Starting topic collection for cluster {}", managedClusterProperties.getName());
 
         try {
-            Map<String, Topic> freshBrokerTopics = collectBrokerTopics();
-            brokerTopics.clear();
-            brokerTopics.putAll(freshBrokerTopics);
+            topicsToIgnore.clear();
 
-            List<Topic> freshNs4KafkaTopics = topicRepository.findAllForCluster(managedClusterProperties.getName());
-            ns4KafkaTopics.clear();
-            ns4KafkaTopics.addAll(freshNs4KafkaTopics);
+            Map<String, Topic> brokerTopics = collectBrokerTopics();
+            List<Topic> ns4KafkaTopics = topicRepository.findAllForCluster(managedClusterProperties.getName());
 
             Map<Boolean, List<Topic>> partitioned = ns4KafkaTopics.stream()
                     .collect(Collectors.partitioningBy(topic ->
                             brokerTopics.containsKey(topic.getMetadata().getName())));
-            List<Topic> createTopics = partitioned.get(false);
             List<Topic> checkTopics = partitioned.get(true);
+            List<Topic> createTopics = partitioned.get(false);
 
             Map<ConfigResource, Collection<AlterConfigOp>> updateTopics = checkTopics.stream()
                     .map(topic -> {
@@ -136,6 +131,9 @@ public class TopicAsyncExecutor {
                     })
                     .filter(Objects::nonNull)
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+            createTopics.removeIf(
+                    topic -> topicsToIgnore.contains(topic.getMetadata().getName()));
 
             if (!createTopics.isEmpty()) {
                 log.debug(
@@ -170,6 +168,8 @@ public class TopicAsyncExecutor {
             if (managedClusterProperties.isSyncKstreamTopics()) {
                 HashSet<String> ns4KafkaTopicNames = ns4KafkaTopics.stream()
                         .map(topic -> topic.getMetadata().getName())
+                        .filter(topic -> topic.endsWith("-changelog")
+                                || topic.endsWith("-repartition"))
                         .collect(Collectors.toCollection(HashSet::new));
 
                 List<Topic> unsyncStreamInternalTopics =
@@ -212,6 +212,7 @@ public class TopicAsyncExecutor {
                 // Keep Kafka Streams topics
                 .filter(topic -> topic.getMetadata().getName().endsWith("-changelog")
                         || topic.getMetadata().getName().endsWith("-repartition"))
+                .filter(topic -> !topicsToIgnore.contains(topic.getMetadata().getName()))
                 // Keep topics that are not already in Ns4Kafka
                 .filter(topic ->
                         !ns4KafkaTopicNames.contains(topic.getMetadata().getName()))
@@ -324,15 +325,11 @@ public class TopicAsyncExecutor {
                 .all()
                 .get(managedClusterProperties.getTimeout().getTopic().getDelete(), TimeUnit.MILLISECONDS);
 
-        // Immediately delete topics from the local cache to prevent Kafka Streams internal topics from being
-        // re-imported.
-        // This can happen if a changelog or repartition topic is deleted after the broker topics are listed
+        // Add topics to blacklist so the Kstream internal topics are not imported after deletion
+        // This could happen if such topic is deleted after the broker topics are listed
         // but before the Ns4Kafka topics are listed during synchronization
         if (managedClusterProperties.isSyncKstreamTopics()) {
-            topicsNames.forEach(topicName -> {
-                ns4KafkaTopics.removeIf(topic -> topic.getMetadata().getName().equals(topicName));
-                brokerTopics.remove(topicName);
-            });
+            topicsToIgnore.addAll(topicsNames);
         }
 
         log.info(
