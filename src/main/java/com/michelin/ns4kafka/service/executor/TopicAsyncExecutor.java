@@ -168,8 +168,7 @@ public class TopicAsyncExecutor {
             if (managedClusterProperties.isSyncKstreamTopics()) {
                 HashSet<String> ns4KafkaTopicNames = ns4KafkaTopics.stream()
                         .map(topic -> topic.getMetadata().getName())
-                        .filter(topic -> topic.endsWith("-changelog")
-                                || topic.endsWith("-repartition"))
+                        .filter(topic -> topic.endsWith("-changelog") || topic.endsWith("-repartition"))
                         .collect(Collectors.toCollection(HashSet::new));
 
                 List<Topic> unsyncStreamInternalTopics =
