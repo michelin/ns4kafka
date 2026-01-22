@@ -71,6 +71,26 @@ public class SchemaRegistryClient {
     private List<ManagedClusterProperties> managedClusterProperties;
 
     /**
+     * Get the global config.
+     *
+     * @param kafkaCluster The Kafka cluster
+     * @return The current schema config
+     */
+    @Retryable(
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
+    public Mono<SubjectConfigResponse> getGlobalConfig(String kafkaCluster) {
+        ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
+
+        HttpRequest<?> request = HttpRequest.GET(URI.create(StringUtils.prependUri(config.getUrl(), CONFIG)))
+                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+
+        return Mono.from(httpClient.retrieve(request, SubjectConfigResponse.class));
+    }
+
+    /**
      * List subjects.
      *
      * @param kafkaCluster The Kafka cluster
@@ -304,7 +324,11 @@ public class SchemaRegistryClient {
         return Mono.from(httpClient.retrieve(request, SubjectConfigResponse.class))
                 .onErrorResume(
                         HttpClientResponseException.class,
-                        ex -> ex.getStatus().equals(HttpStatus.NOT_FOUND) ? Mono.empty() : Mono.error(ex));
+                        ex -> ex.getStatus().equals(HttpStatus.NOT_FOUND)
+                                ? getGlobalConfig(kafkaCluster).map(response -> SubjectConfigResponse.builder()
+                                        .compatibilityLevel(response.compatibilityLevel())
+                                        .build())
+                                : Mono.error(ex));
     }
 
     /**
@@ -327,7 +351,10 @@ public class SchemaRegistryClient {
                         URI.create(StringUtils.prependUri(config.getUrl(), CONFIG + encodedSubject)))
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
 
-        return Mono.from(httpClient.retrieve(request, SubjectConfigResponse.class));
+        return Mono.from(httpClient.retrieve(request, SubjectConfigResponse.class))
+                .onErrorResume(
+                        HttpClientResponseException.class,
+                        ex -> ex.getStatus().equals(HttpStatus.NOT_FOUND) ? Mono.empty() : Mono.error(ex));
     }
 
     /**

@@ -54,7 +54,6 @@ public class Schema extends MetadataResource {
 
     /** Schema compatibility. */
     public enum Compatibility {
-        GLOBAL,
         BACKWARD,
         BACKWARD_TRANSITIVE,
         FORWARD,
@@ -80,14 +79,13 @@ public class Schema extends MetadataResource {
     public static class SchemaSpec {
         private Integer id;
         private Integer version;
+
         private String schema;
 
         @Builder.Default
         private SchemaType schemaType = SchemaType.AVRO;
 
-        @Builder.Default
-        private Compatibility compatibility = Compatibility.GLOBAL;
-
+        private Compatibility compatibility;
         private String alias;
 
         private List<Reference> references;

@@ -74,8 +74,20 @@ public class SchemaController extends NamespacedResourceController {
                 .collectList()
                 .flatMapMany(schemas -> schemas.size() == 1
                         ? Flux.fromIterable(schemas.stream()
-                                        .map(schema -> schemaService.getSubjectLatestVersion(
-                                                ns, schema.getMetadata().getName()))
+                                        .map(schema -> schemaService
+                                                .getSubjectLatestVersion(
+                                                        ns, schema.getMetadata().getName())
+                                                .flatMap(schemaWithVersion -> schemaService
+                                                        .getSubjectConfig(ns, schemaWithVersion)
+                                                        .map(config -> {
+                                                            schemaWithVersion
+                                                                    .getSpec()
+                                                                    .setCompatibility(config.compatibilityLevel());
+                                                            schemaWithVersion
+                                                                    .getSpec()
+                                                                    .setAlias(config.alias());
+                                                            return schemaWithVersion;
+                                                        })))
                                         .toList())
                                 .flatMap(schema -> schema)
                         : Flux.fromIterable(schemas));
@@ -119,46 +131,19 @@ public class SchemaController extends NamespacedResourceController {
                     schema, invalidOwner(schema.getMetadata().getName())));
         }
 
-        return schemaService.validateSchema(ns, schema).flatMap(errors -> {
-            if (!errors.isEmpty()) {
-                return Mono.error(new ResourceValidationException(schema, errors));
-            }
+        Schema.Compatibility compatibility = schema.getSpec().getCompatibility();
+        String alias = schema.getSpec().getAlias();
 
-            return schemaService
-                    .getAllSubjectVersions(ns, schema.getMetadata().getName())
-                    .collectList()
-                    .flatMap(oldSchemas -> schemaService
-                            .existInOldVersions(ns, schema, oldSchemas)
-                            .flatMap(exist -> {
-                                if (Boolean.TRUE.equals(exist)) {
-                                    return registerConfig(ns, schema);
-                                }
+        Mono<HttpResponse<Schema>> subjectResponse = schema.getSpec().getSchema() != null
+                ? registerSubject(ns, schema, dryrun)
+                : Mono.just(formatHttpResponse(schema, ApplyStatus.UNCHANGED));
+        Mono<HttpResponse<Schema>> subjectConfigResponse = (compatibility != null || alias != null)
+                ? registerConfig(ns, schema, dryrun)
+                : Mono.just(formatHttpResponse(schema, ApplyStatus.UNCHANGED));
 
-                                return schemaService
-                                        .validateSchemaCompatibility(
-                                                ns.getMetadata().getCluster(), schema)
-                                        .flatMap(validationErrors -> {
-                                            if (!validationErrors.isEmpty()) {
-                                                return Mono.error(
-                                                        new ResourceValidationException(schema, validationErrors));
-                                            }
-
-                                            schema.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
-                                            schema.getMetadata()
-                                                    .setCluster(ns.getMetadata().getCluster());
-                                            schema.getMetadata()
-                                                    .setNamespace(
-                                                            ns.getMetadata().getName());
-
-                                            ApplyStatus status =
-                                                    oldSchemas.isEmpty() ? ApplyStatus.CREATED : ApplyStatus.CHANGED;
-                                            if (dryrun) {
-                                                return Mono.just(formatHttpResponse(schema, status));
-                                            }
-
-                                            return registerSubjectAndConfig(ns, schema, oldSchemas, status);
-                                        });
-                            }));
+        return subjectResponse.zipWith(subjectConfigResponse).map(tuple -> {
+            String applyStatus1 = getHttpResponseApplyStatus(tuple.getT1());
+            return applyStatus1.equals(ApplyStatus.UNCHANGED.toString()) ? tuple.getT2() : tuple.getT1();
         });
     }
 
@@ -203,22 +188,28 @@ public class SchemaController extends NamespacedResourceController {
 
                     return Flux.fromIterable(schemas)
                             .flatMap(schema -> (versionOptional.isEmpty()
-                                            ? schemaService.deleteAllVersions(
-                                                    ns, schema.getMetadata().getName())
-                                            : schemaService.deleteVersion(
-                                                    ns, schema.getMetadata().getName(), versionOptional.get()))
-                                    .flatMap(deletedVersionIds -> {
-                                        sendEventLog(
-                                                schema,
-                                                ApplyStatus.DELETED,
-                                                schema.getSpec(),
-                                                null,
-                                                versionOptional
-                                                        .map(_ -> String.valueOf(deletedVersionIds))
-                                                        .orElse(EMPTY_STRING));
-                                        schemaService.delete(schema);
-                                        return Mono.empty();
-                                    }))
+                                            ? Mono.empty()
+                                            : schemaService.deleteSubjectConfig(ns, schema))
+                                    .thenReturn(schema)
+                                    .flatMap(_ -> (versionOptional.isEmpty()
+                                                    ? schemaService.deleteAllVersions(
+                                                            ns,
+                                                            schema.getMetadata().getName())
+                                                    : schemaService.deleteVersion(
+                                                            ns,
+                                                            schema.getMetadata().getName(),
+                                                            versionOptional.get()))
+                                            .flatMap(deletedVersionIds -> {
+                                                sendEventLog(
+                                                        schema,
+                                                        ApplyStatus.DELETED,
+                                                        schema.getSpec(),
+                                                        null,
+                                                        versionOptional
+                                                                .map(_ -> String.valueOf(deletedVersionIds))
+                                                                .orElse(EMPTY_STRING));
+                                                return Mono.empty();
+                                            })))
                             .then(Mono.just(HttpResponse.ok(schemas)));
                 });
     }
@@ -322,48 +313,88 @@ public class SchemaController extends NamespacedResourceController {
                         return Mono.just(HttpResponse.ok(state));
                     }
 
-                    return schemaService
-                            .updateSubjectConfig(ns, latestSubjectOptional.get(), compatibility, Optional.empty())
-                            .map(schemaCompatibility -> {
-                                sendEventLog(
-                                        latestSubjectOptional.get(),
-                                        ApplyStatus.CHANGED,
-                                        latestSubjectOptional.get().getSpec().getCompatibility(),
-                                        compatibility,
-                                        EMPTY_STRING);
+                    Schema schema = latestSubjectOptional.get();
+                    schema.getSpec().setCompatibility(compatibility);
 
-                                return HttpResponse.ok(state);
-                            });
+                    return schemaService.updateSubjectConfig(ns, schema).map(_ -> {
+                        sendEventLog(
+                                latestSubjectOptional.get(),
+                                ApplyStatus.CHANGED,
+                                latestSubjectOptional.get().getSpec().getCompatibility(),
+                                compatibility,
+                                EMPTY_STRING);
+
+                        return HttpResponse.ok(state);
+                    });
                 });
     }
 
     /**
-     * Register subject and subject config.
+     * Register subject.
      *
-     * @param schema The schema
-     * @param oldSchemas The old schemas
      * @param ns The namespace
-     * @param status The status
+     * @param schema The schema
+     * @param dryrun Is dry run mode or not?
      * @return A HTTP response
      */
-    private Mono<HttpResponse<Schema>> registerSubjectAndConfig(
-            Namespace ns, Schema schema, List<Schema> oldSchemas, ApplyStatus status) {
-        return schemaService
-                .register(ns, schema)
-                .then(registerConfig(ns, schema))
-                .map(_ -> {
-                    sendEventLog(
-                            schema,
-                            status,
-                            oldSchemas.isEmpty()
-                                    ? null
-                                    : oldSchemas.stream().max(Comparator.comparingInt((Schema s) -> s.getSpec()
-                                            .getId())),
-                            schema.getSpec(),
-                            EMPTY_STRING);
+    Mono<HttpResponse<Schema>> registerSubject(Namespace ns, Schema schema, boolean dryrun) {
+        return schemaService.validateSchema(ns, schema).flatMap(errors -> {
+            if (!errors.isEmpty()) {
+                return Mono.error(new ResourceValidationException(schema, errors));
+            }
 
-                    return formatHttpResponse(schema, status);
-                });
+            return schemaService
+                    .getAllSubjectVersions(ns, schema.getMetadata().getName())
+                    .collectList()
+                    .flatMap(oldSchemas -> schemaService
+                            .existInOldVersions(ns, schema, oldSchemas)
+                            .flatMap(exist -> {
+                                if (Boolean.TRUE.equals(exist)) {
+                                    return Mono.just(formatHttpResponse(schema, ApplyStatus.UNCHANGED));
+                                }
+
+                                return schemaService
+                                        .validateSchemaCompatibility(
+                                                ns.getMetadata().getCluster(), schema)
+                                        .flatMap(validationErrors -> {
+                                            if (!validationErrors.isEmpty()) {
+                                                return Mono.error(
+                                                        new ResourceValidationException(schema, validationErrors));
+                                            }
+
+                                            schema.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
+                                            schema.getMetadata()
+                                                    .setCluster(ns.getMetadata().getCluster());
+                                            schema.getMetadata()
+                                                    .setNamespace(
+                                                            ns.getMetadata().getName());
+
+                                            ApplyStatus status =
+                                                    oldSchemas.isEmpty() ? ApplyStatus.CREATED : ApplyStatus.CHANGED;
+                                            if (dryrun) {
+                                                return Mono.just(formatHttpResponse(schema, status));
+                                            }
+
+                                            return schemaService
+                                                    .register(ns, schema)
+                                                    .map(_ -> {
+                                                        sendEventLog(
+                                                                schema,
+                                                                status,
+                                                                oldSchemas.isEmpty()
+                                                                        ? null
+                                                                        : oldSchemas.stream()
+                                                                                .max(Comparator.comparingInt(
+                                                                                        (Schema s) -> s.getSpec()
+                                                                                                .getId())),
+                                                                schema.getSpec(),
+                                                                EMPTY_STRING);
+
+                                                        return formatHttpResponse(schema, status);
+                                                    });
+                                        });
+                            }));
+        });
     }
 
     /**
@@ -371,37 +402,42 @@ public class SchemaController extends NamespacedResourceController {
      *
      * @param ns The namespace
      * @param schema The schema
+     * @param dryrun Is dry run mode or not?
      * @return A HTTP response
      */
-    private Mono<HttpResponse<Schema>> registerConfig(Namespace ns, Schema schema) {
+    private Mono<HttpResponse<Schema>> registerConfig(Namespace ns, Schema schema, boolean dryrun) {
         Schema.Compatibility compatibility = schema.getSpec().getCompatibility();
         String alias = schema.getSpec().getAlias();
-        Optional<Schema> oldSchema = schemaService.findRepositoryConfigByName(
-                schema.getMetadata().getName());
 
-        if (oldSchema.isPresent() && compatibility.equals(oldSchema.get().getSpec().getCompatibility()) && Objects.equals(alias, oldSchema.get().getSpec().getAlias())) {
-            return Mono.just(formatHttpResponse(schema, ApplyStatus.UNCHANGED));
-        }
+        return schemaService.getSubjectConfig(ns, schema).flatMap(currentConfig -> {
+            Schema.Compatibility currentCompatibility = currentConfig.compatibilityLevel();
+            String currentAlias = currentConfig.alias();
 
-        return schemaService
-                .updateSubjectConfig(ns, schema, compatibility, Optional.ofNullable(alias))
-                .map(_ -> {
-                    Schema newSchema = Schema.builder()
-                            .metadata(schema.getMetadata())
-                            .spec(Schema.SchemaSpec.builder()
-                                    .compatibility(compatibility)
-                                    .alias(alias)
-                                    .build())
-                            .build();
+            if ((compatibility == null && alias == null)
+                    || (Objects.equals(compatibility, currentCompatibility) && Objects.equals(alias, currentAlias))) {
+                return Mono.just(formatHttpResponse(schema, ApplyStatus.UNCHANGED));
+            }
 
-                    sendEventLog(
-                            schema,
-                            ApplyStatus.CHANGED,
-                            oldSchema.map(Schema::getSpec).orElse(null),
-                            newSchema.getSpec(),
-                            EMPTY_STRING);
+            if (dryrun) {
+                return Mono.just(formatHttpResponse(schema, ApplyStatus.CHANGED));
+            }
 
-                    return formatHttpResponse(schemaService.create(newSchema), ApplyStatus.CHANGED);
-                });
+            return schemaService.updateSubjectConfig(ns, schema).map(_ -> {
+                sendEventLog(
+                        schema,
+                        ApplyStatus.CHANGED,
+                        Schema.SchemaSpec.builder()
+                                .compatibility(currentCompatibility)
+                                .alias(currentAlias)
+                                .build(),
+                        Schema.SchemaSpec.builder()
+                                .compatibility(compatibility)
+                                .alias(alias)
+                                .build(),
+                        EMPTY_STRING);
+
+                return formatHttpResponse(schema, ApplyStatus.CHANGED);
+            });
+        });
     }
 }

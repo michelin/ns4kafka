@@ -26,7 +26,6 @@ import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.schema.Schema;
-import com.michelin.ns4kafka.repository.SchemaRepository;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaRequest;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
@@ -52,8 +51,6 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @Singleton
 public class SchemaService {
-    @Inject
-    private SchemaRepository schemaRepository;
 
     @Inject
     private AclService aclService;
@@ -70,10 +67,17 @@ public class SchemaService {
     public Flux<Schema> findAllForNamespace(Namespace namespace) {
         List<AccessControlEntry> acls =
                 aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.TOPIC);
+
         return schemaRegistryClient
                 .getSubjects(namespace.getMetadata().getCluster())
                 .filter(subjectName -> aclsCoverSubject(subjectName, acls))
-                .map(subjectName -> buildSubjectWithRepositoryInfo(namespace, subjectName));
+                .map(subjectName -> Schema.builder()
+                        .metadata(Metadata.builder()
+                                .cluster(namespace.getMetadata().getCluster())
+                                .namespace(namespace.getMetadata().getName())
+                                .name(subjectName)
+                                .build())
+                        .build());
     }
 
     /**
@@ -131,30 +135,26 @@ public class SchemaService {
                 .getSubjectConfig(namespace.getMetadata().getCluster(), subjectOptional.subject())
                 .map(Optional::of)
                 .defaultIfEmpty(Optional.empty())
-                .map(currentCompatibilityOptional -> {
-                    Schema.Compatibility compatibility = currentCompatibilityOptional.isPresent()
-                            ? currentCompatibilityOptional.get().compatibilityLevel()
-                            : Schema.Compatibility.GLOBAL;
-
-                    return Schema.builder()
-                            .metadata(Metadata.builder()
-                                    .cluster(namespace.getMetadata().getCluster())
-                                    .namespace(namespace.getMetadata().getName())
-                                    .name(subjectOptional.subject())
-                                    .build())
-                            .spec(Schema.SchemaSpec.builder()
-                                    .id(subjectOptional.id())
-                                    .version(subjectOptional.version())
-                                    .compatibility(compatibility)
-                                    .schema(subjectOptional.schema())
-                                    .schemaType(
-                                            subjectOptional.schemaType() == null
-                                                    ? Schema.SchemaType.AVRO
-                                                    : Schema.SchemaType.valueOf(subjectOptional.schemaType()))
-                                    .references(subjectOptional.references())
-                                    .build())
-                            .build();
-                });
+                .map(currentCompatibilityOptional -> Schema.builder()
+                        .metadata(Metadata.builder()
+                                .cluster(namespace.getMetadata().getCluster())
+                                .namespace(namespace.getMetadata().getName())
+                                .name(subjectOptional.subject())
+                                .build())
+                        .spec(Schema.SchemaSpec.builder()
+                                .id(subjectOptional.id())
+                                .version(subjectOptional.version())
+                                .compatibility(currentCompatibilityOptional
+                                        .map(SubjectConfigResponse::compatibilityLevel)
+                                        .orElse(null))
+                                .schema(subjectOptional.schema())
+                                .schemaType(
+                                        subjectOptional.schemaType() == null
+                                                ? Schema.SchemaType.AVRO
+                                                : Schema.SchemaType.valueOf(subjectOptional.schemaType()))
+                                .references(subjectOptional.references())
+                                .build())
+                        .build());
     }
 
     /**
@@ -320,27 +320,51 @@ public class SchemaService {
     }
 
     /**
+     * Get the subject config with compatibility and alias.
+     *
+     * @param namespace The namespace
+     * @param schema The schema
+     */
+    public Mono<SubjectConfigResponse> getSubjectConfig(Namespace namespace, Schema schema) {
+        return schemaRegistryClient.getSubjectConfig(
+                namespace.getMetadata().getCluster(), schema.getMetadata().getName());
+    }
+
+    /**
      * Update the subject config with new compatibility and alias.
      *
      * @param namespace The namespace
      * @param schema The schema
-     * @param compatibility The compatibility
-     * @param alias The alias
      */
-    public Mono<SubjectConfigResponse> updateSubjectConfig(
-            Namespace namespace, Schema schema, Schema.Compatibility compatibility, Optional<String> alias) {
-        if (alias.isEmpty() && compatibility.equals(Schema.Compatibility.GLOBAL)) {
-            return schemaRegistryClient.deleteSubjectConfig(
-                    namespace.getMetadata().getCluster(), schema.getMetadata().getName());
-        } else {
-            return schemaRegistryClient.createOrUpdateSubjectConfig(
-                    namespace.getMetadata().getCluster(),
-                    schema.getMetadata().getName(),
-                    SubjectConfigRequest.builder()
-                            .compatibility(compatibility.toString())
-                            .alias(alias.orElse(null))
-                            .build());
-        }
+    public Mono<SubjectConfigResponse> updateSubjectConfig(Namespace namespace, Schema schema) {
+        String alias = schema.getSpec().getAlias();
+        Schema.Compatibility compatibility = schema.getSpec().getCompatibility();
+
+        return (alias == null && compatibility == null)
+                ? Mono.empty()
+                : (compatibility != null
+                                ? Mono.just(compatibility)
+                                : schemaRegistryClient
+                                        .getGlobalConfig(namespace.getMetadata().getCluster())
+                                        .map(SubjectConfigResponse::compatibilityLevel))
+                        .flatMap(comp -> schemaRegistryClient.createOrUpdateSubjectConfig(
+                                namespace.getMetadata().getCluster(),
+                                schema.getMetadata().getName(),
+                                SubjectConfigRequest.builder()
+                                        .compatibility(comp)
+                                        .alias(alias)
+                                        .build()));
+    }
+
+    /**
+     * Delete the subject config.
+     *
+     * @param namespace The namespace
+     * @param schema The schema
+     */
+    public Mono<SubjectConfigResponse> deleteSubjectConfig(Namespace namespace, Schema schema) {
+        return schemaRegistryClient.deleteSubjectConfig(
+                namespace.getMetadata().getCluster(), schema.getMetadata().getName());
     }
 
     /**
@@ -437,58 +461,5 @@ public class SchemaService {
     public boolean aclsCoverSubject(String subject, List<AccessControlEntry> acls) {
         String underlyingTopicName = subject.replaceAll("-(key|value)$", "");
         return aclService.isResourceCoveredByAcls(acls, underlyingTopicName);
-    }
-
-    /**
-     * Build the subject with subject repository information, including compatibility and alias.
-     *
-     * @param subjectName The subject name
-     * @param namespace The namespace
-     * @return subject with additional subject config
-     */
-    public Schema buildSubjectWithRepositoryInfo(Namespace namespace, String subjectName) {
-        return Schema.builder()
-                .metadata(Metadata.builder()
-                        .cluster(namespace.getMetadata().getCluster())
-                        .namespace(namespace.getMetadata().getName())
-                        .name(subjectName)
-                        .build())
-                .spec(findRepositoryConfigByName(subjectName)
-                        .map(Schema::getSpec)
-                        .orElse(Schema.SchemaSpec.builder()
-                                .compatibility(Schema.Compatibility.GLOBAL)
-                                .build()))
-                .build();
-    }
-
-    /**
-     * Get the repository subject config by name.
-     *
-     * @param subjectName The subject name
-     * @return A list of schemas
-     */
-    public Optional<Schema> findRepositoryConfigByName(String subjectName) {
-        return schemaRepository.findAll().stream()
-                .filter(subject -> subjectName.equals(subject.getMetadata().getName()))
-                .findFirst();
-    }
-
-    /**
-     * Create a schema in internal topic.
-     *
-     * @param schema The schema
-     * @return The created schema
-     */
-    public Schema create(Schema schema) {
-        return schemaRepository.create(schema);
-    }
-
-    /**
-     * Delete a schema in internal topic.
-     *
-     * @param schema The schema
-     */
-    public void delete(Schema schema) {
-        schemaRepository.delete(schema);
     }
 }

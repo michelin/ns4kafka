@@ -24,13 +24,11 @@ import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.MetadataResource;
 import io.micronaut.core.annotation.Introspected;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 /** Schema compatibility state. */
@@ -38,7 +36,7 @@ import lombok.ToString;
 @Introspected
 @EqualsAndHashCode(callSuper = true)
 public class SchemaCompatibilityState extends MetadataResource {
-    @Valid @NotNull private SchemaCompatibilityState.SchemaCompatibilityStateSpec spec;
+    @Valid private SchemaCompatibilityState.SchemaCompatibilityStateSpec spec;
 
     /**
      * Constructor.
@@ -57,10 +55,8 @@ public class SchemaCompatibilityState extends MetadataResource {
     @Builder
     @ToString
     @Introspected
-    @NoArgsConstructor
     @AllArgsConstructor
     public static class SchemaCompatibilityStateSpec {
-        @Builder.Default
-        private final Schema.Compatibility compatibility = Schema.Compatibility.GLOBAL;
+        private final Schema.Compatibility compatibility;
     }
 }
