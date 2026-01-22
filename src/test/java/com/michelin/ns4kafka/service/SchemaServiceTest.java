@@ -30,7 +30,6 @@ import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.schema.Schema;
-import com.michelin.ns4kafka.repository.SubjectRepository;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityCheckResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
@@ -55,9 +54,6 @@ class SchemaServiceTest {
 
     @Mock
     AclService aclService;
-
-    @Mock
-    SubjectRepository subjectRepository;
 
     @Mock
     SchemaRegistryClient schemaRegistryClient;
@@ -96,7 +92,6 @@ class SchemaServiceTest {
         when(aclService.isResourceCoveredByAcls(acls, "prefix.schema-one")).thenReturn(true);
         when(aclService.isResourceCoveredByAcls(acls, "prefix2.schema-two")).thenReturn(true);
         when(aclService.isResourceCoveredByAcls(acls, "prefix2.schema-three")).thenReturn(false);
-        when(subjectRepository.findAll()).thenReturn(List.of());
 
         StepVerifier.create(schemaService.findAllForNamespace(namespace))
                 .consumeNextWith(schema ->
@@ -148,7 +143,6 @@ class SchemaServiceTest {
         when(aclService.isResourceCoveredByAcls(acls, "prefix.schema-one")).thenReturn(true);
         when(aclService.isResourceCoveredByAcls(acls, "prefix2.schema-two")).thenReturn(true);
         when(aclService.isResourceCoveredByAcls(acls, "prefix2.schema-three")).thenReturn(false);
-        when(subjectRepository.findAll()).thenReturn(List.of());
 
         StepVerifier.create(schemaService.findByWildcardName(namespace, "prefix.schema-one"))
                 .consumeNextWith(schema ->
@@ -211,7 +205,6 @@ class SchemaServiceTest {
         when(schemaRegistryClient.getSubjects(namespace.getMetadata().getCluster()))
                 .thenReturn(Flux.fromIterable(subjectsResponse));
         when(aclService.isResourceCoveredByAcls(eq(acls), anyString())).thenReturn(true);
-        when(subjectRepository.findAll()).thenReturn(List.of());
 
         StepVerifier.create(schemaService.findByWildcardName(namespace, "prefix1.*"))
                 .consumeNextWith(schema -> assertEquals(
