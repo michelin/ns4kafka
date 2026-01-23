@@ -33,7 +33,7 @@ import com.michelin.ns4kafka.model.schema.Schema;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.SchemaService;
-import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityResponse;
+import com.michelin.ns4kafka.service.client.schema.entities.SubjectConfigResponse;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpStatus;
@@ -409,12 +409,12 @@ class SchemaControllerTest {
         when(schemaService.getSubjectLatestVersion(namespace, "prefix.subject-value"))
                 .thenReturn(Mono.empty());
 
-        StepVerifier.create(
-                        schemaController.config("myNamespace", "prefix.subject-value", Schema.Compatibility.FORWARD))
+        StepVerifier.create(schemaController.config(
+                        "myNamespace", "prefix.subject-value", Schema.Compatibility.FORWARD, null))
                 .consumeNextWith(response -> assertEquals(HttpStatus.NOT_FOUND, response.getStatus()))
                 .verifyComplete();
 
-        verify(schemaService, never()).updateSubjectCompatibility(any(), any(), any());
+        verify(schemaService, never()).updateSubjectConfig(any(), any());
     }
 
     @Test
@@ -428,13 +428,13 @@ class SchemaControllerTest {
                 .thenReturn(true);
         when(schemaService.getSubjectLatestVersion(namespace, "prefix.subject-value"))
                 .thenReturn(Mono.just(schema));
-        when(schemaService.updateSubjectCompatibility(namespace, schema, Schema.Compatibility.FORWARD))
-                .thenReturn(Mono.just(SchemaCompatibilityResponse.builder()
+        when(schemaService.updateSubjectConfig(namespace, schema))
+                .thenReturn(Mono.just(SubjectConfigResponse.builder()
                         .compatibilityLevel(Schema.Compatibility.FORWARD)
                         .build()));
 
-        StepVerifier.create(
-                        schemaController.config("myNamespace", "prefix.subject-value", Schema.Compatibility.FORWARD))
+        StepVerifier.create(schemaController.config(
+                        "myNamespace", "prefix.subject-value", Schema.Compatibility.FORWARD, null))
                 .consumeNextWith(response -> {
                     assertEquals(HttpStatus.OK, response.getStatus());
                     assertTrue(response.getBody().isPresent());
@@ -461,8 +461,8 @@ class SchemaControllerTest {
         when(schemaService.getSubjectLatestVersion(namespace, "prefix.subject-value"))
                 .thenReturn(Mono.just(schema));
 
-        StepVerifier.create(
-                        schemaController.config("myNamespace", "prefix.subject-value", Schema.Compatibility.FORWARD))
+        StepVerifier.create(schemaController.config(
+                        "myNamespace", "prefix.subject-value", Schema.Compatibility.FORWARD, null))
                 .consumeNextWith(response -> {
                     assertEquals(HttpStatus.OK, response.getStatus());
                     assertTrue(response.getBody().isPresent());
@@ -475,7 +475,7 @@ class SchemaControllerTest {
                 })
                 .verifyComplete();
 
-        verify(schemaService, never()).updateSubjectCompatibility(namespace, schema, Schema.Compatibility.FORWARD);
+        verify(schemaService, never()).updateSubjectConfig(namespace, schema);
     }
 
     @Test
@@ -488,8 +488,8 @@ class SchemaControllerTest {
                         namespace, schema.getMetadata().getName()))
                 .thenReturn(false);
 
-        StepVerifier.create(
-                        schemaController.config("myNamespace", "prefix.subject-value", Schema.Compatibility.BACKWARD))
+        StepVerifier.create(schemaController.config(
+                        "myNamespace", "prefix.subject-value", Schema.Compatibility.BACKWARD, null))
                 .consumeErrorWith(error -> {
                     assertEquals(ResourceValidationException.class, error.getClass());
                     assertEquals(
@@ -506,7 +506,7 @@ class SchemaControllerTest {
                 })
                 .verify();
 
-        verify(schemaService, never()).updateSubjectCompatibility(any(), any(), any());
+        verify(schemaService, never()).updateSubjectConfig(any(), any());
     }
 
     @Test
