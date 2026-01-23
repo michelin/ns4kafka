@@ -30,6 +30,7 @@ import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.schema.Schema;
+import com.michelin.ns4kafka.model.schema.SubjectConfigState;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityCheckResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
@@ -406,14 +407,14 @@ class SchemaServiceTest {
     @Test
     void shouldUpdateSchemaCompatibilityWhenResettingToDefault() {
         Namespace namespace = buildNamespace();
-        Schema schema = buildSchema();
+        SubjectConfigState state = buildState();
 
         when(schemaRegistryClient.deleteSubjectConfig(any(), any()))
                 .thenReturn(Mono.just(SubjectConfigResponse.builder()
                         .compatibilityLevel(Schema.Compatibility.FORWARD)
                         .build()));
 
-        StepVerifier.create(schemaService.updateSubjectConfig(namespace, schema))
+        StepVerifier.create(schemaService.updateSubjectConfig(namespace, state))
                 .consumeNextWith(schemaCompatibilityResponse ->
                         assertEquals(Schema.Compatibility.FORWARD, schemaCompatibilityResponse.compatibilityLevel()))
                 .verifyComplete();
@@ -424,14 +425,14 @@ class SchemaServiceTest {
     @Test
     void shouldUpdateSubjectConfig() {
         Namespace namespace = buildNamespace();
-        Schema schema = buildSchema();
+        SubjectConfigState state = buildState();
 
         when(schemaRegistryClient.createOrUpdateSubjectConfig(any(), any(), any()))
                 .thenReturn(Mono.just(SubjectConfigResponse.builder()
                         .compatibilityLevel(Schema.Compatibility.FORWARD)
                         .build()));
 
-        StepVerifier.create(schemaService.updateSubjectConfig(namespace, schema))
+        StepVerifier.create(schemaService.updateSubjectConfig(namespace, state))
                 .consumeNextWith(schemaCompatibilityResponse ->
                         assertEquals(Schema.Compatibility.FORWARD, schemaCompatibilityResponse.compatibilityLevel()))
                 .verifyComplete();
@@ -652,6 +653,15 @@ class SchemaServiceTest {
     private SubjectConfigResponse buildCompatibilityResponse() {
         return SubjectConfigResponse.builder()
                 .compatibilityLevel(Schema.Compatibility.BACKWARD)
+                .build();
+    }
+
+    private SubjectConfigState buildState() {
+        return SubjectConfigState.builder()
+                .metadata(Metadata.builder().name("prefix.schema-one-value").build())
+                .spec(SubjectConfigState.SubjectConfigStateSpec.builder()
+                        .compatibility(Schema.Compatibility.BACKWARD)
+                        .build())
                 .build();
     }
 }

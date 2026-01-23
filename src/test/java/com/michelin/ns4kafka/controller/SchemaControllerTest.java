@@ -428,7 +428,7 @@ class SchemaControllerTest {
                 .thenReturn(true);
         when(schemaService.getSubjectLatestVersion(namespace, "prefix.subject-value"))
                 .thenReturn(Mono.just(schema));
-        when(schemaService.updateSubjectConfig(namespace, schema))
+        when(schemaService.updateSubjectConfig(namespace, any()))
                 .thenReturn(Mono.just(SubjectConfigResponse.builder()
                         .compatibilityLevel(Schema.Compatibility.FORWARD)
                         .build()));
@@ -475,7 +475,7 @@ class SchemaControllerTest {
                 })
                 .verifyComplete();
 
-        verify(schemaService, never()).updateSubjectConfig(namespace, schema);
+        verify(schemaService, never()).updateSubjectConfig(namespace, any());
     }
 
     @Test
