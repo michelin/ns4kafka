@@ -37,7 +37,7 @@ public enum Kind {
     RESOURCE_QUOTA_RESPONSE("ResourceQuotaResponse"),
     ROLE_BINDING("RoleBinding"),
     SCHEMA("Schema"),
-    SCHEMA_COMPATIBILITY_STATE("SchemaCompatibilityState"),
+    SUBJECT_CONFIG_STATE("SubjectCompatibilityState"),
     STATUS("Status"),
     TOPIC("Topic"),
     VAULT_RESPONSE("VaultResponse");

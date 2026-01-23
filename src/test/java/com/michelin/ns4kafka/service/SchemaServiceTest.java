@@ -32,8 +32,8 @@ import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.schema.Schema;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityCheckResponse;
-import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
+import com.michelin.ns4kafka.service.client.schema.entities.SubjectConfigResponse;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -87,7 +87,7 @@ class SchemaServiceTest {
         when(aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.TOPIC))
                 .thenReturn(acls);
 
-        when(schemaRegistryClient.getSubjects(namespace.getMetadata().getCluster()))
+        when(schemaRegistryClient.listSubjects(namespace.getMetadata().getCluster()))
                 .thenReturn(Flux.fromIterable(subjectsResponse));
         when(aclService.isResourceCoveredByAcls(acls, "prefix.schema-one")).thenReturn(true);
         when(aclService.isResourceCoveredByAcls(acls, "prefix2.schema-two")).thenReturn(true);
@@ -105,7 +105,7 @@ class SchemaServiceTest {
     void shouldListSchemasWhenEmpty() {
         Namespace namespace = buildNamespace();
 
-        when(schemaRegistryClient.getSubjects(namespace.getMetadata().getCluster()))
+        when(schemaRegistryClient.listSubjects(namespace.getMetadata().getCluster()))
                 .thenReturn(Flux.empty());
 
         StepVerifier.create(schemaService.findAllForNamespace(namespace)).verifyComplete();
@@ -138,7 +138,7 @@ class SchemaServiceTest {
 
         when(aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.TOPIC))
                 .thenReturn(acls);
-        when(schemaRegistryClient.getSubjects(namespace.getMetadata().getCluster()))
+        when(schemaRegistryClient.listSubjects(namespace.getMetadata().getCluster()))
                 .thenReturn(Flux.fromIterable(subjectsResponse));
         when(aclService.isResourceCoveredByAcls(acls, "prefix.schema-one")).thenReturn(true);
         when(aclService.isResourceCoveredByAcls(acls, "prefix2.schema-two")).thenReturn(true);
@@ -202,7 +202,7 @@ class SchemaServiceTest {
 
         when(aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.TOPIC))
                 .thenReturn(acls);
-        when(schemaRegistryClient.getSubjects(namespace.getMetadata().getCluster()))
+        when(schemaRegistryClient.listSubjects(namespace.getMetadata().getCluster()))
                 .thenReturn(Flux.fromIterable(subjectsResponse));
         when(aclService.isResourceCoveredByAcls(eq(acls), anyString())).thenReturn(true);
 
@@ -253,12 +253,11 @@ class SchemaServiceTest {
     @Test
     void shouldGetSubjectLatestVersion() {
         Namespace namespace = buildNamespace();
-        SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
+        SubjectConfigResponse compatibilityResponse = buildCompatibilityResponse();
 
         when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(), "prefix.schema-one", "latest"))
                 .thenReturn(Mono.just(buildSchemaResponse("prefix.schema-one")));
-        when(schemaRegistryClient.getCurrentCompatibilityBySubject(any(), any()))
-                .thenReturn(Mono.just(compatibilityResponse));
+        when(schemaRegistryClient.getSubjectConfig(any(), any())).thenReturn(Mono.just(compatibilityResponse));
 
         StepVerifier.create(schemaService.getSubjectLatestVersion(namespace, "prefix.schema-one"))
                 .consumeNextWith(latestSubject -> {
@@ -409,35 +408,35 @@ class SchemaServiceTest {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
 
-        when(schemaRegistryClient.deleteCurrentCompatibilityBySubject(any(), any()))
-                .thenReturn(Mono.just(SchemaCompatibilityResponse.builder()
+        when(schemaRegistryClient.deleteSubjectConfig(any(), any()))
+                .thenReturn(Mono.just(SubjectConfigResponse.builder()
                         .compatibilityLevel(Schema.Compatibility.FORWARD)
                         .build()));
 
-        StepVerifier.create(schemaService.updateSubjectCompatibility(namespace, schema, Schema.Compatibility.GLOBAL))
+        StepVerifier.create(schemaService.updateSubjectConfig(namespace, schema))
                 .consumeNextWith(schemaCompatibilityResponse ->
                         assertEquals(Schema.Compatibility.FORWARD, schemaCompatibilityResponse.compatibilityLevel()))
                 .verifyComplete();
 
-        verify(schemaRegistryClient).deleteCurrentCompatibilityBySubject(any(), any());
+        verify(schemaRegistryClient).deleteSubjectConfig(any(), any());
     }
 
     @Test
-    void shouldUpdateSubjectCompatibility() {
+    void shouldUpdateSubjectConfig() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
 
-        when(schemaRegistryClient.updateSubjectCompatibility(any(), any(), any()))
-                .thenReturn(Mono.just(SchemaCompatibilityResponse.builder()
+        when(schemaRegistryClient.createOrUpdateSubjectConfig(any(), any(), any()))
+                .thenReturn(Mono.just(SubjectConfigResponse.builder()
                         .compatibilityLevel(Schema.Compatibility.FORWARD)
                         .build()));
 
-        StepVerifier.create(schemaService.updateSubjectCompatibility(namespace, schema, Schema.Compatibility.FORWARD))
+        StepVerifier.create(schemaService.updateSubjectConfig(namespace, schema))
                 .consumeNextWith(schemaCompatibilityResponse ->
                         assertEquals(Schema.Compatibility.FORWARD, schemaCompatibilityResponse.compatibilityLevel()))
                 .verifyComplete();
 
-        verify(schemaRegistryClient).updateSubjectCompatibility(any(), any(), any());
+        verify(schemaRegistryClient).createOrUpdateSubjectConfig(any(), any(), any());
     }
 
     @Test
@@ -456,12 +455,11 @@ class SchemaServiceTest {
     void shouldValidateSchema() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
-        SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
+        SubjectConfigResponse compatibilityResponse = buildCompatibilityResponse();
 
         when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(), "header-value", "1"))
                 .thenReturn(Mono.just(buildSchemaResponse("subject-reference")));
-        when(schemaRegistryClient.getCurrentCompatibilityBySubject(any(), any()))
-                .thenReturn(Mono.just(compatibilityResponse));
+        when(schemaRegistryClient.getSubjectConfig(any(), any())).thenReturn(Mono.just(compatibilityResponse));
 
         StepVerifier.create(schemaService.validateSchema(namespace, schema))
                 .consumeNextWith(errors -> assertTrue(errors.isEmpty()))
@@ -503,12 +501,11 @@ class SchemaServiceTest {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
         SchemaResponse schemaResponse = buildReferenceSchemaResponse("header-value");
-        SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
+        SubjectConfigResponse compatibilityResponse = buildCompatibilityResponse();
 
         when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(), "header-value", "1"))
                 .thenReturn(Mono.just(schemaResponse));
-        when(schemaRegistryClient.getCurrentCompatibilityBySubject(any(), any()))
-                .thenReturn(Mono.just(compatibilityResponse));
+        when(schemaRegistryClient.getSubjectConfig(any(), any())).thenReturn(Mono.just(compatibilityResponse));
 
         StepVerifier.create(schemaService.getSchemaReferences(schema, namespace))
                 .consumeNextWith(refs -> assertTrue(
@@ -520,13 +517,12 @@ class SchemaServiceTest {
     void shouldBeEqualByCanonicalStringAndRefs() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
-        SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
+        SubjectConfigResponse compatibilityResponse = buildCompatibilityResponse();
         Schema schemaV2 = buildSchemaV2();
 
         when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(), "header-value", "1"))
                 .thenReturn(Mono.just(buildReferenceSchemaResponse("header-value")));
-        when(schemaRegistryClient.getCurrentCompatibilityBySubject(any(), any()))
-                .thenReturn(Mono.just(compatibilityResponse));
+        when(schemaRegistryClient.getSubjectConfig(any(), any())).thenReturn(Mono.just(compatibilityResponse));
 
         StepVerifier.create(schemaService.existInOldVersions(namespace, schema, List.of(schema, schemaV2)))
                 .consumeNextWith(Assertions::assertTrue)
@@ -562,12 +558,11 @@ class SchemaServiceTest {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
         Schema schemaV2 = buildSchemaV2();
-        SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
+        SubjectConfigResponse compatibilityResponse = buildCompatibilityResponse();
 
         when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(), "header-value", "1"))
                 .thenReturn(Mono.just(buildReferenceSchemaResponse("header-value")));
-        when(schemaRegistryClient.getCurrentCompatibilityBySubject(any(), any()))
-                .thenReturn(Mono.just(compatibilityResponse));
+        when(schemaRegistryClient.getSubjectConfig(any(), any())).thenReturn(Mono.just(compatibilityResponse));
 
         StepVerifier.create(schemaService.existInOldVersions(namespace, schemaV2, List.of(schema)))
                 .consumeNextWith(Assertions::assertFalse)
@@ -654,8 +649,8 @@ class SchemaServiceTest {
                 .build();
     }
 
-    private SchemaCompatibilityResponse buildCompatibilityResponse() {
-        return SchemaCompatibilityResponse.builder()
+    private SubjectConfigResponse buildCompatibilityResponse() {
+        return SubjectConfigResponse.builder()
                 .compatibilityLevel(Schema.Compatibility.BACKWARD)
                 .build();
     }

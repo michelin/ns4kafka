@@ -26,11 +26,12 @@ import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.schema.Schema;
+import com.michelin.ns4kafka.model.schema.SubjectConfigState;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
-import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityRequest;
-import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaRequest;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
+import com.michelin.ns4kafka.service.client.schema.entities.SubjectConfigRequest;
+import com.michelin.ns4kafka.service.client.schema.entities.SubjectConfigResponse;
 import com.michelin.ns4kafka.util.RegexUtils;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
@@ -67,7 +68,7 @@ public class SchemaService {
         List<AccessControlEntry> acls =
                 aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.TOPIC);
         return schemaRegistryClient
-                .getSubjects(namespace.getMetadata().getCluster())
+                .listSubjects(namespace.getMetadata().getCluster())
                 .filter(subject -> {
                     String underlyingTopicName = subject.replaceAll("-(key|value)$", "");
                     return aclService.isResourceCoveredByAcls(acls, underlyingTopicName);
@@ -128,38 +129,45 @@ public class SchemaService {
      * Build the schema spec from the SchemaResponse.
      *
      * @param namespace The namespace
-     * @param subjectOptional The subject object from Http response
+     * @param subjectResponse The subject object from Http response
      * @return A Subject
      */
-    public Mono<Schema> buildSchemaSpec(Namespace namespace, SchemaResponse subjectOptional) {
+    public Mono<Schema> buildSchemaSpec(Namespace namespace, SchemaResponse subjectResponse) {
         return schemaRegistryClient
-                .getCurrentCompatibilityBySubject(namespace.getMetadata().getCluster(), subjectOptional.subject())
-                .map(Optional::of)
-                .defaultIfEmpty(Optional.empty())
-                .map(currentCompatibilityOptional -> {
-                    Schema.Compatibility compatibility = currentCompatibilityOptional.isPresent()
-                            ? currentCompatibilityOptional.get().compatibilityLevel()
-                            : Schema.Compatibility.GLOBAL;
+                .getSubjectConfig(namespace.getMetadata().getCluster(), subjectResponse.subject())
+                .map(configResponse ->
+                        buildSchemaSpec(namespace, subjectResponse.subject(), subjectResponse, configResponse));
+    }
 
-                    return Schema.builder()
-                            .metadata(Metadata.builder()
-                                    .cluster(namespace.getMetadata().getCluster())
-                                    .namespace(namespace.getMetadata().getName())
-                                    .name(subjectOptional.subject())
-                                    .build())
-                            .spec(Schema.SchemaSpec.builder()
-                                    .id(subjectOptional.id())
-                                    .version(subjectOptional.version())
-                                    .compatibility(compatibility)
-                                    .schema(subjectOptional.schema())
-                                    .schemaType(
-                                            subjectOptional.schemaType() == null
-                                                    ? Schema.SchemaType.AVRO
-                                                    : Schema.SchemaType.valueOf(subjectOptional.schemaType()))
-                                    .references(subjectOptional.references())
-                                    .build())
-                            .build();
-                });
+    /**
+     * Build the schema spec from the SchemaResponse and the SubjectConfigResponse.
+     *
+     * @param namespace The namespace
+     * @param subjectResponse The subject object from Http response
+     * @param configResponse The subject config object from Http response
+     * @return A Subject
+     */
+    public Schema buildSchemaSpec(
+            Namespace namespace, String subject, SchemaResponse subjectResponse, SubjectConfigResponse configResponse) {
+        return Schema.builder()
+                .metadata(Metadata.builder()
+                        .cluster(namespace.getMetadata().getCluster())
+                        .namespace(namespace.getMetadata().getName())
+                        .name(subject)
+                        .build())
+                .spec(Schema.SchemaSpec.builder()
+                        .id(subjectResponse.id())
+                        .version(subjectResponse.version())
+                        .compatibility(configResponse.compatibilityLevel())
+                        .alias(configResponse.alias())
+                        .schema(subjectResponse.schema())
+                        .schemaType(
+                                subjectResponse.schemaType() == null
+                                        ? Schema.SchemaType.AVRO
+                                        : Schema.SchemaType.valueOf(subjectResponse.schemaType()))
+                        .references(subjectResponse.references())
+                        .build())
+                .build();
     }
 
     /**
@@ -173,7 +181,7 @@ public class SchemaService {
     public Mono<Schema> getSubjectByVersion(Namespace namespace, String subject, String version) {
         return schemaRegistryClient
                 .getSubject(namespace.getMetadata().getCluster(), subject, version)
-                .flatMap(subjectOptional -> buildSchemaSpec(namespace, subjectOptional));
+                .flatMap(subjectResponse -> buildSchemaSpec(namespace, subjectResponse));
     }
 
     /**
@@ -185,6 +193,30 @@ public class SchemaService {
      */
     public Mono<Schema> getSubjectLatestVersion(Namespace namespace, String subject) {
         return getSubjectByVersion(namespace, subject, "latest");
+    }
+
+    /**
+     * Get the subject config and the last version of a schema.
+     *
+     * @param namespace The namespace
+     * @param subject The subject
+     * @return A schema
+     */
+    public Mono<Schema> getSubjectLatestVersionAndSubjectConfig(Namespace namespace, String subject) {
+        return schemaRegistryClient
+                .getSubjectConfig(namespace.getMetadata().getCluster(), subject)
+                .flatMap(configResponse -> schemaRegistryClient
+                        .getSubject(namespace.getMetadata().getCluster(), subject, "latest")
+                        // if alias config is defined, the API returns the same response as if the alias was queried
+                        // So if no schema is defined on the alias, the API returns "not found"
+                        // then, it is preferred to display the subject with the alias config, even without schema
+                        .switchIfEmpty(
+                                configResponse.alias() == null
+                                        ? Mono.empty()
+                                        : Mono.just(SchemaResponse.builder()
+                                                .subject(subject)
+                                                .build()))
+                        .map(subjectResponse -> buildSchemaSpec(namespace, subject, subjectResponse, configResponse)));
     }
 
     /**
@@ -324,29 +356,42 @@ public class SchemaService {
     }
 
     /**
-     * Update the compatibility of a subject.
+     * Get subject config.
      *
      * @param namespace The namespace
-     * @param schema The schema
-     * @param compatibility The compatibility to apply
+     * @param subject The subject
+     * @return A Subject
      */
-    public Mono<SchemaCompatibilityResponse> updateSubjectCompatibility(
-            Namespace namespace, Schema schema, Schema.Compatibility compatibility) {
-        if (compatibility.equals(Schema.Compatibility.GLOBAL)) {
-            return schemaRegistryClient.deleteCurrentCompatibilityBySubject(
-                    namespace.getMetadata().getCluster(), schema.getMetadata().getName());
+    public Mono<SubjectConfigResponse> getSubjectConfig(Namespace namespace, String subject) {
+        return schemaRegistryClient.getSubjectConfig(namespace.getMetadata().getCluster(), subject);
+    }
+
+    /**
+     * Update the config of a subject.
+     *
+     * @param namespace The namespace
+     * @param state The subject config state
+     */
+    public Mono<SubjectConfigResponse> updateSubjectConfig(Namespace namespace, SubjectConfigState state) {
+        Schema.Compatibility compatibility = state.getSpec().getCompatibility();
+        String alias = state.getSpec().getAlias();
+
+        if (compatibility == null && alias == null) {
+            return schemaRegistryClient.deleteSubjectConfig(
+                    namespace.getMetadata().getCluster(), state.getMetadata().getName());
         } else {
-            return schemaRegistryClient.updateSubjectCompatibility(
+            return schemaRegistryClient.createOrUpdateSubjectConfig(
                     namespace.getMetadata().getCluster(),
-                    schema.getMetadata().getName(),
-                    SchemaCompatibilityRequest.builder()
-                            .compatibility(compatibility.toString())
+                    state.getMetadata().getName(),
+                    SubjectConfigRequest.builder()
+                            .compatibility(compatibility)
+                            .alias(alias)
                             .build());
         }
     }
 
     /**
-     * Does the namespace is owner of the given schema.
+     * Check if the namespace is owner of the given subject.
      *
      * @param namespace The namespace
      * @param subjectName The name of the subject
