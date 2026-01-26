@@ -30,6 +30,7 @@ import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.schema.Schema;
+import com.michelin.ns4kafka.model.schema.SubjectConfigState;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.SchemaService;
@@ -337,7 +338,7 @@ class SchemaControllerTest {
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.findByWildcardName(namespace, "prefix.subject-value"))
                 .thenReturn(Flux.fromIterable(List.of(schema)));
-        when(schemaService.getSubjectLatestVersion(namespace, "prefix.subject-value"))
+        when(schemaService.getSubjectLatestVersionAndSubjectConfig(namespace, "prefix.subject-value"))
                 .thenReturn(Mono.just(schema));
 
         StepVerifier.create(schemaController.list("myNamespace", "prefix.subject-value"))
@@ -398,40 +399,22 @@ class SchemaControllerTest {
     }
 
     @Test
-    void shouldNotUpdateCompatibilityWhenSubjectNotExist() {
-        Namespace namespace = buildNamespace();
-        Schema schema = buildSchema();
-
-        when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
-        when(schemaService.isNamespaceOwnerOfSubject(
-                        namespace, schema.getMetadata().getName()))
-                .thenReturn(true);
-        when(schemaService.getSubjectLatestVersion(namespace, "prefix.subject-value"))
-                .thenReturn(Mono.empty());
-
-        StepVerifier.create(schemaController.config(
-                        "myNamespace", "prefix.subject-value", Schema.Compatibility.FORWARD, null))
-                .consumeNextWith(response -> assertEquals(HttpStatus.NOT_FOUND, response.getStatus()))
-                .verifyComplete();
-
-        verify(schemaService, never()).updateSubjectConfig(any(), any());
-    }
-
-    @Test
     void shouldUpdateCompatibility() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
+        SubjectConfigResponse oldConfig = SubjectConfigResponse.builder()
+                .compatibilityLevel(Schema.Compatibility.FORWARD_TRANSITIVE)
+                .build();
+        SubjectConfigResponse newConfig = SubjectConfigResponse.builder()
+                .compatibilityLevel(Schema.Compatibility.FORWARD)
+                .build();
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(
                         namespace, schema.getMetadata().getName()))
                 .thenReturn(true);
-        when(schemaService.getSubjectLatestVersion(namespace, "prefix.subject-value"))
-                .thenReturn(Mono.just(schema));
-        when(schemaService.updateSubjectConfig(namespace, any()))
-                .thenReturn(Mono.just(SubjectConfigResponse.builder()
-                        .compatibilityLevel(Schema.Compatibility.FORWARD)
-                        .build()));
+        when(schemaService.getSubjectConfig(namespace, "prefix.subject-value")).thenReturn(Mono.just(oldConfig));
+        when(schemaService.updateSubjectConfig(any(), any())).thenReturn(Mono.just(newConfig));
 
         StepVerifier.create(schemaController.config(
                         "myNamespace", "prefix.subject-value", Schema.Compatibility.FORWARD, null))
@@ -453,13 +436,15 @@ class SchemaControllerTest {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
         schema.getSpec().setCompatibility(Schema.Compatibility.FORWARD);
+        SubjectConfigResponse oldConfig = SubjectConfigResponse.builder()
+                .compatibilityLevel(Schema.Compatibility.FORWARD)
+                .build();
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(
                         namespace, schema.getMetadata().getName()))
                 .thenReturn(true);
-        when(schemaService.getSubjectLatestVersion(namespace, "prefix.subject-value"))
-                .thenReturn(Mono.just(schema));
+        when(schemaService.getSubjectConfig(namespace, "prefix.subject-value")).thenReturn(Mono.just(oldConfig));
 
         StepVerifier.create(schemaController.config(
                         "myNamespace", "prefix.subject-value", Schema.Compatibility.FORWARD, null))
@@ -475,7 +460,7 @@ class SchemaControllerTest {
                 })
                 .verifyComplete();
 
-        verify(schemaService, never()).updateSubjectConfig(namespace, any());
+        verify(schemaService, never()).updateSubjectConfig(any(), any());
     }
 
     @Test
@@ -890,6 +875,19 @@ class SchemaControllerTest {
     private Schema buildSchemaNameOnly2() {
         return Schema.builder()
                 .metadata(Metadata.builder().name("prefix.subject2-value").build())
+                .build();
+    }
+
+    private SubjectConfigState buildSubjectState() {
+        return SubjectConfigState.builder()
+                .metadata(Metadata.builder()
+                        .cluster("local")
+                        .namespace("myNamespace")
+                        .name("prefix.subject-value")
+                        .build())
+                .spec(SubjectConfigState.SubjectConfigStateSpec.builder()
+                        .compatibility(Schema.Compatibility.FORWARD)
+                        .build())
                 .build();
     }
 }
