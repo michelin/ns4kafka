@@ -348,7 +348,7 @@ public class SchemaController extends NamespacedResourceController {
             SubjectConfigState state = SubjectConfigState.builder()
                     .metadata(Metadata.builder()
                             .cluster(ns.getMetadata().getCluster())
-                            .namespace(ns.getMetadata().getNamespace())
+                            .namespace(ns.getMetadata().getName())
                             .name(subject)
                             .build())
                     .spec(SubjectConfigState.SubjectConfigStateSpec.builder()
@@ -373,6 +373,40 @@ public class SchemaController extends NamespacedResourceController {
 
                 return HttpResponse.ok(state);
             });
+        });
+    }
+
+    /**
+     * Delete the config of a subject.
+     *
+     * @param namespace The namespace
+     * @param subject The subject config to delete
+     * @return A subject config state
+     */
+    @Delete("/{subject}/config")
+    public Mono<HttpResponse<SubjectConfigState>> deleteConfig(String namespace, @PathVariable String subject) {
+        Namespace ns = getNamespace(namespace);
+
+        if (!schemaService.isNamespaceOwnerOfSubject(ns, subject)) {
+            return Mono.error(new ResourceValidationException(SCHEMA, subject, invalidOwner(subject)));
+        }
+
+        return schemaService.deleteSubjectConfig(ns, subject).map(response -> {
+            SubjectConfigState deletedConfig = SubjectConfigState.builder()
+                    .metadata(Metadata.builder()
+                            .cluster(ns.getMetadata().getCluster())
+                            .namespace(ns.getMetadata().getName())
+                            .name(subject)
+                            .build())
+                    .spec(SubjectConfigState.SubjectConfigStateSpec.builder()
+                            .compatibility(response.compatibilityLevel())
+                            .alias(response.alias())
+                            .build())
+                    .build();
+
+            sendEventLog(deletedConfig, ApplyStatus.DELETED, deletedConfig, null, EMPTY_STRING);
+
+            return HttpResponse.ok(deletedConfig);
         });
     }
 }

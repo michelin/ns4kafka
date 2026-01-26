@@ -405,24 +405,6 @@ class SchemaServiceTest {
     }
 
     @Test
-    void shouldUpdateSchemaCompatibilityWhenResettingToDefault() {
-        Namespace namespace = buildNamespace();
-        SubjectConfigState state = buildState();
-
-        when(schemaRegistryClient.deleteSubjectConfig(any(), any()))
-                .thenReturn(Mono.just(SubjectConfigResponse.builder()
-                        .compatibilityLevel(Schema.Compatibility.FORWARD)
-                        .build()));
-
-        StepVerifier.create(schemaService.updateSubjectConfig(namespace, state))
-                .consumeNextWith(schemaCompatibilityResponse ->
-                        assertEquals(Schema.Compatibility.FORWARD, schemaCompatibilityResponse.compatibilityLevel()))
-                .verifyComplete();
-
-        verify(schemaRegistryClient).deleteSubjectConfig(any(), any());
-    }
-
-    @Test
     void shouldUpdateSubjectConfig() {
         Namespace namespace = buildNamespace();
         SubjectConfigState state = buildState();

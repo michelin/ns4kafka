@@ -285,31 +285,6 @@ public class SchemaRegistryClient {
     }
 
     /**
-     * Create or update the subject config.
-     *
-     * @param kafkaCluster The Kafka cluster
-     * @param subject The subject
-     * @param body The subject config request
-     * @return The created or updated subject config
-     */
-    @Retryable(
-            delay = "${ns4kafka.retry.delay}",
-            attempts = "${ns4kafka.retry.attempt}",
-            multiplier = "${ns4kafka.retry.multiplier}",
-            includes = ReadTimeoutException.class)
-    public Mono<SubjectConfigResponse> createOrUpdateSubjectConfig(
-            String kafkaCluster, String subject, SubjectConfigRequest body) {
-        ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
-        String encodedSubject = URLEncoder.encode(subject, StandardCharsets.UTF_8);
-
-        HttpRequest<?> request = HttpRequest.PUT(
-                        URI.create(StringUtils.prependUri(config.getUrl(), CONFIG + encodedSubject)), body)
-                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
-
-        return Mono.from(httpClient.retrieve(request, SubjectConfigResponse.class));
-    }
-
-    /**
      * Get the subject config.
      *
      * @param kafkaCluster The Kafka cluster
@@ -337,6 +312,31 @@ public class SchemaRegistryClient {
                                         .compatibilityLevel(response.compatibilityLevel())
                                         .build())
                                 : Mono.error(ex));
+    }
+
+    /**
+     * Create or update the subject config.
+     *
+     * @param kafkaCluster The Kafka cluster
+     * @param subject The subject
+     * @param body The subject config request
+     * @return The created or updated subject config
+     */
+    @Retryable(
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
+    public Mono<SubjectConfigResponse> createOrUpdateSubjectConfig(
+            String kafkaCluster, String subject, SubjectConfigRequest body) {
+        ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
+        String encodedSubject = URLEncoder.encode(subject, StandardCharsets.UTF_8);
+
+        HttpRequest<?> request = HttpRequest.PUT(
+                        URI.create(StringUtils.prependUri(config.getUrl(), CONFIG + encodedSubject)), body)
+                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+
+        return Mono.from(httpClient.retrieve(request, SubjectConfigResponse.class));
     }
 
     /**

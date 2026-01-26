@@ -373,21 +373,23 @@ public class SchemaService {
      * @param state The subject config state
      */
     public Mono<SubjectConfigResponse> updateSubjectConfig(Namespace namespace, SubjectConfigState state) {
-        Schema.Compatibility compatibility = state.getSpec().getCompatibility();
-        String alias = state.getSpec().getAlias();
+        return schemaRegistryClient.createOrUpdateSubjectConfig(
+                namespace.getMetadata().getCluster(),
+                state.getMetadata().getName(),
+                SubjectConfigRequest.builder()
+                        .compatibility(state.getSpec().getCompatibility())
+                        .alias(state.getSpec().getAlias())
+                        .build());
+    }
 
-        if (compatibility == null && alias == null) {
-            return schemaRegistryClient.deleteSubjectConfig(
-                    namespace.getMetadata().getCluster(), state.getMetadata().getName());
-        } else {
-            return schemaRegistryClient.createOrUpdateSubjectConfig(
-                    namespace.getMetadata().getCluster(),
-                    state.getMetadata().getName(),
-                    SubjectConfigRequest.builder()
-                            .compatibility(compatibility)
-                            .alias(alias)
-                            .build());
-        }
+    /**
+     * Delete the config of a subject.
+     *
+     * @param namespace The namespace
+     * @param subject The subject name
+     */
+    public Mono<SubjectConfigResponse> deleteSubjectConfig(Namespace namespace, String subject) {
+        return schemaRegistryClient.deleteSubjectConfig(namespace.getMetadata().getCluster(), subject);
     }
 
     /**
