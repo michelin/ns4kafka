@@ -95,7 +95,7 @@ public class SchemaController extends NamespacedResourceController {
                 .collectList()
                 .flatMapMany(schemas -> schemas.size() == 1
                         ? Flux.fromIterable(schemas.stream()
-                                        .map(schema -> schemaService.getSubjectLatestVersionAndSubjectConfig(
+                                        .map(schema -> schemaService.getSubjectLatestVersion(
                                                 ns, schema.getMetadata().getName()))
                                         .toList())
                                 .flatMap(schema -> schema)
@@ -320,7 +320,7 @@ public class SchemaController extends NamespacedResourceController {
     }
 
     /**
-     * Update the config of a subject.
+     * Update the subject config.
      *
      * @param namespace The namespace
      * @param subject The subject config to update
@@ -357,7 +357,7 @@ public class SchemaController extends NamespacedResourceController {
                             .build())
                     .build();
 
-            if (response.compatibilityLevel().equals(state.getSpec().getCompatibility())
+            if (Objects.equals(response.compatibilityLevel(), state.getSpec().getCompatibility())
                     && Objects.equals(response.alias(), state.getSpec().getAlias())) {
                 return Mono.just(HttpResponse.ok(state));
             }
@@ -377,36 +377,38 @@ public class SchemaController extends NamespacedResourceController {
     }
 
     /**
-     * Delete the config of a subject.
+     * Delete the subject config.
      *
      * @param namespace The namespace
      * @param subject The subject config to delete
-     * @return A subject config state
+     * @return The deleted subject config state
      */
     @Delete("/{subject}/config")
-    public Mono<HttpResponse<SubjectConfigState>> deleteConfig(String namespace, @PathVariable String subject) {
+    public Mono<HttpResponse<SubjectConfigState>> deleteConfig(
+            String namespace,
+            @PathVariable String subject) {
         Namespace ns = getNamespace(namespace);
 
         if (!schemaService.isNamespaceOwnerOfSubject(ns, subject)) {
             return Mono.error(new ResourceValidationException(SCHEMA, subject, invalidOwner(subject)));
         }
 
-        return schemaService.deleteSubjectConfig(ns, subject).map(response -> {
-            SubjectConfigState deletedConfig = SubjectConfigState.builder()
-                    .metadata(Metadata.builder()
-                            .cluster(ns.getMetadata().getCluster())
-                            .namespace(ns.getMetadata().getName())
-                            .name(subject)
-                            .build())
-                    .spec(SubjectConfigState.SubjectConfigStateSpec.builder()
-                            .compatibility(response.compatibilityLevel())
-                            .alias(response.alias())
-                            .build())
-                    .build();
+        return schemaService.deleteSubjectConfig(ns, subject)
+                .map(response -> {
+                    SubjectConfigState state = SubjectConfigState.builder()
+                            .metadata(Metadata.builder()
+                                    .cluster(ns.getMetadata().getCluster())
+                                    .namespace(ns.getMetadata().getName())
+                                    .name(subject)
+                                    .build())
+                            .spec(SubjectConfigState.SubjectConfigStateSpec.builder()
+                                    .compatibility(response.compatibilityLevel())
+                                    .alias(response.alias())
+                                    .build())
+                            .build();
 
-            sendEventLog(deletedConfig, ApplyStatus.DELETED, deletedConfig, null, EMPTY_STRING);
-
-            return HttpResponse.ok(deletedConfig);
-        });
+                    sendEventLog(state, ApplyStatus.DELETED, state, null, EMPTY_STRING);
+                    return HttpResponse.ok(state);
+                });
     }
 }
