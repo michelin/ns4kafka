@@ -44,6 +44,8 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -338,7 +340,7 @@ class SchemaControllerTest {
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.findByWildcardName(namespace, "prefix.subject-value"))
                 .thenReturn(Flux.fromIterable(List.of(schema)));
-        when(schemaService.getSubjectLatestVersionAndSubjectConfig(namespace, "prefix.subject-value"))
+        when(schemaService.getSubjectLatestVersion(namespace, "prefix.subject-value"))
                 .thenReturn(Mono.just(schema));
 
         StepVerifier.create(schemaController.list("myNamespace", "prefix.subject-value"))
@@ -399,25 +401,27 @@ class SchemaControllerTest {
     }
 
     @Test
-    void shouldUpdateCompatibility() {
+    void shouldUpdateAlias() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
         SubjectConfigResponse oldConfig = SubjectConfigResponse.builder()
                 .compatibilityLevel(Schema.Compatibility.FORWARD_TRANSITIVE)
+                .alias("myOldAlias-value")
                 .build();
         SubjectConfigResponse newConfig = SubjectConfigResponse.builder()
-                .compatibilityLevel(Schema.Compatibility.FORWARD)
+                .compatibilityLevel(Schema.Compatibility.FORWARD_TRANSITIVE)
+                .alias("myNewAlias-value")
                 .build();
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(
-                        namespace, schema.getMetadata().getName()))
+                namespace, schema.getMetadata().getName()))
                 .thenReturn(true);
         when(schemaService.getSubjectConfig(namespace, "prefix.subject-value")).thenReturn(Mono.just(oldConfig));
         when(schemaService.updateSubjectConfig(any(), any())).thenReturn(Mono.just(newConfig));
 
         StepVerifier.create(schemaController.config(
-                        "myNamespace", "prefix.subject-value", Schema.Compatibility.FORWARD, null))
+                        "myNamespace", "prefix.subject-value", null, "myNewAlias-value"))
                 .consumeNextWith(response -> {
                     assertEquals(HttpStatus.OK, response.getStatus());
                     assertTrue(response.getBody().isPresent());
@@ -425,29 +429,35 @@ class SchemaControllerTest {
                             "prefix.subject-value",
                             response.getBody().get().getMetadata().getName());
                     assertEquals(
-                            Schema.Compatibility.FORWARD,
+                            Schema.Compatibility.FORWARD_TRANSITIVE,
                             response.getBody().get().getSpec().getCompatibility());
+                    assertEquals(
+                            "myNewAlias-value",
+                            response.getBody().get().getSpec().getAlias());
                 })
                 .verifyComplete();
     }
 
-    @Test
-    void shouldNotChangeCompatibility() {
+    @ParameterizedTest
+    @CsvSource({"FORWARD,BACKWARD,myAlias,myAlias", "FORWARD,FORWARD,myAlias,myNewAlias", "FORWARD,BACKWARD,myAlias,myNewAlias"})
+    void shouldUpdateConfig(Schema.Compatibility oldCompatibility, Schema.Compatibility newCompatibility, String oldAlias, String newAlias) {
         Namespace namespace = buildNamespace();
-        Schema schema = buildSchema();
-        schema.getSpec().setCompatibility(Schema.Compatibility.FORWARD);
         SubjectConfigResponse oldConfig = SubjectConfigResponse.builder()
-                .compatibilityLevel(Schema.Compatibility.FORWARD)
+                .compatibilityLevel(oldCompatibility)
+                .alias(oldAlias)
+                .build();
+        SubjectConfigResponse newConfig = SubjectConfigResponse.builder()
+                .compatibilityLevel(newCompatibility)
+                .alias(newAlias)
                 .build();
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
-        when(schemaService.isNamespaceOwnerOfSubject(
-                        namespace, schema.getMetadata().getName()))
-                .thenReturn(true);
+        when(schemaService.isNamespaceOwnerOfSubject(any(), any())).thenReturn(true);
         when(schemaService.getSubjectConfig(namespace, "prefix.subject-value")).thenReturn(Mono.just(oldConfig));
+        when(schemaService.updateSubjectConfig(any(), any())).thenReturn(Mono.just(newConfig));
 
         StepVerifier.create(schemaController.config(
-                        "myNamespace", "prefix.subject-value", Schema.Compatibility.FORWARD, null))
+                        "myNamespace", "prefix.subject-value", newCompatibility, newAlias))
                 .consumeNextWith(response -> {
                     assertEquals(HttpStatus.OK, response.getStatus());
                     assertTrue(response.getBody().isPresent());
@@ -455,8 +465,42 @@ class SchemaControllerTest {
                             "prefix.subject-value",
                             response.getBody().get().getMetadata().getName());
                     assertEquals(
-                            Schema.Compatibility.FORWARD,
+                            newCompatibility,
                             response.getBody().get().getSpec().getCompatibility());
+                    assertEquals(
+                            newAlias,
+                            response.getBody().get().getSpec().getAlias());
+                })
+                .verifyComplete();
+    }
+
+    @ParameterizedTest
+    @CsvSource({"FORWARD,FORWARD,,", ",,myAlias,myAlias", "FORWARD,FORWARD,myAlias,myAlias"})
+    void shouldNotUpdateConfigWhenSameConfig(Schema.Compatibility oldCompatibility, Schema.Compatibility newCompatibility, String oldAlias, String newAlias) {
+        Namespace namespace = buildNamespace();
+        SubjectConfigResponse oldConfig = SubjectConfigResponse.builder()
+                .compatibilityLevel(oldCompatibility)
+                .alias(oldAlias)
+                .build();
+
+        when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
+        when(schemaService.isNamespaceOwnerOfSubject(any(), any())).thenReturn(true);
+        when(schemaService.getSubjectConfig(namespace, "prefix.subject-value")).thenReturn(Mono.just(oldConfig));
+
+        StepVerifier.create(schemaController.config(
+                        "myNamespace", "prefix.subject-value", newCompatibility, newAlias))
+                .consumeNextWith(response -> {
+                    assertEquals(HttpStatus.OK, response.getStatus());
+                    assertTrue(response.getBody().isPresent());
+                    assertEquals(
+                            "prefix.subject-value",
+                            response.getBody().get().getMetadata().getName());
+                    assertEquals(
+                            newCompatibility,
+                            response.getBody().get().getSpec().getCompatibility());
+                    assertEquals(
+                            newAlias,
+                            response.getBody().get().getSpec().getAlias());
                 })
                 .verifyComplete();
 
@@ -464,13 +508,12 @@ class SchemaControllerTest {
     }
 
     @Test
-    void shouldNotUpdateCompatibilityWhenNamespaceNotOwner() {
+    void shouldNotUpdateConfigWhenNamespaceNotOwner() {
         Namespace namespace = buildNamespace();
-        Schema schema = buildSchema();
 
         when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
         when(schemaService.isNamespaceOwnerOfSubject(
-                        namespace, schema.getMetadata().getName()))
+                        namespace, "prefix.subject-value"))
                 .thenReturn(false);
 
         StepVerifier.create(schemaController.config(
@@ -484,6 +527,39 @@ class SchemaControllerTest {
                                     .size());
                     assertEquals(
                             "Invalid value \"prefix.subject-value\" for field \"name\": "
+                                    + "namespace is not owner of the resource.",
+                            ((ResourceValidationException) error)
+                                    .getValidationErrors()
+                                    .getFirst());
+                })
+                .verify();
+
+        verify(schemaService, never()).updateSubjectConfig(any(), any());
+    }
+
+    @Test
+    void shouldNotUpdateConfigWhenNamespaceNotOwnerOfAlias() {
+        Namespace namespace = buildNamespace();
+
+        when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
+        when(schemaService.isNamespaceOwnerOfSubject(
+                namespace, "prefix.subject-value"))
+                .thenReturn(true);
+        when(schemaService.isNamespaceOwnerOfSubject(
+                namespace, "other.subject-value"))
+                .thenReturn(false);
+
+        StepVerifier.create(schemaController.config(
+                        "myNamespace", "prefix.subject-value", null, "other.subject-value"))
+                .consumeErrorWith(error -> {
+                    assertEquals(ResourceValidationException.class, error.getClass());
+                    assertEquals(
+                            1,
+                            ((ResourceValidationException) error)
+                                    .getValidationErrors()
+                                    .size());
+                    assertEquals(
+                            "Invalid value \"other.subject-value\" for field \"alias\": "
                                     + "namespace is not owner of the resource.",
                             ((ResourceValidationException) error)
                                     .getValidationErrors()

@@ -133,8 +133,7 @@ public class SchemaService {
      * @return A Subject
      */
     public Mono<Schema> buildSchemaSpec(Namespace namespace, SchemaResponse subjectResponse) {
-        return schemaRegistryClient
-                .getSubjectConfig(namespace.getMetadata().getCluster(), subjectResponse.subject())
+        return getSubjectConfig(namespace, subjectResponse.subject())
                 .map(configResponse ->
                         buildSchemaSpec(namespace, subjectResponse.subject(), subjectResponse, configResponse));
     }
@@ -193,30 +192,6 @@ public class SchemaService {
      */
     public Mono<Schema> getSubjectLatestVersion(Namespace namespace, String subject) {
         return getSubjectByVersion(namespace, subject, "latest");
-    }
-
-    /**
-     * Get the subject config and the last version of a schema.
-     *
-     * @param namespace The namespace
-     * @param subject The subject
-     * @return A schema
-     */
-    public Mono<Schema> getSubjectLatestVersionAndSubjectConfig(Namespace namespace, String subject) {
-        return schemaRegistryClient
-                .getSubjectConfig(namespace.getMetadata().getCluster(), subject)
-                .flatMap(configResponse -> schemaRegistryClient
-                        .getSubject(namespace.getMetadata().getCluster(), subject, "latest")
-                        // if alias config is defined, the API returns the same response as if the alias was queried
-                        // So if no schema is defined on the alias, the API returns "not found"
-                        // then, it is preferred to display the subject with the alias config, even without schema
-                        .switchIfEmpty(
-                                configResponse.alias() == null
-                                        ? Mono.empty()
-                                        : Mono.just(SchemaResponse.builder()
-                                                .subject(subject)
-                                                .build()))
-                        .map(subjectResponse -> buildSchemaSpec(namespace, subject, subjectResponse, configResponse)));
     }
 
     /**
@@ -367,7 +342,7 @@ public class SchemaService {
     }
 
     /**
-     * Update the config of a subject.
+     * Update the subject config.
      *
      * @param namespace The namespace
      * @param state The subject config state
@@ -383,7 +358,7 @@ public class SchemaService {
     }
 
     /**
-     * Delete the config of a subject.
+     * Delete the subject config.
      *
      * @param namespace The namespace
      * @param subject The subject name
