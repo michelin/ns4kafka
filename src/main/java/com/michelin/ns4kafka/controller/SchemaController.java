@@ -384,31 +384,28 @@ public class SchemaController extends NamespacedResourceController {
      * @return The deleted subject config state
      */
     @Delete("/{subject}/config")
-    public Mono<HttpResponse<SubjectConfigState>> deleteConfig(
-            String namespace,
-            @PathVariable String subject) {
+    public Mono<HttpResponse<SubjectConfigState>> deleteConfig(String namespace, @PathVariable String subject) {
         Namespace ns = getNamespace(namespace);
 
         if (!schemaService.isNamespaceOwnerOfSubject(ns, subject)) {
             return Mono.error(new ResourceValidationException(SCHEMA, subject, invalidOwner(subject)));
         }
 
-        return schemaService.deleteSubjectConfig(ns, subject)
-                .map(response -> {
-                    SubjectConfigState state = SubjectConfigState.builder()
-                            .metadata(Metadata.builder()
-                                    .cluster(ns.getMetadata().getCluster())
-                                    .namespace(ns.getMetadata().getName())
-                                    .name(subject)
-                                    .build())
-                            .spec(SubjectConfigState.SubjectConfigStateSpec.builder()
-                                    .compatibility(response.compatibilityLevel())
-                                    .alias(response.alias())
-                                    .build())
-                            .build();
+        return schemaService.deleteSubjectConfig(ns, subject).map(response -> {
+            SubjectConfigState state = SubjectConfigState.builder()
+                    .metadata(Metadata.builder()
+                            .cluster(ns.getMetadata().getCluster())
+                            .namespace(ns.getMetadata().getName())
+                            .name(subject)
+                            .build())
+                    .spec(SubjectConfigState.SubjectConfigStateSpec.builder()
+                            .compatibility(response.compatibilityLevel())
+                            .alias(response.alias())
+                            .build())
+                    .build();
 
-                    sendEventLog(state, ApplyStatus.DELETED, state, null, EMPTY_STRING);
-                    return HttpResponse.ok(state);
-                });
+            sendEventLog(state, ApplyStatus.DELETED, state, null, EMPTY_STRING);
+            return HttpResponse.ok(state);
+        });
     }
 }
