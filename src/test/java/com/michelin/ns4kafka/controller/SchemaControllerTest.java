@@ -417,8 +417,7 @@ class SchemaControllerTest {
         when(schemaService.isNamespaceOwnerOfSubject(
                         namespace, schema.getMetadata().getName()))
                 .thenReturn(true);
-        when(schemaService.isNamespaceOwnerOfSubject(
-                namespace, "myNewAlias-value"))
+        when(schemaService.isNamespaceOwnerOfSubject(namespace, "myNewAlias-value"))
                 .thenReturn(true);
         when(schemaService.getSubjectConfig(namespace, "prefix.subject-value")).thenReturn(Mono.just(oldConfig));
         when(schemaService.updateSubjectConfig(any(), any())).thenReturn(Mono.just(newConfig));
@@ -591,7 +590,8 @@ class SchemaControllerTest {
                             "prefix.subject-value",
                             response.getBody().get().getMetadata().getName());
                     assertEquals(
-                            Schema.Compatibility.FORWARD, response.getBody().get().getSpec().getCompatibility());
+                            Schema.Compatibility.FORWARD,
+                            response.getBody().get().getSpec().getCompatibility());
                 })
                 .verifyComplete();
     }
@@ -604,8 +604,7 @@ class SchemaControllerTest {
         when(schemaService.isNamespaceOwnerOfSubject(namespace, "prefix.subject-value"))
                 .thenReturn(false);
 
-        StepVerifier.create(schemaController.deleteConfig(
-                        "myNamespace", "prefix.subject-value"))
+        StepVerifier.create(schemaController.deleteConfig("myNamespace", "prefix.subject-value"))
                 .consumeErrorWith(error -> {
                     assertEquals(ResourceValidationException.class, error.getClass());
                     assertEquals(
