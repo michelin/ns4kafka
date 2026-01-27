@@ -417,6 +417,9 @@ class SchemaControllerTest {
         when(schemaService.isNamespaceOwnerOfSubject(
                         namespace, schema.getMetadata().getName()))
                 .thenReturn(true);
+        when(schemaService.isNamespaceOwnerOfSubject(
+                namespace, "myNewAlias-value"))
+                .thenReturn(true);
         when(schemaService.getSubjectConfig(namespace, "prefix.subject-value")).thenReturn(Mono.just(oldConfig));
         when(schemaService.updateSubjectConfig(any(), any())).thenReturn(Mono.just(newConfig));
 
@@ -567,6 +570,59 @@ class SchemaControllerTest {
                 .verify();
 
         verify(schemaService, never()).updateSubjectConfig(any(), any());
+    }
+
+    @Test
+    void shouldDeleteConfig() {
+        Namespace namespace = buildNamespace();
+        SubjectConfigResponse config = SubjectConfigResponse.builder()
+                .compatibilityLevel(Schema.Compatibility.FORWARD)
+                .build();
+
+        when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
+        when(schemaService.isNamespaceOwnerOfSubject(any(), any())).thenReturn(true);
+        when(schemaService.deleteSubjectConfig(any(), any())).thenReturn(Mono.just(config));
+
+        StepVerifier.create(schemaController.deleteConfig("myNamespace", "prefix.subject-value"))
+                .consumeNextWith(response -> {
+                    assertEquals(HttpStatus.OK, response.getStatus());
+                    assertTrue(response.getBody().isPresent());
+                    assertEquals(
+                            "prefix.subject-value",
+                            response.getBody().get().getMetadata().getName());
+                    assertEquals(
+                            Schema.Compatibility.FORWARD, response.getBody().get().getSpec().getCompatibility());
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void shouldNotDeleteConfigWhenNamespaceNotOwner() {
+        Namespace namespace = buildNamespace();
+
+        when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
+        when(schemaService.isNamespaceOwnerOfSubject(namespace, "prefix.subject-value"))
+                .thenReturn(false);
+
+        StepVerifier.create(schemaController.deleteConfig(
+                        "myNamespace", "prefix.subject-value"))
+                .consumeErrorWith(error -> {
+                    assertEquals(ResourceValidationException.class, error.getClass());
+                    assertEquals(
+                            1,
+                            ((ResourceValidationException) error)
+                                    .getValidationErrors()
+                                    .size());
+                    assertEquals(
+                            "Invalid value \"prefix.subject-value\" for field \"name\": "
+                                    + "namespace is not owner of the resource.",
+                            ((ResourceValidationException) error)
+                                    .getValidationErrors()
+                                    .getFirst());
+                })
+                .verify();
+
+        verify(schemaService, never()).deleteSubjectConfig(any(), any());
     }
 
     @Test
