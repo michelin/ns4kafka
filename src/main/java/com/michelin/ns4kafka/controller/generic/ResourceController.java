@@ -45,6 +45,10 @@ public abstract class ResourceController {
         return HttpResponse.ok(body).header(STATUS_HEADER, status.toString());
     }
 
+    public String getHttpResponseApplyStatus(HttpResponse response) {
+        return response.getHeaders().get(STATUS_HEADER);
+    }
+
     /**
      * Send an audit log event.
      *

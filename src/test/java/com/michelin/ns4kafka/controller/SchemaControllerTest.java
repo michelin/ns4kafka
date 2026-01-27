@@ -33,7 +33,7 @@ import com.michelin.ns4kafka.model.schema.Schema;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.SchemaService;
-import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityResponse;
+import com.michelin.ns4kafka.service.client.schema.entities.SubjectConfigResponse;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpStatus;
@@ -86,6 +86,109 @@ class SchemaControllerTest {
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
+
+        StepVerifier.create(schemaController.apply("myNamespace", schema, false))
+                .consumeNextWith(response -> {
+                    assertEquals("created", response.header("X-Ns4kafka-Result"));
+                    assertTrue(response.getBody().isPresent());
+                    assertEquals(
+                            "prefix.subject-value",
+                            response.getBody().get().getMetadata().getName());
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void shouldCreateSchemaWithCompatibility() {
+        Namespace namespace = buildNamespace();
+        Schema schema = buildSchemaWithCompatibility();
+
+        SubjectConfigResponse configResponse = SubjectConfigResponse.builder()
+                .compatibilityLevel(schema.getSpec().getCompatibility())
+                .build();
+
+        when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
+        when(schemaService.isNamespaceOwnerOfSubject(
+                        namespace, schema.getMetadata().getName()))
+                .thenReturn(true);
+        when(schemaService.validateSchema(namespace, schema)).thenReturn(Mono.just(List.of()));
+        when(schemaService.validateSchemaCompatibility("local", schema)).thenReturn(Mono.just(List.of()));
+        when(schemaService.getAllSubjectVersions(namespace, schema.getMetadata().getName()))
+                .thenReturn(Flux.empty());
+        when(schemaService.existInOldVersions(namespace, schema, Collections.emptyList()))
+                .thenReturn(Mono.just(false));
+        when(schemaService.register(namespace, schema)).thenReturn(Mono.just(1));
+        when(schemaService.updateSubjectConfig(namespace, schema)).thenReturn(Mono.just(configResponse));
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
+        doNothing().when(applicationEventPublisher).publishEvent(any());
+
+        StepVerifier.create(schemaController.apply("myNamespace", schema, false))
+                .consumeNextWith(response -> {
+                    assertEquals("created", response.header("X-Ns4kafka-Result"));
+                    assertTrue(response.getBody().isPresent());
+                    assertEquals(
+                            "prefix.subject-value",
+                            response.getBody().get().getMetadata().getName());
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void shouldCreateSchemaWithAlias() {
+        Namespace namespace = buildNamespace();
+        Schema schema = buildSchemaWithAlias();
+
+        SubjectConfigResponse configResponse = SubjectConfigResponse.builder()
+                .alias(schema.getSpec().getAlias())
+                .build();
+
+        when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
+        when(schemaService.isNamespaceOwnerOfSubject(
+                        namespace, schema.getMetadata().getName()))
+                .thenReturn(true);
+        when(schemaService.validateSchema(namespace, schema)).thenReturn(Mono.just(List.of()));
+        when(schemaService.validateSchemaCompatibility("local", schema)).thenReturn(Mono.just(List.of()));
+        when(schemaService.getAllSubjectVersions(namespace, schema.getMetadata().getName()))
+                .thenReturn(Flux.empty());
+        when(schemaService.existInOldVersions(namespace, schema, Collections.emptyList()))
+                .thenReturn(Mono.just(false));
+        when(schemaService.register(namespace, schema)).thenReturn(Mono.just(1));
+        when(schemaService.updateSubjectConfig(namespace, schema)).thenReturn(Mono.just(configResponse));
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
+        doNothing().when(applicationEventPublisher).publishEvent(any());
+
+        StepVerifier.create(schemaController.apply("myNamespace", schema, false))
+                .consumeNextWith(response -> {
+                    assertEquals("created", response.header("X-Ns4kafka-Result"));
+                    assertTrue(response.getBody().isPresent());
+                    assertEquals(
+                            "prefix.subject-value",
+                            response.getBody().get().getMetadata().getName());
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void shouldCreateAlias() {
+        Namespace namespace = buildNamespace();
+        Schema schema = buildAlias();
+
+        SubjectConfigResponse configResponse = SubjectConfigResponse.builder()
+                .alias(schema.getSpec().getAlias())
+                .build();
+
+        when(namespaceService.findByName("myNamespace")).thenReturn(Optional.of(namespace));
+        when(schemaService.isNamespaceOwnerOfSubject(
+                        namespace, schema.getMetadata().getName()))
+                .thenReturn(true);
+        when(schemaService.validateSchema(namespace, schema)).thenReturn(Mono.just(List.of()));
+        when(schemaService.getAllSubjectVersions(namespace, schema.getMetadata().getName()))
+                .thenReturn(Flux.just(schema));
+        when(schemaService.existInOldVersions(namespace, schema, List.of(schema)))
+                .thenReturn(Mono.just(true));
+        when(schemaService.updateSubjectConfig(namespace, schema)).thenReturn(Mono.just(configResponse));
 
         StepVerifier.create(schemaController.apply("myNamespace", schema, false))
                 .consumeNextWith(response -> {
@@ -243,7 +346,7 @@ class SchemaControllerTest {
     }
 
     @Test
-    void shouldChangeSchemaInDryRunMode() {
+    void shouldNotChangeSchemaInDryRunMode() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
         Schema schemaV2 = buildSchemaV2();
@@ -398,6 +501,7 @@ class SchemaControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldNotUpdateCompatibilityWhenSubjectNotExist() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
@@ -414,10 +518,11 @@ class SchemaControllerTest {
                 .consumeNextWith(response -> assertEquals(HttpStatus.NOT_FOUND, response.getStatus()))
                 .verifyComplete();
 
-        verify(schemaService, never()).updateSubjectCompatibility(any(), any(), any());
+        verify(schemaService, never()).updateSubjectConfig(any(), any());
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldUpdateCompatibility() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
@@ -428,8 +533,8 @@ class SchemaControllerTest {
                 .thenReturn(true);
         when(schemaService.getSubjectLatestVersion(namespace, "prefix.subject-value"))
                 .thenReturn(Mono.just(schema));
-        when(schemaService.updateSubjectCompatibility(namespace, schema, Schema.Compatibility.FORWARD))
-                .thenReturn(Mono.just(SchemaCompatibilityResponse.builder()
+        when(schemaService.updateSubjectConfig(namespace, schema))
+                .thenReturn(Mono.just(SubjectConfigResponse.builder()
                         .compatibilityLevel(Schema.Compatibility.FORWARD)
                         .build()));
 
@@ -449,6 +554,7 @@ class SchemaControllerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldNotChangeCompatibility() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
@@ -475,10 +581,11 @@ class SchemaControllerTest {
                 })
                 .verifyComplete();
 
-        verify(schemaService, never()).updateSubjectCompatibility(namespace, schema, Schema.Compatibility.FORWARD);
+        verify(schemaService, never()).updateSubjectConfig(namespace, schema);
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     void shouldNotUpdateCompatibilityWhenNamespaceNotOwner() {
         Namespace namespace = buildNamespace();
         Schema schema = buildSchema();
@@ -506,7 +613,7 @@ class SchemaControllerTest {
                 })
                 .verify();
 
-        verify(schemaService, never()).updateSubjectCompatibility(any(), any(), any());
+        verify(schemaService, never()).updateSubjectConfig(any(), any());
     }
 
     @Test
@@ -890,6 +997,53 @@ class SchemaControllerTest {
     private Schema buildSchemaNameOnly2() {
         return Schema.builder()
                 .metadata(Metadata.builder().name("prefix.subject2-value").build())
+                .build();
+    }
+
+    private Schema buildSchemaWithCompatibility() {
+        return Schema.builder()
+                .metadata(Metadata.builder().name("prefix.subject-value").build())
+                .spec(Schema.SchemaSpec.builder()
+                        .id(1)
+                        .version(1)
+                        .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
+                                + "\"name\":\"PersonAvro\""
+                                + ",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],\"default\":null,"
+                                + "\"doc\":\"First name of the person\"},{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],"
+                                + "\"default\":null,\"doc\":\"Last name of the person\"},"
+                                + "{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\","
+                                + "\"logicalType\":\"timestamp-millis\"}],"
+                                + "\"default\":null,\"doc\":\"Date of birth of the person\"}]}")
+                        .compatibility(Schema.Compatibility.FULL)
+                        .build())
+                .build();
+    }
+
+    private Schema buildSchemaWithAlias() {
+        return Schema.builder()
+                .metadata(Metadata.builder().name("prefix.subject-value").build())
+                .spec(Schema.SchemaSpec.builder()
+                        .id(1)
+                        .version(1)
+                        .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
+                                + "\"name\":\"PersonAvro\""
+                                + ",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],\"default\":null,"
+                                + "\"doc\":\"First name of the person\"},{\"name\":\"lastName\",\"type\":[\"null\",\"string\"],"
+                                + "\"default\":null,\"doc\":\"Last name of the person\"},"
+                                + "{\"name\":\"dateOfBirth\",\"type\":[\"null\",{\"type\":\"long\","
+                                + "\"logicalType\":\"timestamp-millis\"}],"
+                                + "\"default\":null,\"doc\":\"Date of birth of the person\"}]}")
+                        .alias("prefix.subject-alias-value")
+                        .build())
+                .build();
+    }
+
+    private Schema buildAlias() {
+        return Schema.builder()
+                .metadata(Metadata.builder().name("prefix.subject-value").build())
+                .spec(Schema.SchemaSpec.builder()
+                        .alias("prefix.subject-alias-value")
+                        .build())
                 .build();
     }
 }
