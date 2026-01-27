@@ -19,12 +19,16 @@
 package com.michelin.ns4kafka.service.client.schema.entities;
 
 import com.michelin.ns4kafka.model.schema.Schema;
+import io.micronaut.core.annotation.Nullable;
 import lombok.Builder;
 
 /**
- * Schema compatibility response.
+ * Subject config request.
  *
- * @param compatibilityLevel The compatibility level
+ * @param compatibility The compatibility
+ * @param alias The alias
  */
 @Builder
-public record SchemaCompatibilityResponse(Schema.Compatibility compatibilityLevel) {}
+public record SubjectConfigRequest(
+        @Nullable Schema.Compatibility compatibility,
+        @Nullable String alias) {}

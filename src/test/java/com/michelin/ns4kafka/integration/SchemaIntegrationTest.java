@@ -31,9 +31,9 @@ import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.RoleBinding;
 import com.michelin.ns4kafka.model.schema.Schema;
-import com.michelin.ns4kafka.model.schema.SchemaCompatibilityState;
-import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityResponse;
+import com.michelin.ns4kafka.model.schema.SubjectConfigState;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
+import com.michelin.ns4kafka.service.client.schema.entities.SubjectConfigResponse;
 import io.confluent.kafka.schemaregistry.client.rest.entities.requests.RegisterSchemaRequest;
 import io.confluent.kafka.schemaregistry.client.rest.entities.requests.RegisterSchemaResponse;
 import io.micronaut.context.ApplicationContext;
@@ -171,11 +171,11 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                         HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas/ns1-subject0-value/config")
                                 .bearerAuth(token)
                                 .body(Map.of("compatibility", Schema.Compatibility.FORWARD)),
-                        SchemaCompatibilityState.class);
+                        SubjectConfigState.class);
 
-        SchemaCompatibilityResponse updatedConfig = schemaRegistryClient
+        SubjectConfigResponse updatedConfig = schemaRegistryClient
                 .toBlocking()
-                .retrieve(HttpRequest.GET("/config/ns1-subject0-value"), SchemaCompatibilityResponse.class);
+                .retrieve(HttpRequest.GET("/config/ns1-subject0-value"), SubjectConfigResponse.class);
 
         assertEquals(Schema.Compatibility.FORWARD, updatedConfig.compatibilityLevel());
 
@@ -251,11 +251,11 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                         HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas/ns1-subject1-value/config")
                                 .bearerAuth(token)
                                 .body(Map.of("compatibility", Schema.Compatibility.FORWARD)),
-                        SchemaCompatibilityState.class);
+                        SubjectConfigState.class);
 
-        SchemaCompatibilityResponse updatedConfig = schemaRegistryClient
+        SubjectConfigResponse updatedConfig = schemaRegistryClient
                 .toBlocking()
-                .retrieve(HttpRequest.GET("/config/ns1-subject1-value"), SchemaCompatibilityResponse.class);
+                .retrieve(HttpRequest.GET("/config/ns1-subject1-value"), SubjectConfigResponse.class);
 
         assertEquals(Schema.Compatibility.FORWARD, updatedConfig.compatibilityLevel());
 
