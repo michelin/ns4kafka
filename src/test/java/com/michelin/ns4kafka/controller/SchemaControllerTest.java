@@ -30,7 +30,6 @@ import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.schema.Schema;
-import com.michelin.ns4kafka.model.schema.SubjectConfigState;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.SchemaService;
@@ -1005,19 +1004,6 @@ class SchemaControllerTest {
     private Schema buildSchemaNameOnly2() {
         return Schema.builder()
                 .metadata(Metadata.builder().name("prefix.subject2-value").build())
-                .build();
-    }
-
-    private SubjectConfigState buildSubjectState() {
-        return SubjectConfigState.builder()
-                .metadata(Metadata.builder()
-                        .cluster("local")
-                        .namespace("myNamespace")
-                        .name("prefix.subject-value")
-                        .build())
-                .spec(SubjectConfigState.SubjectConfigStateSpec.builder()
-                        .compatibility(Schema.Compatibility.FORWARD)
-                        .build())
                 .build();
     }
 }
