@@ -106,13 +106,17 @@ public class ConnectorAsyncExecutor {
                 log.debug(
                         "Kafka Connect \"{}\" is healthy.",
                         connectCluster.getMetadata().getName());
-                connectClusterService.getHealthyConnectClusters().add(connectCluster.getMetadata().getName());
+                connectClusterService
+                        .getHealthyConnectClusters()
+                        .add(connectCluster.getMetadata().getName());
             } else if (connectCluster.getSpec().getStatus().equals(ConnectCluster.Status.IDLE)) {
                 log.debug(
                         "Kafka Connect \"{}\" is not healthy: {}.",
                         connectCluster.getMetadata().getName(),
                         connectCluster.getSpec().getStatusMessage());
-                connectClusterService.getHealthyConnectClusters().remove(connectCluster.getMetadata().getName());
+                connectClusterService
+                        .getHealthyConnectClusters()
+                        .remove(connectCluster.getMetadata().getName());
             }
         });
     }
@@ -122,7 +126,9 @@ public class ConnectorAsyncExecutor {
         log.debug(
                 "Starting connector synchronization for Kafka cluster {}. Healthy Kafka Connects: {}.",
                 managedClusterProperties.getName(),
-                !connectClusterService.getHealthyConnectClusters().isEmpty() ? String.join(",", connectClusterService.getHealthyConnectClusters()) : "N/A");
+                !connectClusterService.getHealthyConnectClusters().isEmpty()
+                        ? String.join(",", connectClusterService.getHealthyConnectClusters())
+                        : "N/A");
 
         if (connectClusterService.getHealthyConnectClusters().isEmpty()) {
             log.debug(
@@ -131,7 +137,8 @@ public class ConnectorAsyncExecutor {
             return Flux.empty();
         }
 
-        return Flux.fromIterable(connectClusterService.getHealthyConnectClusters()).flatMap(this::synchronizeConnectCluster);
+        return Flux.fromIterable(connectClusterService.getHealthyConnectClusters())
+                .flatMap(this::synchronizeConnectCluster);
     }
 
     /**

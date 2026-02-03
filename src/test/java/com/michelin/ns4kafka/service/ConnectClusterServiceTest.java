@@ -45,6 +45,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -301,7 +302,6 @@ class ConnectClusterServiceTest {
         when(aclService.findAllGrantedToNamespace(namespace)).thenReturn(acls);
         when(aclService.isResourceCoveredByAcls(acls, "abc.cc")).thenReturn(true);
         when(aclService.isResourceCoveredByAcls(acls, "xyz.connect-two")).thenReturn(true);
-        when(kafkaConnectClient.version(any(), any())).thenReturn(Mono.just(HttpResponse.ok()));
 
         assertEquals(List.of(cc1), connectClusterService.findByWildcardNameWithOwnerPermission(namespace, "abc.cc"));
         assertTrue(connectClusterService
@@ -390,7 +390,6 @@ class ConnectClusterServiceTest {
                 .thenReturn(true);
         when(aclService.isResourceCoveredByAcls(any(), eq("prefix3.connect1"))).thenReturn(true);
         when(aclService.isResourceCoveredByAcls(any(), eq("prefix3.connect2"))).thenReturn(true);
-        when(kafkaConnectClient.version(any(), any())).thenReturn(Mono.just(HttpResponse.ok()));
 
         assertEquals(
                 List.of(cc1, cc2, cc3, cc4, cc5),
@@ -465,8 +464,6 @@ class ConnectClusterServiceTest {
                         .build())
                 .build();
 
-        when(kafkaConnectClient.version(any(), any())).thenReturn(Mono.just(HttpResponse.ok()));
-
         when(connectClusterRepository.findAllForCluster("local"))
                 .thenReturn(List.of(connectCluster, connectClusterOwner));
 
@@ -513,7 +510,7 @@ class ConnectClusterServiceTest {
                         .build())
                 .build();
 
-        when(kafkaConnectClient.version("local", "prefix.connect-cluster")).thenReturn(Mono.just(HttpResponse.ok()));
+        connectClusterService.setHealthyConnectClusters(Set.of("prefix.connect-cluster"));
 
         when(connectClusterRepository.findAllForCluster("local")).thenReturn(List.of(connectCluster));
 
@@ -558,8 +555,7 @@ class ConnectClusterServiceTest {
                         .build())
                 .build();
 
-        when(kafkaConnectClient.version("local", "prefix.connect-cluster"))
-                .thenReturn(Mono.error(new HttpClientException("Internal Server Error")));
+        connectClusterService.setHealthyConnectClusters(Set.of());
 
         when(connectClusterRepository.findAllForCluster("local")).thenReturn(List.of(connectCluster));
 
@@ -584,7 +580,6 @@ class ConnectClusterServiceTest {
         assertTrue(actual.isPresent());
         assertEquals("prefix.connect-cluster", actual.get().getMetadata().getName());
         assertEquals(ConnectCluster.Status.IDLE, actual.get().getSpec().getStatus());
-        assertEquals("Internal Server Error", actual.get().getSpec().getStatusMessage());
     }
 
     @Test
@@ -914,8 +909,6 @@ class ConnectClusterServiceTest {
                         .build()));
 
         when(aclService.isResourceCoveredByAcls(any(), any())).thenReturn(true);
-
-        when(kafkaConnectClient.version(any(), any())).thenReturn(Mono.just(HttpResponse.ok()));
         when(ns4KafkaProperties.getSecurity()).thenReturn(buildSecurityProperties(encryptKey));
 
         assertEquals(
@@ -968,7 +961,6 @@ class ConnectClusterServiceTest {
 
         when(aclService.isResourceCoveredByAcls(any(), eq("prefix.connect-cluster")))
                 .thenReturn(true);
-        when(kafkaConnectClient.version(any(), any())).thenReturn(Mono.just(HttpResponse.ok()));
         when(ns4KafkaProperties.getSecurity()).thenReturn(buildSecurityProperties(encryptKey));
 
         List<String> errors = connectClusterService.validateConnectClusterVault(namespace, "prefix.connect-cluster");
@@ -1071,7 +1063,6 @@ class ConnectClusterServiceTest {
         when(aclService.isResourceCoveredByAcls(List.of(acl2), "prefix.connect-cluster"))
                 .thenReturn(false);
         when(ns4KafkaProperties.getSecurity()).thenReturn(buildSecurityProperties(encryptKey));
-        when(kafkaConnectClient.version(any(), any())).thenReturn(Mono.just(HttpResponse.ok()));
         when(aclService.isResourceCoveredByAcls(List.of(acl1), "prefix.connect-cluster"))
                 .thenReturn(true);
         when(aclService.isResourceCoveredByAcls(List.of(acl1), "owner.connect-cluster"))
