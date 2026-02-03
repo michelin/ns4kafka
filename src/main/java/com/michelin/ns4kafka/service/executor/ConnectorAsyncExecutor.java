@@ -33,7 +33,6 @@ import io.micronaut.context.annotation.EachBean;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import jakarta.inject.Singleton;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -50,9 +49,6 @@ import reactor.core.publisher.Mono;
 @AllArgsConstructor
 public class ConnectorAsyncExecutor {
     private static final String SENSITIVE_FIELD_MASK = "••••••••••••";
-
-    private final Set<String> healthyConnectClusters = new HashSet<>();
-    private final Set<String> idleConnectClusters = new HashSet<>();
 
     private final ManagedClusterProperties managedClusterProperties;
 
@@ -110,15 +106,13 @@ public class ConnectorAsyncExecutor {
                 log.debug(
                         "Kafka Connect \"{}\" is healthy.",
                         connectCluster.getMetadata().getName());
-                healthyConnectClusters.add(connectCluster.getMetadata().getName());
-                idleConnectClusters.remove(connectCluster.getMetadata().getName());
+                connectClusterService.getHealthyConnectClusters().add(connectCluster.getMetadata().getName());
             } else if (connectCluster.getSpec().getStatus().equals(ConnectCluster.Status.IDLE)) {
                 log.debug(
                         "Kafka Connect \"{}\" is not healthy: {}.",
                         connectCluster.getMetadata().getName(),
                         connectCluster.getSpec().getStatusMessage());
-                idleConnectClusters.add(connectCluster.getMetadata().getName());
-                healthyConnectClusters.remove(connectCluster.getMetadata().getName());
+                connectClusterService.getHealthyConnectClusters().remove(connectCluster.getMetadata().getName());
             }
         });
     }
@@ -126,20 +120,18 @@ public class ConnectorAsyncExecutor {
     /** For each connect cluster, start the synchronization of connectors. */
     private Flux<ConnectorInfo> synchronizeConnectors() {
         log.debug(
-                "Starting connector synchronization for Kafka cluster {}. Healthy Kafka Connects: {}."
-                        + " Idle Kafka Connects: {}",
+                "Starting connector synchronization for Kafka cluster {}. Healthy Kafka Connects: {}.",
                 managedClusterProperties.getName(),
-                !healthyConnectClusters.isEmpty() ? String.join(",", healthyConnectClusters) : "N/A",
-                !idleConnectClusters.isEmpty() ? String.join(",", idleConnectClusters) : "N/A");
+                !connectClusterService.getHealthyConnectClusters().isEmpty() ? String.join(",", connectClusterService.getHealthyConnectClusters()) : "N/A");
 
-        if (healthyConnectClusters.isEmpty()) {
+        if (connectClusterService.getHealthyConnectClusters().isEmpty()) {
             log.debug(
                     "No healthy Kafka Connect for Kafka cluster {}. Skipping synchronization.",
                     managedClusterProperties.getName());
             return Flux.empty();
         }
 
-        return Flux.fromIterable(healthyConnectClusters).flatMap(this::synchronizeConnectCluster);
+        return Flux.fromIterable(connectClusterService.getHealthyConnectClusters()).flatMap(this::synchronizeConnectCluster);
     }
 
     /**
@@ -156,7 +148,7 @@ public class ConnectorAsyncExecutor {
         return collectBrokerConnectors(connectCluster)
                 .doOnError(error -> {
                     if (error instanceof ResourceValidationException) {
-                        healthyConnectClusters.remove(connectCluster);
+                        connectClusterService.getHealthyConnectClusters().remove(connectCluster);
                     } else if (error instanceof HttpClientResponseException httpClientResponseException) {
                         log.error(
                                 "Invalid HTTP response {} ({}) during connectors synchronization for Kafka cluster {}"
