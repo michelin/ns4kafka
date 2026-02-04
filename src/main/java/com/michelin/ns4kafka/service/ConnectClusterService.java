@@ -37,13 +37,16 @@ import com.michelin.ns4kafka.service.client.connect.KafkaConnectClient.KafkaConn
 import com.michelin.ns4kafka.util.EncryptionUtils;
 import com.michelin.ns4kafka.util.RegexUtils;
 import io.micronaut.core.util.StringUtils;
-import io.micronaut.http.client.exceptions.HttpClientException;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -56,6 +59,10 @@ public class ConnectClusterService {
     private static final String DEFAULT_FORMAT = "${aes256:%s}";
 
     private static final String WILDCARD_SECRET = "*****";
+
+    @Getter
+    @Setter
+    private Set<String> healthyConnectClusters = new HashSet<>();
 
     @Inject
     private KafkaConnectClient kafkaConnectClient;
@@ -405,19 +412,12 @@ public class ConnectClusterService {
                 .aes256Salt(EncryptionUtils.decryptAes256Gcm(
                         connectCluster.getSpec().getAes256Salt(),
                         ns4KafkaProperties.getSecurity().getAes256EncryptionKey()))
-                .aes256Format(connectCluster.getSpec().getAes256Format());
-
-        try {
-            kafkaConnectClient
-                    .version(
-                            connectCluster.getMetadata().getCluster(),
-                            connectCluster.getMetadata().getName())
-                    .block();
-            builder.status(ConnectCluster.Status.HEALTHY);
-        } catch (HttpClientException e) {
-            builder.status(ConnectCluster.Status.IDLE);
-            builder.statusMessage(e.getMessage());
-        }
+                .aes256Format(connectCluster.getSpec().getAes256Format())
+                .status(
+                        healthyConnectClusters.contains(
+                                        connectCluster.getMetadata().getName())
+                                ? ConnectCluster.Status.HEALTHY
+                                : ConnectCluster.Status.IDLE);
 
         return ConnectCluster.builder()
                 .metadata(connectCluster.getMetadata())
