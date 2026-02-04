@@ -85,8 +85,8 @@ public class Schema extends MetadataResource {
         @Builder.Default
         private SchemaType schemaType = SchemaType.AVRO;
 
-        @Builder.Default
-        private Compatibility compatibility = Compatibility.GLOBAL;
+        private Compatibility compatibility;
+        private String alias;
 
         private List<Reference> references;
 
