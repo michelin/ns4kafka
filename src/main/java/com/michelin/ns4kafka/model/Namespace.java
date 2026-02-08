@@ -68,7 +68,7 @@ public class Namespace extends MetadataResource {
         private boolean transactionsEnabled = false;
 
         @Builder.Default
-        private List<SubjectNameStrategy> subjectNameStrategies = SubjectNameStrategy.defaultStrategy();
+        private List<SubjectNameStrategy> subjectNameStrategies = SubjectNameStrategy.defaultStrategies();
 
         @Builder.Default
         private List<String> connectClusters = List.of();

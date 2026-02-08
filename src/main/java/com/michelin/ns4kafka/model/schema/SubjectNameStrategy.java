@@ -19,7 +19,6 @@
 package com.michelin.ns4kafka.model.schema;
 
 import com.fasterxml.jackson.annotation.JsonValue;
-import java.util.Arrays;
 import java.util.List;
 import lombok.AllArgsConstructor;
 
@@ -44,25 +43,12 @@ public enum SubjectNameStrategy {
     }
 
     /**
-     * Get the default SubjectNameStrategy.
+     * Get the default subject name strategies.
      *
-     * @return The default SubjectNameStrategy
+     * @return The default subject name strategies
      */
-    public static List<SubjectNameStrategy> defaultStrategy() {
+    public static List<SubjectNameStrategy> defaultStrategies() {
         return List.of(TOPIC_NAME);
-    }
-
-    /**
-     * Get SubjectNameStrategy from its string representation.
-     *
-     * @param stringValue The string representation of the SubjectNameStrategy
-     * @return The SubjectNameStrategy
-     */
-    public static SubjectNameStrategy from(final String stringValue) {
-        return Arrays.stream(values())
-                .filter(s -> s.value.equals(stringValue))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Unknown strategy: " + stringValue));
     }
 
     /**

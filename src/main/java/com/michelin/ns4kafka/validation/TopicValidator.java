@@ -24,7 +24,8 @@ import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNameLength;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNameSpecChars;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidTopicName;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidTopicSpec;
-import static com.michelin.ns4kafka.util.config.TopicConfig.*;
+import static com.michelin.ns4kafka.util.config.TopicConfig.PARTITIONS;
+import static com.michelin.ns4kafka.util.config.TopicConfig.REPLICATION_FACTOR;
 
 import com.michelin.ns4kafka.model.Topic;
 import io.micronaut.core.util.StringUtils;
