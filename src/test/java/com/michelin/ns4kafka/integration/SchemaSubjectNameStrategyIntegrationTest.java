@@ -18,8 +18,10 @@
  */
 package com.michelin.ns4kafka.integration;
 
-import static com.michelin.ns4kafka.util.config.TopicConfig.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.michelin.ns4kafka.integration.TopicIntegrationTest.BearerAccessRefreshToken;
 import com.michelin.ns4kafka.integration.container.SchemaRegistryIntegrationTest;

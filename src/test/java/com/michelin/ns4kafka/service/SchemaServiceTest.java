@@ -18,16 +18,21 @@
  */
 package com.michelin.ns4kafka.service;
 
+import static com.michelin.ns4kafka.model.schema.SubjectNameStrategy.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.argThat;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.schema.Schema;
+import com.michelin.ns4kafka.model.schema.SubjectNameStrategy;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityCheckResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityResponse;
@@ -477,12 +482,17 @@ class SchemaServiceTest {
     }
 
     @ParameterizedTest
-    @MethodSource("subjectStrategiesForSelfManaged")
-    void shouldVerifySubjectStrategy(String subjectName, String schemaContent, boolean expectedResult) {
+    @MethodSource("subjectStrategies")
+    void shouldVerifySubjectStrategy(
+            List<SubjectNameStrategy> subjectNameStrategies,
+            String subjectName,
+            String schemaContent,
+            boolean expectedResult) {
         Namespace namespace = Namespace.builder()
                 .metadata(
                         Metadata.builder().name("myNamespace").cluster("local").build())
                 .spec(Namespace.NamespaceSpec.builder()
+                        .subjectNameStrategies(subjectNameStrategies)
                         .topicValidator(TopicValidator.makeDefault())
                         .build())
                 .build();
@@ -733,32 +743,64 @@ class SchemaServiceTest {
                         "abc.topic-name-com.michelin.kafka.producer.showcase.avro.PersonAvro"));
     }
 
-    private static Stream<Arguments> subjectStrategiesForSelfManaged() {
+    private static Stream<Arguments> subjectStrategies() {
         return Stream.of(
-                // Invalid: Missing -key suffix
-                Arguments.of("abc.topic-name-missingpart", "{\"name\":\"User\"}", false),
-                // Invalid: Missing -value suffix
-                Arguments.of("abc.topic-name-missingpart", "{\"name\":\"User\"}", false),
-                // Valid: Value strategy set to topic name strategy by default
-                Arguments.of("abc.topic-name-value", "{\"name\":\"User\"}", true),
-                // Valid: Key strategy set to topic name strategy by default
-                Arguments.of("abc.topic-name-key", "{\"name\":\"User\"}", true),
-                // Valid: No strategy defined, default to topic name strategy
-                Arguments.of("abc.topic-name-key", "{\"name\":\"User\"}", true),
-                // Valid: No strategy defined, default to topic name strategy
-                Arguments.of("abc.topic-name-value", "{\"name\":\"User\"}", true),
-                // Valid: Key subject with topic name strategy
-                Arguments.of("abc.topic-name-key", "{\"name\":\"User\"}", true),
-                // Valid: Value subject with topic name strategy
-                Arguments.of("abc.topic-name-value", "{\"name\":\"User\"}", true),
-                // Invalid: Wrong strategy for given subject
+                // Valid: Topic name strategy for key subject
                 Arguments.of(
+                        SubjectNameStrategy.defaultStrategies(), "abc.topic-name-key", "{\"name\":\"User\"}", true),
+                // Valid: Topic name strategy for value subject
+                Arguments.of(
+                        SubjectNameStrategy.defaultStrategies(), "abc.topic-name-value", "{\"name\":\"User\"}", true),
+                // Invalid: Missing -key suffix
+                Arguments.of(
+                        SubjectNameStrategy.defaultStrategies(),
+                        "abc.topic-name-missingpart",
+                        "{\"name\":\"User\"}",
+                        false),
+                // Invalid: Missing -value suffix
+                Arguments.of(
+                        SubjectNameStrategy.defaultStrategies(),
+                        "abc.topic-name-missingpart",
+                        "{\"name\":\"User\"}",
+                        false),
+                // Invalid: No hyphen separator for key subject
+                Arguments.of(SubjectNameStrategy.defaultStrategies(), "abc.topickey", "{\"name\":\"User\"}", false),
+                // Invalid: No hyphen separator for value subject
+                Arguments.of(SubjectNameStrategy.defaultStrategies(), "abc.topicvalue", "{\"name\":\"User\"}", false),
+                // Invalid: Wrong authorized strategy for given subject
+                Arguments.of(
+                        SubjectNameStrategy.defaultStrategies(),
                         "com.example.User",
                         "{\"name\":\"User\",\"namespace\":\"com.example\",\"type\":\"record\",\"fields\":[]}",
                         false),
-                // Valid: Key subject with topic record name strategy
+                // Valid: Record name strategy
                 Arguments.of(
+                        List.of(RECORD_NAME),
+                        "com.example.User",
+                        "{\"name\":\"User\",\"namespace\":\"com.example\",\"type\":\"record\",\"fields\":[]}",
+                        true),
+                // Invalid: Record name does not match subject
+                Arguments.of(
+                        List.of(RECORD_NAME),
+                        "org.sample.LoginEvent",
+                        "{\"name\":\"User\",\"namespace\":\"com.example\",\"type\":\"record\",\"fields\":[]}",
+                        false),
+                // Invalid: Wrong authorized strategy for given subject
+                Arguments.of(
+                        List.of(RECORD_NAME),
+                        "abc.topic-name-value",
+                        "{\"name\":\"User\",\"namespace\":\"com.example\",\"type\":\"record\",\"fields\":[]}",
+                        false),
+                // Valid: Topic record name strategy
+                Arguments.of(
+                        List.of(TOPIC_RECORD_NAME),
                         "abc.topic-name-com.example.User",
+                        "{\"name\":\"User\",\"namespace\":\"com.example\",\"type\":\"record\",\"fields\":[]}",
+                        true),
+                // Invalid: Record name does not match subject
+                Arguments.of(
+                        List.of(TOPIC_RECORD_NAME),
+                        "abc.topic-name-org.sample.LoginEvent",
                         "{\"name\":\"User\",\"namespace\":\"com.example\",\"type\":\"record\",\"fields\":[]}",
                         false));
     }
