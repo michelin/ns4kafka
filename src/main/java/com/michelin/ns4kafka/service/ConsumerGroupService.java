@@ -129,6 +129,26 @@ public class ConsumerGroupService {
     }
 
     /**
+     * Check if a consumer group exists.
+     *
+     * @param namespace The namespace
+     * @param groupId The consumer group
+     * @return true if it exists, false otherwise
+     * @throws InterruptedException Any interrupted exception during consumer groups description
+     */
+    public boolean isConsumerGroupExisting(Namespace namespace, String groupId) throws InterruptedException {
+        ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor = applicationContext.getBean(
+                ConsumerGroupAsyncExecutor.class,
+                Qualifiers.byName(namespace.getMetadata().getCluster()));
+        try {
+            consumerGroupAsyncExecutor.describeConsumerGroups(List.of(groupId));
+            return true;
+        } catch (ExecutionException _) {
+            return false;
+        }
+    }
+
+    /**
      * Get the status of a given consumer group.
      *
      * @param namespace The namespace

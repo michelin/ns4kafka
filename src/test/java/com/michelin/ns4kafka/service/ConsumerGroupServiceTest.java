@@ -19,6 +19,7 @@
 package com.michelin.ns4kafka.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -348,6 +349,46 @@ class ConsumerGroupServiceTest {
         assertTrue(result.containsKey(topicPartition2));
         assertEquals(5, result.get(topicPartition1));
         assertEquals(10, result.get(topicPartition2));
+    }
+
+    @Test
+    void shouldCheckConsumerGroupExistence() throws ExecutionException, InterruptedException {
+        Namespace namespace = Namespace.builder()
+                .metadata(Metadata.builder().cluster("test").build())
+                .build();
+        String groupId = "testGroup";
+
+        ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor = mock(ConsumerGroupAsyncExecutor.class);
+        when(applicationContext.getBean(
+                        ConsumerGroupAsyncExecutor.class,
+                        Qualifiers.byName(namespace.getMetadata().getCluster())))
+                .thenReturn(consumerGroupAsyncExecutor);
+        when(consumerGroupAsyncExecutor.describeConsumerGroups(List.of(groupId)))
+                .thenReturn(Map.of());
+
+        boolean result = consumerGroupService.isConsumerGroupExisting(namespace, groupId);
+
+        assertTrue(result);
+    }
+
+    @Test
+    void shouldCheckConsumerGroupNonExistence() throws ExecutionException, InterruptedException {
+        Namespace namespace = Namespace.builder()
+                .metadata(Metadata.builder().cluster("test").build())
+                .build();
+        String groupId = "testGroup";
+
+        ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor = mock(ConsumerGroupAsyncExecutor.class);
+        when(applicationContext.getBean(
+                        ConsumerGroupAsyncExecutor.class,
+                        Qualifiers.byName(namespace.getMetadata().getCluster())))
+                .thenReturn(consumerGroupAsyncExecutor);
+        when(consumerGroupAsyncExecutor.describeConsumerGroups(List.of(groupId)))
+                .thenThrow(new ExecutionException("", new Exception()));
+
+        boolean result = consumerGroupService.isConsumerGroupExisting(namespace, groupId);
+
+        assertFalse(result);
     }
 
     @Test

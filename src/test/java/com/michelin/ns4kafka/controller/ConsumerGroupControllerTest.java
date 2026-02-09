@@ -297,6 +297,7 @@ class ConsumerGroupControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
                 .thenReturn(true);
+        when(consumerGroupService.isConsumerGroupExisting(ns, "groupID")).thenReturn(true);
         when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(GroupState.EMPTY);
 
         HttpResponse<Void> response = consumerGroupController.deleteConsumerGroup("test", "groupID", false);
@@ -314,6 +315,7 @@ class ConsumerGroupControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
                 .thenReturn(true);
+        when(consumerGroupService.isConsumerGroupExisting(ns, "groupID")).thenReturn(true);
         when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(GroupState.EMPTY);
 
         HttpResponse<Void> response = consumerGroupController.deleteConsumerGroup("test", "groupID", true);
@@ -347,6 +349,7 @@ class ConsumerGroupControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
                 .thenReturn(true);
+        when(consumerGroupService.isConsumerGroupExisting(ns, "groupID")).thenReturn(true);
         when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(GroupState.STABLE);
 
         ResourceValidationException result = assertThrows(
@@ -371,6 +374,7 @@ class ConsumerGroupControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
                 .thenReturn(true);
+        when(consumerGroupService.isConsumerGroupExisting(ns, "groupID")).thenReturn(true);
         when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(GroupState.DEAD);
 
         ResourceValidationException result = assertThrows(

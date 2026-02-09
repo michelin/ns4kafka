@@ -20,6 +20,7 @@ package com.michelin.ns4kafka.controller;
 
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidConsumerGroupDeleteOperation;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidConsumerGroupOperation;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNotFound;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidOwner;
 import static com.michelin.ns4kafka.util.enumation.Kind.CONSUMER_GROUP;
 import static com.michelin.ns4kafka.util.enumation.Kind.CONSUMER_GROUP_RESET_OFFSET;
@@ -162,6 +163,12 @@ public class ConsumerGroupController extends NamespacedResourceController {
         }
 
         Namespace ns = getNamespace(namespace);
+
+        if (!consumerGroupService.isConsumerGroupExisting(ns, consumerGroup)) {
+            throw new ResourceValidationException(
+                    CONSUMER_GROUP, consumerGroup, invalidNotFound("group", consumerGroup));
+        }
+
         GroupState currentState = consumerGroupService.getConsumerGroupStatus(ns, consumerGroup);
 
         if (currentState != GroupState.EMPTY) {
