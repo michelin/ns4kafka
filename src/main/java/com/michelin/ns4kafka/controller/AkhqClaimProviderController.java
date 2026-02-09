@@ -30,7 +30,6 @@ import io.micronaut.http.annotation.Post;
 import io.micronaut.security.rules.SecurityRule;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
-import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -56,17 +55,29 @@ public class AkhqClaimProviderController {
     private static final List<String> EMPTY_REGEXP = List.of("^none$");
     private static final List<String> ADMIN_REGEXP = List.of(".*");
 
-    @Inject
-    private Ns4KafkaProperties ns4KafkaProperties;
+    private final Ns4KafkaProperties ns4KafkaProperties;
+    private final AclService aclService;
+    private final NamespaceService namespaceService;
+    private final List<ManagedClusterProperties> managedClusters;
 
-    @Inject
-    private AclService aclService;
-
-    @Inject
-    private NamespaceService namespaceService;
-
-    @Inject
-    private List<ManagedClusterProperties> managedClusters;
+    /**
+     * Constructor.
+     *
+     * @param ns4KafkaProperties The Ns4Kafka properties
+     * @param aclService The ACL service
+     * @param namespaceService The namespace service
+     * @param managedClusters The managed clusters
+     */
+    public AkhqClaimProviderController(
+            Ns4KafkaProperties ns4KafkaProperties,
+            AclService aclService,
+            NamespaceService namespaceService,
+            List<ManagedClusterProperties> managedClusters) {
+        this.ns4KafkaProperties = ns4KafkaProperties;
+        this.aclService = aclService;
+        this.namespaceService = namespaceService;
+        this.managedClusters = managedClusters;
+    }
 
     /**
      * List AKHQ claims (v019 and prior).

@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.ConsumerGroupDescription;
@@ -40,9 +39,17 @@ import org.apache.kafka.common.TopicPartition;
 @Slf4j
 @EachBean(ManagedClusterProperties.class)
 @Singleton
-@AllArgsConstructor
 public class ConsumerGroupAsyncExecutor {
     private final ManagedClusterProperties managedClusterProperties;
+
+    /**
+     * Constructor.
+     *
+     * @param managedClusterProperties The managed cluster properties
+     */
+    public ConsumerGroupAsyncExecutor(ManagedClusterProperties managedClusterProperties) {
+        this.managedClusterProperties = managedClusterProperties;
+    }
 
     /**
      * Getter for Kafka Admin client.

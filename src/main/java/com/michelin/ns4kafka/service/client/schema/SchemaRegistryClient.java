@@ -42,7 +42,6 @@ import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.client.exceptions.ReadTimeoutException;
 import io.micronaut.retry.annotation.Retryable;
-import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -63,12 +62,21 @@ public class SchemaRegistryClient {
     private static final String CONFIG = "/config/";
     private static final String VERSIONS = "/versions/";
 
-    @Inject
-    @Client(id = "schema-registry")
-    private HttpClient httpClient;
+    private final HttpClient httpClient;
+    private final List<ManagedClusterProperties> managedClusterProperties;
 
-    @Inject
-    private List<ManagedClusterProperties> managedClusterProperties;
+    /**
+     * Constructor.
+     *
+     * @param httpClient The HTTP client
+     * @param managedClusterProperties The managed cluster properties
+     */
+    public SchemaRegistryClient(
+            @Client(id = "schema-registry") HttpClient httpClient,
+            List<ManagedClusterProperties> managedClusterProperties) {
+        this.httpClient = httpClient;
+        this.managedClusterProperties = managedClusterProperties;
+    }
 
     /**
      * List subjects.

@@ -37,7 +37,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -46,17 +45,31 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @EachBean(ManagedClusterProperties.class)
 @Singleton
-@AllArgsConstructor
 public class ConnectorAsyncExecutor {
     private static final String SENSITIVE_FIELD_MASK = "••••••••••••";
-
     private final ManagedClusterProperties managedClusterProperties;
+    private final ConnectorRepository connectorRepository;
+    private final KafkaConnectClient kafkaConnectClient;
+    private final ConnectClusterService connectClusterService;
 
-    private ConnectorRepository connectorRepository;
-
-    private KafkaConnectClient kafkaConnectClient;
-
-    private ConnectClusterService connectClusterService;
+    /**
+     * Constructor.
+     *
+     * @param managedClusterProperties The managed cluster properties
+     * @param connectorRepository The connector repository
+     * @param kafkaConnectClient The Kafka Connect client
+     * @param connectClusterService The connect cluster service
+     */
+    public ConnectorAsyncExecutor(
+            ManagedClusterProperties managedClusterProperties,
+            ConnectorRepository connectorRepository,
+            KafkaConnectClient kafkaConnectClient,
+            ConnectClusterService connectClusterService) {
+        this.managedClusterProperties = managedClusterProperties;
+        this.connectorRepository = connectorRepository;
+        this.kafkaConnectClient = kafkaConnectClient;
+        this.connectClusterService = connectClusterService;
+    }
 
     /**
      * Run the connector synchronization.

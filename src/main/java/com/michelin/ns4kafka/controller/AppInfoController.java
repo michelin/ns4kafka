@@ -25,14 +25,21 @@ import io.micronaut.http.annotation.Get;
 import io.micronaut.security.rules.SecurityRule;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
-import jakarta.inject.Inject;
 
 @Tag(name = "Version", description = "Get the version.")
 @RolesAllowed(SecurityRule.IS_ANONYMOUS)
 @Controller(value = "/api/app-info")
 public class AppInfoController {
-    @Inject
-    private Ns4KafkaProperties ns4KafkaProperties;
+    private final Ns4KafkaProperties ns4KafkaProperties;
+
+    /**
+     * Constructor.
+     *
+     * @param ns4KafkaProperties The Ns4Kafka properties
+     */
+    public AppInfoController(Ns4KafkaProperties ns4KafkaProperties) {
+        this.ns4KafkaProperties = ns4KafkaProperties;
+    }
 
     @Get("/version")
     public AppInfo version() {

@@ -27,20 +27,35 @@ import com.michelin.ns4kafka.util.enumation.ApplyStatus;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.security.utils.SecurityService;
-import jakarta.inject.Inject;
 import java.time.Instant;
 import java.util.Date;
 
 /** Resource controller. */
 public abstract class ResourceController {
     private static final String STATUS_HEADER = "X-Ns4kafka-Result";
+    protected final SecurityService securityService;
+    protected final ApplicationEventPublisher<AuditLog> applicationEventPublisher;
 
-    @Inject
-    protected SecurityService securityService;
+    /**
+     * Constructor.
+     *
+     * @param securityService The security service
+     * @param applicationEventPublisher The application event publisher
+     */
+    protected ResourceController(
+            SecurityService securityService, ApplicationEventPublisher<AuditLog> applicationEventPublisher) {
+        this.securityService = securityService;
+        this.applicationEventPublisher = applicationEventPublisher;
+    }
 
-    @Inject
-    protected ApplicationEventPublisher<AuditLog> applicationEventPublisher;
-
+    /**
+     * Format an HTTP response with the operation status in a header.
+     *
+     * @param body The response body
+     * @param status The operation status
+     * @return The formatted HTTP response
+     * @param <T> The type of the response body
+     */
     public <T> HttpResponse<T> formatHttpResponse(T body, ApplyStatus status) {
         return HttpResponse.ok(body).header(STATUS_HEADER, status.toString());
     }

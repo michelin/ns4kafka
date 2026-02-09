@@ -19,6 +19,7 @@
 package com.michelin.ns4kafka.repository.kafka;
 
 import com.michelin.ns4kafka.model.RoleBinding;
+import com.michelin.ns4kafka.property.Ns4KafkaProperties;
 import com.michelin.ns4kafka.repository.RoleBindingRepository;
 import io.micronaut.configuration.kafka.annotation.KafkaClient;
 import io.micronaut.configuration.kafka.annotation.KafkaListener;
@@ -26,9 +27,13 @@ import io.micronaut.configuration.kafka.annotation.OffsetReset;
 import io.micronaut.configuration.kafka.annotation.OffsetStrategy;
 import io.micronaut.configuration.kafka.annotation.Topic;
 import io.micronaut.context.annotation.Value;
+import io.micronaut.scheduling.TaskExecutors;
+import io.micronaut.scheduling.TaskScheduler;
+import jakarta.inject.Named;
 import jakarta.inject.Singleton;
 import java.util.Collection;
 import java.util.List;
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 
@@ -39,16 +44,23 @@ import org.apache.kafka.clients.producer.Producer;
         groupId = "${ns4kafka.store.kafka.group-id}",
         offsetStrategy = OffsetStrategy.DISABLED)
 public class KafkaRoleBindingRepository extends KafkaStore<RoleBinding> implements RoleBindingRepository {
+
     /**
      * Constructor.
      *
-     * @param kafkaTopic The role bindings topic
-     * @param kafkaProducer The role bindings kafka producer
+     * @param kafkaTopic The Kafka topic
+     * @param kafkaProducer The Kafka producer
+     * @param adminClient The Kafka admin client
+     * @param ns4KafkaProperties Ns4Kafka properties
+     * @param taskScheduler The task scheduler
      */
     public KafkaRoleBindingRepository(
             @Value("${ns4kafka.store.kafka.topics.prefix}.role-bindings") String kafkaTopic,
-            @KafkaClient("role-binding-producer") Producer<String, RoleBinding> kafkaProducer) {
-        super(kafkaTopic, kafkaProducer);
+            @KafkaClient("role-binding-producer") Producer<String, RoleBinding> kafkaProducer,
+            AdminClient adminClient,
+            Ns4KafkaProperties ns4KafkaProperties,
+            @Named(TaskExecutors.SCHEDULED) TaskScheduler taskScheduler) {
+        super(kafkaTopic, kafkaProducer, adminClient, ns4KafkaProperties, taskScheduler);
     }
 
     /**

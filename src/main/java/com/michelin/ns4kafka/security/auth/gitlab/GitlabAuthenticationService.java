@@ -20,7 +20,6 @@ package com.michelin.ns4kafka.security.auth.gitlab;
 
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpResponse;
-import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Map;
@@ -32,8 +31,16 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @Singleton
 public class GitlabAuthenticationService {
-    @Inject
-    private GitlabApiClient gitlabApiClient;
+    private final GitlabApiClient gitlabApiClient;
+
+    /**
+     * Constructor.
+     *
+     * @param gitlabApiClient The Gitlab API client
+     */
+    public GitlabAuthenticationService(GitlabApiClient gitlabApiClient) {
+        this.gitlabApiClient = gitlabApiClient;
+    }
 
     /**
      * Get all GitLab user groups.

@@ -18,28 +18,45 @@
  */
 package com.michelin.ns4kafka.controller.quota;
 
-import com.michelin.ns4kafka.controller.generic.NonNamespacedResourceController;
+import com.michelin.ns4kafka.controller.generic.ResourceController;
+import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.quota.ResourceQuotaResponse;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.ResourceQuotaService;
+import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
+import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
-import jakarta.inject.Inject;
 import java.util.List;
 
 /** Non namespaced resource quota controller. */
 @Tag(name = "Quotas", description = "Manage the resource quotas.")
 @Controller(value = "/api/resource-quotas")
 @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
-public class ResourceQuotaNonNamespacedController extends NonNamespacedResourceController {
-    @Inject
-    private ResourceQuotaService resourceQuotaService;
+public class ResourceQuotaNonNamespacedController extends ResourceController {
+    private final ResourceQuotaService resourceQuotaService;
+    private final NamespaceService namespaceService;
 
-    @Inject
-    private NamespaceService namespaceService;
+    /**
+     * Constructor.
+     *
+     * @param resourceQuotaService The resource quota service
+     * @param namespaceService The namespace service
+     * @param securityService The security service
+     * @param applicationEventPublisher The application event publisher
+     */
+    public ResourceQuotaNonNamespacedController(
+            ResourceQuotaService resourceQuotaService,
+            NamespaceService namespaceService,
+            SecurityService securityService,
+            ApplicationEventPublisher<AuditLog> applicationEventPublisher) {
+        super(securityService, applicationEventPublisher);
+        this.resourceQuotaService = resourceQuotaService;
+        this.namespaceService = namespaceService;
+    }
 
     /**
      * List quotas.

@@ -19,15 +19,20 @@
 package com.michelin.ns4kafka.repository.kafka;
 
 import com.michelin.ns4kafka.model.Topic;
+import com.michelin.ns4kafka.property.Ns4KafkaProperties;
 import com.michelin.ns4kafka.repository.TopicRepository;
 import io.micronaut.configuration.kafka.annotation.KafkaClient;
 import io.micronaut.configuration.kafka.annotation.KafkaListener;
 import io.micronaut.configuration.kafka.annotation.OffsetReset;
 import io.micronaut.configuration.kafka.annotation.OffsetStrategy;
 import io.micronaut.context.annotation.Value;
+import io.micronaut.scheduling.TaskExecutors;
+import io.micronaut.scheduling.TaskScheduler;
+import jakarta.inject.Named;
 import jakarta.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 
@@ -39,10 +44,22 @@ import org.apache.kafka.clients.producer.Producer;
         offsetStrategy = OffsetStrategy.DISABLED)
 public class KafkaTopicRepository extends KafkaStore<Topic> implements TopicRepository {
 
+    /**
+     * Constructor.
+     *
+     * @param kafkaTopic The Kafka topic
+     * @param kafkaProducer The Kafka producer
+     * @param adminClient The Kafka admin client
+     * @param ns4KafkaProperties Ns4Kafka properties
+     * @param taskScheduler The task scheduler
+     */
     public KafkaTopicRepository(
             @Value("${ns4kafka.store.kafka.topics.prefix}.topics") String kafkaTopic,
-            @KafkaClient("topics-producer") Producer<String, Topic> kafkaProducer) {
-        super(kafkaTopic, kafkaProducer);
+            @KafkaClient("topics-producer") Producer<String, Topic> kafkaProducer,
+            AdminClient adminClient,
+            Ns4KafkaProperties ns4KafkaProperties,
+            @Named(TaskExecutors.SCHEDULED) TaskScheduler taskScheduler) {
+        super(kafkaTopic, kafkaProducer, adminClient, ns4KafkaProperties, taskScheduler);
     }
 
     @Override

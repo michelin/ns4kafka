@@ -27,7 +27,6 @@ import com.michelin.ns4kafka.service.RoleBindingService;
 import io.micronaut.security.authentication.AuthenticationException;
 import io.micronaut.security.authentication.AuthenticationFailed;
 import io.micronaut.security.authentication.AuthenticationResponse;
-import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,14 +38,25 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Singleton
 public class AuthenticationService {
-    @Inject
-    private ResourceBasedSecurityRule resourceBasedSecurityRule;
+    private final ResourceBasedSecurityRule resourceBasedSecurityRule;
+    private final RoleBindingService roleBindingService;
+    private final Ns4KafkaProperties ns4KafkaProperties;
 
-    @Inject
-    private RoleBindingService roleBindingService;
-
-    @Inject
-    private Ns4KafkaProperties ns4KafkaProperties;
+    /**
+     * Constructor.
+     *
+     * @param resourceBasedSecurityRule The resource based security rule
+     * @param ns4KafkaProperties The Ns4Kafka properties
+     * @param roleBindingService The role binding service
+     */
+    public AuthenticationService(
+            ResourceBasedSecurityRule resourceBasedSecurityRule,
+            Ns4KafkaProperties ns4KafkaProperties,
+            RoleBindingService roleBindingService) {
+        this.resourceBasedSecurityRule = resourceBasedSecurityRule;
+        this.ns4KafkaProperties = ns4KafkaProperties;
+        this.roleBindingService = roleBindingService;
+    }
 
     /**
      * Build an authentication response with the user details.

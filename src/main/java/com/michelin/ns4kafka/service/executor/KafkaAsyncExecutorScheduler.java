@@ -21,7 +21,6 @@ package com.michelin.ns4kafka.service.executor;
 import io.micronaut.runtime.event.ApplicationStartupEvent;
 import io.micronaut.runtime.event.annotation.EventListener;
 import io.micronaut.scheduling.annotation.Scheduled;
-import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.time.Duration;
 import java.util.List;
@@ -34,18 +33,29 @@ import reactor.core.publisher.Flux;
 @Singleton
 public class KafkaAsyncExecutorScheduler {
     private final AtomicBoolean ready = new AtomicBoolean(false);
+    private final List<TopicAsyncExecutor> topicAsyncExecutors;
+    private final List<AccessControlEntryAsyncExecutor> accessControlEntryAsyncExecutors;
+    private final List<ConnectorAsyncExecutor> connectorAsyncExecutors;
+    private final List<UserAsyncExecutor> userAsyncExecutors;
 
-    @Inject
-    private List<TopicAsyncExecutor> topicAsyncExecutors;
-
-    @Inject
-    private List<AccessControlEntryAsyncExecutor> accessControlEntryAsyncExecutors;
-
-    @Inject
-    private List<ConnectorAsyncExecutor> connectorAsyncExecutors;
-
-    @Inject
-    private List<UserAsyncExecutor> userAsyncExecutors;
+    /**
+     * Constructor.
+     *
+     * @param topicAsyncExecutors The topic async executors
+     * @param accessControlEntryAsyncExecutors The access control entry async executors
+     * @param connectorAsyncExecutors The connector async executors
+     * @param userAsyncExecutors The user async executors
+     */
+    public KafkaAsyncExecutorScheduler(
+            List<TopicAsyncExecutor> topicAsyncExecutors,
+            List<AccessControlEntryAsyncExecutor> accessControlEntryAsyncExecutors,
+            List<ConnectorAsyncExecutor> connectorAsyncExecutors,
+            List<UserAsyncExecutor> userAsyncExecutors) {
+        this.topicAsyncExecutors = topicAsyncExecutors;
+        this.accessControlEntryAsyncExecutors = accessControlEntryAsyncExecutors;
+        this.connectorAsyncExecutors = connectorAsyncExecutors;
+        this.userAsyncExecutors = userAsyncExecutors;
+    }
 
     /**
      * Register when the application is ready.
