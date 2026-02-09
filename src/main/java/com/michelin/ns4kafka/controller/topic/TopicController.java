@@ -25,13 +25,16 @@ import static com.michelin.ns4kafka.util.enumation.Kind.TOPIC;
 import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 
 import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
+import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.DeleteRecordsResponse;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Topic;
+import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.ResourceQuotaService;
 import com.michelin.ns4kafka.service.TopicService;
 import com.michelin.ns4kafka.util.enumation.ApplyStatus;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
+import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
@@ -39,8 +42,8 @@ import io.micronaut.http.annotation.Delete;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
+import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -57,11 +60,28 @@ import org.apache.kafka.common.TopicPartition;
 @Tag(name = "Topics", description = "Manage the topics.")
 @Controller(value = "/api/namespaces/{namespace}/topics")
 public class TopicController extends NamespacedResourceController {
-    @Inject
-    private TopicService topicService;
+    private final TopicService topicService;
+    private final ResourceQuotaService resourceQuotaService;
 
-    @Inject
-    private ResourceQuotaService resourceQuotaService;
+    /**
+     * Constructor.
+     *
+     * @param topicService The topic service
+     * @param resourceQuotaService The resource quota service
+     * @param namespaceService The namespace service
+     * @param securityService The security service
+     * @param applicationEventPublisher The application event publisher
+     */
+    protected TopicController(
+            TopicService topicService,
+            ResourceQuotaService resourceQuotaService,
+            NamespaceService namespaceService,
+            SecurityService securityService,
+            ApplicationEventPublisher<AuditLog> applicationEventPublisher) {
+        super(namespaceService, securityService, applicationEventPublisher);
+        this.topicService = topicService;
+        this.resourceQuotaService = resourceQuotaService;
+    }
 
     /**
      * List topics by namespace, filtered by name parameter.

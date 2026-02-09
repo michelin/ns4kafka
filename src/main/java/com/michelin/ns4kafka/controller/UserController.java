@@ -23,19 +23,22 @@ import static com.michelin.ns4kafka.util.enumation.Kind.KAFKA_USER_RESET_PASSWOR
 import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 
 import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
+import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.KafkaUserResetPassword;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.executor.UserAsyncExecutor;
 import com.michelin.ns4kafka.util.enumation.ApplyStatus;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.context.ApplicationContext;
+import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.inject.qualifiers.Qualifiers;
+import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.inject.Inject;
 import java.time.Instant;
 import java.util.Date;
 import java.util.concurrent.ExecutionException;
@@ -45,8 +48,24 @@ import java.util.concurrent.TimeoutException;
 @Tag(name = "Users", description = "Manage the users.")
 @Controller(value = "/api/namespaces/{namespace}/users")
 public class UserController extends NamespacedResourceController {
-    @Inject
-    private ApplicationContext applicationContext;
+    private final ApplicationContext applicationContext;
+
+    /**
+     * Constructor.
+     *
+     * @param applicationContext The application context
+     * @param namespaceService The namespace service
+     * @param securityService The security service
+     * @param applicationEventPublisher The application event publisher
+     */
+    protected UserController(
+            ApplicationContext applicationContext,
+            NamespaceService namespaceService,
+            SecurityService securityService,
+            ApplicationEventPublisher<AuditLog> applicationEventPublisher) {
+        super(namespaceService, securityService, applicationEventPublisher);
+        this.applicationContext = applicationContext;
+    }
 
     /**
      * Reset a user's password.

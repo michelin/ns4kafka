@@ -54,7 +54,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AlterConfigOp;
@@ -74,7 +73,6 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @EachBean(ManagedClusterProperties.class)
 @Singleton
-@AllArgsConstructor
 public class TopicAsyncExecutor {
     public static final String CLUSTER_ID = "cluster.id";
     public static final String TOPIC_ENTITY_TYPE = "kafka_topic";
@@ -82,9 +80,31 @@ public class TopicAsyncExecutor {
 
     private final ManagedClusterProperties managedClusterProperties;
     private final NamespaceService namespaceService;
-    private TopicRepository topicRepository;
-    private SchemaRegistryClient schemaRegistryClient;
-    private Ns4KafkaProperties ns4KafkaProperties;
+    private final TopicRepository topicRepository;
+    private final SchemaRegistryClient schemaRegistryClient;
+    private final Ns4KafkaProperties ns4KafkaProperties;
+
+    /**
+     * Constructor.
+     *
+     * @param managedClusterProperties The managed cluster properties
+     * @param namespaceService The namespace service
+     * @param topicRepository The topic repository
+     * @param schemaRegistryClient The schema registry client
+     * @param ns4KafkaProperties The Ns4Kafka properties
+     */
+    public TopicAsyncExecutor(
+            ManagedClusterProperties managedClusterProperties,
+            NamespaceService namespaceService,
+            TopicRepository topicRepository,
+            SchemaRegistryClient schemaRegistryClient,
+            Ns4KafkaProperties ns4KafkaProperties) {
+        this.managedClusterProperties = managedClusterProperties;
+        this.namespaceService = namespaceService;
+        this.topicRepository = topicRepository;
+        this.schemaRegistryClient = schemaRegistryClient;
+        this.ns4KafkaProperties = ns4KafkaProperties;
+    }
 
     /** Run the topic synchronization. */
     public void run() {

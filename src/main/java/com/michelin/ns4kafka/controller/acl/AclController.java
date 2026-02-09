@@ -27,11 +27,14 @@ import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 
 import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.model.AccessControlEntry;
+import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.service.AclService;
+import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.util.enumation.ApplyStatus;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
+import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
@@ -40,8 +43,8 @@ import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
 import io.micronaut.security.authentication.Authentication;
+import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.Comparator;
@@ -53,8 +56,24 @@ import java.util.Optional;
 @Tag(name = "ACLs", description = "Manage the ACLs.")
 @Controller("/api/namespaces/{namespace}/acls")
 public class AclController extends NamespacedResourceController {
-    @Inject
-    private AclService aclService;
+    private final AclService aclService;
+
+    /**
+     * Constructor.
+     *
+     * @param aclService The ACL service
+     * @param namespaceService The namespace service
+     * @param securityService The security service
+     * @param applicationEventPublisher The application event publisher
+     */
+    public AclController(
+            AclService aclService,
+            NamespaceService namespaceService,
+            SecurityService securityService,
+            ApplicationEventPublisher<AuditLog> applicationEventPublisher) {
+        super(namespaceService, securityService, applicationEventPublisher);
+        this.aclService = aclService;
+    }
 
     /**
      * List ACLs by namespace.

@@ -29,7 +29,6 @@ import io.micronaut.security.authentication.AuthenticationFailureReason;
 import io.micronaut.security.authentication.AuthenticationRequest;
 import io.micronaut.security.authentication.AuthenticationResponse;
 import io.micronaut.security.authentication.provider.ReactiveAuthenticationProvider;
-import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
@@ -40,11 +39,20 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @Singleton
 public class LocalUserAuthenticationProvider implements ReactiveAuthenticationProvider<HttpRequest<?>, String, String> {
-    @Inject
-    private Ns4KafkaProperties ns4KafkaProperties;
+    private final Ns4KafkaProperties ns4KafkaProperties;
+    private final AuthenticationService authenticationService;
 
-    @Inject
-    private AuthenticationService authenticationService;
+    /**
+     * Constructor.
+     *
+     * @param authenticationService The authentication service
+     * @param ns4KafkaProperties The NS4Kafka properties
+     */
+    public LocalUserAuthenticationProvider(
+            AuthenticationService authenticationService, Ns4KafkaProperties ns4KafkaProperties) {
+        this.authenticationService = authenticationService;
+        this.ns4KafkaProperties = ns4KafkaProperties;
+    }
 
     @Override
     public @NonNull Publisher<AuthenticationResponse> authenticate(

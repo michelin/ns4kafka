@@ -28,7 +28,6 @@ import com.michelin.ns4kafka.repository.ResourceQuotaRepository;
 import com.michelin.ns4kafka.repository.kafka.KafkaStoreException;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.context.annotation.EachBean;
-import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.security.SecureRandom;
 import java.util.Base64;
@@ -57,26 +56,27 @@ import org.apache.kafka.common.quota.ClientQuotaFilterComponent;
 @Singleton
 public class UserAsyncExecutor {
     public static final double BYTE_RATE_DEFAULT_VALUE = 102400.0;
-
     private static final String USER_QUOTA_PREFIX = "user/";
-
     private final ManagedClusterProperties managedClusterProperties;
-
+    private final NamespaceRepository namespaceRepository;
+    private final ResourceQuotaRepository quotaRepository;
     private final AbstractUserSynchronizer userExecutor;
-
-    @Inject
-    private NamespaceRepository namespaceRepository;
-
-    @Inject
-    private ResourceQuotaRepository quotaRepository;
 
     /**
      * Constructor.
      *
      * @param managedClusterProperties The managed cluster properties
+     * @param namespaceRepository The namespace repository
+     * @param quotaRepository The resource quota repository
      */
-    public UserAsyncExecutor(ManagedClusterProperties managedClusterProperties) {
+    public UserAsyncExecutor(
+            ManagedClusterProperties managedClusterProperties,
+            NamespaceRepository namespaceRepository,
+            ResourceQuotaRepository quotaRepository) {
         this.managedClusterProperties = managedClusterProperties;
+        this.namespaceRepository = namespaceRepository;
+        this.quotaRepository = quotaRepository;
+
         if (Objects.requireNonNull(managedClusterProperties.getProvider())
                 == ManagedClusterProperties.KafkaProvider.SELF_MANAGED) {
             this.userExecutor = new Scram512UserSynchronizer(managedClusterProperties);

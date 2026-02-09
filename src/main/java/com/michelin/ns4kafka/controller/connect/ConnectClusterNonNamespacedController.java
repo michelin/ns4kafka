@@ -18,18 +18,20 @@
  */
 package com.michelin.ns4kafka.controller.connect;
 
-import com.michelin.ns4kafka.controller.generic.NonNamespacedResourceController;
+import com.michelin.ns4kafka.controller.generic.ResourceController;
+import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.connect.cluster.ConnectCluster;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.service.ConnectClusterService;
+import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.QueryValue;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
+import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
-import jakarta.inject.Inject;
 import reactor.core.publisher.Flux;
 
 /** Non-namespaced controller to manage Kafka Connect clusters. */
@@ -37,9 +39,23 @@ import reactor.core.publisher.Flux;
 @Controller(value = "/api/connect-clusters")
 @ExecuteOn(TaskExecutors.IO)
 @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
-public class ConnectClusterNonNamespacedController extends NonNamespacedResourceController {
-    @Inject
-    private ConnectClusterService connectClusterService;
+public class ConnectClusterNonNamespacedController extends ResourceController {
+    private final ConnectClusterService connectClusterService;
+
+    /**
+     * Constructor.
+     *
+     * @param connectClusterService The Kafka Connect cluster service
+     * @param securityService The security service
+     * @param applicationEventPublisher The application event publisher
+     */
+    public ConnectClusterNonNamespacedController(
+            ConnectClusterService connectClusterService,
+            SecurityService securityService,
+            ApplicationEventPublisher<AuditLog> applicationEventPublisher) {
+        super(securityService, applicationEventPublisher);
+        this.connectClusterService = connectClusterService;
+    }
 
     /**
      * List Kafka Connect clusters.

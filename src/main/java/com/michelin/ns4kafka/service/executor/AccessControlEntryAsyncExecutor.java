@@ -39,7 +39,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Stream;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.common.acl.AccessControlEntryFilter;
@@ -56,17 +55,31 @@ import org.apache.kafka.common.resource.ResourceType;
 @Slf4j
 @EachBean(ManagedClusterProperties.class)
 @Singleton
-@AllArgsConstructor
 public class AccessControlEntryAsyncExecutor {
     private static final String USER_PRINCIPAL = "User:";
-
     private final ManagedClusterProperties managedClusterProperties;
+    private final AclService aclService;
+    private final StreamService streamService;
+    private final NamespaceRepository namespaceRepository;
 
-    private AclService aclService;
-
-    private StreamService streamService;
-
-    private NamespaceRepository namespaceRepository;
+    /**
+     * Constructor.
+     *
+     * @param managedClusterProperties The managed cluster properties
+     * @param aclService The ACL service
+     * @param streamService The stream service
+     * @param namespaceRepository The namespace repository
+     */
+    public AccessControlEntryAsyncExecutor(
+            ManagedClusterProperties managedClusterProperties,
+            AclService aclService,
+            StreamService streamService,
+            NamespaceRepository namespaceRepository) {
+        this.managedClusterProperties = managedClusterProperties;
+        this.aclService = aclService;
+        this.streamService = streamService;
+        this.namespaceRepository = namespaceRepository;
+    }
 
     /** Run the ACLs synchronization. */
     public void run() {

@@ -39,7 +39,6 @@ import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.ReadTimeoutException;
 import io.micronaut.retry.annotation.Retryable;
-import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -58,22 +57,33 @@ import reactor.core.publisher.Mono;
 public class KafkaConnectClient {
     private static final String CONNECTORS = "/connectors/";
 
-    @Inject
-    ConnectClusterRepository connectClusterRepository;
+    private final ConnectClusterRepository connectClusterRepository;
+    private final HttpClient httpClient;
+    private final HttpClient httpClientHealthCheck;
+    private final List<ManagedClusterProperties> managedClusterProperties;
+    private final Ns4KafkaProperties ns4KafkaProperties;
 
-    @Inject
-    @Client(id = "kafka-connect")
-    private HttpClient httpClient;
-
-    @Inject
-    @Client(id = "kafka-connect-health-check")
-    private HttpClient httpClientHealthCheck;
-
-    @Inject
-    private List<ManagedClusterProperties> managedClusterProperties;
-
-    @Inject
-    private Ns4KafkaProperties ns4KafkaProperties;
+    /**
+     * Constructor.
+     *
+     * @param connectClusterRepository The connect cluster repository
+     * @param httpClient The HTTP client
+     * @param httpClientHealthCheck The HTTP client for health checks
+     * @param managedClusterProperties The managed cluster properties
+     * @param ns4KafkaProperties The Ns4Kafka properties
+     */
+    public KafkaConnectClient(
+            ConnectClusterRepository connectClusterRepository,
+            @Client(id = "kafka-connect") HttpClient httpClient,
+            @Client(id = "kafka-connect-health-check") HttpClient httpClientHealthCheck,
+            List<ManagedClusterProperties> managedClusterProperties,
+            Ns4KafkaProperties ns4KafkaProperties) {
+        this.connectClusterRepository = connectClusterRepository;
+        this.httpClient = httpClient;
+        this.httpClientHealthCheck = httpClientHealthCheck;
+        this.managedClusterProperties = managedClusterProperties;
+        this.ns4KafkaProperties = ns4KafkaProperties;
+    }
 
     /**
      * Get the Kafka connect version. Used to determine if the Kafka Connect is up and running.

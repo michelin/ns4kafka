@@ -18,14 +18,30 @@
  */
 package com.michelin.ns4kafka.controller.generic;
 
+import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.service.NamespaceService;
-import jakarta.inject.Inject;
+import io.micronaut.context.event.ApplicationEventPublisher;
+import io.micronaut.security.utils.SecurityService;
 
 /** Namespaced resource controller. */
 public abstract class NamespacedResourceController extends ResourceController {
-    @Inject
-    private NamespaceService namespaceService;
+    private final NamespaceService namespaceService;
+
+    /**
+     * Constructor.
+     *
+     * @param namespaceService The namespace service
+     * @param securityService The security service
+     * @param applicationEventPublisher The application event publisher
+     */
+    protected NamespacedResourceController(
+            NamespaceService namespaceService,
+            SecurityService securityService,
+            ApplicationEventPublisher<AuditLog> applicationEventPublisher) {
+        super(securityService, applicationEventPublisher);
+        this.namespaceService = namespaceService;
+    }
 
     /**
      * Call this to get the Namespace associated with the current request.

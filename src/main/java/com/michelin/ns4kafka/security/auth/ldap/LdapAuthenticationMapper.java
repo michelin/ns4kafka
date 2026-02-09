@@ -27,7 +27,6 @@ import io.micronaut.security.authentication.AuthenticationResponse;
 import io.micronaut.security.ldap.ContextAuthenticationMapper;
 import io.micronaut.security.ldap.DefaultContextAuthenticationMapper;
 import io.micronaut.security.ldap.configuration.LdapConfiguration;
-import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Set;
@@ -37,8 +36,16 @@ import java.util.Set;
 @Replaces(DefaultContextAuthenticationMapper.class)
 @Requires(property = LdapConfiguration.PREFIX + ".enabled", notEquals = StringUtils.FALSE)
 public class LdapAuthenticationMapper implements ContextAuthenticationMapper {
-    @Inject
-    private AuthenticationService authenticationService;
+    private final AuthenticationService authenticationService;
+
+    /**
+     * Constructor.
+     *
+     * @param authenticationService The authentication service
+     */
+    public LdapAuthenticationMapper(AuthenticationService authenticationService) {
+        this.authenticationService = authenticationService;
+    }
 
     @Override
     public AuthenticationResponse map(ConvertibleValues<Object> attributes, String username, Set<String> groups) {

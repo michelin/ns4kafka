@@ -19,6 +19,7 @@
 package com.michelin.ns4kafka.repository.kafka;
 
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.property.Ns4KafkaProperties;
 import com.michelin.ns4kafka.repository.NamespaceRepository;
 import io.micronaut.configuration.kafka.annotation.KafkaClient;
 import io.micronaut.configuration.kafka.annotation.KafkaListener;
@@ -26,9 +27,13 @@ import io.micronaut.configuration.kafka.annotation.OffsetReset;
 import io.micronaut.configuration.kafka.annotation.OffsetStrategy;
 import io.micronaut.configuration.kafka.annotation.Topic;
 import io.micronaut.context.annotation.Value;
+import io.micronaut.scheduling.TaskExecutors;
+import io.micronaut.scheduling.TaskScheduler;
+import jakarta.inject.Named;
 import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 
@@ -40,10 +45,22 @@ import org.apache.kafka.clients.producer.Producer;
         offsetStrategy = OffsetStrategy.DISABLED)
 public class KafkaNamespaceRepository extends KafkaStore<Namespace> implements NamespaceRepository {
 
+    /**
+     * Constructor.
+     *
+     * @param kafkaTopic The Kafka topic
+     * @param kafkaProducer The Kafka producer
+     * @param adminClient The Kafka admin client
+     * @param ns4KafkaProperties Ns4Kafka properties
+     * @param taskScheduler The task scheduler
+     */
     public KafkaNamespaceRepository(
             @Value("${ns4kafka.store.kafka.topics.prefix}.namespaces") String kafkaTopic,
-            @KafkaClient("namespace-producer") Producer<String, Namespace> kafkaProducer) {
-        super(kafkaTopic, kafkaProducer);
+            @KafkaClient("namespace-producer") Producer<String, Namespace> kafkaProducer,
+            AdminClient adminClient,
+            Ns4KafkaProperties ns4KafkaProperties,
+            @Named(TaskExecutors.SCHEDULED) TaskScheduler taskScheduler) {
+        super(kafkaTopic, kafkaProducer, adminClient, ns4KafkaProperties, taskScheduler);
     }
 
     @Override
