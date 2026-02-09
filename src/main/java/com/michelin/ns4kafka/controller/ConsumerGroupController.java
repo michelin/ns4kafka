@@ -18,8 +18,10 @@
  */
 package com.michelin.ns4kafka.controller;
 
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidConsumerGroupDeleteOperation;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidConsumerGroupOperation;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidOwner;
+import static com.michelin.ns4kafka.util.enumation.Kind.CONSUMER_GROUP;
 import static com.michelin.ns4kafka.util.enumation.Kind.CONSUMER_GROUP_RESET_OFFSET;
 import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 
@@ -30,8 +32,10 @@ import com.michelin.ns4kafka.model.consumer.group.ConsumerGroupResetOffsetsRespo
 import com.michelin.ns4kafka.service.ConsumerGroupService;
 import com.michelin.ns4kafka.util.enumation.ApplyStatus;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
+import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
+import io.micronaut.http.annotation.Delete;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -137,5 +141,47 @@ public class ConsumerGroupController extends NamespacedResourceController {
         }
 
         return topicPartitionOffsets;
+    }
+
+    /**
+     * Delete a consumer group.
+     *
+     * @param namespace The namespace
+     * @param consumerGroup The consumer group
+     * @param dryrun Is dry run mode or not?
+     * @return An HTTP response
+     * @throws ExecutionException   Any execution exception
+     * @throws InterruptedException Any interrupted exception
+     */
+    @Delete("/{consumerGroup}{?dryrun}")
+    public HttpResponse<Void> deleteConsumerGroup(
+            String namespace,
+            String consumerGroup,
+            @QueryValue(defaultValue = "false") boolean dryrun)
+            throws ExecutionException, InterruptedException {
+        if (!consumerGroupService.isNamespaceOwnerOfConsumerGroup(namespace, consumerGroup)) {
+            throw new ResourceValidationException(
+                    CONSUMER_GROUP,
+                    consumerGroup,
+                    invalidOwner("group", consumerGroup));
+        }
+
+        Namespace ns = getNamespace(namespace);
+        GroupState currentState = consumerGroupService.getConsumerGroupStatus(ns, consumerGroup);
+
+        if (currentState != GroupState.EMPTY) {
+            throw new ResourceValidationException(
+                    CONSUMER_GROUP,
+                    consumerGroup,
+                    invalidConsumerGroupDeleteOperation(
+                            consumerGroup,
+                            GroupState.EMPTY.toString().toLowerCase(),
+                            currentState.toString().toLowerCase()));
+        }
+
+        if (!dryrun) {
+            consumerGroupService.deleteConsumerGroup(ns, consumerGroup);
+        }
+        return HttpResponse.noContent();
     }
 }

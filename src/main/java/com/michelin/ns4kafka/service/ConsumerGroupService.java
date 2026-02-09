@@ -246,6 +246,22 @@ public class ConsumerGroupService {
     }
 
     /**
+     * Delete a given consumer group.
+     *
+     * @param namespace The namespace
+     * @param consumerGroupId The consumer group
+     * @throws InterruptedException Any interrupted exception during consumer groups deletion
+     * @throws ExecutionException Any execution exception during consumer groups deletion
+     */
+    public void deleteConsumerGroup(Namespace namespace, String consumerGroupId)
+            throws InterruptedException, ExecutionException {
+        ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor = applicationContext.getBean(
+                ConsumerGroupAsyncExecutor.class,
+                Qualifiers.byName(namespace.getMetadata().getCluster()));
+        consumerGroupAsyncExecutor.deleteConsumerGroups(List.of(consumerGroupId));
+    }
+
+    /**
      * Alter the offsets of a given consumer group.
      *
      * @param namespace The namespace

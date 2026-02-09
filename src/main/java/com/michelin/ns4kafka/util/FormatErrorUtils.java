@@ -325,6 +325,22 @@ public class FormatErrorUtils {
     }
 
     /**
+     * Invalid delete operation on consumer group.
+     *
+     * @param consumerGroup the consumer group
+     * @param targetState the target state
+     * @param currentState the current state
+     * @return the error message
+     */
+    public static String invalidConsumerGroupDeleteOperation(String consumerGroup, String targetState, String currentState) {
+        return INVALID_OPERATION.formatted(
+                "delete",
+                String.format(
+                        "consumer group \"%s\" can only be deleted if it is %s but the current state is %s",
+                        consumerGroup, targetState, currentState));
+    }
+
+    /**
      * Invalid shift by value.
      *
      * @param invalidShiftByValue the invalid shift by value

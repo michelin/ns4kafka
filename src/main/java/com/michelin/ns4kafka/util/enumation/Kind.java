@@ -26,6 +26,7 @@ public enum Kind {
     CHANGE_CONNECTOR_STATE("ChangeConnectorState"),
     CONNECT_CLUSTER("ConnectCluster"),
     CONNECTOR("Connector"),
+    CONSUMER_GROUP("ConsumerGroup"),
     CONSUMER_GROUP_RESET_OFFSET("ConsumerGroupResetOffsets"),
     CONSUMER_GROUP_RESET_OFFSET_RESPONSE("ConsumerGroupResetOffsetsResponse"),
     DELETE_RECORDS_RESPONSE("DeleteRecordsResponse"),
