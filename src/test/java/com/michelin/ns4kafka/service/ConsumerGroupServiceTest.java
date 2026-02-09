@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.model.Metadata;
@@ -392,5 +393,23 @@ class ConsumerGroupServiceTest {
         GroupState result = consumerGroupService.getConsumerGroupStatus(namespace, groupId);
 
         assertEquals(GroupState.EMPTY, result);
+    }
+
+    @Test
+    void shouldDeleteConsumerGroup() throws InterruptedException, ExecutionException {
+        Namespace namespace = Namespace.builder()
+                .metadata(Metadata.builder().cluster("test").build())
+                .build();
+        String groupId = "testGroup";
+
+        ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor = mock(ConsumerGroupAsyncExecutor.class);
+        when(applicationContext.getBean(
+                        ConsumerGroupAsyncExecutor.class,
+                        Qualifiers.byName(namespace.getMetadata().getCluster())))
+                .thenReturn(consumerGroupAsyncExecutor);
+
+        consumerGroupService.deleteConsumerGroup(namespace, groupId);
+
+        verify(consumerGroupAsyncExecutor).deleteConsumerGroups(List.of(groupId));
     }
 }
