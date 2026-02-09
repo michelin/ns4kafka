@@ -332,7 +332,8 @@ public class FormatErrorUtils {
      * @param currentState the current state
      * @return the error message
      */
-    public static String invalidConsumerGroupDeleteOperation(String consumerGroup, String targetState, String currentState) {
+    public static String invalidConsumerGroupDeleteOperation(
+            String consumerGroup, String targetState, String currentState) {
         return INVALID_OPERATION.formatted(
                 "delete",
                 String.format(

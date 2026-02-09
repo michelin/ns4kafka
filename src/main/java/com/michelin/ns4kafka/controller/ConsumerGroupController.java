@@ -150,20 +150,15 @@ public class ConsumerGroupController extends NamespacedResourceController {
      * @param consumerGroup The consumer group
      * @param dryrun Is dry run mode or not?
      * @return An HTTP response
-     * @throws ExecutionException   Any execution exception
+     * @throws ExecutionException Any execution exception
      * @throws InterruptedException Any interrupted exception
      */
     @Delete("/{consumerGroup}{?dryrun}")
     public HttpResponse<Void> deleteConsumerGroup(
-            String namespace,
-            String consumerGroup,
-            @QueryValue(defaultValue = "false") boolean dryrun)
+            String namespace, String consumerGroup, @QueryValue(defaultValue = "false") boolean dryrun)
             throws ExecutionException, InterruptedException {
         if (!consumerGroupService.isNamespaceOwnerOfConsumerGroup(namespace, consumerGroup)) {
-            throw new ResourceValidationException(
-                    CONSUMER_GROUP,
-                    consumerGroup,
-                    invalidOwner("group", consumerGroup));
+            throw new ResourceValidationException(CONSUMER_GROUP, consumerGroup, invalidOwner("group", consumerGroup));
         }
 
         Namespace ns = getNamespace(namespace);
