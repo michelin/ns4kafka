@@ -32,7 +32,7 @@ import org.testcontainers.utility.DockerImageName;
 /** Base class for Kafka integration tests. */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class KafkaIntegrationTest implements TestPropertyProvider {
-    protected static final String CONFLUENT_PLATFORM_VERSION = "7.7.0";
+    protected static final String CONFLUENT_PLATFORM_VERSION = "8.0.3";
     protected static final Network NETWORK = Network.newNetwork();
     private Admin adminClient;
 
