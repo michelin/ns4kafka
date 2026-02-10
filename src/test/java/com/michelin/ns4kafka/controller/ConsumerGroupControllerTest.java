@@ -297,7 +297,6 @@ class ConsumerGroupControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
                 .thenReturn(true);
-        when(consumerGroupService.isConsumerGroupExisting(ns, "groupID")).thenReturn(true);
         when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(GroupState.EMPTY);
 
         HttpResponse<Void> response = consumerGroupController.deleteConsumerGroup("test", "groupID", false);
@@ -307,7 +306,7 @@ class ConsumerGroupControllerTest {
     }
 
     @Test
-    void shouldDeleteConsumerGroupDryRun() throws InterruptedException, ExecutionException {
+    void shouldNotDeleteConsumerGroupWhenDryRun() throws InterruptedException, ExecutionException {
         Namespace ns = Namespace.builder()
                 .metadata(Metadata.builder().name("test").cluster("local").build())
                 .build();
@@ -315,7 +314,6 @@ class ConsumerGroupControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
                 .thenReturn(true);
-        when(consumerGroupService.isConsumerGroupExisting(ns, "groupID")).thenReturn(true);
         when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(GroupState.EMPTY);
 
         HttpResponse<Void> response = consumerGroupController.deleteConsumerGroup("test", "groupID", true);
@@ -349,7 +347,6 @@ class ConsumerGroupControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
                 .thenReturn(true);
-        when(consumerGroupService.isConsumerGroupExisting(ns, "groupID")).thenReturn(true);
         when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(GroupState.STABLE);
 
         ResourceValidationException result = assertThrows(
@@ -366,7 +363,7 @@ class ConsumerGroupControllerTest {
     }
 
     @Test
-    void shouldNotDeleteConsumerGroupWhenDead() throws InterruptedException {
+    void shouldReturnNotFoundWhenConsumerGroupIsDead() throws InterruptedException, ExecutionException {
         Namespace ns = Namespace.builder()
                 .metadata(Metadata.builder().name("test").cluster("local").build())
                 .build();
@@ -374,19 +371,10 @@ class ConsumerGroupControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
                 .thenReturn(true);
-        when(consumerGroupService.isConsumerGroupExisting(ns, "groupID")).thenReturn(true);
         when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(GroupState.DEAD);
 
-        ResourceValidationException result = assertThrows(
-                ResourceValidationException.class,
-                () -> consumerGroupController.deleteConsumerGroup("test", "groupID", false));
+        HttpResponse<Void> response = consumerGroupController.deleteConsumerGroup("test", "groupID", false);
 
-        assertEquals(CONSUMER_GROUP, result.getKind());
-        assertEquals("groupID", result.getName());
-        assertEquals(
-                "Invalid \"delete\" operation: consumer group \"groupID\" can only be deleted if it is "
-                        + GroupState.EMPTY.toString().toLowerCase() + " but the current state is "
-                        + GroupState.DEAD.toString().toLowerCase() + ".",
-                result.getValidationErrors().getFirst());
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatus());
     }
 }
