@@ -162,7 +162,7 @@ public class FormatErrorUtils {
      */
     public static String invalidConnectClusterDeleteOperation(String connectCluster, List<Connector> connectors) {
         return INVALID_OPERATION.formatted(
-                "delete",
+                OPERATION_DELETE,
                 String.format(
                         "The Kafka Connect \"%s\" has %s deployed connector(s): %s. "
                                 + "Please remove the associated connector(s) before deleting it",
