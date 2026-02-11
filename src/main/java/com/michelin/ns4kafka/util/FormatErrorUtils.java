@@ -37,6 +37,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class FormatErrorUtils {
     private static final String OPERATION_APPLY = "apply";
+    private static final String OPERATION_DELETE = "delete";
     private static final String FIELD_NAME = "name";
     private static final String INVALID_FIELD = "Invalid value \"%s\" for field \"%s\": %s.";
     private static final String INVALID_FIELDS = "Invalid value \"%s/%s\" for fields \"%s/%s\": %s.";
@@ -335,7 +336,7 @@ public class FormatErrorUtils {
     public static String invalidConsumerGroupDeleteOperation(
             String consumerGroup, String targetState, String currentState) {
         return INVALID_OPERATION.formatted(
-                "delete",
+                OPERATION_DELETE,
                 String.format(
                         "consumer group \"%s\" can only be deleted if it is %s but the current state is %s",
                         consumerGroup, targetState, currentState));
@@ -483,7 +484,7 @@ public class FormatErrorUtils {
      */
     public static String invalidNamespaceDeleteOperation(String resourceName) {
         return INVALID_OPERATION.formatted(
-                "delete", "namespace resource %s must be deleted first".formatted(resourceName));
+                OPERATION_DELETE, "namespace resource %s must be deleted first".formatted(resourceName));
     }
 
     /**

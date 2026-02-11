@@ -363,7 +363,7 @@ class ConsumerGroupControllerTest {
     }
 
     @Test
-    void shouldReturnNotFoundWhenConsumerGroupIsDead() throws InterruptedException, ExecutionException {
+    void shouldNotDeleteConsumerGroupWhenDead() throws InterruptedException, ExecutionException {
         Namespace ns = Namespace.builder()
                 .metadata(Metadata.builder().name("test").cluster("local").build())
                 .build();
