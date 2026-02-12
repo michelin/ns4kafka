@@ -54,6 +54,8 @@ public abstract class SchemaRegistryIntegrationTest extends KafkaIntegrationTest
 
         Map<String, String> properties = new HashMap<>(brokerProperties);
         properties.put("ns4kafka.managed-clusters.test-cluster.schemaRegistry.url", getSchemaRegistryUrl());
+        properties.put(
+                "ns4kafka.managed-clusters.test-cluster-confluent-cloud.schemaRegistry.url", getSchemaRegistryUrl());
         return properties;
     }
 

@@ -96,7 +96,7 @@ public class AccessControlEntryAsyncExecutor {
             // List ACLs from broker
             List<AclBinding> brokerAcls = collectBrokerAcls(true);
 
-            // List ACLs from NS4Kafka
+            // List ACLs from Ns4Kafka
             List<AclBinding> ns4kafkaAcls = collectNs4KafkaAcls();
 
             List<AclBinding> toCreate = ns4kafkaAcls.stream()

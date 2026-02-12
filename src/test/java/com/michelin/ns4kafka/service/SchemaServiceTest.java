@@ -18,11 +18,13 @@
  */
 package com.michelin.ns4kafka.service;
 
+import static com.michelin.ns4kafka.model.schema.SubjectNameStrategy.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.anyString;
-import static org.mockito.Mockito.eq;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.argThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -30,16 +32,22 @@ import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.schema.Schema;
+import com.michelin.ns4kafka.model.schema.SubjectNameStrategy;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityCheckResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
+import com.michelin.ns4kafka.validation.TopicValidator;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -49,8 +57,6 @@ import reactor.test.StepVerifier;
 
 @ExtendWith(MockitoExtension.class)
 class SchemaServiceTest {
-    @InjectMocks
-    SchemaService schemaService;
 
     @Mock
     AclService aclService;
@@ -58,11 +64,14 @@ class SchemaServiceTest {
     @Mock
     SchemaRegistryClient schemaRegistryClient;
 
+    @InjectMocks
+    SchemaService schemaService;
+
     @Test
     void shouldListSchemasWithoutParameter() {
         Namespace namespace = buildNamespace();
         List<String> subjectsResponse =
-                Arrays.asList("prefix.schema-one", "prefix2.schema-two", "prefix2.schema-three");
+                Arrays.asList("prefix.schema-one-value", "prefix2.schema-two-value", "prefix2.schema-three-value");
 
         List<AccessControlEntry> acls = List.of(
                 AccessControlEntry.builder()
@@ -94,10 +103,10 @@ class SchemaServiceTest {
         when(aclService.isResourceCoveredByAcls(acls, "prefix2.schema-three")).thenReturn(false);
 
         StepVerifier.create(schemaService.findAllForNamespace(namespace))
-                .consumeNextWith(schema ->
-                        assertEquals("prefix.schema-one", schema.getMetadata().getName()))
-                .consumeNextWith(schema ->
-                        assertEquals("prefix2.schema-two", schema.getMetadata().getName()))
+                .consumeNextWith(schema -> assertEquals(
+                        "prefix.schema-one-value", schema.getMetadata().getName()))
+                .consumeNextWith(schema -> assertEquals(
+                        "prefix2.schema-two-value", schema.getMetadata().getName()))
                 .verifyComplete();
     }
 
@@ -114,7 +123,8 @@ class SchemaServiceTest {
     @Test
     void shouldListSchemaWithNameParameter() {
         Namespace namespace = buildNamespace();
-        List<String> subjectsResponse = List.of("prefix.schema-one", "prefix2.schema-two", "prefix2.schema-three");
+        List<String> subjectsResponse =
+                List.of("prefix.schema-one-value", "prefix2.schema-two-value", "prefix2.schema-three-value");
 
         List<AccessControlEntry> acls = List.of(
                 AccessControlEntry.builder()
@@ -144,19 +154,19 @@ class SchemaServiceTest {
         when(aclService.isResourceCoveredByAcls(acls, "prefix2.schema-two")).thenReturn(true);
         when(aclService.isResourceCoveredByAcls(acls, "prefix2.schema-three")).thenReturn(false);
 
-        StepVerifier.create(schemaService.findByWildcardName(namespace, "prefix.schema-one"))
-                .consumeNextWith(schema ->
-                        assertEquals("prefix.schema-one", schema.getMetadata().getName()))
+        StepVerifier.create(schemaService.findByWildcardName(namespace, "prefix.schema-one-value"))
+                .consumeNextWith(schema -> assertEquals(
+                        "prefix.schema-one-value", schema.getMetadata().getName()))
                 .verifyComplete();
         StepVerifier.create(schemaService.findByWildcardName(namespace, "prefix2.schema-three"))
                 .verifyComplete();
         StepVerifier.create(schemaService.findByWildcardName(namespace, "prefix3.schema-four"))
                 .verifyComplete();
         StepVerifier.create(schemaService.findByWildcardName(namespace, ""))
-                .consumeNextWith(schema ->
-                        assertEquals("prefix.schema-one", schema.getMetadata().getName()))
-                .consumeNextWith(schema ->
-                        assertEquals("prefix2.schema-two", schema.getMetadata().getName()))
+                .consumeNextWith(schema -> assertEquals(
+                        "prefix.schema-one-value", schema.getMetadata().getName()))
+                .consumeNextWith(schema -> assertEquals(
+                        "prefix2.schema-two-value", schema.getMetadata().getName()))
                 .verifyComplete();
     }
 
@@ -305,7 +315,7 @@ class SchemaServiceTest {
     @Test
     void shouldRegisterSchema() {
         Namespace namespace = buildNamespace();
-        Schema schema = buildSchema();
+        Schema schema = buildSchema("prefix.schema-one-value");
 
         when(schemaRegistryClient.register(any(), any(), any()))
                 .thenReturn(Mono.just(SchemaResponse.builder().id(1).version(1).build()));
@@ -356,7 +366,7 @@ class SchemaServiceTest {
     @Test
     void shouldValidateSchemaCompatibility() {
         Namespace namespace = buildNamespace();
-        Schema schema = buildSchema();
+        Schema schema = buildSchema("prefix.schema-one-value");
         SchemaCompatibilityCheckResponse schemaCompatibilityCheckResponse =
                 SchemaCompatibilityCheckResponse.builder().isCompatible(true).build();
 
@@ -372,7 +382,7 @@ class SchemaServiceTest {
     @Test
     void shouldNotValidateSchemaCompatibility() {
         Namespace namespace = buildNamespace();
-        Schema schema = buildSchema();
+        Schema schema = buildSchema("prefix.schema-one-value");
         SchemaCompatibilityCheckResponse schemaCompatibilityCheckResponse = SchemaCompatibilityCheckResponse.builder()
                 .isCompatible(false)
                 .messages(List.of("Incompatible schema"))
@@ -393,7 +403,7 @@ class SchemaServiceTest {
     @Test
     void shouldValidateSchemaCompatibilityWhen404NotFound() {
         Namespace namespace = buildNamespace();
-        Schema schema = buildSchema();
+        Schema schema = buildSchema("prefix.schema-one-value");
 
         when(schemaRegistryClient.validateSchemaCompatibility(any(), any(), any()))
                 .thenReturn(Mono.empty());
@@ -407,7 +417,7 @@ class SchemaServiceTest {
     @Test
     void shouldUpdateSchemaCompatibilityWhenResettingToDefault() {
         Namespace namespace = buildNamespace();
-        Schema schema = buildSchema();
+        Schema schema = buildSchema("prefix.schema-one-value");
 
         when(schemaRegistryClient.deleteCurrentCompatibilityBySubject(any(), any()))
                 .thenReturn(Mono.just(SchemaCompatibilityResponse.builder()
@@ -425,7 +435,7 @@ class SchemaServiceTest {
     @Test
     void shouldUpdateSubjectCompatibility() {
         Namespace namespace = buildNamespace();
-        Schema schema = buildSchema();
+        Schema schema = buildSchema("prefix.schema-one-value");
 
         when(schemaRegistryClient.updateSubjectCompatibility(any(), any(), any()))
                 .thenReturn(Mono.just(SchemaCompatibilityResponse.builder()
@@ -444,18 +454,21 @@ class SchemaServiceTest {
     void shouldNamespaceBeOwnerOfSchema() {
         Namespace ns = buildNamespace();
         when(aclService.isNamespaceOwnerOfResource(
-                        "myNamespace", AccessControlEntry.ResourceType.TOPIC, "prefix.schema-one"))
+                        eq("myNamespace"),
+                        eq(AccessControlEntry.ResourceType.TOPIC),
+                        argThat(arg -> arg.equals("prefix.schema-one") || arg.equals("com.michelin.User"))))
                 .thenReturn(true);
 
         assertTrue(schemaService.isNamespaceOwnerOfSubject(ns, "prefix.schema-one-key"));
         assertTrue(schemaService.isNamespaceOwnerOfSubject(ns, "prefix.schema-one-value"));
-        assertTrue(schemaService.isNamespaceOwnerOfSubject(ns, "prefix.schema-one"));
+        assertTrue(schemaService.isNamespaceOwnerOfSubject(ns, "prefix.schema-one-com.michelin.User"));
+        assertTrue(schemaService.isNamespaceOwnerOfSubject(ns, "com.michelin.User"));
     }
 
     @Test
     void shouldValidateSchema() {
         Namespace namespace = buildNamespace();
-        Schema schema = buildSchema();
+        Schema schema = buildSchema("prefix.schema-one-value");
         SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
 
         when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(), "header-value", "1"))
@@ -468,32 +481,52 @@ class SchemaServiceTest {
                 .verifyComplete();
     }
 
-    @Test
-    void shouldNotValidateSchema() {
-        Namespace namespace = buildNamespace();
-        Schema schema = buildSchema();
-        schema.getMetadata().setName("wrongSubjectName");
+    @ParameterizedTest
+    @MethodSource("subjectStrategies")
+    void shouldVerifySubjectStrategy(
+            List<SubjectNameStrategy> subjectNameStrategies,
+            String subjectName,
+            String schemaContent,
+            boolean expectedResult) {
+        Namespace namespace = Namespace.builder()
+                .metadata(
+                        Metadata.builder().name("myNamespace").cluster("local").build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .subjectNameStrategies(subjectNameStrategies)
+                        .topicValidator(TopicValidator.makeDefault())
+                        .build())
+                .build();
+
+        Schema schema = Schema.builder()
+                .metadata(Metadata.builder().name(subjectName).build())
+                .spec(Schema.SchemaSpec.builder()
+                        .schema(schemaContent)
+                        .references(List.of(Schema.SchemaSpec.Reference.builder()
+                                .name("HeaderAvro")
+                                .subject("header-value")
+                                .version(1)
+                                .build()))
+                        .build())
+                .build();
+        SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
 
         when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(), "header-value", "1"))
-                .thenReturn(Mono.empty());
+                .thenReturn(Mono.just(buildSchemaResponse("subject-reference")));
+        when(schemaRegistryClient.getCurrentCompatibilityBySubject(any(), any()))
+                .thenReturn(Mono.just(compatibilityResponse));
 
         StepVerifier.create(schemaService.validateSchema(namespace, schema))
-                .consumeNextWith(errors -> {
-                    assertTrue(errors.contains("Invalid value \"wrongSubjectName\" for field \"name\": "
-                            + "value must end with -key or -value."));
-                    assertTrue(errors.contains("Invalid value \"header-value\" for field \"references\": "
-                            + "subject header-value version 1 not found."));
-                })
+                .consumeNextWith(errors -> assertEquals(expectedResult, errors.isEmpty()))
                 .verifyComplete();
     }
 
     @Test
     void shouldGetEmptySchemaReferences() {
         Namespace namespace = buildNamespace();
-        Schema schema = buildSchema();
+        Schema schema = buildSchema("prefix.schema-one-value");
         schema.getSpec().setReferences(Collections.emptyList());
 
-        StepVerifier.create(schemaService.getSchemaReferences(schema, namespace))
+        StepVerifier.create(schemaService.getSchemaReferences(namespace, schema))
                 .consumeNextWith(refs -> assertTrue(refs.isEmpty()))
                 .verifyComplete();
     }
@@ -501,7 +534,7 @@ class SchemaServiceTest {
     @Test
     void shouldGetSchemaReferences() {
         Namespace namespace = buildNamespace();
-        Schema schema = buildSchema();
+        Schema schema = buildSchema("prefix.schema-one-value");
         SchemaResponse schemaResponse = buildReferenceSchemaResponse("header-value");
         SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
 
@@ -510,7 +543,7 @@ class SchemaServiceTest {
         when(schemaRegistryClient.getCurrentCompatibilityBySubject(any(), any()))
                 .thenReturn(Mono.just(compatibilityResponse));
 
-        StepVerifier.create(schemaService.getSchemaReferences(schema, namespace))
+        StepVerifier.create(schemaService.getSchemaReferences(namespace, schema))
                 .consumeNextWith(refs -> assertTrue(
                         refs.containsKey(schemaResponse.subject()) && refs.containsValue(schemaResponse.schema())))
                 .verifyComplete();
@@ -519,7 +552,7 @@ class SchemaServiceTest {
     @Test
     void shouldBeEqualByCanonicalStringAndRefs() {
         Namespace namespace = buildNamespace();
-        Schema schema = buildSchema();
+        Schema schema = buildSchema("prefix.schema-one-value");
         SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
         Schema schemaV2 = buildSchemaV2();
 
@@ -536,7 +569,7 @@ class SchemaServiceTest {
     @Test
     void shouldBeEqualByCanonicalString() {
         Namespace namespace = buildNamespace();
-        Schema schema = buildSchema();
+        Schema schema = buildSchema("prefix.schema-one-value");
         schema.getSpec().setReferences(Collections.emptyList());
         Schema schemaV2 = buildSchemaV2();
 
@@ -548,7 +581,7 @@ class SchemaServiceTest {
     @Test
     void shouldNotBeEqualByCanonicalString() {
         Namespace namespace = buildNamespace();
-        Schema schema = buildSchema();
+        Schema schema = buildSchema("prefix.schema-one-value");
         schema.getSpec().setReferences(Collections.emptyList());
         Schema schemaV2 = buildSchemaV2();
 
@@ -560,7 +593,7 @@ class SchemaServiceTest {
     @Test
     void shouldNotBeEqualByCanonicalStringAndRefs() {
         Namespace namespace = buildNamespace();
-        Schema schema = buildSchema();
+        Schema schema = buildSchema("prefix.schema-one-value");
         Schema schemaV2 = buildSchemaV2();
         SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
 
@@ -574,17 +607,217 @@ class SchemaServiceTest {
                 .verifyComplete();
     }
 
+    @Test
+    void shouldExtractRecordName() {
+        Namespace namespace = buildNamespace();
+        Schema schema = buildSchema("com.michelin.kafka.producer.showcase.avro.PersonAvro");
+        SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
+
+        when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(), "header-value", "1"))
+                .thenReturn(Mono.just(buildReferenceSchemaResponse("header-value")));
+        when(schemaRegistryClient.getCurrentCompatibilityBySubject(any(), any()))
+                .thenReturn(Mono.just(compatibilityResponse));
+
+        StepVerifier.create(schemaService.extractRecordName(namespace, schema))
+                .consumeNextWith(result -> assertEquals("com.michelin.kafka.producer.showcase.avro.PersonAvro", result))
+                .verifyComplete();
+    }
+
+    @Test
+    void shouldExtractRecordNameFromUnion() {
+        Namespace namespace = buildNamespace();
+        Schema schema = Schema.builder()
+                .spec(Schema.SchemaSpec.builder()
+                        .schema("""
+                            {
+                             "type": "record",
+                             "namespace": "com.michelin.kafka.avro",
+                             "name": "AllTypes",
+                             "fields": [
+                               {
+                                 "name": "oneOf",
+                                 "type": [
+                                   "com.michelin.kafka.avro.Customer",
+                                   "com.michelin.kafka.avro.Product",
+                                   "com.michelin.kafka.avro.Order"
+                                 ]
+                               }
+                             ]
+                            }
+                            """)
+                        .references(List.of(
+                                Schema.SchemaSpec.Reference.builder()
+                                        .name("com.michelin.kafka.avro.Customer")
+                                        .subject("abc.customer-value")
+                                        .version(1)
+                                        .build(),
+                                Schema.SchemaSpec.Reference.builder()
+                                        .name("com.michelin.kafka.avro.Product")
+                                        .subject("abc.product-value")
+                                        .version(1)
+                                        .build(),
+                                Schema.SchemaSpec.Reference.builder()
+                                        .name("com.michelin.kafka.avro.Order")
+                                        .subject("abc.order-value")
+                                        .version(1)
+                                        .build()))
+                        .build())
+                .build();
+
+        SchemaCompatibilityResponse compatibilityResponse = buildCompatibilityResponse();
+        when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(), "abc.customer-value", "1"))
+                .thenReturn(Mono.just(SchemaResponse.builder()
+                        .id(1)
+                        .version(1)
+                        .subject("abc.customer-value")
+                        .schema("{\"namespace\":\"com.michelin.kafka.avro\",\"type\":\"record\","
+                                + "\"name\":\"Customer\",\"fields\":[{\"name\":\"id\",\"type\":[\"null\",\"string\"],"
+                                + "\"default\":null,\"doc\":\"Header ID\"}]}")
+                        .build()));
+        when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(), "abc.product-value", "1"))
+                .thenReturn(Mono.just(SchemaResponse.builder()
+                        .id(1)
+                        .version(1)
+                        .subject("abc.product-value")
+                        .schema("{\"namespace\":\"com.michelin.kafka.avro\",\"type\":\"record\","
+                                + "\"name\":\"Product\",\"fields\":[{\"name\":\"id\",\"type\":[\"null\",\"string\"],"
+                                + "\"default\":null,\"doc\":\"Header ID\"}]}")
+                        .build()));
+        when(schemaRegistryClient.getSubject(namespace.getMetadata().getCluster(), "abc.order-value", "1"))
+                .thenReturn(Mono.just(SchemaResponse.builder()
+                        .id(1)
+                        .version(1)
+                        .subject("abc.order-value")
+                        .schema("{\"namespace\":\"com.michelin.kafka.avro\",\"type\":\"record\","
+                                + "\"name\":\"Order\",\"fields\":[{\"name\":\"id\",\"type\":[\"null\",\"string\"],"
+                                + "\"default\":null,\"doc\":\"Header ID\"}]}")
+                        .build()));
+        when(schemaRegistryClient.getCurrentCompatibilityBySubject(any(), any()))
+                .thenReturn(Mono.just(compatibilityResponse));
+
+        StepVerifier.create(schemaService.extractRecordName(namespace, schema))
+                .consumeNextWith(result -> assertEquals("com.michelin.kafka.avro.AllTypes", result))
+                .verifyComplete();
+    }
+
+    @Test
+    void shouldNotExtractRecordNameWhenSchemaIsNull() {
+        Namespace namespace = buildNamespace();
+        Schema schema =
+                Schema.builder().spec(Schema.SchemaSpec.builder().build()).build();
+
+        StepVerifier.create(schemaService.extractRecordName(namespace, schema)).verifyComplete();
+    }
+
+    @Test
+    void shouldNotExtractRecordNameForNonAvroSchemas() {
+        Namespace namespace = buildNamespace();
+        Schema schema = Schema.builder()
+                .spec(Schema.SchemaSpec.builder()
+                        .schemaType(Schema.SchemaType.JSON)
+                        .build())
+                .build();
+
+        StepVerifier.create(schemaService.extractRecordName(namespace, schema)).verifyComplete();
+    }
+
+    @Test
+    void shouldExtractResourceNameFromSubject() {
+        assertEquals("abc-topic-name", schemaService.extractResourceNameFromSubject("abc-topic-name-key"));
+        assertEquals("abc.topic-name", schemaService.extractResourceNameFromSubject("abc.topic-name-key"));
+
+        assertEquals("abc-topic-name", schemaService.extractResourceNameFromSubject("abc-topic-name-value"));
+        assertEquals("abc.topic-name", schemaService.extractResourceNameFromSubject("abc.topic-name-value"));
+
+        assertEquals(
+                "com.michelin.kafka.producer.showcase.avro.PersonAvro",
+                schemaService.extractResourceNameFromSubject("com.michelin.kafka.producer.showcase.avro.PersonAvro"));
+
+        assertEquals(
+                "abc-topic-name",
+                schemaService.extractResourceNameFromSubject(
+                        "abc-topic-name-com.michelin.kafka.producer.showcase.avro.PersonAvro"));
+        assertEquals(
+                "abc.topic-name",
+                schemaService.extractResourceNameFromSubject(
+                        "abc.topic-name-com.michelin.kafka.producer.showcase.avro.PersonAvro"));
+    }
+
+    private static Stream<Arguments> subjectStrategies() {
+        return Stream.of(
+                // Valid: Topic name strategy for key subject
+                Arguments.of(
+                        SubjectNameStrategy.defaultStrategies(), "abc.topic-name-key", "{\"name\":\"User\"}", true),
+                // Valid: Topic name strategy for value subject
+                Arguments.of(
+                        SubjectNameStrategy.defaultStrategies(), "abc.topic-name-value", "{\"name\":\"User\"}", true),
+                // Invalid: Missing -key suffix
+                Arguments.of(
+                        SubjectNameStrategy.defaultStrategies(),
+                        "abc.topic-name-missingpart",
+                        "{\"name\":\"User\"}",
+                        false),
+                // Invalid: Missing -value suffix
+                Arguments.of(
+                        SubjectNameStrategy.defaultStrategies(),
+                        "abc.topic-name-missingpart",
+                        "{\"name\":\"User\"}",
+                        false),
+                // Invalid: No hyphen separator for key subject
+                Arguments.of(SubjectNameStrategy.defaultStrategies(), "abc.topickey", "{\"name\":\"User\"}", false),
+                // Invalid: No hyphen separator for value subject
+                Arguments.of(SubjectNameStrategy.defaultStrategies(), "abc.topicvalue", "{\"name\":\"User\"}", false),
+                // Invalid: Wrong authorized strategy for given subject
+                Arguments.of(
+                        SubjectNameStrategy.defaultStrategies(),
+                        "com.example.User",
+                        "{\"name\":\"User\",\"namespace\":\"com.example\",\"type\":\"record\",\"fields\":[]}",
+                        false),
+                // Valid: Record name strategy
+                Arguments.of(
+                        List.of(RECORD_NAME),
+                        "com.example.User",
+                        "{\"name\":\"User\",\"namespace\":\"com.example\",\"type\":\"record\",\"fields\":[]}",
+                        true),
+                // Invalid: Record name does not match subject
+                Arguments.of(
+                        List.of(RECORD_NAME),
+                        "org.sample.LoginEvent",
+                        "{\"name\":\"User\",\"namespace\":\"com.example\",\"type\":\"record\",\"fields\":[]}",
+                        false),
+                // Invalid: Wrong authorized strategy for given subject
+                Arguments.of(
+                        List.of(RECORD_NAME),
+                        "abc.topic-name-value",
+                        "{\"name\":\"User\",\"namespace\":\"com.example\",\"type\":\"record\",\"fields\":[]}",
+                        false),
+                // Valid: Topic record name strategy
+                Arguments.of(
+                        List.of(TOPIC_RECORD_NAME),
+                        "abc.topic-name-com.example.User",
+                        "{\"name\":\"User\",\"namespace\":\"com.example\",\"type\":\"record\",\"fields\":[]}",
+                        true),
+                // Invalid: Record name does not match subject
+                Arguments.of(
+                        List.of(TOPIC_RECORD_NAME),
+                        "abc.topic-name-org.sample.LoginEvent",
+                        "{\"name\":\"User\",\"namespace\":\"com.example\",\"type\":\"record\",\"fields\":[]}",
+                        false));
+    }
+
     private Namespace buildNamespace() {
         return Namespace.builder()
                 .metadata(
                         Metadata.builder().name("myNamespace").cluster("local").build())
-                .spec(Namespace.NamespaceSpec.builder().build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .topicValidator(TopicValidator.makeDefaultOneBroker())
+                        .build())
                 .build();
     }
 
-    private Schema buildSchema() {
+    private Schema buildSchema(String subject) {
         return Schema.builder()
-                .metadata(Metadata.builder().name("prefix.schema-one-value").build())
+                .metadata(Metadata.builder().name(subject).build())
                 .spec(Schema.SchemaSpec.builder()
                         .compatibility(Schema.Compatibility.BACKWARD)
                         .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
