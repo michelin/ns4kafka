@@ -149,7 +149,7 @@ public class ConsumerGroupService {
             // If the consumer group doesn't exist, describeConsumerGroups throw an ExecutionException
             // Check KIP1043
             // https://cwiki.apache.org/confluence/display/KAFKA/KIP-1043%3A+Administration+of+groups#KIP1043:Administrationofgroups-Compatibility,Deprecation,andMigrationPlan
-            return GroupState.EMPTY;
+            return GroupState.DEAD;
         }
     }
 
@@ -243,6 +243,22 @@ public class ConsumerGroupService {
             }
             default -> throw new IllegalArgumentException("Unreachable code");
         }
+    }
+
+    /**
+     * Delete a given consumer group.
+     *
+     * @param namespace The namespace
+     * @param consumerGroupId The consumer group
+     * @throws InterruptedException Any interrupted exception during consumer groups deletion
+     * @throws ExecutionException Any execution exception during consumer groups deletion
+     */
+    public void deleteConsumerGroup(Namespace namespace, String consumerGroupId)
+            throws InterruptedException, ExecutionException {
+        ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor = applicationContext.getBean(
+                ConsumerGroupAsyncExecutor.class,
+                Qualifiers.byName(namespace.getMetadata().getCluster()));
+        consumerGroupAsyncExecutor.deleteConsumerGroups(List.of(consumerGroupId));
     }
 
     /**

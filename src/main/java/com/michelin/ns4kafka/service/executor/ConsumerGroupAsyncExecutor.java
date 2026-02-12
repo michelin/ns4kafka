@@ -74,6 +74,17 @@ public class ConsumerGroupAsyncExecutor {
     }
 
     /**
+     * Delete the consumer groups.
+     *
+     * @param groupIds The consumer group ids
+     * @throws ExecutionException Any execution exception during consumer groups deletion
+     * @throws InterruptedException Any interrupted exception during consumer groups deletion
+     */
+    public void deleteConsumerGroups(List<String> groupIds) throws ExecutionException, InterruptedException {
+        getAdminClient().deleteConsumerGroups(groupIds).all().get();
+    }
+
+    /**
      * Alter the offsets of a given consumer group.
      *
      * @param consumerGroupId The consumer group
