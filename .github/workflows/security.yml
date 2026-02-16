@@ -17,7 +17,7 @@ jobs:
 
       - name: Trivy source code
         id: trivy_source_code
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@0.34.0
         with:
           scan-type: fs
           scan-ref: .
@@ -86,7 +86,7 @@ jobs:
           DOCKER_BUILD_SUMMARY: false
 
       - name: Trivy Docker image
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@0.34.0
         with:
           scan-type: image
           image-ref: ${{ steps.metadata.outputs.image_name }}
