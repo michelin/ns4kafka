@@ -49,7 +49,7 @@ dependencies {
     testImplementation("org.testcontainers:testcontainers:2.0.3")
     testImplementation("org.testcontainers:testcontainers-kafka:2.0.3")
     testImplementation("org.mockito:mockito-junit-jupiter:5.21.0")
-    testImplementation("org.junit.jupiter:junit-jupiter-params:6.0.2")
+    testImplementation("org.junit.jupiter:junit-jupiter-params:6.0.3")
     testImplementation("io.projectreactor:reactor-test")
 
     testAnnotationProcessor("org.projectlombok:lombok")
