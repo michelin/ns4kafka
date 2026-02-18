@@ -163,7 +163,7 @@ public class TopicAsyncExecutor {
             }
 
             if (managedClusterProperties.isSyncKstreamTopics()) {
-                HashSet<String> ns4KafkaTopicNames = ns4KafkaTopics.stream()
+                HashSet<String> ns4KafkaTopicNames = ns4kafkaTopics.stream()
                         .map(topic -> topic.getMetadata().getName())
                         .collect(Collectors.toCollection(HashSet::new));
 
