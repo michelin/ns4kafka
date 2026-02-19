@@ -29,7 +29,7 @@ kafka:
   producers:
     default:
       acks: 'all'
-      delivery.timeout.ms: 10000
+      delivery.timeout.ms: 30000
       request.timeout.ms: 10000
       retries: 1
 micronaut:
