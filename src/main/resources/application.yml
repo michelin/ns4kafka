@@ -148,6 +148,11 @@ ns4kafka:
     attempt: "5"
     delay: "2s"
     multiplier: "2.0"
+  scheduler:
+    connector:
+      interval-ms: 30000
+    connect:
+      interval-ms: 60000
   security:
     admin-group: "_"
     aes256-encryption-key: "changeitchangeitchangeitchangeit"

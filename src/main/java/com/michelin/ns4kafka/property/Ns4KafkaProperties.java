@@ -53,6 +53,7 @@ import lombok.Setter;
 public class Ns4KafkaProperties {
     private AkhqProperties akhq = new AkhqProperties();
     private ConfluentCloudProperties confluentCloud = new ConfluentCloudProperties();
+    private SchedulerProperties scheduler = new SchedulerProperties();
     private SecurityProperties security = new SecurityProperties();
     private StoreProperties store = new StoreProperties();
     private String version;
@@ -83,6 +84,28 @@ public class Ns4KafkaProperties {
         public static class StreamCatalogProperties {
             private int pageSize = 500;
             private boolean syncCatalog;
+        }
+    }
+
+    @Getter
+    @Setter
+    @ConfigurationProperties("scheduler")
+    public static class SchedulerProperties {
+        private ConnectorProperties connector = new ConnectorProperties();
+        private ConnectProperties connect = new ConnectProperties();
+
+        @Getter
+        @Setter
+        @ConfigurationProperties("connector")
+        public static class ConnectorProperties {
+            private int intervalMs = 30000;
+        }
+
+        @Getter
+        @Setter
+        @ConfigurationProperties("connect")
+        public static class ConnectProperties {
+            private int intervalMs = 60000;
         }
     }
 

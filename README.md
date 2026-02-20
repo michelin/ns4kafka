@@ -502,6 +502,19 @@ Once the configuration is in place, after successful authentication in AKHQ, use
 
 ### Technical
 
+#### Scheduler
+
+Ns4Kafka uses schedulers to synchronize Connect and Connectors.
+Their intervals can be configured with the following properties:
+
+```yaml
+ns4kafka:
+  connector:
+    interval-ms: 30000
+  connect:
+    interval-ms: 60000
+```
+
 #### Security
 
 Ns4Kafka encrypts sensitive data at rest in topics using AES-256 GCM encryption. 
