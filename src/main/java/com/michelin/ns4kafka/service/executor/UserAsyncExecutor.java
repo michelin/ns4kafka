@@ -87,7 +87,7 @@ public class UserAsyncExecutor {
 
     /** Run the user synchronization. */
     public void run() {
-        if (this.managedClusterProperties.isManageUsers() && userExecutor.canSynchronizeQuotas()) {
+        if (managedClusterProperties.isManageUsers() && userExecutor.canSynchronizeQuotas()) {
             synchronizeUsers();
         }
     }
