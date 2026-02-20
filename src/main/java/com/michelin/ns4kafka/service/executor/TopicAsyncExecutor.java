@@ -126,6 +126,7 @@ public class TopicAsyncExecutor {
             Map<Boolean, List<Topic>> partitioned = ns4KafkaTopics.stream()
                     .collect(Collectors.partitioningBy(topic ->
                             brokerTopics.containsKey(topic.getMetadata().getName())));
+
             List<Topic> checkTopics = partitioned.get(true);
             List<Topic> createTopics = partitioned.get(false);
 
@@ -167,11 +168,10 @@ public class TopicAsyncExecutor {
                 if (!unsyncStreamInternalTopics.isEmpty()) {
                     log.debug(
                             "Kafka Streams internal topics(s) to import: {}",
-                            String.join(
-                                    ", ",
-                                    unsyncStreamInternalTopics.stream()
-                                            .map(topic -> topic.getMetadata().getName())
-                                            .toList()));
+                            unsyncStreamInternalTopics.stream()
+                                    .map(topic -> topic.getMetadata().getName())
+                                    .collect(Collectors.joining(",")));
+
                     importTopics(unsyncStreamInternalTopics);
                 }
             }
@@ -179,11 +179,10 @@ public class TopicAsyncExecutor {
             if (!createTopics.isEmpty()) {
                 log.debug(
                         "Topic(s) to create: {}",
-                        String.join(
-                                ", ",
-                                createTopics.stream()
-                                        .map(topic -> topic.getMetadata().getName())
-                                        .toList()));
+                        createTopics.stream()
+                                .map(topic -> topic.getMetadata().getName())
+                                .collect(Collectors.joining(",")));
+
                 createTopics(createTopics);
             }
 
@@ -191,11 +190,10 @@ public class TopicAsyncExecutor {
                 if (log.isDebugEnabled()) {
                     log.debug(
                             "Topic(s) to update: {}",
-                            String.join(
-                                    ", ",
-                                    updateTopics.keySet().stream()
-                                            .map(ConfigResource::name)
-                                            .toList()));
+                            updateTopics.keySet().stream()
+                                    .map(ConfigResource::name)
+                                    .collect(Collectors.joining(",")));
+
                     for (Map.Entry<ConfigResource, Collection<AlterConfigOp>> e : updateTopics.entrySet()) {
                         for (AlterConfigOp op : e.getValue()) {
                             log.debug(
@@ -207,8 +205,10 @@ public class TopicAsyncExecutor {
                         }
                     }
                 }
+
                 alterTopics(updateTopics, checkTopics);
             }
+
             alterCatalogInfo(checkTopics, brokerTopics);
         } catch (ExecutionException | TimeoutException | CancellationException | KafkaStoreException e) {
             log.error("An error occurred during the topic synchronization", e);
@@ -691,8 +691,7 @@ public class TopicAsyncExecutor {
                 .stream()
                 .toList();
 
-        String tagsListString =
-                String.join(", ", tagsToCreate.stream().map(TagInfo::name).toList());
+        String tagsListString = tagsToCreate.stream().map(TagInfo::name).collect(Collectors.joining(","));
 
         schemaRegistryClient
                 .createTags(managedClusterProperties.getName(), tagsToCreate)
@@ -711,11 +710,9 @@ public class TopicAsyncExecutor {
                                                                         .getProperty(CLUSTER_ID) + ":"
                                                                 + topic.getMetadata()
                                                                         .getName() + "/"
-                                                                + String.join(
-                                                                        ", ",
-                                                                        tags.stream()
-                                                                                .map(TagTopicInfo::typeName)
-                                                                                .toList()));
+                                                                + tags.stream()
+                                                                        .map(TagTopicInfo::typeName)
+                                                                        .collect(Collectors.joining(",")));
                                                 topic.getMetadata()
                                                         .setGeneration(topic.getMetadata()
                                                                         .getGeneration()
@@ -732,11 +729,9 @@ public class TopicAsyncExecutor {
                                                                 + ":"
                                                                 + topic.getMetadata()
                                                                         .getName() + "/"
-                                                                + String.join(
-                                                                        ", ",
-                                                                        tags.stream()
-                                                                                .map(TagTopicInfo::typeName)
-                                                                                .toList()),
+                                                                + tags.stream()
+                                                                        .map(TagTopicInfo::typeName)
+                                                                        .collect(Collectors.joining(",")),
                                                         error);
                                                 topic.setStatus(Topic.TopicStatus.ofFailed(
                                                         "Error while associating topic tags: " + error.getMessage()));

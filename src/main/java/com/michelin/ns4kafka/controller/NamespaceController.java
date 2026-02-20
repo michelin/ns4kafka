@@ -49,6 +49,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /** Controller to manage the namespaces. */
 @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
@@ -173,11 +174,9 @@ public class NamespaceController extends ResourceController {
 
             throw new ResourceValidationException(
                     NAMESPACE,
-                    String.join(
-                            ",",
-                            namespaces.stream()
-                                    .map(namespace -> namespace.getMetadata().getName())
-                                    .toList()),
+                    namespaces.stream()
+                            .map(namespace -> namespace.getMetadata().getName())
+                            .collect(Collectors.joining(",")),
                     validationErrors);
         }
 
