@@ -35,6 +35,7 @@ import com.michelin.ns4kafka.service.client.schema.entities.TopicDescriptionUpda
 import com.michelin.ns4kafka.service.client.schema.entities.TopicDescriptionUpdateEntity;
 import com.michelin.ns4kafka.service.client.schema.entities.TopicListResponse;
 import io.micronaut.context.annotation.EachBean;
+import jakarta.annotation.PreDestroy;
 import jakarta.inject.Singleton;
 import java.time.Instant;
 import java.util.*;
@@ -46,7 +47,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AlterConfigOp;
 import org.apache.kafka.clients.admin.AlterConfigsResult;
 import org.apache.kafka.clients.admin.ConfigEntry;
@@ -75,6 +75,8 @@ public class TopicAsyncExecutor {
     private final TopicRepository topicRepository;
     private final SchemaRegistryClient schemaRegistryClient;
     private final Ns4KafkaProperties ns4KafkaProperties;
+
+    private Disposable tagSyncDisposable;
 
     /**
      * Constructor.
@@ -294,7 +296,7 @@ public class TopicAsyncExecutor {
                 .collect(Collectors.toMap(AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue));
 
         if (!topicTagsMapping.isEmpty()) {
-            createAndAssociateTags(topicTagsMapping);
+            tagSyncDisposable = createAndAssociateTags(topicTagsMapping);
         }
     }
 
@@ -307,7 +309,8 @@ public class TopicAsyncExecutor {
         List<String> topicsNames =
                 topics.stream().map(topic -> topic.getMetadata().getName()).toList();
 
-        getAdminClient()
+        managedClusterProperties
+                .getAdminClient()
                 .deleteTopics(topicsNames)
                 .all()
                 .get(managedClusterProperties.getTimeout().getTopic().getDelete(), TimeUnit.MILLISECONDS);
@@ -340,7 +343,8 @@ public class TopicAsyncExecutor {
      * @return All topic names
      */
     public List<String> listBrokerTopicNames() throws InterruptedException, ExecutionException, TimeoutException {
-        return getAdminClient()
+        return managedClusterProperties
+                .getAdminClient()
                 .listTopics()
                 .listings()
                 .get(managedClusterProperties.getTimeout().getTopic().getList(), TimeUnit.MILLISECONDS)
@@ -510,10 +514,14 @@ public class TopicAsyncExecutor {
      */
     public Map<String, Topic> collectBrokerTopicsFromNames(List<String> topicNames)
             throws InterruptedException, ExecutionException, TimeoutException {
-        Map<String, TopicDescription> topicDescriptions =
-                getAdminClient().describeTopics(topicNames).allTopicNames().get();
+        Map<String, TopicDescription> topicDescriptions = managedClusterProperties
+                .getAdminClient()
+                .describeTopics(topicNames)
+                .allTopicNames()
+                .get();
 
-        Map<String, Topic> topics = getAdminClient()
+        Map<String, Topic> topics = managedClusterProperties
+                .getAdminClient()
                 .describeConfigs(topicNames.stream()
                         .map(topicName -> new ConfigResource(ConfigResource.Type.TOPIC, topicName))
                         .toList())
@@ -558,7 +566,8 @@ public class TopicAsyncExecutor {
      * @param topics The current topics
      */
     private void alterTopics(Map<ConfigResource, Collection<AlterConfigOp>> toUpdate, List<Topic> topics) {
-        AlterConfigsResult alterConfigsResult = getAdminClient().incrementalAlterConfigs(toUpdate);
+        AlterConfigsResult alterConfigsResult =
+                managedClusterProperties.getAdminClient().incrementalAlterConfigs(toUpdate);
         alterConfigsResult.values().forEach((key, value) -> {
             Topic updatedTopic = topics.stream()
                     .filter(topic -> topic.getMetadata().getName().equals(key.name()))
@@ -614,7 +623,8 @@ public class TopicAsyncExecutor {
                 })
                 .toList();
 
-        CreateTopicsResult createTopicsResult = getAdminClient().createTopics(newTopics);
+        CreateTopicsResult createTopicsResult =
+                managedClusterProperties.getAdminClient().createTopics(newTopics);
         createTopicsResult.values().forEach((key, value) -> {
             Topic createdTopic = topics.stream()
                     .filter(t -> t.getMetadata().getName().equals(key))
@@ -778,13 +788,25 @@ public class TopicAsyncExecutor {
             throws ExecutionException, InterruptedException {
         // List all partitions for topic and prepare a listOffsets call
         Map<TopicPartition, OffsetSpec> topicsPartitionsToDelete =
-                getAdminClient().describeTopics(List.of(topic)).allTopicNames().get().entrySet().stream()
+                managedClusterProperties
+                        .getAdminClient()
+                        .describeTopics(List.of(topic))
+                        .allTopicNames()
+                        .get()
+                        .entrySet()
+                        .stream()
                         .flatMap(topicDescriptionEntry -> topicDescriptionEntry.getValue().partitions().stream())
                         .map(partitionInfo -> new TopicPartition(topic, partitionInfo.partition()))
                         .collect(Collectors.toMap(Function.identity(), _ -> OffsetSpec.latest()));
 
         // list all latest offsets for each partitions
-        return getAdminClient().listOffsets(topicsPartitionsToDelete).all().get().entrySet().stream()
+        return managedClusterProperties
+                .getAdminClient()
+                .listOffsets(topicsPartitionsToDelete)
+                .all()
+                .get()
+                .entrySet()
+                .stream()
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
                         kv -> RecordsToDelete.beforeOffset(kv.getValue().offset())));
@@ -799,7 +821,12 @@ public class TopicAsyncExecutor {
      */
     public Map<TopicPartition, Long> deleteRecords(Map<TopicPartition, RecordsToDelete> recordsToDelete)
             throws InterruptedException {
-        return getAdminClient().deleteRecords(recordsToDelete).lowWatermarks().entrySet().stream()
+        return managedClusterProperties
+                .getAdminClient()
+                .deleteRecords(recordsToDelete)
+                .lowWatermarks()
+                .entrySet()
+                .stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, kv -> {
                     try {
                         var newValue = kv.getValue().get().lowWatermark();
@@ -819,7 +846,11 @@ public class TopicAsyncExecutor {
                 }));
     }
 
-    private Admin getAdminClient() {
-        return managedClusterProperties.getAdminClient();
+    /** Dispose the topic synchronization disposable when the bean is destroyed. */
+    @PreDestroy
+    public void onDestroy() {
+        if (tagSyncDisposable != null && !tagSyncDisposable.isDisposed()) {
+            tagSyncDisposable.dispose();
+        }
     }
 }

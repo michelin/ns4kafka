@@ -33,6 +33,7 @@ import io.micronaut.context.annotation.EachBean;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import jakarta.inject.Singleton;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -270,8 +271,16 @@ public class ConnectorAsyncExecutor {
             String actualValue = e.getValue();
             String expectedValue = expectedMap.get(e.getKey());
             return (actualValue == null && expectedValue == null)
+                    // Password fields are masked when returned by the Connect API in CP 7.9.3+,
+                    // so they interfere with the comparison.
+                    // Two possible solutions:
+                    // 1) Check via the Connect API which fields are masked and ignore the
+                    //    comparison for those specific fields.
+                    // 2) Store the mask string and ignore the comparison when the "actual"
+                    //    value matches this mask.
+                    // Solution 2 is chosen since it is simpler and does not require additional API calls.
                     || SENSITIVE_FIELD_MASK.equals(e.getValue())
-                    || expectedValue.equals(actualValue);
+                    || Objects.equals(actualValue, expectedValue);
         });
     }
 
