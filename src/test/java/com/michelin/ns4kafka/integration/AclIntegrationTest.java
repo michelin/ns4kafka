@@ -606,27 +606,12 @@ class AclIntegrationTest extends KafkaIntegrationTest {
         // DELETE the Stream & ACL and verify
         ns4KafkaClient
                 .toBlocking()
-                .exchange(HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/streams/ns1-stream1")
+                .exchange(HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/streams?name=*")
                         .bearerAuth(token));
 
         ns4KafkaClient
                 .toBlocking()
-                .exchange(HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/streams/ns1-stream2")
-                        .bearerAuth(token));
-
-        ns4KafkaClient
-                .toBlocking()
-                .exchange(HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/acls/ns1-acl-topic")
-                        .bearerAuth(token));
-
-        ns4KafkaClient
-                .toBlocking()
-                .exchange(HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/acls/ns1-acl-group")
-                        .bearerAuth(token));
-
-        ns4KafkaClient
-                .toBlocking()
-                .exchange(HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/acls/ns1-acl-group2")
+                .exchange(HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/acls?name=*")
                         .bearerAuth(token));
 
         accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
