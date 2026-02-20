@@ -35,8 +35,6 @@ import jakarta.inject.Singleton;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -189,28 +187,24 @@ public class ConnectorAsyncExecutor {
                 .flatMapMany(brokerConnectors -> {
                     List<Connector> ns4kafkaConnectors = collectNs4KafkaConnectors(connectCluster);
 
-                    Set<Connector> toDeploy = ns4kafkaConnectors.stream()
-                            .filter(connector -> connector.getStatus() != null
-                                    && connector.getStatus().isToDeploy())
-                            .collect(Collectors.toSet());
-
-                    List<Connector> toCreate = ns4kafkaConnectors.stream()
-                            .filter(connector -> brokerConnectors.stream().noneMatch(connector1 -> connector1
-                                    .getMetadata()
-                                    .getName()
-                                    .equals(connector.getMetadata().getName())))
-                            .toList();
-
-                    List<Connector> toUpdate = ns4kafkaConnectors.stream()
-                            .filter(connector -> brokerConnectors.stream().anyMatch(connector1 -> {
-                                if (connector1
-                                        .getMetadata()
-                                        .getName()
-                                        .equals(connector.getMetadata().getName())) {
-                                    return !connectorsAreSame(connector, connector1);
-                                }
-                                return false;
-                            }))
+                    List<Connector> toDeploy = ns4kafkaConnectors.stream()
+                            .filter(connector -> (connector.getStatus() != null
+                                            && connector.getStatus().isToDeploy())
+                                    // connector not present in connect cluster
+                                    || brokerConnectors.stream().noneMatch(clusterConnector -> clusterConnector
+                                            .getMetadata()
+                                            .getName()
+                                            .equals(connector.getMetadata().getName()))
+                                    // connector config different in connect cluster
+                                    || brokerConnectors.stream().anyMatch(clusterConnector -> {
+                                        if (clusterConnector
+                                                .getMetadata()
+                                                .getName()
+                                                .equals(connector.getMetadata().getName())) {
+                                            return !connectorsAreSame(connector, clusterConnector);
+                                        }
+                                        return false;
+                                    }))
                             .toList();
 
                     if (!toDeploy.isEmpty()) {
@@ -223,31 +217,6 @@ public class ConnectorAsyncExecutor {
                                                         connector.getMetadata().getName())
                                                 .toList()));
                     }
-
-                    if (!toCreate.isEmpty()) {
-                        log.debug(
-                                "Connector(s) to create: {}",
-                                String.join(
-                                        ",",
-                                        toCreate.stream()
-                                                .map(connector ->
-                                                        connector.getMetadata().getName())
-                                                .toList()));
-                    }
-
-                    if (!toUpdate.isEmpty()) {
-                        log.debug(
-                                "Connector(s) to update: {}",
-                                String.join(
-                                        ",",
-                                        toUpdate.stream()
-                                                .map(connector ->
-                                                        connector.getMetadata().getName())
-                                                .toList()));
-                    }
-
-                    toDeploy.addAll(toCreate);
-                    toDeploy.addAll(toUpdate);
 
                     return Flux.fromStream(toDeploy.stream()).flatMap(this::deployConnector);
                 });
