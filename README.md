@@ -509,10 +509,11 @@ Their intervals can be configured with the following properties:
 
 ```yaml
 ns4kafka:
-  connector:
-    interval-ms: 30000
-  connect:
-    interval-ms: 60000
+  scheduler:
+    connector:
+      interval-ms: 30000
+    connect:
+      interval-ms: 60000
 ```
 
 #### Security
