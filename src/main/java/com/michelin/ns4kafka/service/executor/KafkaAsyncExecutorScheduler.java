@@ -18,6 +18,7 @@
  */
 package com.michelin.ns4kafka.service.executor;
 
+import com.michelin.ns4kafka.property.Ns4KafkaProperties;
 import io.micronaut.runtime.event.ApplicationStartupEvent;
 import io.micronaut.runtime.event.annotation.EventListener;
 import io.micronaut.scheduling.annotation.Scheduled;
@@ -37,6 +38,7 @@ public class KafkaAsyncExecutorScheduler {
     private final List<AccessControlEntryAsyncExecutor> accessControlEntryAsyncExecutors;
     private final List<ConnectorAsyncExecutor> connectorAsyncExecutors;
     private final List<UserAsyncExecutor> userAsyncExecutors;
+    private final Ns4KafkaProperties.SchedulerProperties schedulerProperties;
 
     /**
      * Constructor.
@@ -50,11 +52,13 @@ public class KafkaAsyncExecutorScheduler {
             List<TopicAsyncExecutor> topicAsyncExecutors,
             List<AccessControlEntryAsyncExecutor> accessControlEntryAsyncExecutors,
             List<ConnectorAsyncExecutor> connectorAsyncExecutors,
-            List<UserAsyncExecutor> userAsyncExecutors) {
+            List<UserAsyncExecutor> userAsyncExecutors,
+            Ns4KafkaProperties.SchedulerProperties schedulerProperties) {
         this.topicAsyncExecutors = topicAsyncExecutors;
         this.accessControlEntryAsyncExecutors = accessControlEntryAsyncExecutors;
         this.connectorAsyncExecutors = connectorAsyncExecutors;
         this.userAsyncExecutors = userAsyncExecutors;
+        this.schedulerProperties = schedulerProperties;
     }
 
     /**
@@ -83,7 +87,9 @@ public class KafkaAsyncExecutorScheduler {
 
     /** Schedule connector synchronization. */
     public void scheduleConnectorSynchronization() {
-        Flux.interval(Duration.ofSeconds(12), Duration.ofSeconds(30))
+        Flux.interval(
+                        Duration.ofSeconds(12),
+                        Duration.ofMillis(schedulerProperties.getConnector().getIntervalMs()))
                 .onBackpressureDrop(
                         _ -> log.debug("Skipping next connector synchronization. The previous one is still running."))
                 .concatMap(_ -> Flux.fromIterable(connectorAsyncExecutors).flatMap(ConnectorAsyncExecutor::run))
@@ -95,7 +101,9 @@ public class KafkaAsyncExecutorScheduler {
 
     /** Schedule connector synchronization. */
     public void scheduleConnectHealthCheck() {
-        Flux.interval(Duration.ofSeconds(5), Duration.ofSeconds(60))
+        Flux.interval(
+                        Duration.ofSeconds(5),
+                        Duration.ofMillis(schedulerProperties.getConnect().getIntervalMs()))
                 .onBackpressureDrop(_ ->
                         log.debug("Skipping next Connect cluster health check. The previous one is still running."))
                 .concatMap(

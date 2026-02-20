@@ -155,41 +155,11 @@ public class TopicAsyncExecutor {
             createTopics.removeIf(
                     topic -> topicsToIgnore.contains(topic.getMetadata().getName()));
 
-            if (!createTopics.isEmpty()) {
-                log.debug(
-                        "Topic(s) to create: {}",
-                        String.join(
-                                ", ",
-                                createTopics.stream()
-                                        .map(topic -> topic.getMetadata().getName())
-                                        .toList()));
-            }
-
-            if (!updateTopics.isEmpty()) {
-                log.debug(
-                        "Topic(s) to update: {}",
-                        String.join(
-                                ", ",
-                                updateTopics.keySet().stream()
-                                        .map(ConfigResource::name)
-                                        .toList()));
-                for (Map.Entry<ConfigResource, Collection<AlterConfigOp>> e : updateTopics.entrySet()) {
-                    for (AlterConfigOp op : e.getValue()) {
-                        log.debug(
-                                "{} {} {}({})",
-                                e.getKey().name(),
-                                op.opType().toString(),
-                                op.configEntry().name(),
-                                op.configEntry().value());
-                    }
-                }
-            }
-
             if (managedClusterProperties.isSyncKstreamTopics()) {
-                HashSet<String> ns4KafkaTopicNames = ns4KafkaTopics.stream()
+                Set<String> ns4KafkaTopicNames = ns4KafkaTopics.stream()
                         .map(topic -> topic.getMetadata().getName())
                         .filter(topic -> topic.endsWith("-changelog") || topic.endsWith("-repartition"))
-                        .collect(Collectors.toCollection(HashSet::new));
+                        .collect(Collectors.toSet());
 
                 List<Topic> unsyncStreamInternalTopics =
                         getUnsyncStreamsInternalTopics(brokerTopics, ns4KafkaTopicNames);
@@ -202,12 +172,43 @@ public class TopicAsyncExecutor {
                                     unsyncStreamInternalTopics.stream()
                                             .map(topic -> topic.getMetadata().getName())
                                             .toList()));
+                    importTopics(unsyncStreamInternalTopics);
                 }
-                importTopics(unsyncStreamInternalTopics);
             }
 
-            createTopics(createTopics);
-            alterTopics(updateTopics, checkTopics);
+            if (!createTopics.isEmpty()) {
+                log.debug(
+                        "Topic(s) to create: {}",
+                        String.join(
+                                ", ",
+                                createTopics.stream()
+                                        .map(topic -> topic.getMetadata().getName())
+                                        .toList()));
+                createTopics(createTopics);
+            }
+
+            if (!updateTopics.isEmpty()) {
+                if (log.isDebugEnabled()) {
+                    log.debug(
+                            "Topic(s) to update: {}",
+                            String.join(
+                                    ", ",
+                                    updateTopics.keySet().stream()
+                                            .map(ConfigResource::name)
+                                            .toList()));
+                    for (Map.Entry<ConfigResource, Collection<AlterConfigOp>> e : updateTopics.entrySet()) {
+                        for (AlterConfigOp op : e.getValue()) {
+                            log.debug(
+                                    "{} {} {}({})",
+                                    e.getKey().name(),
+                                    op.opType().toString(),
+                                    op.configEntry().name(),
+                                    op.configEntry().value());
+                        }
+                    }
+                }
+                alterTopics(updateTopics, checkTopics);
+            }
             alterCatalogInfo(checkTopics, brokerTopics);
         } catch (ExecutionException | TimeoutException | CancellationException | KafkaStoreException e) {
             log.error("An error occurred during the topic synchronization", e);
@@ -225,16 +226,16 @@ public class TopicAsyncExecutor {
      * @return A list of unsynchronized Kafka Streams internal topics
      */
     private List<Topic> getUnsyncStreamsInternalTopics(
-            Map<String, Topic> brokerTopics, HashSet<String> ns4KafkaTopicNames) {
+            Map<String, Topic> brokerTopics, Set<String> ns4KafkaTopicNames) {
         List<Namespace> namespaces = namespaceService.findAll();
         return brokerTopics.values().stream()
+                // Keep topics that are not already in Ns4Kafka
+                .filter(topic ->
+                        !ns4KafkaTopicNames.contains(topic.getMetadata().getName()))
                 // Keep Kafka Streams topics
                 .filter(topic -> topic.getMetadata().getName().endsWith("-changelog")
                         || topic.getMetadata().getName().endsWith("-repartition"))
                 .filter(topic -> !topicsToIgnore.contains(topic.getMetadata().getName()))
-                // Keep topics that are not already in Ns4Kafka
-                .filter(topic ->
-                        !ns4KafkaTopicNames.contains(topic.getMetadata().getName()))
                 .map(topic -> {
                     // Ignore internal cluster topics. Only keep topics covered by Ns4Kafka.
                     Optional<Namespace> namespace = namespaceService.findByTopicName(
