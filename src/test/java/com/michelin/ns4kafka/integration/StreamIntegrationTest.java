@@ -18,7 +18,6 @@
  */
 package com.michelin.ns4kafka.integration;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.michelin.ns4kafka.integration.TopicIntegrationTest.BearerAccessRefreshToken;
@@ -51,11 +50,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.NewTopic;
-import org.apache.kafka.common.acl.AccessControlEntryFilter;
-import org.apache.kafka.common.acl.AclBindingFilter;
-import org.apache.kafka.common.acl.AclOperation;
-import org.apache.kafka.common.resource.PatternType;
-import org.apache.kafka.common.resource.ResourcePatternFilter;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -141,52 +135,6 @@ class StreamIntegrationTest extends KafkaIntegrationTest {
                 .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/nskafkastream/acls")
                         .bearerAuth(token)
                         .body(acl2));
-    }
-
-    @Test
-    void shouldVerifyCreationOfAcls() throws InterruptedException, ExecutionException {
-        KafkaStream stream = KafkaStream.builder()
-                .metadata(Metadata.builder().name("kstream-test").build())
-                .build();
-
-        ns4KafkaClient
-                .toBlocking()
-                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/nskafkastream/streams")
-                        .bearerAuth(token)
-                        .body(stream));
-
-        // Force ACL Sync
-        aceAsyncExecutorList.forEach(AccessControlEntryAsyncExecutor::run);
-        Admin kafkaClient = getAdminClient();
-
-        var aclTopic = kafkaClient
-                .describeAcls(new AclBindingFilter(
-                        new ResourcePatternFilter(
-                                org.apache.kafka.common.resource.ResourceType.TOPIC,
-                                stream.getMetadata().getName(),
-                                PatternType.PREFIXED),
-                        AccessControlEntryFilter.ANY))
-                .values()
-                .get();
-
-        assertEquals(2, aclTopic.size());
-        assertTrue(aclTopic.stream().allMatch(aclBinding -> List.of(AclOperation.CREATE, AclOperation.DELETE)
-                .contains(aclBinding.entry().operation())));
-
-        ns4KafkaClient
-                .toBlocking()
-                .exchange(HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/nskafkastream/streams?name=kstream*")
-                        .bearerAuth(token));
-
-        HttpResponse<List<KafkaStream>> streams = ns4KafkaClient
-                .toBlocking()
-                .exchange(
-                        HttpRequest.create(HttpMethod.GET, "/api/namespaces/nskafkastream/streams")
-                                .bearerAuth(token),
-                        Argument.listOf(KafkaStream.class));
-
-        assertTrue(streams.getBody().isPresent());
-        assertEquals(0, streams.getBody().get().size());
     }
 
     @Test

@@ -358,6 +358,38 @@ class StreamServiceTest {
     }
 
     @Test
+    void shouldNamespaceHaveKafkaStreams() {
+        Namespace ns1 = Namespace.builder()
+                .metadata(Metadata.builder().name("test1").cluster("local").build())
+                .build();
+
+        Namespace ns2 = Namespace.builder()
+                .metadata(Metadata.builder().name("test2").cluster("local").build())
+                .build();
+
+        KafkaStream stream1 = KafkaStream.builder()
+                .metadata(Metadata.builder()
+                        .name("test_stream1")
+                        .namespace("test1")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        KafkaStream stream3 = KafkaStream.builder()
+                .metadata(Metadata.builder()
+                        .name("test_stream3")
+                        .namespace("test3")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        when(streamRepository.findAllForCluster(any())).thenReturn(List.of(stream1, stream3));
+
+        assertTrue(streamService.hasKafkaStream(ns1));
+        assertFalse(streamService.hasKafkaStream(ns2));
+    }
+
+    @Test
     void shouldDeleteKafkaStreamAndRelatedTopics() throws Exception {
         Namespace namespace = Namespace.builder()
                 .metadata(Metadata.builder().name("ns").cluster("local").build())
@@ -422,7 +454,6 @@ class StreamServiceTest {
 
         when(applicationContext.getBean(eq(AccessControlEntryAsyncExecutor.class), any()))
                 .thenReturn(aceAsyncExecutor);
-
         List<KafkaStream> kafkaStreams = List.of(kafkaStream);
         when(streamRepository.findAllForCluster(any())).thenReturn(kafkaStreams);
 
@@ -430,7 +461,7 @@ class StreamServiceTest {
         when(topicService.findByWildcardName(eq(namespace), anyString())).thenReturn(allTopics);
 
         streamService.delete(namespace, stream);
-        verify(aceAsyncExecutor).deleteKafkaStreams(stream);
+        verify(aceAsyncExecutor).deleteKafkaStreams(namespace, stream);
         verify(topicService)
                 .deleteTopics(argThat(topics -> topics.stream().anyMatch(topic -> topic.getMetadata()
                                 .getName()
@@ -506,14 +537,13 @@ class StreamServiceTest {
 
         when(applicationContext.getBean(eq(AccessControlEntryAsyncExecutor.class), any()))
                 .thenReturn(aceAsyncExecutor);
-
         when(streamRepository.findAllForCluster(any())).thenReturn(Collections.emptyList());
 
         List<Topic> allTopics = List.of(topic1, topic2, topic3, topic4, topic5, topic6);
         when(topicService.findByWildcardName(eq(namespace), anyString())).thenReturn(allTopics);
 
         streamService.delete(namespace, stream);
-        verify(aceAsyncExecutor).deleteKafkaStreams(stream);
+        verify(aceAsyncExecutor).deleteKafkaStreams(namespace, stream);
         verify(topicService)
                 .deleteTopics(argThat(topics -> topics.stream().anyMatch(topic -> topic.getMetadata()
                                 .getName()
