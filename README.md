@@ -48,6 +48,7 @@ Ns4Kafka brings a namespace-based deployment model for Kafka resources, inspired
       * [HTTP Client](#http-client)
         * [Timeout](#timeout)
         * [Retry](#retry)
+      * [Scheduler](#scheduler)
       * [Sensitive Endpoints](#sensitive-endpoints)
 * [RapiDoc](#rapidoc)
 * [Administration](#administration)
@@ -502,20 +503,6 @@ Once the configuration is in place, after successful authentication in AKHQ, use
 
 ### Technical
 
-#### Scheduler
-
-Ns4Kafka uses schedulers to synchronize Connect and Connectors.
-Their intervals can be configured with the following properties:
-
-```yaml
-ns4kafka:
-  scheduler:
-    connector:
-      interval-ms: 30000
-    connect:
-      interval-ms: 60000
-```
-
 #### Security
 
 Ns4Kafka encrypts sensitive data at rest in topics using AES-256 GCM encryption. 
@@ -582,6 +569,19 @@ ns4kafka:
     attempt: '5'
     delay: '2s'
     multiplier: '2.0'
+```
+
+#### Scheduler
+
+Ns4Kafka schedules the deployment of connectors and performs health checks on Kafka Connect platforms. The scheduling frequency can be configured using the following properties:
+
+```yaml
+ns4kafka:
+  scheduler:
+    connector:
+      interval-ms: 30000
+    connect:
+      interval-ms: 60000
 ```
 
 #### Sensitive Endpoints
