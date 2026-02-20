@@ -39,6 +39,7 @@ public class FormatErrorUtils {
     private static final String OPERATION_APPLY = "apply";
     private static final String OPERATION_DELETE = "delete";
     private static final String FIELD_NAME = "name";
+    private static final String FIELD_ALIAS = "alias";
     private static final String INVALID_FIELD = "Invalid value \"%s\" for field \"%s\": %s.";
     private static final String INVALID_FIELDS = "Invalid value \"%s/%s\" for fields \"%s/%s\": %s.";
     private static final String INVALID_EMPTY_FIELD = "Invalid empty value for field \"%s\": %s.";
@@ -598,6 +599,16 @@ public class FormatErrorUtils {
      */
     public static String invalidOwner(String invalidNameValue) {
         return invalidOwner(FIELD_NAME, invalidNameValue);
+    }
+
+    /**
+     * Invalid owner.
+     *
+     * @param invalidAliasValue the invalid field value
+     * @return the error message
+     */
+    public static String invalidAliasOwner(String invalidAliasValue) {
+        return invalidOwner(FIELD_ALIAS, invalidAliasValue);
     }
 
     /**
