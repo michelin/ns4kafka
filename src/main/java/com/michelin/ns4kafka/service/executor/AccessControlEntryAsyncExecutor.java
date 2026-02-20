@@ -227,9 +227,9 @@ public class AccessControlEntryAsyncExecutor {
                                             USER_PRINCIPAL + namespace.getSpec().getKafkaUser()))
                     .collect(Collectors.toSet());
 
-            // Filter out the ACLs to retain only those matching
+            // Remove ACLs of users not managed by Ns4kafka
             userAcls.removeIf(
-                    aclBinding -> managedUsers.contains(aclBinding.entry().principal()));
+                    aclBinding -> !managedUsers.contains(aclBinding.entry().principal()));
         }
 
         // Use logging guard so the ACLs list is only computed when at trace log level

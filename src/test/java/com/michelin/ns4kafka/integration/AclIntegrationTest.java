@@ -170,7 +170,7 @@ class AclIntegrationTest extends KafkaIntegrationTest {
         // DELETE the ACL and verify
         ns4KafkaClient
                 .toBlocking()
-                .exchange(HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/acls/ns1-acl-topic")
+                .exchange(HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/acls?name=*")
                         .bearerAuth(token));
 
         accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
@@ -249,12 +249,7 @@ class AclIntegrationTest extends KafkaIntegrationTest {
         // DELETE the ACLs and verify
         ns4KafkaClient
                 .toBlocking()
-                .exchange(HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/acls/ns1-public-acl-topic")
-                        .bearerAuth(token));
-
-        ns4KafkaClient
-                .toBlocking()
-                .exchange(HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/acls/ns1-acl-topic-owner")
+                .exchange(HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/acls?name=*")
                         .bearerAuth(token));
 
         accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
@@ -311,7 +306,7 @@ class AclIntegrationTest extends KafkaIntegrationTest {
         // Remove ACL
         ns4KafkaClient
                 .toBlocking()
-                .exchange(HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/acls/ns1-acl-topic")
+                .exchange(HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/acls?name=*")
                         .bearerAuth(token));
 
         accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
@@ -368,7 +363,7 @@ class AclIntegrationTest extends KafkaIntegrationTest {
         // DELETE the ACL and verify
         ns4KafkaClient
                 .toBlocking()
-                .exchange(HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/acls/ns1-acl-connect")
+                .exchange(HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/acls?name=*")
                         .bearerAuth(token));
 
         accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
@@ -380,6 +375,21 @@ class AclIntegrationTest extends KafkaIntegrationTest {
 
     @Test
     void shouldCreateKafkaStreamsAcls() throws InterruptedException, ExecutionException {
+        Namespace namespace = Namespace.builder()
+                .metadata(Metadata.builder().name("ns3").cluster("test-cluster").build())
+                .spec(NamespaceSpec.builder()
+                        .kafkaUser("user3")
+                        .transactionsEnabled(false)
+                        .topicValidator(TopicValidator.makeDefaultOneBroker())
+                        .build())
+                .build();
+
+        ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces")
+                        .bearerAuth(token)
+                        .body(namespace));
+
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
                 .metadata(Metadata.builder()
                         .name("ns1-acl-topic")
@@ -524,7 +534,7 @@ class AclIntegrationTest extends KafkaIntegrationTest {
                 aclBindingTopicCreateForKafkaStream1,
                 aclBindingTopicDeleteForKafkaStream1)));
 
-        // Create another Stream and check no more ACL is created
+        // Create another Stream and check 2 ACLs are created
         KafkaStream kafkaStream2 = KafkaStream.builder()
                 .metadata(
                         Metadata.builder().name("ns1-stream2").namespace("ns1").build())
@@ -603,7 +613,7 @@ class AclIntegrationTest extends KafkaIntegrationTest {
 
         assertEquals(13, results.size());
 
-        // DELETE the Stream & ACL and verify
+        // DELETE the Streams & ACLs and verify
         ns4KafkaClient
                 .toBlocking()
                 .exchange(HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/streams?name=*")
@@ -614,11 +624,12 @@ class AclIntegrationTest extends KafkaIntegrationTest {
                 .exchange(HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/acls?name=*")
                         .bearerAuth(token));
 
+        // Force ACLs synchronization
         accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
 
         results = kafkaClient.describeAcls(aclBindingFilter).values().get();
 
-        assertEquals(0, results.size());
+        assertTrue(results.isEmpty());
     }
 
     @Test
@@ -705,8 +716,9 @@ class AclIntegrationTest extends KafkaIntegrationTest {
 
         ns4KafkaClient
                 .toBlocking()
-                .exchange(HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/acls/ns1-granted-acl-on-prefix")
-                        .bearerAuth(token));
+                .exchange(
+                        HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/acls?name=ns1-granted-acl-on-prefix")
+                                .bearerAuth(token));
 
         results = kafkaClient.describeAcls(namespace2AclBindingFilter).values().get();
         assertTrue(results.isEmpty());
@@ -771,8 +783,8 @@ class AclIntegrationTest extends KafkaIntegrationTest {
                 .metadata(Metadata.builder().name("ns1").cluster("test-cluster").build())
                 .spec(NamespaceSpec.builder()
                         .kafkaUser("user1")
-                        .protectionEnabled(Boolean.FALSE)
-                        .transactionsEnabled(Boolean.TRUE)
+                        .protectionEnabled(false)
+                        .transactionsEnabled(true)
                         .connectClusters(List.of("test-connect"))
                         .topicValidator(TopicValidator.makeDefaultOneBroker())
                         .build())
