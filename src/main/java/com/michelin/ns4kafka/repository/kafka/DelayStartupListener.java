@@ -20,11 +20,13 @@ package com.michelin.ns4kafka.repository.kafka;
 
 import io.micronaut.context.event.ApplicationEventListener;
 import io.micronaut.context.event.StartupEvent;
+import jakarta.inject.Singleton;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 
 /** Delay startup listener. */
 @Slf4j
+@Singleton
 public class DelayStartupListener implements ApplicationEventListener<StartupEvent> {
     private final List<KafkaStore<?>> kafkaStores;
 
