@@ -421,9 +421,6 @@ class StreamServiceTest {
                         .build())
                 .build();
 
-        when(applicationContext.getBean(eq(AccessControlEntryAsyncExecutor.class), any()))
-                .thenReturn(aceAsyncExecutor);
-
         Topic topic4 = Topic.builder()
                 .metadata(Metadata.builder()
                         .name("prefix1.stream_app_id1-topic1-nochangelog")
@@ -455,6 +452,8 @@ class StreamServiceTest {
                         .build())
                 .build();
 
+        when(applicationContext.getBean(eq(AccessControlEntryAsyncExecutor.class), any()))
+                .thenReturn(aceAsyncExecutor);
         List<KafkaStream> kafkaStreams = List.of(kafkaStream);
         when(streamRepository.findAllForCluster(any())).thenReturn(kafkaStreams);
 
