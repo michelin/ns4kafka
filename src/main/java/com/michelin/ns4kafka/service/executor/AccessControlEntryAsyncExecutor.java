@@ -228,8 +228,8 @@ public class AccessControlEntryAsyncExecutor {
                     .collect(Collectors.toSet());
 
             // Filter out the ACLs to retain only those matching
-            userAcls.removeIf(aclBinding ->
-                            managedUsers.contains(aclBinding.entry().principal()));
+            userAcls.removeIf(
+                    aclBinding -> managedUsers.contains(aclBinding.entry().principal()));
         }
 
         // Use logging guard so the ACLs list is only computed when at trace log level
