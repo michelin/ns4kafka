@@ -35,13 +35,14 @@ import com.michelin.ns4kafka.service.client.schema.entities.TopicDescriptionUpda
 import com.michelin.ns4kafka.service.client.schema.entities.TopicDescriptionUpdateEntity;
 import com.michelin.ns4kafka.service.client.schema.entities.TopicListResponse;
 import io.micronaut.context.annotation.EachBean;
+import jakarta.annotation.PreDestroy;
 import jakarta.inject.Singleton;
 import java.time.Instant;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -55,7 +56,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AlterConfigOp;
 import org.apache.kafka.clients.admin.AlterConfigsResult;
 import org.apache.kafka.clients.admin.ConfigEntry;
@@ -67,6 +67,7 @@ import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.admin.TopicListing;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.config.ConfigResource;
+import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
 
 /** Topic executor. */
@@ -76,13 +77,15 @@ import reactor.core.publisher.Mono;
 public class TopicAsyncExecutor {
     public static final String CLUSTER_ID = "cluster.id";
     public static final String TOPIC_ENTITY_TYPE = "kafka_topic";
-    private final Set<String> topicsToIgnore = ConcurrentHashMap.newKeySet();
+    private final Set<String> ignoredTopics = ConcurrentHashMap.newKeySet();
 
     private final ManagedClusterProperties managedClusterProperties;
     private final NamespaceService namespaceService;
     private final TopicRepository topicRepository;
     private final SchemaRegistryClient schemaRegistryClient;
     private final Ns4KafkaProperties ns4KafkaProperties;
+
+    private Disposable tagSyncDisposable;
 
     /**
      * Constructor.
@@ -108,7 +111,7 @@ public class TopicAsyncExecutor {
 
     /** Run the topic synchronization. */
     public void run() {
-        if (this.managedClusterProperties.isManageTopics()) {
+        if (managedClusterProperties.isManageTopics()) {
             synchronizeTopics();
         }
     }
@@ -118,7 +121,7 @@ public class TopicAsyncExecutor {
         log.debug("Starting topic collection for cluster {}", managedClusterProperties.getName());
 
         try {
-            topicsToIgnore.clear();
+            ignoredTopics.clear();
 
             Map<String, Topic> brokerTopics = collectBrokerTopics();
             List<Topic> ns4KafkaTopics = topicRepository.findAllForCluster(managedClusterProperties.getName());
@@ -126,34 +129,28 @@ public class TopicAsyncExecutor {
             Map<Boolean, List<Topic>> partitioned = ns4KafkaTopics.stream()
                     .collect(Collectors.partitioningBy(topic ->
                             brokerTopics.containsKey(topic.getMetadata().getName())));
+
             List<Topic> checkTopics = partitioned.get(true);
-            List<Topic> createTopics = partitioned.get(false);
+            List<Topic> createTopics = partitioned.get(false).stream()
+                    .filter(topic -> !ignoredTopics.contains(topic.getMetadata().getName()))
+                    .toList();
 
-            Map<ConfigResource, Collection<AlterConfigOp>> updateTopics = checkTopics.stream()
-                    .map(topic -> {
-                        Map<String, String> actualConf = brokerTopics
-                                .get(topic.getMetadata().getName())
-                                .getSpec()
-                                .getConfigs();
+            Map<ConfigResource, Collection<AlterConfigOp>> updateTopics = new HashMap<>();
+            checkTopics.forEach(topic -> {
+                Map<String, String> actualConf = brokerTopics
+                        .get(topic.getMetadata().getName())
+                        .getSpec()
+                        .getConfigs();
 
-                        Map<String, String> expectedConf = topic.getSpec().getConfigs() == null
-                                ? Map.of()
-                                : topic.getSpec().getConfigs();
+                Collection<AlterConfigOp> changes =
+                        computeConfigChanges(topic.getSpec().getConfigs(), actualConf);
 
-                        Collection<AlterConfigOp> topicConfigChanges = computeConfigChanges(expectedConf, actualConf);
-                        if (!topicConfigChanges.isEmpty()) {
-                            ConfigResource cr = new ConfigResource(
-                                    ConfigResource.Type.TOPIC,
-                                    topic.getMetadata().getName());
-                            return Map.entry(cr, topicConfigChanges);
-                        }
-                        return null;
-                    })
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
-            createTopics.removeIf(
-                    topic -> topicsToIgnore.contains(topic.getMetadata().getName()));
+                if (!changes.isEmpty()) {
+                    ConfigResource cr = new ConfigResource(
+                            ConfigResource.Type.TOPIC, topic.getMetadata().getName());
+                    updateTopics.put(cr, changes);
+                }
+            });
 
             if (managedClusterProperties.isSyncKstreamTopics()) {
                 Set<String> ns4KafkaTopicNames = ns4KafkaTopics.stream()
@@ -165,50 +162,36 @@ public class TopicAsyncExecutor {
                         getUnsyncStreamsInternalTopics(brokerTopics, ns4KafkaTopicNames);
 
                 if (!unsyncStreamInternalTopics.isEmpty()) {
-                    log.debug(
-                            "Kafka Streams internal topics(s) to import: {}",
-                            String.join(
-                                    ", ",
-                                    unsyncStreamInternalTopics.stream()
-                                            .map(topic -> topic.getMetadata().getName())
-                                            .toList()));
+                    log.atDebug()
+                            .addArgument(unsyncStreamInternalTopics.stream()
+                                    .map(topic -> topic.getMetadata().getName())
+                                    .collect(Collectors.joining(",")))
+                            .log("Kafka Streams internal topics(s) to import: {}");
+
                     importTopics(unsyncStreamInternalTopics);
                 }
             }
 
             if (!createTopics.isEmpty()) {
-                log.debug(
-                        "Topic(s) to create: {}",
-                        String.join(
-                                ", ",
-                                createTopics.stream()
-                                        .map(topic -> topic.getMetadata().getName())
-                                        .toList()));
+                log.atDebug()
+                        .addArgument("Topic(s) to create: {}")
+                        .log(createTopics.stream()
+                                .map(topic -> topic.getMetadata().getName())
+                                .collect(Collectors.joining(",")));
+
                 createTopics(createTopics);
             }
 
             if (!updateTopics.isEmpty()) {
-                if (log.isDebugEnabled()) {
-                    log.debug(
-                            "Topic(s) to update: {}",
-                            String.join(
-                                    ", ",
-                                    updateTopics.keySet().stream()
-                                            .map(ConfigResource::name)
-                                            .toList()));
-                    for (Map.Entry<ConfigResource, Collection<AlterConfigOp>> e : updateTopics.entrySet()) {
-                        for (AlterConfigOp op : e.getValue()) {
-                            log.debug(
-                                    "{} {} {}({})",
-                                    e.getKey().name(),
-                                    op.opType().toString(),
-                                    op.configEntry().name(),
-                                    op.configEntry().value());
-                        }
-                    }
-                }
+                log.atDebug()
+                        .addArgument(updateTopics.keySet().stream()
+                                .map(ConfigResource::name)
+                                .collect(Collectors.joining(",")))
+                        .log("Topic(s) to update: {}");
+
                 alterTopics(updateTopics, checkTopics);
             }
+
             alterCatalogInfo(checkTopics, brokerTopics);
         } catch (ExecutionException | TimeoutException | CancellationException | KafkaStoreException e) {
             log.error("An error occurred during the topic synchronization", e);
@@ -229,13 +212,12 @@ public class TopicAsyncExecutor {
             Map<String, Topic> brokerTopics, Set<String> ns4KafkaTopicNames) {
         List<Namespace> namespaces = namespaceService.findAll();
         return brokerTopics.values().stream()
-                // Keep topics that are not already in Ns4Kafka
+                // Keep only Kafka Streams internal topics that are not already in Ns4Kafka
                 .filter(topic ->
-                        !ns4KafkaTopicNames.contains(topic.getMetadata().getName()))
-                // Keep Kafka Streams topics
-                .filter(topic -> topic.getMetadata().getName().endsWith("-changelog")
-                        || topic.getMetadata().getName().endsWith("-repartition"))
-                .filter(topic -> !topicsToIgnore.contains(topic.getMetadata().getName()))
+                        !ns4KafkaTopicNames.contains(topic.getMetadata().getName())
+                                && (topic.getMetadata().getName().endsWith("-changelog")
+                                        || topic.getMetadata().getName().endsWith("-repartition"))
+                                && !ignoredTopics.contains(topic.getMetadata().getName()))
                 .map(topic -> {
                     // Ignore internal cluster topics. Only keep topics covered by Ns4Kafka.
                     Optional<Namespace> namespace = namespaceService.findByTopicName(
@@ -268,10 +250,11 @@ public class TopicAsyncExecutor {
             topic.setStatus(Topic.TopicStatus.ofSuccess("Imported from cluster"));
 
             topicRepository.create(topic);
-            log.info(
-                    "Success importing topic {} on cluster {}",
-                    topic.getMetadata().getName(),
-                    managedClusterProperties.getName());
+
+            log.atInfo()
+                    .addArgument(topic.getMetadata().getName())
+                    .addArgument(managedClusterProperties.getName())
+                    .log("Success importing topic {} on {}.");
         });
     }
 
@@ -292,7 +275,7 @@ public class TopicAsyncExecutor {
     /**
      * Alter tags.
      *
-     * @param ns4kafkaTopics Topics from ns4kafka
+     * @param ns4kafkaTopics Topics from Ns4Kafka
      * @param brokerTopics Topics from broker
      */
     public void alterTags(List<Topic> ns4kafkaTopics, Map<String, Topic> brokerTopics) {
@@ -300,15 +283,11 @@ public class TopicAsyncExecutor {
                 .map(topic -> {
                     Topic brokerTopic = brokerTopics.get(topic.getMetadata().getName());
 
-                    // Get tags to delete
-                    Set<String> existingTags =
-                            new HashSet<>(brokerTopic.getSpec().getTags());
-                    existingTags.removeAll(Set.copyOf(topic.getSpec().getTags()));
-                    dissociateTags(existingTags, topic);
+                    dissociateTags(brokerTopic, topic);
 
-                    // Get tags to create
-                    Set<String> newTags = new HashSet<>(topic.getSpec().getTags());
-                    newTags.removeAll(Set.copyOf(brokerTopic.getSpec().getTags()));
+                    Set<String> newTags = topic.getSpec().getTags().stream()
+                            .filter(tag -> !brokerTopic.getSpec().getTags().contains(tag))
+                            .collect(Collectors.toSet());
 
                     return new AbstractMap.SimpleEntry<>(
                             topic,
@@ -327,7 +306,7 @@ public class TopicAsyncExecutor {
                 .collect(Collectors.toMap(AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue));
 
         if (!topicTagsMapping.isEmpty()) {
-            createAndAssociateTags(topicTagsMapping);
+            tagSyncDisposable = createAndAssociateTags(topicTagsMapping);
         }
     }
 
@@ -340,7 +319,8 @@ public class TopicAsyncExecutor {
         List<String> topicsNames =
                 topics.stream().map(topic -> topic.getMetadata().getName()).toList();
 
-        getAdminClient()
+        managedClusterProperties
+                .getAdminClient()
                 .deleteTopics(topicsNames)
                 .all()
                 .get(managedClusterProperties.getTimeout().getTopic().getDelete(), TimeUnit.MILLISECONDS);
@@ -349,13 +329,13 @@ public class TopicAsyncExecutor {
         // This could happen if such topic is deleted after the broker topics are listed
         // but before the Ns4Kafka topics are listed during synchronization
         if (managedClusterProperties.isSyncKstreamTopics()) {
-            topicsToIgnore.addAll(topicsNames);
+            ignoredTopics.addAll(topicsNames);
         }
 
-        log.info(
-                "Success deleting topics {} on cluster {}",
-                String.join(", ", topicsNames),
-                managedClusterProperties.getName());
+        log.atInfo()
+                .addArgument(String.join(", ", topicsNames))
+                .addArgument(managedClusterProperties.getName())
+                .log("Success deleting topics {} on cluster {}.");
     }
 
     /**
@@ -373,7 +353,8 @@ public class TopicAsyncExecutor {
      * @return All topic names
      */
     public List<String> listBrokerTopicNames() throws InterruptedException, ExecutionException, TimeoutException {
-        return getAdminClient()
+        return managedClusterProperties
+                .getAdminClient()
                 .listTopics()
                 .listings()
                 .get(managedClusterProperties.getTimeout().getTopic().getList(), TimeUnit.MILLISECONDS)
@@ -389,19 +370,21 @@ public class TopicAsyncExecutor {
      * @param brokerTopics Topics from broker
      */
     public void alterDescriptions(List<Topic> ns4kafkaTopics, Map<String, Topic> brokerTopics) {
+        String clusterId = managedClusterProperties.getConfig().getProperty(CLUSTER_ID);
+
         for (Topic topic : ns4kafkaTopics) {
             String description = topic.getSpec().getDescription();
             String brokerDescription =
                     brokerTopics.get(topic.getMetadata().getName()).getSpec().getDescription();
+
             if (!Objects.equals(brokerDescription, description)) {
+                String qualifiedName = clusterId + ":" + topic.getMetadata().getName();
+
                 TopicDescriptionUpdateBody body = TopicDescriptionUpdateBody.builder()
                         .entity(TopicDescriptionUpdateEntity.builder()
                                 .typeName(TOPIC_ENTITY_TYPE)
                                 .attributes(TopicDescriptionUpdateAttributes.builder()
-                                        .qualifiedName(managedClusterProperties
-                                                        .getConfig()
-                                                        .getProperty(CLUSTER_ID) + ":"
-                                                + topic.getMetadata().getName())
+                                        .qualifiedName(qualifiedName)
                                         .description(description)
                                         .build())
                                 .build())
@@ -413,8 +396,7 @@ public class TopicAsyncExecutor {
                                 _ -> {
                                     log.info(
                                             "Success update description {}",
-                                            managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
-                                                    + topic.getMetadata().getName() + ": "
+                                            qualifiedName + ": "
                                                     + topic.getSpec().getDescription());
                                     topic.getMetadata()
                                             .setGeneration(topic.getMetadata().getGeneration() + 1);
@@ -424,8 +406,7 @@ public class TopicAsyncExecutor {
                                 error -> {
                                     log.error(
                                             "Error update description {}",
-                                            managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
-                                                    + topic.getMetadata().getName() + ": "
+                                            qualifiedName + ": "
                                                     + topic.getSpec().getDescription(),
                                             error);
                                     topic.setStatus(Topic.TopicStatus.ofFailed(
@@ -543,10 +524,14 @@ public class TopicAsyncExecutor {
      */
     public Map<String, Topic> collectBrokerTopicsFromNames(List<String> topicNames)
             throws InterruptedException, ExecutionException, TimeoutException {
-        Map<String, TopicDescription> topicDescriptions =
-                getAdminClient().describeTopics(topicNames).allTopicNames().get();
+        Map<String, TopicDescription> topicDescriptions = managedClusterProperties
+                .getAdminClient()
+                .describeTopics(topicNames)
+                .allTopicNames()
+                .get();
 
-        Map<String, Topic> topics = getAdminClient()
+        Map<String, Topic> topics = managedClusterProperties
+                .getAdminClient()
                 .describeConfigs(topicNames.stream()
                         .map(topicName -> new ConfigResource(ConfigResource.Type.TOPIC, topicName))
                         .toList())
@@ -554,34 +539,29 @@ public class TopicAsyncExecutor {
                 .get(managedClusterProperties.getTimeout().getTopic().getDescribeConfigs(), TimeUnit.MILLISECONDS)
                 .entrySet()
                 .stream()
-                .collect(Collectors.toMap(
-                        configResourceConfigEntry ->
-                                configResourceConfigEntry.getKey().name(),
-                        configResourceConfigEntry -> configResourceConfigEntry.getValue().entries().stream()
-                                .filter(configEntry ->
-                                        configEntry.source() == ConfigEntry.ConfigSource.DYNAMIC_TOPIC_CONFIG)
-                                .collect(Collectors.toMap(ConfigEntry::name, ConfigEntry::value))))
-                .entrySet()
-                .stream()
-                .map(stringMapEntry -> Topic.builder()
-                        .metadata(Metadata.builder()
-                                .cluster(managedClusterProperties.getName())
-                                .name(stringMapEntry.getKey())
-                                .build())
-                        .spec(Topic.TopicSpec.builder()
-                                .replicationFactor(topicDescriptions
-                                        .get(stringMapEntry.getKey())
-                                        .partitions()
-                                        .getFirst()
-                                        .replicas()
-                                        .size())
-                                .partitions(topicDescriptions
-                                        .get(stringMapEntry.getKey())
-                                        .partitions()
-                                        .size())
-                                .configs(stringMapEntry.getValue())
-                                .build())
-                        .build())
+                .map(entry -> {
+                    String name = entry.getKey().name();
+                    Map<String, String> configs = entry.getValue().entries().stream()
+                            .filter(configEntry ->
+                                    configEntry.source() == ConfigEntry.ConfigSource.DYNAMIC_TOPIC_CONFIG)
+                            .collect(Collectors.toMap(ConfigEntry::name, ConfigEntry::value));
+
+                    TopicDescription desc = topicDescriptions.get(name);
+                    return Topic.builder()
+                            .metadata(Metadata.builder()
+                                    .cluster(managedClusterProperties.getName())
+                                    .name(name)
+                                    .build())
+                            .spec(Topic.TopicSpec.builder()
+                                    .replicationFactor(desc.partitions()
+                                            .getFirst()
+                                            .replicas()
+                                            .size())
+                                    .partitions(desc.partitions().size())
+                                    .configs(configs)
+                                    .build())
+                            .build();
+                })
                 .collect(Collectors.toMap(topic -> topic.getMetadata().getName(), Function.identity()));
 
         enrichWithCatalogInfo(topics);
@@ -596,7 +576,8 @@ public class TopicAsyncExecutor {
      * @param topics The current topics
      */
     private void alterTopics(Map<ConfigResource, Collection<AlterConfigOp>> toUpdate, List<Topic> topics) {
-        AlterConfigsResult alterConfigsResult = getAdminClient().incrementalAlterConfigs(toUpdate);
+        AlterConfigsResult alterConfigsResult =
+                managedClusterProperties.getAdminClient().incrementalAlterConfigs(toUpdate);
         alterConfigsResult.values().forEach((key, value) -> {
             Topic updatedTopic = topics.stream()
                     .filter(topic -> topic.getMetadata().getName().equals(key.name()))
@@ -611,11 +592,13 @@ public class TopicAsyncExecutor {
                         .setGeneration(updatedTopic.getMetadata().getGeneration() + 1);
                 updatedTopic.setStatus(Topic.TopicStatus.ofSuccess("Topic configs updated"));
 
-                log.info(
-                        "Success updating topic configs {} on cluster {}: [{}]",
-                        key.name(),
-                        managedClusterProperties.getName(),
-                        toUpdate.get(key).stream().map(AlterConfigOp::toString).collect(Collectors.joining(", ")));
+                log.atInfo()
+                        .addArgument(key.name())
+                        .addArgument(managedClusterProperties.getName())
+                        .addArgument(toUpdate.get(key).stream()
+                                .map(AlterConfigOp::toString)
+                                .collect(Collectors.joining(",")))
+                        .log("Success updating topic configs {} on cluster {}: [{}]");
             } catch (InterruptedException e) {
                 log.error("Error", e);
                 Thread.currentThread().interrupt();
@@ -628,6 +611,7 @@ public class TopicAsyncExecutor {
                         managedClusterProperties.getName(),
                         e);
             }
+
             topicRepository.create(updatedTopic);
         });
     }
@@ -652,7 +636,8 @@ public class TopicAsyncExecutor {
                 })
                 .toList();
 
-        CreateTopicsResult createTopicsResult = getAdminClient().createTopics(newTopics);
+        CreateTopicsResult createTopicsResult =
+                managedClusterProperties.getAdminClient().createTopics(newTopics);
         createTopicsResult.values().forEach((key, value) -> {
             Topic createdTopic = topics.stream()
                     .filter(t -> t.getMetadata().getName().equals(key))
@@ -679,22 +664,21 @@ public class TopicAsyncExecutor {
     /**
      * Create tags and associate them.
      *
-     * @param topicTagsMapping Mapping between topics and their list of tags info
+     * @param topicTags Mapping between topics and their list of tags info
+     * @return A disposable to subscribe to the creation and association of tags
      */
-    public void createAndAssociateTags(Map<Topic, List<TagTopicInfo>> topicTagsMapping) {
+    public Disposable createAndAssociateTags(Map<Topic, List<TagTopicInfo>> topicTags) {
         List<TagTopicInfo> tagsToAssociate =
-                topicTagsMapping.values().stream().flatMap(Collection::stream).toList();
+                topicTags.values().stream().flatMap(Collection::stream).toList();
 
         List<TagInfo> tagsToCreate = tagsToAssociate.stream()
                 .map(tag -> TagInfo.builder().name(tag.typeName()).build())
-                .collect(Collectors.toSet())
-                .stream()
+                .distinct()
                 .toList();
 
-        String tagsListString =
-                String.join(", ", tagsToCreate.stream().map(TagInfo::name).toList());
+        String tagsListString = tagsToCreate.stream().map(TagInfo::name).collect(Collectors.joining(","));
 
-        schemaRegistryClient
+        return schemaRegistryClient
                 .createTags(managedClusterProperties.getName(), tagsToCreate)
                 .subscribe(
                         _ -> {
@@ -703,7 +687,7 @@ public class TopicAsyncExecutor {
                             schemaRegistryClient
                                     .associateTags(managedClusterProperties.getName(), tagsToAssociate)
                                     .subscribe(
-                                            _ -> topicTagsMapping.forEach((topic, tags) -> {
+                                            _ -> topicTags.forEach((topic, tags) -> {
                                                 log.info(
                                                         "Success associating tag {}.",
                                                         managedClusterProperties
@@ -711,11 +695,9 @@ public class TopicAsyncExecutor {
                                                                         .getProperty(CLUSTER_ID) + ":"
                                                                 + topic.getMetadata()
                                                                         .getName() + "/"
-                                                                + String.join(
-                                                                        ", ",
-                                                                        tags.stream()
-                                                                                .map(TagTopicInfo::typeName)
-                                                                                .toList()));
+                                                                + tags.stream()
+                                                                        .map(TagTopicInfo::typeName)
+                                                                        .collect(Collectors.joining(",")));
                                                 topic.getMetadata()
                                                         .setGeneration(topic.getMetadata()
                                                                         .getGeneration()
@@ -723,7 +705,7 @@ public class TopicAsyncExecutor {
                                                 topic.setStatus(Topic.TopicStatus.ofSuccess("Topic tags updated"));
                                                 topicRepository.create(topic);
                                             }),
-                                            error -> topicTagsMapping.forEach((topic, tags) -> {
+                                            error -> topicTags.forEach((topic, tags) -> {
                                                 log.error(
                                                         "Error associating tag {}.",
                                                         managedClusterProperties
@@ -732,11 +714,9 @@ public class TopicAsyncExecutor {
                                                                 + ":"
                                                                 + topic.getMetadata()
                                                                         .getName() + "/"
-                                                                + String.join(
-                                                                        ", ",
-                                                                        tags.stream()
-                                                                                .map(TagTopicInfo::typeName)
-                                                                                .toList()),
+                                                                + tags.stream()
+                                                                        .map(TagTopicInfo::typeName)
+                                                                        .collect(Collectors.joining(",")),
                                                         error);
                                                 topic.setStatus(Topic.TopicStatus.ofFailed(
                                                         "Error while associating topic tags: " + error.getMessage()));
@@ -749,37 +729,39 @@ public class TopicAsyncExecutor {
     /**
      * Dissociate tags to a topic.
      *
-     * @param tagsToDissociate The tags to dissociate
-     * @param topic The topic
+     * @param brokerTopic The topic from the broker
+     * @param topic The topic from Ns4Kafka
      */
-    private void dissociateTags(Collection<String> tagsToDissociate, Topic topic) {
-        tagsToDissociate.forEach(tag -> schemaRegistryClient
-                .dissociateTag(
-                        managedClusterProperties.getName(),
-                        managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
-                                + topic.getMetadata().getName(),
-                        tag)
-                .subscribe(
-                        _ -> {
-                            log.info(
-                                    "Success dissociating tag {}.",
-                                    managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
-                                            + topic.getMetadata().getName() + "/" + tag);
-                            topic.getMetadata()
-                                    .setGeneration(topic.getMetadata().getGeneration() + 1);
-                            topic.setStatus(Topic.TopicStatus.ofSuccess("Topic tags updated"));
-                            topicRepository.create(topic);
-                        },
-                        error -> {
-                            log.error(
-                                    "Error dissociating tag {}.",
-                                    managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
-                                            + topic.getMetadata().getName() + "/" + tag,
-                                    error);
-                            topic.setStatus(Topic.TopicStatus.ofFailed(
-                                    "Error while dissociating topic tags: " + error.getMessage()));
-                            topicRepository.create(topic);
-                        }));
+    private void dissociateTags(Topic brokerTopic, Topic topic) {
+        brokerTopic.getSpec().getTags().stream()
+                .filter(tag -> !topic.getSpec().getTags().contains(tag))
+                .forEach(tag -> schemaRegistryClient
+                        .dissociateTag(
+                                managedClusterProperties.getName(),
+                                managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
+                                        + topic.getMetadata().getName(),
+                                tag)
+                        .subscribe(
+                                _ -> {
+                                    log.info(
+                                            "Success dissociating tag {}.",
+                                            managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
+                                                    + topic.getMetadata().getName() + "/" + tag);
+                                    topic.getMetadata()
+                                            .setGeneration(topic.getMetadata().getGeneration() + 1);
+                                    topic.setStatus(Topic.TopicStatus.ofSuccess("Topic tags updated"));
+                                    topicRepository.create(topic);
+                                },
+                                error -> {
+                                    log.error(
+                                            "Error dissociating tag {}.",
+                                            managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
+                                                    + topic.getMetadata().getName() + "/" + tag,
+                                            error);
+                                    topic.setStatus(Topic.TopicStatus.ofFailed(
+                                            "Error while dissociating topic tags: " + error.getMessage()));
+                                    topicRepository.create(topic);
+                                }));
     }
 
     /**
@@ -790,37 +772,21 @@ public class TopicAsyncExecutor {
      * @return A list of config
      */
     private Collection<AlterConfigOp> computeConfigChanges(Map<String, String> expected, Map<String, String> actual) {
-        List<AlterConfigOp> toCreate = expected.entrySet().stream()
-                .filter(expectedEntry -> !actual.containsKey(expectedEntry.getKey()))
-                .map(expectedEntry -> new AlterConfigOp(
-                        new ConfigEntry(expectedEntry.getKey(), expectedEntry.getValue()), AlterConfigOp.OpType.SET))
-                .toList();
+        List<AlterConfigOp> changes = new ArrayList<>();
 
-        List<AlterConfigOp> toDelete = actual.entrySet().stream()
-                .filter(actualEntry -> !expected.containsKey(actualEntry.getKey()))
-                .map(expectedEntry -> new AlterConfigOp(
-                        new ConfigEntry(expectedEntry.getKey(), expectedEntry.getValue()), AlterConfigOp.OpType.DELETE))
-                .toList();
+        expected.forEach((key, value) -> {
+            if (!actual.containsKey(key) || !value.equals(actual.get(key))) {
+                changes.add(new AlterConfigOp(new ConfigEntry(key, value), AlterConfigOp.OpType.SET));
+            }
+        });
 
-        List<AlterConfigOp> toChange = expected.entrySet().stream()
-                .filter(expectedEntry -> {
-                    if (actual.containsKey(expectedEntry.getKey())) {
-                        String actualVal = actual.get(expectedEntry.getKey());
-                        String expectedVal = expectedEntry.getValue();
-                        return !expectedVal.equals(actualVal);
-                    }
-                    return false;
-                })
-                .map(expectedEntry -> new AlterConfigOp(
-                        new ConfigEntry(expectedEntry.getKey(), expectedEntry.getValue()), AlterConfigOp.OpType.SET))
-                .toList();
+        actual.forEach((key, value) -> {
+            if (!expected.containsKey(key)) {
+                changes.add(new AlterConfigOp(new ConfigEntry(key, value), AlterConfigOp.OpType.DELETE));
+            }
+        });
 
-        List<AlterConfigOp> total = new ArrayList<>();
-        total.addAll(toCreate);
-        total.addAll(toDelete);
-        total.addAll(toChange);
-
-        return total;
+        return changes;
     }
 
     /**
@@ -835,13 +801,25 @@ public class TopicAsyncExecutor {
             throws ExecutionException, InterruptedException {
         // List all partitions for topic and prepare a listOffsets call
         Map<TopicPartition, OffsetSpec> topicsPartitionsToDelete =
-                getAdminClient().describeTopics(List.of(topic)).allTopicNames().get().entrySet().stream()
+                managedClusterProperties
+                        .getAdminClient()
+                        .describeTopics(List.of(topic))
+                        .allTopicNames()
+                        .get()
+                        .entrySet()
+                        .stream()
                         .flatMap(topicDescriptionEntry -> topicDescriptionEntry.getValue().partitions().stream())
                         .map(partitionInfo -> new TopicPartition(topic, partitionInfo.partition()))
                         .collect(Collectors.toMap(Function.identity(), _ -> OffsetSpec.latest()));
 
         // list all latest offsets for each partitions
-        return getAdminClient().listOffsets(topicsPartitionsToDelete).all().get().entrySet().stream()
+        return managedClusterProperties
+                .getAdminClient()
+                .listOffsets(topicsPartitionsToDelete)
+                .all()
+                .get()
+                .entrySet()
+                .stream()
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
                         kv -> RecordsToDelete.beforeOffset(kv.getValue().offset())));
@@ -856,7 +834,12 @@ public class TopicAsyncExecutor {
      */
     public Map<TopicPartition, Long> deleteRecords(Map<TopicPartition, RecordsToDelete> recordsToDelete)
             throws InterruptedException {
-        return getAdminClient().deleteRecords(recordsToDelete).lowWatermarks().entrySet().stream()
+        return managedClusterProperties
+                .getAdminClient()
+                .deleteRecords(recordsToDelete)
+                .lowWatermarks()
+                .entrySet()
+                .stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, kv -> {
                     try {
                         var newValue = kv.getValue().get().lowWatermark();
@@ -876,7 +859,11 @@ public class TopicAsyncExecutor {
                 }));
     }
 
-    private Admin getAdminClient() {
-        return managedClusterProperties.getAdminClient();
+    /** Dispose the topic synchronization disposable when the bean is destroyed. */
+    @PreDestroy
+    public void onDestroy() {
+        if (tagSyncDisposable != null && !tagSyncDisposable.isDisposed()) {
+            tagSyncDisposable.dispose();
+        }
     }
 }

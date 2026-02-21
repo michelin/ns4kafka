@@ -241,13 +241,11 @@ public class ConnectorService {
                 .map(httpResponse -> {
                     connectorRepository.delete(connector);
 
-                    if (log.isInfoEnabled()) {
-                        log.info(
-                                "Success removing Connector [{}] on Kafka [{}] Connect [{}]",
-                                connector.getMetadata().getName(),
-                                namespace.getMetadata().getName(),
-                                connector.getSpec().getConnectCluster());
-                    }
+                    log.atInfo()
+                            .addArgument(connector.getMetadata().getName())
+                            .addArgument(namespace.getMetadata().getName())
+                            .addArgument(connector.getSpec().getConnectCluster())
+                            .log("Success removing Connector [{}] on Kafka [{}] Connect [{}]");
 
                     return httpResponse;
                 });

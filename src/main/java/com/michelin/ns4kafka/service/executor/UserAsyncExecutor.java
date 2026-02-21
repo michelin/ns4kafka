@@ -31,7 +31,6 @@ import io.micronaut.context.annotation.EachBean;
 import jakarta.inject.Singleton;
 import java.security.SecureRandom;
 import java.util.Base64;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -87,7 +86,7 @@ public class UserAsyncExecutor {
 
     /** Run the user synchronization. */
     public void run() {
-        if (this.managedClusterProperties.isManageUsers() && userExecutor.canSynchronizeQuotas()) {
+        if (managedClusterProperties.isManageUsers() && userExecutor.canSynchronizeQuotas()) {
             synchronizeUsers();
         }
     }
@@ -97,29 +96,13 @@ public class UserAsyncExecutor {
         log.debug("Starting user collection for cluster {}", managedClusterProperties.getName());
 
         try {
-            Map<String, Map<String, Double>> brokerUserQuotas = userExecutor.listQuotas();
-            Map<String, Map<String, Double>> ns4kafkaUserQuotas = collectNs4KafkaQuotas();
-
-            Map<String, Map<String, Double>> toCreate = ns4kafkaUserQuotas.entrySet().stream()
-                    .filter(entry -> !brokerUserQuotas.containsKey(entry.getKey()))
-                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
-            Map<String, Map<String, Double>> toUpdate = ns4kafkaUserQuotas.entrySet().stream()
-                    .filter(entry -> brokerUserQuotas.containsKey(entry.getKey()))
-                    .filter(entry -> !entry.getValue().isEmpty()
-                            && !entry.getValue().equals(brokerUserQuotas.get(entry.getKey())))
-                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
-            if (!toCreate.isEmpty()) {
-                log.debug("User quota(s) to create : {}", String.join(", ", toCreate.keySet()));
-            }
-
-            if (!toUpdate.isEmpty()) {
-                log.debug("User quota(s) to update : {}", String.join(", ", toUpdate.keySet()));
-            }
-
-            createUserQuotas(toCreate);
-            createUserQuotas(toUpdate);
+            Map<String, Map<String, Double>> brokerQuotas = userExecutor.listQuotas();
+            collectNs4KafkaQuotas().forEach((key, value) -> {
+                Map<String, Double> existing = brokerQuotas.get(key);
+                if (existing == null || (!value.isEmpty() && !value.equals(existing))) {
+                    userExecutor.applyQuotas(key, value);
+                }
+            });
         } catch (ExecutionException | TimeoutException | CancellationException | KafkaStoreException e) {
             log.error("An error occurred during the user synchronization", e);
         } catch (InterruptedException e) {
@@ -140,35 +123,32 @@ public class UserAsyncExecutor {
     public String resetPassword(String user) throws ExecutionException, InterruptedException, TimeoutException {
         if (userExecutor.canResetPassword()) {
             return userExecutor.resetPassword(user);
-        } else {
-            throw new ResourceValidationException(
-                    KAFKA_USER_RESET_PASSWORD,
-                    user,
-                    invalidResetPasswordProvider(managedClusterProperties.getProvider()));
         }
+
+        throw new ResourceValidationException(
+                KAFKA_USER_RESET_PASSWORD, user, invalidResetPasswordProvider(managedClusterProperties.getProvider()));
     }
 
+    /**
+     * Collect user quotas from Ns4Kafka resource quotas.
+     *
+     * @return A map of user to quotas defined in Ns4Kafka resource quotas
+     */
     private Map<String, Map<String, Double>> collectNs4KafkaQuotas() {
         return namespaceRepository.findAllForCluster(managedClusterProperties.getName()).stream()
-                .map(namespace -> {
+                .collect(Collectors.toMap(namespace -> namespace.getSpec().getKafkaUser(), namespace -> {
                     Optional<ResourceQuota> quota = quotaRepository.findForNamespace(
                             namespace.getMetadata().getName());
-                    Map<String, Double> userQuota = new HashMap<>();
-
-                    quota.ifPresent(resourceQuota -> resourceQuota.getSpec().entrySet().stream()
-                            .filter(q -> q.getKey().startsWith(USER_QUOTA_PREFIX))
-                            .forEach(q -> userQuota.put(
-                                    q.getKey().replace(USER_QUOTA_PREFIX, ""), Double.parseDouble(q.getValue()))));
-
-                    return Map.entry(namespace.getSpec().getKafkaUser(), userQuota);
-                })
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                    return quota.map(resourceQuota -> resourceQuota.getSpec().entrySet().stream()
+                                    .filter(q -> q.getKey().startsWith(USER_QUOTA_PREFIX))
+                                    .collect(Collectors.toMap(
+                                            q -> q.getKey().substring(USER_QUOTA_PREFIX.length()),
+                                            q -> Double.parseDouble(q.getValue()))))
+                            .orElse(Map.of());
+                }));
     }
 
-    private void createUserQuotas(Map<String, Map<String, Double>> toCreate) {
-        toCreate.forEach(userExecutor::applyQuotas);
-    }
-
+    /** Abstract user synchronizer to define the operations required for the user synchronization and password reset. */
     interface AbstractUserSynchronizer {
         boolean canSynchronizeQuotas();
 
@@ -178,13 +158,27 @@ public class UserAsyncExecutor {
 
         void applyQuotas(String user, Map<String, Double> quotas);
 
+        /**
+         * List user quotas from the broker.
+         *
+         * @return A map of user to quotas defined in the broker
+         * @throws ExecutionException An error occurred during the execution of the quota listing
+         * @throws InterruptedException The thread was interrupted while waiting for the quota listing
+         * @throws TimeoutException An operation timed out while listing the quotas
+         */
         Map<String, Map<String, Double>> listQuotas() throws ExecutionException, InterruptedException, TimeoutException;
     }
 
+    /**
+     * User synchronizer implementation for SCRAM-SHA-512 credentials. This implementation is used for self-managed
+     * clusters with SCRAM-SHA-512 credentials.
+     */
     static class Scram512UserSynchronizer implements AbstractUserSynchronizer {
         private final ScramCredentialInfo info = new ScramCredentialInfo(ScramMechanism.SCRAM_SHA_512, 4096);
         private final SecureRandom secureRandom = new SecureRandom();
         private final ManagedClusterProperties managedClusterProperties;
+        private final ClientQuotaFilter filter = ClientQuotaFilter.containsOnly(
+                List.of(ClientQuotaFilterComponent.ofEntityType(ClientQuotaEntity.USER)));
 
         public Scram512UserSynchronizer(ManagedClusterProperties managedClusterProperties) {
             this.managedClusterProperties = managedClusterProperties;
@@ -215,7 +209,7 @@ public class UserAsyncExecutor {
                             managedClusterProperties.getTimeout().getUser().getAlterScramCredentials(),
                             TimeUnit.MILLISECONDS);
 
-            log.info("Success resetting password for user {}", user);
+            log.info("Success resetting password for user {}.", user);
 
             return password;
         }
@@ -223,9 +217,6 @@ public class UserAsyncExecutor {
         @Override
         public Map<String, Map<String, Double>> listQuotas()
                 throws ExecutionException, InterruptedException, TimeoutException {
-            ClientQuotaFilter filter = ClientQuotaFilter.containsOnly(
-                    List.of(ClientQuotaFilterComponent.ofEntityType(ClientQuotaEntity.USER)));
-
             return managedClusterProperties
                     .getAdminClient()
                     .describeClientQuotas(filter)
@@ -233,8 +224,8 @@ public class UserAsyncExecutor {
                     .get(managedClusterProperties.getTimeout().getUser().getDescribeQuotas(), TimeUnit.MILLISECONDS)
                     .entrySet()
                     .stream()
-                    .map(entry -> Map.entry(entry.getKey().entries().get(ClientQuotaEntity.USER), entry.getValue()))
-                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                    .collect(Collectors.toMap(
+                            entry -> entry.getKey().entries().get(ClientQuotaEntity.USER), Map.Entry::getValue));
         }
 
         @Override
@@ -256,20 +247,19 @@ public class UserAsyncExecutor {
                         .alterClientQuotas(List.of(clientQuota))
                         .all()
                         .get(managedClusterProperties.getTimeout().getUser().getAlterQuotas(), TimeUnit.MILLISECONDS);
-                log.info("Success applying quotas {} for user {}", clientQuota.ops(), user);
+
+                log.info("Success applying quotas {} for user {}.", clientQuota.ops(), user);
             } catch (InterruptedException e) {
                 log.error("Error", e);
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
-                log.error("Error while applying quotas for user %s".formatted(user), e);
+                log.error("Error while applying quotas for user {}.", user, e);
             }
         }
     }
 
+    /** Unimplemented user synchronizer to use when the cluster provider does not support user operations. */
     static class UnimplementedUserSynchronizer implements AbstractUserSynchronizer {
-        private final UnsupportedOperationException exception =
-                new UnsupportedOperationException("This cluster provider doesn't support User operations.");
-
         @Override
         public boolean canSynchronizeQuotas() {
             return false;
@@ -282,17 +272,17 @@ public class UserAsyncExecutor {
 
         @Override
         public String resetPassword(String user) {
-            throw exception;
+            throw new UnsupportedOperationException("This cluster provider does not support user operations.");
         }
 
         @Override
         public void applyQuotas(String user, Map<String, Double> quotas) {
-            throw exception;
+            throw new UnsupportedOperationException("This cluster provider does not support user operations.");
         }
 
         @Override
         public Map<String, Map<String, Double>> listQuotas() {
-            throw exception;
+            throw new UnsupportedOperationException("This cluster provider does not support user operations.");
         }
     }
 }

@@ -450,6 +450,11 @@ class TopicAsyncExecutorTest {
 
     @Test
     void shouldNotUpdateSameDescription() {
+        Properties properties = new Properties();
+        properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
+
+        when(managedClusterProperties.getConfig()).thenReturn(properties);
+
         Topic topic = Topic.builder()
                 .metadata(Metadata.builder().name(TOPIC_NAME).build())
                 .spec(Topic.TopicSpec.builder().description(DESCRIPTION1).build())
