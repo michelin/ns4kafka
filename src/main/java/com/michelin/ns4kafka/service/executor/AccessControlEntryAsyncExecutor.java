@@ -458,12 +458,16 @@ public class AccessControlEntryAsyncExecutor {
                 .forEach((key, value) -> {
                     try {
                         value.get(managedClusterProperties.getTimeout().getAcl().getDelete(), TimeUnit.MILLISECONDS);
-                        log.info("Success deleting ACL {} on {}", key, managedClusterProperties.getName());
+                        log.info("Success deleting ACL {} on cluster {}.", key, managedClusterProperties.getName());
                     } catch (InterruptedException e) {
                         log.error("Error", e);
                         Thread.currentThread().interrupt();
                     } catch (Exception e) {
-                        log.error("Error while deleting ACL {} on {}", key, managedClusterProperties.getName(), e);
+                        log.error(
+                                "Error while deleting ACL {} on cluster {}.",
+                                key,
+                                managedClusterProperties.getName(),
+                                e);
                     }
                 });
     }

@@ -110,11 +110,11 @@ public class UserAsyncExecutor {
                             && !entry.getValue().equals(brokerUserQuotas.get(entry.getKey())))
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-            if (!toCreate.isEmpty()) {
+            if (log.isDebugEnabled() && !toCreate.isEmpty()) {
                 log.debug("User quota(s) to create : {}", String.join(", ", toCreate.keySet()));
             }
 
-            if (!toUpdate.isEmpty()) {
+            if (log.isDebugEnabled() && !toUpdate.isEmpty()) {
                 log.debug("User quota(s) to update : {}", String.join(", ", toUpdate.keySet()));
             }
 
@@ -148,6 +148,11 @@ public class UserAsyncExecutor {
         }
     }
 
+    /**
+     * Collect user quotas from Ns4Kafka resource quotas.
+     *
+     * @return A map of user to quotas defined in Ns4Kafka resource quotas
+     */
     private Map<String, Map<String, Double>> collectNs4KafkaQuotas() {
         return namespaceRepository.findAllForCluster(managedClusterProperties.getName()).stream()
                 .map(namespace -> {
@@ -215,7 +220,7 @@ public class UserAsyncExecutor {
                             managedClusterProperties.getTimeout().getUser().getAlterScramCredentials(),
                             TimeUnit.MILLISECONDS);
 
-            log.info("Success resetting password for user {}", user);
+            log.info("Success resetting password for user {}.", user);
 
             return password;
         }
@@ -256,12 +261,12 @@ public class UserAsyncExecutor {
                         .alterClientQuotas(List.of(clientQuota))
                         .all()
                         .get(managedClusterProperties.getTimeout().getUser().getAlterQuotas(), TimeUnit.MILLISECONDS);
-                log.info("Success applying quotas {} for user {}", clientQuota.ops(), user);
+                log.info("Success applying quotas {} for user {}.", clientQuota.ops(), user);
             } catch (InterruptedException e) {
                 log.error("Error", e);
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
-                log.error("Error while applying quotas for user %s".formatted(user), e);
+                log.error("Error while applying quotas for user {}.", user, e);
             }
         }
     }

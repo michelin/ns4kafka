@@ -241,10 +241,11 @@ public class TopicAsyncExecutor {
             topic.setStatus(Topic.TopicStatus.ofSuccess("Imported from cluster"));
 
             topicRepository.create(topic);
-            log.info(
-                    "Success importing topic {} on cluster {}",
-                    topic.getMetadata().getName(),
-                    managedClusterProperties.getName());
+
+            log.atInfo()
+                    .addArgument(topic.getMetadata().getName())
+                    .addArgument(managedClusterProperties.getName())
+                    .log("Success importing topic {} on {}.");
         });
     }
 
@@ -322,10 +323,10 @@ public class TopicAsyncExecutor {
             ignoredTopics.addAll(topicsNames);
         }
 
-        log.info(
-                "Success deleting topics {} on cluster {}",
-                String.join(", ", topicsNames),
-                managedClusterProperties.getName());
+        log.atInfo()
+                .addArgument(String.join(", ", topicsNames))
+                .addArgument(managedClusterProperties.getName())
+                .log("Success deleting topics {} on cluster {}.");
     }
 
     /**

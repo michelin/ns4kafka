@@ -79,10 +79,10 @@ public class GitlabAuthenticationService {
 
             if (StringUtils.isEmpty(response.header("X-Next-Page"))) {
                 return Flux.just(response);
-            } else {
-                int nextPage = Integer.parseInt(response.header("X-Next-Page"));
-                return Flux.just(response).concatWith(getPageAndNext(token, nextPage));
             }
+
+            int nextPage = Integer.parseInt(response.header("X-Next-Page"));
+            return Flux.just(response).concatWith(getPageAndNext(token, nextPage));
         });
     }
 }
