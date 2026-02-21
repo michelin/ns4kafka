@@ -220,7 +220,7 @@ public class AccessControlEntryAsyncExecutor {
                 .collect(Collectors.toSet());
         managedUsers.add(USER_PRINCIPAL_PUBLIC);
 
-        Set<AclBinding> userAcls = getAdminClient()
+        return getAdminClient()
                 .describeAcls(aclBindingFilter)
                 .values()
                 .get(managedClusterProperties.getTimeout().getAcl().getDescribe(), TimeUnit.MILLISECONDS)
@@ -229,14 +229,6 @@ public class AccessControlEntryAsyncExecutor {
                         VALID_RESOURCE_TYPES.contains(aclBinding.pattern().resourceType())
                                 && managedUsers.contains(aclBinding.entry().principal()))
                 .collect(Collectors.toSet());
-
-        if (log.isTraceEnabled() && !userAcls.isEmpty()) {
-            log.trace(
-                    "ACL(s) found in broker: {}",
-                    userAcls.stream().map(AclBinding::toString).collect(Collectors.joining(",")));
-        }
-
-        return userAcls;
     }
 
     /**
