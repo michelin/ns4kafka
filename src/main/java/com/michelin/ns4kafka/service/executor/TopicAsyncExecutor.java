@@ -38,7 +38,16 @@ import io.micronaut.context.annotation.EachBean;
 import jakarta.annotation.PreDestroy;
 import jakarta.inject.Singleton;
 import java.time.Instant;
-import java.util.*;
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -583,11 +592,13 @@ public class TopicAsyncExecutor {
                         .setGeneration(updatedTopic.getMetadata().getGeneration() + 1);
                 updatedTopic.setStatus(Topic.TopicStatus.ofSuccess("Topic configs updated"));
 
-                log.info(
-                        "Success updating topic configs {} on cluster {}: [{}]",
-                        key.name(),
-                        managedClusterProperties.getName(),
-                        toUpdate.get(key).stream().map(AlterConfigOp::toString).collect(Collectors.joining(", ")));
+                log.atInfo()
+                        .addArgument(key.name())
+                        .addArgument(managedClusterProperties.getName())
+                        .addArgument(toUpdate.get(key).stream()
+                                .map(AlterConfigOp::toString)
+                                .collect(Collectors.joining(",")))
+                        .log("Success updating topic configs {} on cluster {}: [{}]");
             } catch (InterruptedException e) {
                 log.error("Error", e);
                 Thread.currentThread().interrupt();
@@ -600,6 +611,7 @@ public class TopicAsyncExecutor {
                         managedClusterProperties.getName(),
                         e);
             }
+
             topicRepository.create(updatedTopic);
         });
     }
