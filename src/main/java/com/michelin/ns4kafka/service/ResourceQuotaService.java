@@ -45,7 +45,6 @@ import com.michelin.ns4kafka.service.executor.UserAsyncExecutor;
 import com.michelin.ns4kafka.util.BytesUtils;
 import com.michelin.ns4kafka.util.RegexUtils;
 import io.micronaut.core.util.StringUtils;
-import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
@@ -60,14 +59,25 @@ public class ResourceQuotaService {
     private static final String USER_QUOTA_RESPONSE_FORMAT = "%sB/s";
     private static final String NO_QUOTA_RESPONSE_FORMAT = "%s";
 
-    @Inject
-    private ResourceQuotaRepository resourceQuotaRepository;
+    private final TopicService topicService;
+    private final ConnectorService connectorService;
+    private final ResourceQuotaRepository resourceQuotaRepository;
 
-    @Inject
-    private TopicService topicService;
-
-    @Inject
-    private ConnectorService connectorService;
+    /**
+     * Constructor.
+     *
+     * @param topicService The topic service
+     * @param connectorService The connector service
+     * @param resourceQuotaRepository The resource quota repository
+     */
+    public ResourceQuotaService(
+            TopicService topicService,
+            ConnectorService connectorService,
+            ResourceQuotaRepository resourceQuotaRepository) {
+        this.topicService = topicService;
+        this.connectorService = connectorService;
+        this.resourceQuotaRepository = resourceQuotaRepository;
+    }
 
     /**
      * Find a resource quota of a given namespace.

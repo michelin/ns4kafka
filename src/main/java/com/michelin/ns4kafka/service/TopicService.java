@@ -36,7 +36,6 @@ import com.michelin.ns4kafka.service.executor.TopicAsyncExecutor;
 import com.michelin.ns4kafka.util.RegexUtils;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
-import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -52,17 +51,29 @@ import org.apache.kafka.common.TopicPartition;
 /** Service to manage topics. */
 @Singleton
 public class TopicService {
-    @Inject
-    private TopicRepository topicRepository;
+    private final TopicRepository topicRepository;
+    private final AclService aclService;
+    private final ApplicationContext applicationContext;
+    private final List<ManagedClusterProperties> managedClusterProperties;
 
-    @Inject
-    private AclService aclService;
-
-    @Inject
-    private ApplicationContext applicationContext;
-
-    @Inject
-    private List<ManagedClusterProperties> managedClusterProperties;
+    /**
+     * Constructor.
+     *
+     * @param aclService The ACL service
+     * @param topicRepository The topic repository
+     * @param applicationContext The application context
+     * @param managedClusterProperties The managed cluster properties
+     */
+    public TopicService(
+            AclService aclService,
+            TopicRepository topicRepository,
+            ApplicationContext applicationContext,
+            List<ManagedClusterProperties> managedClusterProperties) {
+        this.aclService = aclService;
+        this.topicRepository = topicRepository;
+        this.applicationContext = applicationContext;
+        this.managedClusterProperties = managedClusterProperties;
+    }
 
     /**
      * Find all topics.

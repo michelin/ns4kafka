@@ -35,7 +35,6 @@ import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
 import com.michelin.ns4kafka.util.RegexUtils;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
-import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,11 +46,20 @@ import java.util.stream.Collectors;
 public class AclService {
     public static final String PUBLIC_GRANTED_TO = "*";
 
-    @Inject
-    private AccessControlEntryRepository accessControlEntryRepository;
+    private final AccessControlEntryRepository accessControlEntryRepository;
+    private final ApplicationContext applicationContext;
 
-    @Inject
-    private ApplicationContext applicationContext;
+    /**
+     * Constructor.
+     *
+     * @param accessControlEntryRepository The access control entry repository
+     * @param applicationContext The application context
+     */
+    public AclService(
+            AccessControlEntryRepository accessControlEntryRepository, ApplicationContext applicationContext) {
+        this.accessControlEntryRepository = accessControlEntryRepository;
+        this.applicationContext = applicationContext;
+    }
 
     /**
      * Is public ACL.
