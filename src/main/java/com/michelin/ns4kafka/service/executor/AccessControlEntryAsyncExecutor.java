@@ -270,33 +270,20 @@ public class AccessControlEntryAsyncExecutor {
                 namespaceRepository.findByName(acl.getSpec().getGrantedTo()).orElseThrow();
         String principal = USER_PRINCIPAL + namespace.getSpec().getKafkaUser();
 
-        boolean isGroup = GROUP.equals(acl.getSpec().getResourceType());
-        int extraCapacity = 0;
-        boolean addEos = false;
-        boolean addStream = false;
-        if (isGroup) {
-            if (namespace.getSpec().isTransactionsEnabled()) {
-                extraCapacity = 4;
-                addEos = true;
-            } else if (streamService.hasKafkaStream(namespace)) {
-                extraCapacity = 2;
-                addStream = true;
-            }
-        }
-
-        List<AclBinding> results = new ArrayList<>(aclOperations.size() + extraCapacity);
+        // At most 5 ACLs will be generated (owner of ACL GROUP generates the most)
+        List<AclBinding> results = new ArrayList<>(5);
         aclOperations.forEach(aclOperation -> results.add(new AclBinding(
                 resourcePattern,
                 new org.apache.kafka.common.acl.AccessControlEntry(
                         principal, "*", aclOperation, AclPermissionType.ALLOW))));
 
         // Generate KafkaStream ACLs and transactions ACLs for GROUP ACL
-        if (addEos) {
-            addEosConnectorAclBindings(results, acl, principal);
-        }
-
-        if (addStream) {
-            addKafkaStreamAclBindings(results, acl, principal);
+        if (GROUP.equals(acl.getSpec().getResourceType())) {
+            if (namespace.getSpec().isTransactionsEnabled()) {
+                addEosConnectorAclBindings(results, acl, principal);
+            } else if (streamService.hasKafkaStream(namespace)) {
+                addKafkaStreamAclBindings(results, acl, principal);
+            }
         }
 
         return results;
