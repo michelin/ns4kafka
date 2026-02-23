@@ -279,7 +279,7 @@ public class ConnectorAsyncExecutor {
                     // 2) Store the mask string and ignore the comparison when the "actual"
                     //    value matches this mask.
                     // Solution 2 is chosen since it is simpler and does not require additional API calls.
-                    || SENSITIVE_FIELD_MASK.equals(e.getValue())
+                    || SENSITIVE_FIELD_MASK.equals(actualValue)
                     || Objects.equals(actualValue, expectedValue);
         });
     }

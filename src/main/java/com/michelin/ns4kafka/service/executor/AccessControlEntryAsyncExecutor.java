@@ -63,7 +63,7 @@ public class AccessControlEntryAsyncExecutor {
     private static final String USER_PRINCIPAL_PUBLIC = "User:*";
     private static final String USER_PRINCIPAL_PUBLIC_V2 = "UserV2:*";
 
-    private static final Set<AccessControlEntry.ResourceType> ACLS = EnumSet.of(TOPIC, GROUP);
+    private static final Set<AccessControlEntry.ResourceType> TOPIC_GROUP_RESOURCE_TYPES = EnumSet.of(TOPIC, GROUP);
     private static final Set<ResourceType> VALID_RESOURCE_TYPES =
             EnumSet.of(ResourceType.TOPIC, ResourceType.GROUP, ResourceType.TRANSACTIONAL_ID);
     private static final Set<AclOperation> TOPIC_ACL_OPERATIONS =
@@ -168,7 +168,7 @@ public class AccessControlEntryAsyncExecutor {
         Stream<AclBinding> aclBindings = aclService.findAllForCluster(managedClusterProperties.getName()).stream()
                 .flatMap(acl -> {
                     // Converts topic and group Ns4Kafka ACLs to topic & group & transactional AclBindings
-                    if (ACLS.contains(acl.getSpec().getResourceType())) {
+                    if (TOPIC_GROUP_RESOURCE_TYPES.contains(acl.getSpec().getResourceType())) {
                         return convertAclToAclBindings(acl).stream();
                     }
 
@@ -460,7 +460,7 @@ public class AccessControlEntryAsyncExecutor {
         if (managedClusterProperties.isManageAcls()) {
             List<AclBinding> results = new ArrayList<>();
 
-            if (ACLS.contains(accessControlEntry.getSpec().getResourceType())) {
+            if (TOPIC_GROUP_RESOURCE_TYPES.contains(accessControlEntry.getSpec().getResourceType())) {
                 results.addAll(convertAclToAclBindings(accessControlEntry));
             }
 
