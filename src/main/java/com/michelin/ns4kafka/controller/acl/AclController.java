@@ -51,6 +51,7 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /** Controller to manage ACLs. */
 @Tag(name = "ACLs", description = "Manage the ACLs.")
@@ -216,13 +217,12 @@ public class AclController extends NamespacedResourceController {
 
         // If non-admin tries to delete at least one self-assigned ACL, throw validation error
         if (!isAdmin && !selfAssignedAcls.isEmpty()) {
-            List<String> selfAssignedAclsNames = selfAssignedAcls.stream()
+            String selfAssignedAclsNames = selfAssignedAcls.stream()
                     .map(acl -> acl.getMetadata().getName())
-                    .toList();
+                    .collect(Collectors.joining(","));
+
             throw new ResourceValidationException(
-                    ACCESS_CONTROL_ENTRY,
-                    name,
-                    invalidSelfAssignedAclDelete(name, String.join(", ", selfAssignedAclsNames)));
+                    ACCESS_CONTROL_ENTRY, name, invalidSelfAssignedAclDelete(name, selfAssignedAclsNames));
         }
 
         if (dryrun) {

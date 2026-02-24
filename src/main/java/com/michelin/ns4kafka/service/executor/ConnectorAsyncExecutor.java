@@ -32,9 +32,9 @@ import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.context.annotation.EachBean;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import jakarta.inject.Singleton;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -134,17 +134,19 @@ public class ConnectorAsyncExecutor {
 
     /** For each connect cluster, start the synchronization of connectors. */
     private Flux<ConnectorInfo> synchronizeConnectors() {
-        log.debug(
-                "Starting connector synchronization for Kafka cluster {}. Healthy Kafka Connects: {}.",
-                managedClusterProperties.getName(),
-                !connectClusterService.getHealthyConnectClusters().isEmpty()
-                        ? String.join(",", connectClusterService.getHealthyConnectClusters())
-                        : "N/A");
+        log.atDebug()
+                .addArgument(managedClusterProperties::getName)
+                .addArgument(
+                        () -> !connectClusterService.getHealthyConnectClusters().isEmpty()
+                                ? String.join(",", connectClusterService.getHealthyConnectClusters())
+                                : "N/A")
+                .log("Starting connector synchronization for Kafka cluster {}. Healthy Kafka Connects: {}.");
 
         if (connectClusterService.getHealthyConnectClusters().isEmpty()) {
-            log.debug(
-                    "No healthy Kafka Connect for Kafka cluster {}. Skipping synchronization.",
-                    managedClusterProperties.getName());
+            log.atDebug()
+                    .addArgument(managedClusterProperties::getName)
+                    .log("No healthy Kafka Connect for Kafka cluster {}. Skipping synchronization.");
+
             return Flux.empty();
         }
 
@@ -183,43 +185,19 @@ public class ConnectorAsyncExecutor {
                                 error.getMessage());
                     }
                 })
-                .collectList()
-                .flatMapMany(brokerConnectors -> {
-                    List<Connector> ns4kafkaConnectors = collectNs4KafkaConnectors(connectCluster);
+                .collectMap(connector -> connector.getMetadata().getName())
+                .flatMapMany(brokerConnectorsMap -> Flux.fromStream(collectNs4KafkaConnectors(connectCluster))
+                        .filter(connector -> {
+                            if (connector.getStatus() != null
+                                    && connector.getStatus().isToDeploy()) {
+                                return true;
+                            }
 
-                    List<Connector> toDeploy = ns4kafkaConnectors.stream()
-                            .filter(connector -> (connector.getStatus() != null
-                                            && connector.getStatus().isToDeploy())
-                                    // connector not present in connect cluster
-                                    || brokerConnectors.stream().noneMatch(clusterConnector -> clusterConnector
-                                            .getMetadata()
-                                            .getName()
-                                            .equals(connector.getMetadata().getName()))
-                                    // connector config different in connect cluster
-                                    || brokerConnectors.stream().anyMatch(clusterConnector -> {
-                                        if (clusterConnector
-                                                .getMetadata()
-                                                .getName()
-                                                .equals(connector.getMetadata().getName())) {
-                                            return !connectorsAreSame(connector, clusterConnector);
-                                        }
-                                        return false;
-                                    }))
-                            .toList();
-
-                    if (!toDeploy.isEmpty()) {
-                        log.debug(
-                                "Connector(s) to deploy: {}",
-                                String.join(
-                                        ",",
-                                        toDeploy.stream()
-                                                .map(connector ->
-                                                        connector.getMetadata().getName())
-                                                .toList()));
-                    }
-
-                    return Flux.fromStream(toDeploy.stream()).flatMap(this::deployConnector);
-                });
+                            Connector clusterConnector = brokerConnectorsMap.get(
+                                    connector.getMetadata().getName());
+                            return clusterConnector == null || !connectorsAreSame(connector, clusterConnector);
+                        })
+                        .flatMap(this::deployConnector));
     }
 
     /**
@@ -269,18 +247,9 @@ public class ConnectorAsyncExecutor {
      * @param connectCluster The connect cluster
      * @return A list of connectors
      */
-    private List<Connector> collectNs4KafkaConnectors(String connectCluster) {
-        List<Connector> connectorList =
-                connectorRepository.findAllForCluster(managedClusterProperties.getName()).stream()
-                        .filter(connector ->
-                                connector.getSpec().getConnectCluster().equals(connectCluster))
-                        .toList();
-        log.debug(
-                "{} connectors found in Ns4kafka for Kafka Connect {} of Kafka cluster {}.",
-                connectorList.size(),
-                connectCluster,
-                managedClusterProperties.getName());
-        return connectorList;
+    private Stream<Connector> collectNs4KafkaConnectors(String connectCluster) {
+        return connectorRepository.findAllForCluster(managedClusterProperties.getName()).stream()
+                .filter(connector -> connector.getSpec().getConnectCluster().equals(connectCluster));
     }
 
     /**
@@ -298,18 +267,21 @@ public class ConnectorAsyncExecutor {
             return false;
         }
 
-        return actualMap.entrySet().stream()
-                .allMatch(e -> (e.getValue() == null && expectedMap.get(e.getKey()) == null)
-                        // Password fields are masked when returned by Connect API in cp 7.9.3+
-                        // so these fields mess up the comparison
-                        // 2 solutions:
-                        // 1) Check with Connect API which field is masked and ignore the
-                        // comparison for the concerned fields
-                        // 2) Store the mask string and ignore the comparison when the "actual"
-                        // value corresponds to this mask
-                        // Solution 2 is chosen since it's simpler and has no additional API calls
-                        || (Arrays.asList(expectedMap.get(e.getKey()), SENSITIVE_FIELD_MASK)
-                                .contains(e.getValue())));
+        return actualMap.entrySet().stream().allMatch(e -> {
+            String actualValue = e.getValue();
+            String expectedValue = expectedMap.get(e.getKey());
+            return (actualValue == null && expectedValue == null)
+                    // Password fields are masked when returned by the Connect API in CP 7.9.3+,
+                    // so they interfere with the comparison.
+                    // Two possible solutions:
+                    // 1) Check via the Connect API which fields are masked and ignore the
+                    //    comparison for those specific fields.
+                    // 2) Store the mask string and ignore the comparison when the "actual"
+                    //    value matches this mask.
+                    // Solution 2 is chosen since it is simpler and does not require additional API calls.
+                    || SENSITIVE_FIELD_MASK.equals(actualValue)
+                    || Objects.equals(actualValue, expectedValue);
+        });
     }
 
     /**
