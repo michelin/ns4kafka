@@ -26,6 +26,7 @@ import com.michelin.ns4kafka.controller.generic.ResourceController;
 import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
+import com.michelin.ns4kafka.security.auth.AuthenticationInfo;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.util.FormatErrorUtils;
 import com.michelin.ns4kafka.util.enumation.ApplyStatus;
@@ -38,6 +39,8 @@ import io.micronaut.http.annotation.Delete;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
+import io.micronaut.security.annotation.Secured;
+import io.micronaut.security.rules.SecurityRule;
 import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
@@ -51,7 +54,6 @@ import java.util.Map;
 import java.util.Optional;
 
 /** Controller to manage the namespaces. */
-@RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
 @Tag(name = "Namespaces", description = "Manage the namespaces.")
 @Controller("/api/namespaces")
 public class NamespaceController extends ResourceController {
@@ -80,15 +82,31 @@ public class NamespaceController extends ResourceController {
      * @return A list of namespaces
      */
     @Get("{?search*}")
+    @Secured(SecurityRule.IS_AUTHENTICATED)
     public List<Namespace> list(@QueryValue Map<String, String> search) {
         List<Namespace> namespaces = namespaceService.findByWildcardName(search.getOrDefault("name", "*"));
 
-        return search.containsKey("topic")
-                ? namespaceService
-                        .findByTopicName(namespaces, search.get("topic"))
-                        .map(Collections::singletonList)
-                        .orElse(List.of())
-                : namespaces;
+        if (search.containsKey("topic")) {
+            namespaces = namespaceService
+                    .findByTopicName(namespaces, search.get("topic"))
+                    .map(Collections::singletonList)
+                    .orElse(List.of());
+        }
+
+        if (securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)) {
+            return namespaces;
+        }
+
+        AuthenticationInfo authenticationInfo =
+                AuthenticationInfo.of(securityService.getAuthentication().orElseThrow());
+        List<String> authorizedNamespaces = authenticationInfo.getRoleBindings().stream()
+                .flatMap(roleBinding -> roleBinding.getNamespaces().stream())
+                .toList();
+
+        return namespaces.stream()
+                .filter(namespace ->
+                        authorizedNamespaces.contains(namespace.getMetadata().getName()))
+                .toList();
     }
 
     /**
@@ -99,6 +117,7 @@ public class NamespaceController extends ResourceController {
      * @return The created namespace
      */
     @Post("{?dryrun}")
+    @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
     public HttpResponse<Namespace> apply(
             @Valid @Body Namespace namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
         Optional<Namespace> existingNamespace =
@@ -154,6 +173,7 @@ public class NamespaceController extends ResourceController {
      * @return An HTTP response
      */
     @Delete
+    @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
     public HttpResponse<List<Namespace>> delete(
             @QueryValue(defaultValue = "*") String name, @QueryValue(defaultValue = "false") boolean dryrun) {
         List<Namespace> namespaces = namespaceService.findByWildcardName(name);
