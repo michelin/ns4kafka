@@ -33,13 +33,11 @@ import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
-import com.michelin.ns4kafka.security.auth.AuthenticationRoleBinding;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
-import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.utils.SecurityService;
 import java.util.List;
 import java.util.Map;
@@ -75,7 +73,6 @@ class NamespaceControllerTest {
                 .build();
 
         when(namespaceService.findByWildcardName("*")).thenReturn(List.of(ns1, ns2));
-        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(true);
 
         assertEquals(List.of(ns1, ns2), namespaceController.list(Map.of()));
     }
@@ -91,7 +88,6 @@ class NamespaceControllerTest {
                 .build();
 
         when(namespaceService.findByWildcardName("*")).thenReturn(List.of(ns1, ns2));
-        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(true);
 
         assertEquals(List.of(ns1, ns2), namespaceController.list(Map.of("name", "*")));
     }
@@ -103,7 +99,6 @@ class NamespaceControllerTest {
                 .build();
 
         when(namespaceService.findByWildcardName("ns")).thenReturn(List.of(ns));
-        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(true);
 
         assertEquals(List.of(ns), namespaceController.list(Map.of("name", "ns")));
     }
@@ -116,7 +111,6 @@ class NamespaceControllerTest {
 
         when(namespaceService.findByWildcardName("*")).thenReturn(List.of(ns));
         when(namespaceService.findByTopicName(List.of(ns), "myTopicName")).thenReturn(Optional.of(ns));
-        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(true);
 
         assertEquals(List.of(ns), namespaceController.list(Map.of("topic", "myTopicName")));
     }
@@ -129,7 +123,6 @@ class NamespaceControllerTest {
 
         when(namespaceService.findByWildcardName("*")).thenReturn(List.of(ns));
         when(namespaceService.findByTopicName(List.of(ns), "myTopicName")).thenReturn(Optional.empty());
-        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(true);
 
         assertEquals(List.of(), namespaceController.list(Map.of("topic", "myTopicName")));
     }
@@ -137,54 +130,7 @@ class NamespaceControllerTest {
     @Test
     void shouldListNamespacesWhenEmpty() {
         when(namespaceService.findByWildcardName("*")).thenReturn(List.of());
-        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(true);
         assertEquals(List.of(), namespaceController.list(Map.of()));
-    }
-
-    @Test
-    void shouldListNamespacesAsNonAdmin() {
-        Namespace ns1 = Namespace.builder()
-                .metadata(Metadata.builder().name("ns1").build())
-                .build();
-        Namespace ns2 = Namespace.builder()
-                .metadata(Metadata.builder().name("ns2").build())
-                .build();
-        Namespace ns3 = Namespace.builder()
-                .metadata(Metadata.builder().name("ns3").build())
-                .build();
-
-        when(namespaceService.findByWildcardName("*")).thenReturn(List.of(ns1, ns2, ns3));
-        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
-
-        Authentication authentication = Authentication.build(
-                "user",
-                List.of(),
-                Map.of(
-                        ROLE_BINDINGS,
-                        List.of(AuthenticationRoleBinding.builder()
-                                .namespaces(List.of("ns1", "ns2"))
-                                .build())));
-        when(securityService.getAuthentication()).thenReturn(Optional.of(authentication));
-
-        List<Namespace> result = namespaceController.list(Map.of());
-        assertEquals(2, result.size());
-        assertIterableEquals(List.of(ns1, ns2), result);
-    }
-
-    @Test
-    void shouldListNamespacesAsNonAdminWithNoAccess() {
-        Namespace ns1 = Namespace.builder()
-                .metadata(Metadata.builder().name("ns1").build())
-                .build();
-
-        when(namespaceService.findByWildcardName("*")).thenReturn(List.of(ns1));
-        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
-
-        Authentication authentication = Authentication.build("user", List.of(), Map.of(ROLE_BINDINGS, List.of()));
-        when(securityService.getAuthentication()).thenReturn(Optional.of(authentication));
-
-        List<Namespace> result = namespaceController.list(Map.of());
-        assertEquals(0, result.size());
     }
 
     @Test

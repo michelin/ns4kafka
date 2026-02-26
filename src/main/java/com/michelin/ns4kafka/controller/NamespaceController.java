@@ -26,7 +26,6 @@ import com.michelin.ns4kafka.controller.generic.ResourceController;
 import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
-import com.michelin.ns4kafka.security.auth.AuthenticationInfo;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.util.FormatErrorUtils;
 import com.michelin.ns4kafka.util.enumation.ApplyStatus;
@@ -86,27 +85,12 @@ public class NamespaceController extends ResourceController {
     public List<Namespace> list(@QueryValue Map<String, String> search) {
         List<Namespace> namespaces = namespaceService.findByWildcardName(search.getOrDefault("name", "*"));
 
-        if (search.containsKey("topic")) {
-            namespaces = namespaceService
-                    .findByTopicName(namespaces, search.get("topic"))
-                    .map(Collections::singletonList)
-                    .orElse(List.of());
-        }
-
-        if (securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)) {
-            return namespaces;
-        }
-
-        AuthenticationInfo authenticationInfo =
-                AuthenticationInfo.of(securityService.getAuthentication().orElseThrow());
-        List<String> authorizedNamespaces = authenticationInfo.getRoleBindings().stream()
-                .flatMap(roleBinding -> roleBinding.getNamespaces().stream())
-                .toList();
-
-        return namespaces.stream()
-                .filter(namespace ->
-                        authorizedNamespaces.contains(namespace.getMetadata().getName()))
-                .toList();
+        return search.containsKey("topic")
+                ? namespaceService
+                        .findByTopicName(namespaces, search.get("topic"))
+                        .map(Collections::singletonList)
+                        .orElse(List.of())
+                : namespaces;
     }
 
     /**
