@@ -891,8 +891,9 @@ class TopicServiceTest {
         when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.TOPIC))
                 .thenReturn(acls);
 
-        when(topicAsyncExecutor.getUnsyncTopics())
+        when(topicAsyncExecutor.collectBrokerTopics())
                 .thenReturn(Map.of("ns-topic1", t1, "ns-topic2", t2, "ns1-topic", t3));
+        when(topicRepository.findAllForCluster("local")).thenReturn(List.of());
         when(aclService.isResourceCoveredByAcls(acls, t1.getMetadata().getName()))
                 .thenReturn(true);
         when(aclService.isResourceCoveredByAcls(acls, t2.getMetadata().getName()))
@@ -940,8 +941,9 @@ class TopicServiceTest {
         when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.TOPIC))
                 .thenReturn(acls);
 
-        when(topicAsyncExecutor.getUnsyncTopics())
+        when(topicAsyncExecutor.collectBrokerTopics())
                 .thenReturn(Map.of("ns1-topic1", t1, "ns-topic2", t2, "ns-not-import", t3));
+        when(topicRepository.findAllForCluster("local")).thenReturn(List.of());
         when(aclService.isResourceCoveredByAcls(acls, t1.getMetadata().getName()))
                 .thenReturn(false);
         when(aclService.isResourceCoveredByAcls(acls, t2.getMetadata().getName()))

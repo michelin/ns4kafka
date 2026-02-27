@@ -42,6 +42,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -273,8 +274,15 @@ public class TopicService {
         List<AccessControlEntry> acls =
                 aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.TOPIC);
 
-        return topicAsyncExecutor.getUnsyncTopics().entrySet().stream()
-                .filter(entry -> aclService.isResourceCoveredByAcls(acls, entry.getKey())
+        Map<String, Topic> brokerTopics = topicAsyncExecutor.collectBrokerTopics();
+        Set<String> ns4KafkaTopicNames =
+                topicRepository.findAllForCluster(namespace.getMetadata().getCluster()).stream()
+                        .map(topic -> topic.getMetadata().getName())
+                        .collect(Collectors.toSet());
+
+        return brokerTopics.entrySet().stream()
+                .filter(entry -> !ns4KafkaTopicNames.contains(entry.getKey())
+                        && aclService.isResourceCoveredByAcls(acls, entry.getKey())
                         && RegexUtils.isResourceCoveredByRegex(entry.getKey(), nameFilterPatterns))
                 .map(Map.Entry::getValue)
                 .toList();

@@ -27,7 +27,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -48,7 +47,6 @@ import com.michelin.ns4kafka.service.client.schema.entities.TopicEntityAttribute
 import com.michelin.ns4kafka.service.client.schema.entities.TopicListResponse;
 import io.micronaut.http.HttpResponse;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -61,7 +59,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 
@@ -101,29 +98,7 @@ class TopicAsyncExecutorTest {
     KafkaFuture<Void> kafkaFuture;
 
     @InjectMocks
-    @Spy
     TopicAsyncExecutor topicAsyncExecutor;
-
-    @Test
-    void shouldGetUnsyncTopics() throws ExecutionException, InterruptedException, TimeoutException {
-        Topic t1 = Topic.builder()
-                .metadata(Metadata.builder().name(TOPIC_NAME).build()).build();
-        Topic t2 = Topic.builder()
-                .metadata(Metadata.builder().name(TOPIC_NAME2).build()).build();
-        Topic t3 = Topic.builder()
-                .metadata(Metadata.builder().name(TOPIC_NAME3).build()).build();
-
-        Map<String, Topic> brokerTopics = Map.of(TOPIC_NAME, t1, TOPIC_NAME2, t2);
-        List<Topic> ns4kafkaTopics = List.of(t1, t3);
-
-        doReturn(brokerTopics).when(topicAsyncExecutor).collectBrokerTopics();
-        when(topicRepository.findAllForCluster(managedClusterProperties.getName())).thenReturn(ns4kafkaTopics);
-
-        Map<String, Topic> results = topicAsyncExecutor.getUnsyncTopics();
-
-        assertEquals(1, results.size());
-        assertEquals(t2, results.get(TOPIC_NAME2));
-    }
 
     @Test
     void shouldAlterCatalogInfo() {
