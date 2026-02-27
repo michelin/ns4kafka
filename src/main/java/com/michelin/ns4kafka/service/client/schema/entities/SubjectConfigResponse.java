@@ -18,12 +18,14 @@
  */
 package com.michelin.ns4kafka.service.client.schema.entities;
 
+import com.michelin.ns4kafka.model.schema.Schema;
 import lombok.Builder;
 
 /**
- * Schema compatibility request.
+ * Subject config response.
  *
- * @param compatibility The compatibility
+ * @param compatibilityLevel The compatibility level
+ * @param alias The alias
  */
 @Builder
-public record SchemaCompatibilityRequest(String compatibility) {}
+public record SubjectConfigResponse(Schema.Compatibility compatibilityLevel, String alias) {}

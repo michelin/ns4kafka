@@ -18,20 +18,23 @@
  */
 package com.michelin.ns4kafka.controller;
 
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidAliasOwner;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidOwner;
 import static com.michelin.ns4kafka.util.enumation.Kind.SCHEMA;
 import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 
 import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.model.AuditLog;
+import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.schema.Schema;
-import com.michelin.ns4kafka.model.schema.SchemaCompatibilityState;
+import com.michelin.ns4kafka.model.schema.SubjectConfigState;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.SchemaService;
 import com.michelin.ns4kafka.util.enumation.ApplyStatus;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.context.event.ApplicationEventPublisher;
+import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
@@ -49,6 +52,7 @@ import java.time.Instant;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -316,54 +320,92 @@ public class SchemaController extends NamespacedResourceController {
     }
 
     /**
-     * Update the compatibility of a subject.
+     * Update the subject config.
      *
      * @param namespace The namespace
-     * @param subject The subject to update
+     * @param subject The subject config to update
      * @param compatibility The compatibility to apply
-     * @return A schema compatibility state
+     * @param alias The alias to apply
+     * @return A subject config state
      */
     @Post("/{subject}/config")
-    public Mono<HttpResponse<SchemaCompatibilityState>> config(
-            String namespace, @PathVariable String subject, Schema.Compatibility compatibility) {
+    public Mono<HttpResponse<SubjectConfigState>> config(
+            String namespace,
+            @PathVariable String subject,
+            @Nullable Schema.Compatibility compatibility,
+            @Nullable String alias) {
         Namespace ns = getNamespace(namespace);
 
         if (!schemaService.isNamespaceOwnerOfSubject(ns, subject)) {
             return Mono.error(new ResourceValidationException(SCHEMA, subject, invalidOwner(subject)));
         }
 
-        return schemaService
-                .getSubjectLatestVersion(ns, subject)
-                .map(Optional::of)
-                .defaultIfEmpty(Optional.empty())
-                .flatMap(latestSubjectOptional -> {
-                    if (latestSubjectOptional.isEmpty()) {
-                        return Mono.just(HttpResponse.notFound());
-                    }
+        if (alias != null && !schemaService.isNamespaceOwnerOfSubject(ns, alias)) {
+            return Mono.error(new ResourceValidationException(SCHEMA, alias, invalidAliasOwner(alias)));
+        }
 
-                    SchemaCompatibilityState state = SchemaCompatibilityState.builder()
-                            .metadata(latestSubjectOptional.get().getMetadata())
-                            .spec(SchemaCompatibilityState.SchemaCompatibilityStateSpec.builder()
-                                    .compatibility(compatibility)
-                                    .build())
-                            .build();
+        return schemaService.getSubjectConfig(ns, subject).flatMap(response -> {
+            SubjectConfigState state = SubjectConfigState.builder()
+                    .metadata(Metadata.builder()
+                            .cluster(ns.getMetadata().getCluster())
+                            .namespace(ns.getMetadata().getName())
+                            .name(subject)
+                            .build())
+                    .spec(SubjectConfigState.SubjectConfigStateSpec.builder()
+                            .compatibility(compatibility == null ? response.compatibilityLevel() : compatibility)
+                            .alias(alias == null ? response.alias() : alias)
+                            .build())
+                    .build();
 
-                    if (latestSubjectOptional.get().getSpec().getCompatibility().equals(compatibility)) {
-                        return Mono.just(HttpResponse.ok(state));
-                    }
+            if (Objects.equals(response.compatibilityLevel(), state.getSpec().getCompatibility())
+                    && Objects.equals(response.alias(), state.getSpec().getAlias())) {
+                return Mono.just(HttpResponse.ok(state));
+            }
 
-                    return schemaService
-                            .updateSubjectCompatibility(ns, latestSubjectOptional.get(), compatibility)
-                            .map(_ -> {
-                                sendEventLog(
-                                        latestSubjectOptional.get(),
-                                        ApplyStatus.CHANGED,
-                                        latestSubjectOptional.get().getSpec().getCompatibility(),
-                                        compatibility,
-                                        EMPTY_STRING);
+            return schemaService.updateSubjectConfig(ns, state).map(_ -> {
+                SubjectConfigState.SubjectConfigStateSpec currentConfig =
+                        SubjectConfigState.SubjectConfigStateSpec.builder()
+                                .compatibility(response.compatibilityLevel())
+                                .alias(response.alias())
+                                .build();
 
-                                return HttpResponse.ok(state);
-                            });
-                });
+                sendEventLog(state, ApplyStatus.CHANGED, currentConfig, state.getSpec(), EMPTY_STRING);
+
+                return HttpResponse.ok(state);
+            });
+        });
+    }
+
+    /**
+     * Delete the subject config.
+     *
+     * @param namespace The namespace
+     * @param subject The subject config to delete
+     * @return The deleted subject config state
+     */
+    @Delete("/{subject}/config")
+    public Mono<HttpResponse<SubjectConfigState>> deleteConfig(String namespace, @PathVariable String subject) {
+        Namespace ns = getNamespace(namespace);
+
+        if (!schemaService.isNamespaceOwnerOfSubject(ns, subject)) {
+            return Mono.error(new ResourceValidationException(SCHEMA, subject, invalidOwner(subject)));
+        }
+
+        return schemaService.deleteSubjectConfig(ns, subject).map(response -> {
+            SubjectConfigState state = SubjectConfigState.builder()
+                    .metadata(Metadata.builder()
+                            .cluster(ns.getMetadata().getCluster())
+                            .namespace(ns.getMetadata().getName())
+                            .name(subject)
+                            .build())
+                    .spec(SubjectConfigState.SubjectConfigStateSpec.builder()
+                            .compatibility(response.compatibilityLevel())
+                            .alias(response.alias())
+                            .build())
+                    .build();
+
+            sendEventLog(state, ApplyStatus.DELETED, state, null, EMPTY_STRING);
+            return HttpResponse.ok(state);
+        });
     }
 }
