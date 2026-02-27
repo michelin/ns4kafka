@@ -19,7 +19,9 @@
 package com.michelin.ns4kafka.repository;
 
 import com.michelin.ns4kafka.model.Topic;
+import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 /** Topic repository. */
 public interface TopicRepository {
@@ -28,7 +30,7 @@ public interface TopicRepository {
      *
      * @return The list of topics
      */
-    List<Topic> findAll();
+    Collection<Topic> findAll();
 
     /**
      * Find all topics by cluster.
@@ -37,6 +39,15 @@ public interface TopicRepository {
      * @return The list of topics
      */
     List<Topic> findAllForCluster(String cluster);
+
+    /**
+     * Find a topic by name.
+     *
+     * @param cluster The cluster
+     * @param name The name
+     * @return The topic if found, empty otherwise
+     */
+    Optional<Topic> findByName(String cluster, String name);
 
     /**
      * Create a given topic.

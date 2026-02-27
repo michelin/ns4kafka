@@ -32,6 +32,7 @@ import io.micronaut.scheduling.TaskScheduler;
 import jakarta.inject.Named;
 import jakarta.inject.Singleton;
 import java.util.List;
+import java.util.Optional;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
@@ -62,12 +63,23 @@ public class KafkaConnectorRepository extends KafkaStore<Connector> implements C
         super(kafkaTopic, kafkaProducer, adminClient, ns4KafkaProperties, taskScheduler);
     }
 
+    /**
+     * Get the message key for a given connector.
+     *
+     * @param connector The message
+     * @return The message key
+     */
     @Override
     String getMessageKey(Connector connector) {
         return connector.getMetadata().getNamespace() + "/"
                 + connector.getMetadata().getName();
     }
 
+    /**
+     * Receive a connector record.
+     *
+     * @param message The record
+     */
     @Override
     @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.connectors")
     void receive(ConsumerRecord<String, Connector> message) {
@@ -93,6 +105,18 @@ public class KafkaConnectorRepository extends KafkaStore<Connector> implements C
     @Override
     public void delete(Connector connector) {
         this.produce(getMessageKey(connector), null);
+    }
+
+    /**
+     * Find a connector by name.
+     *
+     * @param namespace The namespace
+     * @param name The name
+     * @return The connector
+     */
+    @Override
+    public Optional<Connector> findByName(String namespace, String name) {
+        return Optional.ofNullable(getKafkaStore().get(namespace + "/" + name));
     }
 
     /**

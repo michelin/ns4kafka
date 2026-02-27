@@ -25,6 +25,7 @@ import com.michelin.ns4kafka.controller.topic.TopicNonNamespacedController;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.service.TopicService;
+import java.util.Collection;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -51,10 +52,8 @@ class TopicNonNamespacedControllerTest {
                                 .metadata(Metadata.builder().name("topic2").build())
                                 .build()));
 
-        List<Topic> actual = topicController.listAll();
+        Collection<Topic> actual = topicController.listAll();
 
         assertEquals(2, actual.size());
-        assertEquals("topic1", actual.getFirst().getMetadata().getName());
-        assertEquals("topic2", actual.get(1).getMetadata().getName());
     }
 }

@@ -76,9 +76,7 @@ public class RoleBindingService {
      * @return The researched role binding
      */
     public Optional<RoleBinding> findByName(String namespace, String name) {
-        return findAllForNamespace(namespace).stream()
-                .filter(t -> t.getMetadata().getName().equals(name))
-                .findFirst();
+        return roleBindingRepository.findByName(namespace, name);
     }
 
     /**

@@ -31,7 +31,7 @@ import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.TaskScheduler;
 import jakarta.inject.Named;
 import jakarta.inject.Singleton;
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -63,11 +63,22 @@ public class KafkaConnectClusterRepository extends KafkaStore<ConnectCluster> im
         super(kafkaTopic, kafkaProducer, adminClient, ns4KafkaProperties, taskScheduler);
     }
 
+    /**
+     * Find all connect clusters.
+     *
+     * @return The list of connect clusters
+     */
     @Override
-    public List<ConnectCluster> findAll() {
-        return new ArrayList<>(getKafkaStore().values());
+    public Collection<ConnectCluster> findAll() {
+        return getKafkaStore().values();
     }
 
+    /**
+     * Find all connect clusters for a given cluster.
+     *
+     * @param cluster The cluster
+     * @return The list of connect clusters
+     */
     @Override
     public List<ConnectCluster> findAllForCluster(String cluster) {
         return getKafkaStore().values().stream()
@@ -76,22 +87,44 @@ public class KafkaConnectClusterRepository extends KafkaStore<ConnectCluster> im
                 .toList();
     }
 
+    /**
+     * Create or update a connect cluster.
+     *
+     * @param connectCluster The connect cluster
+     * @return The created or updated connect cluster
+     */
     @Override
     public ConnectCluster create(ConnectCluster connectCluster) {
         return this.produce(getMessageKey(connectCluster), connectCluster);
     }
 
+    /**
+     * Delete a connect cluster.
+     *
+     * @param connectCluster The connect cluster
+     */
     @Override
     public void delete(ConnectCluster connectCluster) {
         this.produce(getMessageKey(connectCluster), null);
     }
 
+    /**
+     * Receive a connect cluster record.
+     *
+     * @param message The record
+     */
     @Override
     @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.connect-workers")
     void receive(ConsumerRecord<String, ConnectCluster> message) {
         super.receive(message);
     }
 
+    /**
+     * Get the message key for a given connect cluster.
+     *
+     * @param connectCluster The message
+     * @return The message key
+     */
     @Override
     String getMessageKey(ConnectCluster connectCluster) {
         return connectCluster.getMetadata().getNamespace() + "/"

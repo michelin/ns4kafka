@@ -39,11 +39,7 @@ import com.michelin.ns4kafka.util.RegexUtils;
 import io.micronaut.core.util.StringUtils;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Stream;
 import lombok.Getter;
 import lombok.Setter;
@@ -55,10 +51,14 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @Singleton
 public class ConnectClusterService {
-    /** The default format string for aes 256 conversion. */
     private static final String DEFAULT_FORMAT = "${aes256:%s}";
-
     private static final String WILDCARD_SECRET = "*****";
+    private static final Set<AccessControlEntry.Permission> OWNER_PERMISSIONS =
+            EnumSet.of(AccessControlEntry.Permission.OWNER);
+    private static final Set<AccessControlEntry.Permission> WRITE_PERMISSIONS =
+            EnumSet.of(AccessControlEntry.Permission.OWNER, AccessControlEntry.Permission.WRITE);
+    private static final Set<AccessControlEntry.Permission> WRITE_ONLY_PERMISSION =
+            EnumSet.of(AccessControlEntry.Permission.WRITE);
 
     @Getter
     @Setter
@@ -80,34 +80,42 @@ public class ConnectClusterService {
     private Ns4KafkaProperties ns4KafkaProperties;
 
     /**
-     * Find all self deployed Connect clusters.
+     * Find all connect clusters.
      *
-     * @param all Include hard-declared Connect clusters
+     * @param all Include hard-declared connect clusters
      * @param status Include status information
-     * @return A list of Connect clusters
+     * @return A list of connect clusters
      */
     public Flux<ConnectCluster> findAll(boolean all, boolean status) {
-        List<ConnectCluster> results = connectClusterRepository.findAll();
+        Flux<ConnectCluster> selfHostedConnectClusters = Flux.defer(() -> Flux.fromIterable(connectClusterRepository.findAll()));
 
-        if (all) {
-            results.addAll(managedClusterProperties.stream()
-                    .filter(cluster -> cluster.getConnects() != null)
-                    .flatMap(config -> config.getConnects().entrySet().stream().map(entry -> ConnectCluster.builder()
-                            .metadata(Metadata.builder()
-                                    .name(entry.getKey())
-                                    .cluster(config.getName())
-                                    .build())
-                            .spec(ConnectCluster.ConnectClusterSpec.builder()
-                                    .url(entry.getValue().getUrl())
-                                    .username(entry.getValue().getBasicAuthUsername())
-                                    .password(entry.getValue().getBasicAuthPassword())
-                                    .build())
-                            .build()))
-                    .toList());
+        Flux<ConnectCluster> managedConnectClusters = all
+                ? Flux.fromIterable(managedClusterProperties)
+                .filter(cluster -> cluster.getConnects() != null)
+                .flatMap(config ->
+                        Flux.fromIterable(config.getConnects().entrySet())
+                                .map(entry -> ConnectCluster.builder()
+                                        .metadata(Metadata.builder()
+                                                .name(entry.getKey())
+                                                .cluster(config.getName())
+                                                .build())
+                                        .spec(ConnectCluster.ConnectClusterSpec.builder()
+                                                .url(entry.getValue().getUrl())
+                                                .username(entry.getValue().getBasicAuthUsername())
+                                                .password(entry.getValue().getBasicAuthPassword())
+                                                .build())
+                                        .build()
+                                )
+                ) : Flux.empty();
+
+        Flux<ConnectCluster> combinedFlux = selfHostedConnectClusters.concatWith(managedConnectClusters);
+
+        if (!status) {
+            return combinedFlux;
         }
 
-        return status
-                ? Flux.fromIterable(results).flatMap(connectCluster -> kafkaConnectClient
+        return combinedFlux.flatMap(connectCluster ->
+                kafkaConnectClient
                         .version(
                                 connectCluster.getMetadata().getCluster(),
                                 connectCluster.getMetadata().getName())
@@ -120,8 +128,8 @@ public class ConnectClusterService {
                             connectCluster.getSpec().setStatusMessage(null);
                         })
                         .map(_ -> connectCluster)
-                        .onErrorReturn(connectCluster))
-                : Flux.fromIterable(results);
+                        .onErrorReturn(connectCluster)
+        );
     }
 
     /**
@@ -132,7 +140,7 @@ public class ConnectClusterService {
      * @return A list of Connect clusters
      */
     public List<ConnectCluster> findAllForNamespaceByPermissions(
-            Namespace namespace, List<AccessControlEntry.Permission> permissions) {
+            Namespace namespace, Set<AccessControlEntry.Permission> permissions) {
         List<AccessControlEntry> acls = aclService.findAllGrantedToNamespace(namespace).stream()
                 .filter(acl -> permissions.contains(acl.getSpec().getPermission())
                         && acl.getSpec().getResourceType() == AccessControlEntry.ResourceType.CONNECT_CLUSTER)
@@ -153,7 +161,7 @@ public class ConnectClusterService {
      * @return A list of Connect clusters
      */
     public List<ConnectCluster> findAllForNamespaceWithOwnerPermission(Namespace namespace) {
-        return findAllForNamespaceByPermissions(namespace, List.of(AccessControlEntry.Permission.OWNER)).stream()
+        return findAllForNamespaceByPermissions(namespace, OWNER_PERMISSIONS).stream()
                 .toList();
     }
 
@@ -196,8 +204,7 @@ public class ConnectClusterService {
     public List<ConnectCluster> findAllForNamespaceWithWritePermission(Namespace namespace) {
         return Stream.concat(
                         findByWildcardNameWithOwnerPermission(namespace, "*").stream(),
-                        findAllForNamespaceByPermissions(namespace, List.of(AccessControlEntry.Permission.WRITE))
-                                .stream()
+                        findAllForNamespaceByPermissions(namespace, WRITE_PERMISSIONS).stream()
                                 .map(connectCluster -> ConnectCluster.builder()
                                         .metadata(connectCluster.getMetadata())
                                         .spec(ConnectCluster.ConnectClusterSpec.builder()
@@ -348,10 +355,7 @@ public class ConnectClusterService {
     public List<VaultResponse> vaultPassword(
             final Namespace namespace, final String connectCluster, final List<String> passwords) {
         final Optional<ConnectCluster> kafkaConnect =
-                findAllForNamespaceByPermissions(
-                                namespace,
-                                List.of(AccessControlEntry.Permission.OWNER, AccessControlEntry.Permission.WRITE))
-                        .stream()
+                findAllForNamespaceByPermissions(namespace, WRITE_ONLY_PERMISSION).stream()
                         .filter(cc -> cc.getMetadata().getName().equals(connectCluster)
                                 && StringUtils.hasText(cc.getSpec().getAes256Key())
                                 && StringUtils.hasText(cc.getSpec().getAes256Salt()))

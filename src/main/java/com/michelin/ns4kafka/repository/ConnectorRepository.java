@@ -20,6 +20,7 @@ package com.michelin.ns4kafka.repository;
 
 import com.michelin.ns4kafka.model.connector.Connector;
 import java.util.List;
+import java.util.Optional;
 
 /** Connector repository. */
 public interface ConnectorRepository {
@@ -30,6 +31,15 @@ public interface ConnectorRepository {
      * @return The list of connectors
      */
     List<Connector> findAllForCluster(String cluster);
+
+    /**
+     * Find a connector by name.
+     *
+     * @param namespace The namespace
+     * @param name The name
+     * @return The connector if found, empty otherwise
+     */
+    Optional<Connector> findByName(String namespace, String name);
 
     /**
      * Create a given connector.

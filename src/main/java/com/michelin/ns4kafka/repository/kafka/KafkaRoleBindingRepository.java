@@ -33,6 +33,7 @@ import jakarta.inject.Named;
 import jakarta.inject.Singleton;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
@@ -138,5 +139,16 @@ public class KafkaRoleBindingRepository extends KafkaStore<RoleBinding> implemen
         return getKafkaStore().values().stream()
                 .filter(roleBinding -> roleBinding.getMetadata().getNamespace().equals(namespace))
                 .toList();
+    }
+
+    /**
+     * Find a role binding by name.
+     *
+     * @param namespace The namespace
+     * @param name The name
+     * @return The role binding
+     */
+    public Optional<RoleBinding> findByName(String namespace, String name) {
+        return Optional.ofNullable(getKafkaStore().get(namespace + "-" + name));
     }
 }

@@ -29,15 +29,17 @@ import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 /** Service to manage Kafka Streams. */
 @Singleton
 public class StreamService {
+    private static final Set<AccessControlEntry.ResourceType> OWNER_ACLS =
+            EnumSet.of(AccessControlEntry.ResourceType.TOPIC, AccessControlEntry.ResourceType.GROUP);
+
     @Inject
     private StreamRepository streamRepository;
 
@@ -97,9 +99,7 @@ public class StreamService {
      * @return An optional Kafka Streams
      */
     public Optional<KafkaStream> findByName(Namespace namespace, String stream) {
-        return findAllForNamespace(namespace).stream()
-                .filter(kafkaStream -> kafkaStream.getMetadata().getName().equals(stream))
-                .findFirst();
+        return streamRepository.findByName(namespace.getMetadata().getCluster(), stream);
     }
 
     /**
@@ -112,17 +112,16 @@ public class StreamService {
      * @return true if it is, false otherwise
      */
     public boolean isNamespaceOwnerOfKafkaStream(Namespace namespace, String resource) {
-        return new HashSet<>(aclService.findAllGrantedToNamespace(namespace).stream()
-                        .filter(accessControlEntry ->
-                                accessControlEntry.getSpec().getPermission() == AccessControlEntry.Permission.OWNER)
-                        .filter(accessControlEntry ->
-                                accessControlEntry.getSpec().getResourcePatternType()
-                                        == AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .filter(accessControlEntry ->
-                                resource.startsWith(accessControlEntry.getSpec().getResource()))
-                        .map(accessControlEntry -> accessControlEntry.getSpec().getResourceType())
-                        .toList())
-                .containsAll(List.of(AccessControlEntry.ResourceType.TOPIC, AccessControlEntry.ResourceType.GROUP));
+        return aclService.findAllGrantedToNamespace(namespace).stream()
+                .filter(accessControlEntry ->
+                        accessControlEntry.getSpec().getPermission() == AccessControlEntry.Permission.OWNER)
+                .filter(accessControlEntry -> accessControlEntry.getSpec().getResourcePatternType()
+                        == AccessControlEntry.ResourcePatternType.PREFIXED)
+                .filter(accessControlEntry ->
+                        resource.startsWith(accessControlEntry.getSpec().getResource()))
+                .map(accessControlEntry -> accessControlEntry.getSpec().getResourceType())
+                .collect(Collectors.toSet())
+                .containsAll(OWNER_ACLS);
     }
 
     /**

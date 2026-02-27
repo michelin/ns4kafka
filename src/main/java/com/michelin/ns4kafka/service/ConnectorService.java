@@ -118,9 +118,7 @@ public class ConnectorService {
      * @return An optional connector
      */
     public Optional<Connector> findByName(Namespace namespace, String connector) {
-        return findAllForNamespace(namespace).stream()
-                .filter(connect -> connect.getMetadata().getName().equals(connector))
-                .findFirst();
+        return connectorRepository.findByName(namespace.getMetadata().getName(), connector);
     }
 
     /**

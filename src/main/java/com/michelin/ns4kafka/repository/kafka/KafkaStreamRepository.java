@@ -32,6 +32,7 @@ import io.micronaut.scheduling.TaskScheduler;
 import jakarta.inject.Named;
 import jakarta.inject.Singleton;
 import java.util.List;
+import java.util.Optional;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
@@ -72,6 +73,17 @@ public class KafkaStreamRepository extends KafkaStore<KafkaStream> implements St
         return getKafkaStore().values().stream()
                 .filter(stream -> stream.getMetadata().getCluster().equals(cluster))
                 .toList();
+    }
+
+    /**
+     * Get a stream by its name and cluster.
+     *
+     * @param cluster The cluster used to research
+     * @param name The name used to research
+     * @return The stream
+     */
+    public Optional<KafkaStream> findByName(String cluster, String name) {
+        return Optional.ofNullable(getKafkaStore().get(cluster + "/" + name));
     }
 
     @Override

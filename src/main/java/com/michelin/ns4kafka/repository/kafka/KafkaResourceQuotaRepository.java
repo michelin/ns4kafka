@@ -31,8 +31,6 @@ import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.TaskScheduler;
 import jakarta.inject.Named;
 import jakarta.inject.Singleton;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -67,16 +65,6 @@ public class KafkaResourceQuotaRepository extends KafkaStore<ResourceQuota> impl
     @Override
     String getMessageKey(ResourceQuota message) {
         return message.getMetadata().getNamespace();
-    }
-
-    /**
-     * Find all quotas of all namespaces.
-     *
-     * @return The resource quotas
-     */
-    @Override
-    public List<ResourceQuota> findAll() {
-        return new ArrayList<>(getKafkaStore().values());
     }
 
     /**

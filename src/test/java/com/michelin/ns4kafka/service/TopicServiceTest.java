@@ -1050,7 +1050,7 @@ class TopicServiceTest {
 
         when(topicRepository.findAll()).thenReturn(List.of(t1, t2, t3, t4));
 
-        List<Topic> topics = topicService.findAll();
+        Collection<Topic> topics = topicService.findAll();
         assertEquals(4, topics.size());
     }
 

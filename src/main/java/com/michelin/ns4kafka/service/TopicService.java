@@ -69,7 +69,7 @@ public class TopicService {
      *
      * @return The list of topics
      */
-    public List<Topic> findAll() {
+    public Collection<Topic> findAll() {
         return topicRepository.findAll();
     }
 
@@ -111,9 +111,7 @@ public class TopicService {
      * @return An optional topic
      */
     public Optional<Topic> findByName(Namespace namespace, String topic) {
-        return findAllForNamespace(namespace).stream()
-                .filter(t -> t.getMetadata().getName().equals(topic))
-                .findFirst();
+        return topicRepository.findByName(namespace.getMetadata().getCluster(), topic);
     }
 
     /**

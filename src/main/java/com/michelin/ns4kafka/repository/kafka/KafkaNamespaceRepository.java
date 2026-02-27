@@ -93,8 +93,6 @@ public class KafkaNamespaceRepository extends KafkaStore<Namespace> implements N
 
     @Override
     public Optional<Namespace> findByName(String namespace) {
-        return getKafkaStore().values().stream()
-                .filter(ns -> ns.getMetadata().getName().equals(namespace))
-                .findFirst();
+        return Optional.ofNullable(getKafkaStore().get(namespace));
     }
 }

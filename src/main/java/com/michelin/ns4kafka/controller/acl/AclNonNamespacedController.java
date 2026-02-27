@@ -29,7 +29,7 @@ import io.micronaut.http.annotation.Get;
 import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
-import java.util.List;
+import java.util.Collection;
 
 /** Non-namespaced controller to manage ACLs. */
 @Tag(name = "ACLs", description = "Manage the ACLs.")
@@ -59,7 +59,7 @@ public class AclNonNamespacedController extends ResourceController {
      * @return A list of ACLs
      */
     @Get
-    public List<AccessControlEntry> listAll() {
+    public Collection<AccessControlEntry> listAll() {
         return aclService.findAll();
     }
 }

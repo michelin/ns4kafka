@@ -30,8 +30,9 @@ import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.TaskScheduler;
 import jakarta.inject.Named;
 import jakarta.inject.Singleton;
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
@@ -88,6 +89,11 @@ public class KafkaTopicRepository extends KafkaStore<Topic> implements TopicRepo
         this.produce(getMessageKey(topic), null);
     }
 
+    /**
+     * Receive a topic record.
+     *
+     * @param message The record
+     */
     @Override
     @io.micronaut.configuration.kafka.annotation.Topic(value = "${ns4kafka.store.kafka.topics.prefix}.topics")
     void receive(ConsumerRecord<String, Topic> message) {
@@ -100,8 +106,20 @@ public class KafkaTopicRepository extends KafkaStore<Topic> implements TopicRepo
      * @return The list of topics
      */
     @Override
-    public List<Topic> findAll() {
-        return new ArrayList<>(getKafkaStore().values());
+    public Collection<Topic> findAll() {
+        return getKafkaStore().values();
+    }
+
+    /**
+     * Find a topic by name.
+     *
+     * @param cluster The namespace
+     * @param name The name
+     * @return The topic
+     */
+    @Override
+    public Optional<Topic> findByName(String cluster, String name) {
+        return Optional.ofNullable(getKafkaStore().get(cluster + "/" + name));
     }
 
     /**

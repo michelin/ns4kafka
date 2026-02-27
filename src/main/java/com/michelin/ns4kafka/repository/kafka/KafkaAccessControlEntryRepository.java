@@ -82,10 +82,7 @@ public class KafkaAccessControlEntryRepository extends KafkaStore<AccessControlE
 
     @Override
     public Optional<AccessControlEntry> findByName(String namespace, String name) {
-        return getKafkaStore().values().stream()
-                .filter(ace -> ace.getMetadata().getNamespace().equals(namespace))
-                .filter(ace -> ace.getMetadata().getName().equals(name))
-                .findFirst();
+        return Optional.ofNullable(getKafkaStore().get(namespace + "/" + name));
     }
 
     @Override

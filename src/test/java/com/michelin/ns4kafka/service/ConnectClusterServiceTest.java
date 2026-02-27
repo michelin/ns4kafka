@@ -252,7 +252,7 @@ class ConnectClusterServiceTest {
         assertEquals(
                 List.of(connectCluster, connectClusterTwo),
                 connectClusterService.findAllForNamespaceByPermissions(
-                        namespace, List.of(AccessControlEntry.Permission.OWNER)));
+                        namespace, EnumSet.of(AccessControlEntry.Permission.OWNER)));
     }
 
     @Test
