@@ -63,11 +63,23 @@ public class KafkaStreamRepository extends KafkaStore<KafkaStream> implements St
         super(kafkaTopic, kafkaProducer, adminClient, ns4KafkaProperties, taskScheduler);
     }
 
+    /**
+     * Get the message key for a given stream.
+     *
+     * @param stream The message
+     * @return The message key
+     */
     @Override
-    String getMessageKey(KafkaStream stream) {
+    public String getMessageKey(KafkaStream stream) {
         return stream.getMetadata().getCluster() + "/" + stream.getMetadata().getName();
     }
 
+    /**
+     * Find all streams for a given cluster.
+     *
+     * @param cluster The cluster
+     * @return The list of streams
+     */
     @Override
     public List<KafkaStream> findAllForCluster(String cluster) {
         return getKafkaStore().values().stream()
@@ -82,21 +94,38 @@ public class KafkaStreamRepository extends KafkaStore<KafkaStream> implements St
      * @param name The name used to research
      * @return The stream
      */
+    @Override
     public Optional<KafkaStream> findByName(String cluster, String name) {
         return Optional.ofNullable(getKafkaStore().get(cluster + "/" + name));
     }
 
+    /**
+     * Create a given stream.
+     *
+     * @param stream The stream
+     * @return The created stream
+     */
     @Override
     public KafkaStream create(KafkaStream stream) {
         return this.produce(getMessageKey(stream), stream);
     }
 
+    /**
+     * Receive a stream record.
+     *
+     * @param message The record
+     */
     @Override
     @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.streams")
-    void receive(ConsumerRecord<String, KafkaStream> message) {
+    public void receive(ConsumerRecord<String, KafkaStream> message) {
         super.receive(message);
     }
 
+    /**
+     * Delete a given stream.
+     *
+     * @param stream The stream
+     */
     @Override
     public void delete(KafkaStream stream) {
         this.produce(getMessageKey(stream), null);

@@ -109,6 +109,7 @@ public class StreamController extends NamespacedResourceController {
     HttpResponse<KafkaStream> apply(
             String namespace, @Body @Valid KafkaStream stream, @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
+
         if (!streamService.isNamespaceOwnerOfKafkaStream(
                 ns, stream.getMetadata().getName())) {
             throw new ResourceValidationException(

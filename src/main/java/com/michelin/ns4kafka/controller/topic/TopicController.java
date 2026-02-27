@@ -123,19 +123,19 @@ public class TopicController extends NamespacedResourceController {
             throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = getNamespace(namespace);
 
+        List<String> validationErrors = new ArrayList<>();
+        if (!topicService.isNamespaceOwnerOfTopic(
+                namespace, topic.getMetadata().getName())) {
+            validationErrors.add(invalidOwner(topic.getMetadata().getName()));
+        }
+
+        if (ns.getSpec().getTopicValidator() != null) {
+            validationErrors.addAll(ns.getSpec().getTopicValidator().validate(topic));
+        }
+
         Optional<Topic> existingTopic =
                 topicService.findByName(ns, topic.getMetadata().getName());
-
-        List<String> validationErrors = ns.getSpec().getTopicValidator() != null
-                ? ns.getSpec().getTopicValidator().validate(topic)
-                : new ArrayList<>();
-
         if (existingTopic.isEmpty()) {
-            if (!topicService.isNamespaceOwnerOfTopic(
-                    namespace, topic.getMetadata().getName())) {
-                validationErrors.add(invalidOwner(topic.getMetadata().getName()));
-            }
-
             // Topic names with a period ('.') or underscore ('_') could collide
             List<String> collidingTopics = topicService.findCollidingTopics(ns, topic);
             if (!collidingTopics.isEmpty()) {

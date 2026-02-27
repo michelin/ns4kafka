@@ -63,6 +63,12 @@ public class KafkaTopicRepository extends KafkaStore<Topic> implements TopicRepo
         super(kafkaTopic, kafkaProducer, adminClient, ns4KafkaProperties, taskScheduler);
     }
 
+    /**
+     * Get the message key for a given topic.
+     *
+     * @param topic The message
+     * @return The message key
+     */
     @Override
     String getMessageKey(Topic topic) {
         return topic.getMetadata().getCluster() + "/" + topic.getMetadata().getName();
@@ -113,7 +119,7 @@ public class KafkaTopicRepository extends KafkaStore<Topic> implements TopicRepo
     /**
      * Find a topic by name.
      *
-     * @param cluster The namespace
+     * @param cluster The cluster
      * @param name The name
      * @return The topic
      */

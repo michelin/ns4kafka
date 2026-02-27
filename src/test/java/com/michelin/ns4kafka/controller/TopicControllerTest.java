@@ -383,6 +383,7 @@ class TopicControllerTest {
                         .build())
                 .build();
 
+        when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
         when(topicService.create(topic)).thenReturn(topic);
@@ -390,8 +391,9 @@ class TopicControllerTest {
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        var response = topicController.apply("test", topic, false);
+        HttpResponse<Topic> response = topicController.apply("test", topic, false);
         Topic actual = response.body();
+
         assertEquals("changed", response.header("X-Ns4kafka-Result"));
         assertEquals("test.topic", actual.getMetadata().getName());
     }
@@ -427,12 +429,14 @@ class TopicControllerTest {
                         .build())
                 .build();
 
+        when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
         when(topicService.validateTags(ns, topic)).thenReturn(List.of("Error on tags"));
 
         ResourceValidationException actual =
                 assertThrows(ResourceValidationException.class, () -> topicController.apply("test", topic, false));
+
         assertEquals(1, actual.getValidationErrors().size());
         assertLinesMatch(List.of("Error on tags"), actual.getValidationErrors());
     }
@@ -468,6 +472,7 @@ class TopicControllerTest {
                         .build())
                 .build();
 
+        when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
         when(topicService.create(topic)).thenReturn(topic);
@@ -512,6 +517,7 @@ class TopicControllerTest {
                         .build())
                 .build();
 
+        when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
         when(topicService.validateTopicUpdate(ns, existing, topic))
@@ -558,11 +564,13 @@ class TopicControllerTest {
                         .build())
                 .build();
 
+        when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
 
-        var response = topicController.apply("test", topic, false);
+        HttpResponse<Topic> response = topicController.apply("test", topic, false);
         Topic actual = response.body();
+
         assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
         verify(topicService, never()).create(ArgumentMatchers.any());
         assertEquals(existing, actual);

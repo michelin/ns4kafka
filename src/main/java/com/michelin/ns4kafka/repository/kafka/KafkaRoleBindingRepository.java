@@ -148,6 +148,7 @@ public class KafkaRoleBindingRepository extends KafkaStore<RoleBinding> implemen
      * @param name The name
      * @return The role binding
      */
+    @Override
     public Optional<RoleBinding> findByName(String namespace, String name) {
         return Optional.ofNullable(getKafkaStore().get(namespace + "-" + name));
     }

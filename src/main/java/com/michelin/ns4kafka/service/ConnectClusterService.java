@@ -55,7 +55,7 @@ public class ConnectClusterService {
     private static final String WILDCARD_SECRET = "*****";
     private static final Set<AccessControlEntry.Permission> OWNER_PERMISSIONS =
             EnumSet.of(AccessControlEntry.Permission.OWNER);
-    private static final Set<AccessControlEntry.Permission> WRITE_PERMISSIONS =
+    private static final Set<AccessControlEntry.Permission> WRITE_OR_OWNER_PERMISSIONS =
             EnumSet.of(AccessControlEntry.Permission.OWNER, AccessControlEntry.Permission.WRITE);
     private static final Set<AccessControlEntry.Permission> WRITE_ONLY_PERMISSION =
             EnumSet.of(AccessControlEntry.Permission.WRITE);
@@ -204,7 +204,7 @@ public class ConnectClusterService {
     public List<ConnectCluster> findAllForNamespaceWithWritePermission(Namespace namespace) {
         return Stream.concat(
                         findByWildcardNameWithOwnerPermission(namespace, "*").stream(),
-                        findAllForNamespaceByPermissions(namespace, WRITE_PERMISSIONS).stream()
+                        findAllForNamespaceByPermissions(namespace, WRITE_OR_OWNER_PERMISSIONS).stream()
                                 .map(connectCluster -> ConnectCluster.builder()
                                         .metadata(connectCluster.getMetadata())
                                         .spec(ConnectCluster.ConnectClusterSpec.builder()

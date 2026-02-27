@@ -93,13 +93,18 @@ public class StreamService {
 
     /**
      * Find a Kafka Streams by namespace and name.
+     * Filter the result by namespace to ensure the namespace is owner of the stream and
+     * not steal from another namespace from the same cluster.
      *
      * @param namespace The namespace
      * @param stream The Kafka Streams name
      * @return An optional Kafka Streams
      */
     public Optional<KafkaStream> findByName(Namespace namespace, String stream) {
-        return streamRepository.findByName(namespace.getMetadata().getCluster(), stream);
+        return streamRepository.findByName(namespace.getMetadata().getCluster(), stream)
+                .filter(streamResult -> streamResult.getMetadata()
+                        .getNamespace()
+                        .equals(namespace.getMetadata().getName()));
     }
 
     /**
