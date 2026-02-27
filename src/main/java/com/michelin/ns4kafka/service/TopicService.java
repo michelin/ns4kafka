@@ -279,11 +279,14 @@ public class TopicService {
                         .map(topic -> topic.getMetadata().getName())
                         .collect(Collectors.toSet());
 
-        return topicAsyncExecutor.collectBrokerTopics().entrySet().stream()
-                .filter(entry -> !ns4KafkaTopicNames.contains(entry.getKey())
-                        && aclService.isResourceCoveredByAcls(acls, entry.getKey())
-                        && RegexUtils.isResourceCoveredByRegex(entry.getKey(), nameFilterPatterns))
-                .map(Map.Entry::getValue)
+        return topicAsyncExecutor
+                .collectBrokerTopicsFromNames(topicAsyncExecutor.listBrokerTopicNames().stream()
+                        .filter(topic -> !ns4KafkaTopicNames.contains(topic)
+                                && aclService.isResourceCoveredByAcls(acls, topic)
+                                && RegexUtils.isResourceCoveredByRegex(topic, nameFilterPatterns))
+                        .toList())
+                .values()
+                .stream()
                 .toList();
     }
 
