@@ -202,6 +202,22 @@ public class TopicAsyncExecutor {
     }
 
     /**
+     * Between broker topics and Ns4Kafka topics, get the unsynchronized topics.
+     *
+     * @return A list of unsynchronized topics
+     */
+    public Map<String, Topic> getUnsyncTopics() throws ExecutionException, InterruptedException, TimeoutException {
+        Map<String, Topic> brokerTopics = collectBrokerTopics();
+        Map<String, Topic> ns4KafkaTopicNames =
+                topicRepository.findAllForCluster(managedClusterProperties.getName()).stream()
+                        .collect(Collectors.toMap(topic -> topic.getMetadata().getName(), topic -> topic));
+
+        return brokerTopics.entrySet().stream()
+                .filter(entry -> !ns4KafkaTopicNames.containsKey(entry.getKey()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
+    /**
      * Between broker topics and Ns4Kafka topics, get the unsynchronized Kafka Streams internal topics.
      *
      * @param brokerTopics The topics from the broker
