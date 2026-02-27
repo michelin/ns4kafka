@@ -38,6 +38,8 @@ import io.micronaut.http.annotation.Delete;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
+import io.micronaut.security.annotation.Secured;
+import io.micronaut.security.rules.SecurityRule;
 import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
@@ -52,7 +54,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /** Controller to manage the namespaces. */
-@RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
 @Tag(name = "Namespaces", description = "Manage the namespaces.")
 @Controller("/api/namespaces")
 public class NamespaceController extends ResourceController {
@@ -81,6 +82,7 @@ public class NamespaceController extends ResourceController {
      * @return A list of namespaces
      */
     @Get("{?search*}")
+    @Secured(SecurityRule.IS_AUTHENTICATED)
     public List<Namespace> list(@QueryValue Map<String, String> search) {
         List<Namespace> namespaces = namespaceService.findByWildcardName(search.getOrDefault("name", "*"));
 
@@ -100,6 +102,7 @@ public class NamespaceController extends ResourceController {
      * @return The created namespace
      */
     @Post("{?dryrun}")
+    @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
     public HttpResponse<Namespace> apply(
             @Valid @Body Namespace namespace, @QueryValue(defaultValue = "false") boolean dryrun) {
         Optional<Namespace> existingNamespace =
@@ -155,6 +158,7 @@ public class NamespaceController extends ResourceController {
      * @return An HTTP response
      */
     @Delete
+    @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
     public HttpResponse<List<Namespace>> delete(
             @QueryValue(defaultValue = "*") String name, @QueryValue(defaultValue = "false") boolean dryrun) {
         List<Namespace> namespaces = namespaceService.findByWildcardName(name);
