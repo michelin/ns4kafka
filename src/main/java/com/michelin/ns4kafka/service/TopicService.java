@@ -274,13 +274,12 @@ public class TopicService {
         List<AccessControlEntry> acls =
                 aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.TOPIC);
 
-        Map<String, Topic> brokerTopics = topicAsyncExecutor.collectBrokerTopics();
         Set<String> ns4KafkaTopicNames =
                 topicRepository.findAllForCluster(namespace.getMetadata().getCluster()).stream()
                         .map(topic -> topic.getMetadata().getName())
                         .collect(Collectors.toSet());
 
-        return brokerTopics.entrySet().stream()
+        return topicAsyncExecutor.collectBrokerTopics().entrySet().stream()
                 .filter(entry -> !ns4KafkaTopicNames.contains(entry.getKey())
                         && aclService.isResourceCoveredByAcls(acls, entry.getKey())
                         && RegexUtils.isResourceCoveredByRegex(entry.getKey(), nameFilterPatterns))
