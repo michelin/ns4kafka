@@ -891,21 +891,20 @@ class TopicServiceTest {
         when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.TOPIC))
                 .thenReturn(acls);
 
-        when(topicAsyncExecutor.collectBrokerTopics())
-                .thenReturn(Map.of("ns-topic1", t1, "ns-topic2", t2, "ns1-topic", t3));
-        when(topicRepository.findAllForCluster("local")).thenReturn(List.of());
+        when(topicAsyncExecutor.listBrokerTopicNames())
+                .thenReturn(List.of(t1.getMetadata().getName(), t2.getMetadata().getName(), t3.getMetadata().getName()));
+        when(topicRepository.findAllForCluster("local")).thenReturn(List.of(t2));
         when(aclService.isResourceCoveredByAcls(acls, t1.getMetadata().getName()))
-                .thenReturn(true);
-        when(aclService.isResourceCoveredByAcls(acls, t2.getMetadata().getName()))
                 .thenReturn(true);
         when(aclService.isResourceCoveredByAcls(acls, t3.getMetadata().getName()))
                 .thenReturn(false);
+        when(topicAsyncExecutor.collectBrokerTopicsFromNames(List.of(t1.getMetadata().getName())))
+                .thenReturn(Map.of(t1.getMetadata().getName(), t1));
 
         List<Topic> actual = topicService.listUnsynchronizedTopicsByWildcardName(ns, "*");
 
-        assertEquals(2, actual.size());
+        assertEquals(1, actual.size());
         assertTrue(actual.contains(t1));
-        assertTrue(actual.contains(t2));
     }
 
     @Test
@@ -918,11 +917,9 @@ class TopicServiceTest {
         Topic t1 = Topic.builder()
                 .metadata(Metadata.builder().name("ns1-topic1").build())
                 .build();
-
         Topic t2 = Topic.builder()
                 .metadata(Metadata.builder().name("ns-topic2").build())
                 .build();
-
         Topic t3 = Topic.builder()
                 .metadata(Metadata.builder().name("ns-not-import").build())
                 .build();
@@ -941,8 +938,8 @@ class TopicServiceTest {
         when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.TOPIC))
                 .thenReturn(acls);
 
-        when(topicAsyncExecutor.collectBrokerTopics())
-                .thenReturn(Map.of("ns1-topic1", t1, "ns-topic2", t2, "ns-not-import", t3));
+        when(topicAsyncExecutor.listBrokerTopicNames())
+                .thenReturn(List.of(t1.getMetadata().getName(), t2.getMetadata().getName(), t3.getMetadata().getName()));
         when(topicRepository.findAllForCluster("local")).thenReturn(List.of());
         when(aclService.isResourceCoveredByAcls(acls, t1.getMetadata().getName()))
                 .thenReturn(false);
@@ -950,6 +947,8 @@ class TopicServiceTest {
                 .thenReturn(true);
         when(aclService.isResourceCoveredByAcls(acls, t3.getMetadata().getName()))
                 .thenReturn(true);
+        when(topicAsyncExecutor.collectBrokerTopicsFromNames(List.of(t2.getMetadata().getName())))
+                .thenReturn(Map.of(t2.getMetadata().getName(), t2));
 
         List<Topic> actual = topicService.listUnsynchronizedTopicsByWildcardName(ns, "ns-topic*");
 
