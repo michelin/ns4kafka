@@ -892,13 +892,17 @@ class TopicServiceTest {
                 .thenReturn(acls);
 
         when(topicAsyncExecutor.listBrokerTopicNames())
-                .thenReturn(List.of(t1.getMetadata().getName(), t2.getMetadata().getName(), t3.getMetadata().getName()));
+                .thenReturn(List.of(
+                        t1.getMetadata().getName(),
+                        t2.getMetadata().getName(),
+                        t3.getMetadata().getName()));
         when(topicRepository.findAllForCluster("local")).thenReturn(List.of(t2));
         when(aclService.isResourceCoveredByAcls(acls, t1.getMetadata().getName()))
                 .thenReturn(true);
         when(aclService.isResourceCoveredByAcls(acls, t3.getMetadata().getName()))
                 .thenReturn(false);
-        when(topicAsyncExecutor.collectBrokerTopicsFromNames(List.of(t1.getMetadata().getName())))
+        when(topicAsyncExecutor.collectBrokerTopicsFromNames(
+                        List.of(t1.getMetadata().getName())))
                 .thenReturn(Map.of(t1.getMetadata().getName(), t1));
 
         List<Topic> actual = topicService.listUnsynchronizedTopicsByWildcardName(ns, "*");
@@ -939,7 +943,10 @@ class TopicServiceTest {
                 .thenReturn(acls);
 
         when(topicAsyncExecutor.listBrokerTopicNames())
-                .thenReturn(List.of(t1.getMetadata().getName(), t2.getMetadata().getName(), t3.getMetadata().getName()));
+                .thenReturn(List.of(
+                        t1.getMetadata().getName(),
+                        t2.getMetadata().getName(),
+                        t3.getMetadata().getName()));
         when(topicRepository.findAllForCluster("local")).thenReturn(List.of());
         when(aclService.isResourceCoveredByAcls(acls, t1.getMetadata().getName()))
                 .thenReturn(false);
@@ -947,7 +954,8 @@ class TopicServiceTest {
                 .thenReturn(true);
         when(aclService.isResourceCoveredByAcls(acls, t3.getMetadata().getName()))
                 .thenReturn(true);
-        when(topicAsyncExecutor.collectBrokerTopicsFromNames(List.of(t2.getMetadata().getName())))
+        when(topicAsyncExecutor.collectBrokerTopicsFromNames(
+                        List.of(t2.getMetadata().getName())))
                 .thenReturn(Map.of(t2.getMetadata().getName(), t2));
 
         List<Topic> actual = topicService.listUnsynchronizedTopicsByWildcardName(ns, "ns-topic*");
