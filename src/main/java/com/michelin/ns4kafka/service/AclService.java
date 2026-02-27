@@ -371,24 +371,6 @@ public class AclService {
     }
 
     /**
-     * Find all ACLs where the given namespace is either the grantor or the grantee, or the ACL is public.
-     *
-     * @param namespace The namespace
-     * @return A list of ACLs
-     */
-    public List<AccessControlEntry> findAllRelatedToNamespace(Namespace namespace) {
-        return findAllForCluster(namespace.getMetadata().getCluster()).stream()
-                .filter(acl -> acl.getMetadata()
-                                .getNamespace()
-                                .equals(namespace.getMetadata().getName())
-                        || acl.getSpec()
-                                .getGrantedTo()
-                                .equals(namespace.getMetadata().getName())
-                        || isPublicAcl(acl))
-                .toList();
-    }
-
-    /**
      * Find all ACLs granted to given namespace, filtered by name parameter. Will also return public granted ACLs.
      *
      * @param namespace The namespace
@@ -442,7 +424,14 @@ public class AclService {
      */
     public List<AccessControlEntry> findAllRelatedToNamespaceByWildcardName(Namespace namespace, String name) {
         List<String> nameFilterPatterns = RegexUtils.convertWildcardStringsToRegex(List.of(name));
-        return findAllRelatedToNamespace(namespace).stream()
+        return findAllForCluster(namespace.getMetadata().getCluster()).stream()
+                .filter(acl -> acl.getMetadata()
+                                .getNamespace()
+                                .equals(namespace.getMetadata().getName())
+                        || acl.getSpec()
+                                .getGrantedTo()
+                                .equals(namespace.getMetadata().getName())
+                        || isPublicAcl(acl))
                 .filter(acl ->
                         RegexUtils.isResourceCoveredByRegex(acl.getMetadata().getName(), nameFilterPatterns))
                 .toList();

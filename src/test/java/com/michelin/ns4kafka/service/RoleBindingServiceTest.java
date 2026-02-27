@@ -19,12 +19,15 @@
 package com.michelin.ns4kafka.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.RoleBinding;
 import com.michelin.ns4kafka.repository.RoleBindingRepository;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -48,24 +51,12 @@ class RoleBindingServiceTest {
                         .build())
                 .build();
 
-        RoleBinding rb2 = RoleBinding.builder()
-                .metadata(Metadata.builder()
-                        .name("namespace-rb2")
-                        .cluster("local")
-                        .build())
-                .build();
-
-        RoleBinding rb3 = RoleBinding.builder()
-                .metadata(Metadata.builder()
-                        .name("namespace-rb3")
-                        .cluster("local")
-                        .build())
-                .build();
-
-        when(roleBindingRepository.findAllForNamespace("namespace")).thenReturn(List.of(rb1, rb2, rb3));
+        when(roleBindingRepository.findByName(any(), any())).thenReturn(Optional.of(rb1));
 
         var result = roleBindingService.findByName("namespace", "namespace-rb2");
-        assertEquals(rb2, result.orElse(null));
+
+        assertTrue(result.isPresent());
+        assertEquals(rb1, result.get());
     }
 
     @Test

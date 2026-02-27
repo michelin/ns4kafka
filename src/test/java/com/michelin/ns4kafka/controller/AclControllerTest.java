@@ -68,7 +68,7 @@ class AclControllerTest {
     SecurityService securityService;
 
     @InjectMocks
-    AclController accessControlListController;
+    AclController aclController;
 
     @Test
     void shouldListAclsWithoutNameParameter() {
@@ -151,8 +151,7 @@ class AclControllerTest {
                         aceTopicPrefixedReadNamespaceOtherToTest,
                         aceTopicPrefixedReadAdminToAll));
 
-        List<AccessControlEntry> actual =
-                accessControlListController.list("test", Optional.of(AclController.AclLimit.GRANTEE), "*");
+        List<AccessControlEntry> actual = aclController.list("test", Optional.of(AclController.AclLimit.GRANTEE), "*");
 
         assertEquals(4, actual.size());
         assertTrue(actual.contains(aceTopicPrefixedOwnerAdminToTest));
@@ -160,11 +159,11 @@ class AclControllerTest {
         assertTrue(actual.contains(aceTopicPrefixedReadNamespaceOtherToTest));
         assertTrue(actual.contains(aceTopicPrefixedReadAdminToAll));
 
-        actual = accessControlListController.list("test", Optional.of(AclController.AclLimit.GRANTOR), "*");
+        actual = aclController.list("test", Optional.of(AclController.AclLimit.GRANTOR), "*");
         assertEquals(1, actual.size());
         assertTrue(actual.contains(aceTopicPrefixedReadTestToNamespaceOther));
 
-        actual = accessControlListController.list("test", Optional.of(AclController.AclLimit.ALL), "*");
+        actual = aclController.list("test", Optional.of(AclController.AclLimit.ALL), "*");
         assertEquals(5, actual.size());
         assertTrue(actual.contains(aceTopicPrefixedOwnerAdminToTest));
         assertTrue(actual.contains(aceConnectPrefixedOwnerAdminToTest));
@@ -238,35 +237,24 @@ class AclControllerTest {
 
         assertEquals(
                 List.of(aclGrantedToNamespace),
-                accessControlListController.list(
-                        "test", Optional.of(AclController.AclLimit.GRANTEE), "aclGrantedToNamespace"));
+                aclController.list("test", Optional.of(AclController.AclLimit.GRANTEE), "aclGrantedToNamespace"));
 
-        assertEquals(
-                List.of(),
-                accessControlListController.list("test", Optional.of(AclController.AclLimit.GRANTEE), "ownerAcl"));
+        assertEquals(List.of(), aclController.list("test", Optional.of(AclController.AclLimit.GRANTEE), "ownerAcl"));
 
         assertEquals(
                 List.of(aclGrantedByNamespace),
-                accessControlListController.list(
-                        "test", Optional.of(AclController.AclLimit.GRANTOR), "aclGrantedByNamespace"));
+                aclController.list("test", Optional.of(AclController.AclLimit.GRANTOR), "aclGrantedByNamespace"));
+
+        assertEquals(List.of(), aclController.list("test", Optional.of(AclController.AclLimit.GRANTOR), "ownerAcl"));
 
         assertEquals(
-                List.of(),
-                accessControlListController.list("test", Optional.of(AclController.AclLimit.GRANTOR), "ownerAcl"));
-
-        assertEquals(
-                List.of(ownerAcl),
-                accessControlListController.list("test", Optional.of(AclController.AclLimit.ALL), "ownerAcl"));
+                List.of(ownerAcl), aclController.list("test", Optional.of(AclController.AclLimit.ALL), "ownerAcl"));
     }
 
     @Test
     @SuppressWarnings("deprecation")
     void shouldGetAcl() {
-        Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
-                .build();
-
-        AccessControlEntry aceTopicPrefixedReadTestToNamespaceOther = AccessControlEntry.builder()
+        AccessControlEntry acl = AccessControlEntry.builder()
                 .metadata(Metadata.builder()
                         .name("ace3")
                         .namespace("test")
@@ -281,43 +269,12 @@ class AclControllerTest {
                         .build())
                 .build();
 
-        AccessControlEntry aceTopicPrefixedReadNamespaceOtherToTest = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
-                        .name("ace5")
-                        .namespace("namespace-other")
-                        .cluster("local")
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.READ)
-                        .resource("other-prefix")
-                        .grantedTo("test")
-                        .build())
-                .build();
+        when(aclService.findByName(any(), any())).thenReturn(Optional.of(acl));
 
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(namespace));
-        when(aclService.findAllRelatedToNamespace(namespace))
-                .thenReturn(
-                        List.of(aceTopicPrefixedReadTestToNamespaceOther, aceTopicPrefixedReadNamespaceOtherToTest));
+        Optional<AccessControlEntry> result = aclController.get("test", "ace5");
 
-        // Name not in list
-        assertTrue(accessControlListController.get("test", "ace6").isEmpty());
-
-        // Not granted to or assigned by me
-        assertTrue(accessControlListController.get("test", "ace4").isEmpty());
-
-        // Assigned by me
-        Optional<AccessControlEntry> result3 = accessControlListController.get("test", "ace3");
-
-        assertTrue(result3.isPresent());
-        assertEquals(aceTopicPrefixedReadTestToNamespaceOther, result3.get());
-
-        // Granted to me
-        Optional<AccessControlEntry> result4 = accessControlListController.get("test", "ace5");
-
-        assertTrue(result4.isPresent());
-        assertEquals(aceTopicPrefixedReadNamespaceOtherToTest, result4.get());
+        assertTrue(result.isPresent());
+        assertEquals(acl, result.get());
     }
 
     @Test
@@ -349,7 +306,7 @@ class AclControllerTest {
 
         ResourceValidationException actual = assertThrows(
                 ResourceValidationException.class,
-                () -> accessControlListController.apply(authentication, "test", accessControlEntry, false));
+                () -> aclController.apply(authentication, "test", accessControlEntry, false));
         assertEquals(1, actual.getValidationErrors().size());
     }
 
@@ -381,7 +338,7 @@ class AclControllerTest {
                 .thenReturn(List.of());
         when(aclService.create(accessControlEntry)).thenReturn(accessControlEntry);
 
-        var response = accessControlListController.apply(authentication, "test", accessControlEntry, false);
+        var response = aclController.apply(authentication, "test", accessControlEntry, false);
         AccessControlEntry actual = response.body();
         assertEquals("created", response.header("X-Ns4kafka-Result"));
         assertEquals("test", actual.getMetadata().getNamespace());
@@ -415,7 +372,7 @@ class AclControllerTest {
 
         ResourceValidationException actual = assertThrows(
                 ResourceValidationException.class,
-                () -> accessControlListController.apply(authentication, "test", accessControlEntry, false));
+                () -> aclController.apply(authentication, "test", accessControlEntry, false));
         assertEquals(1, actual.getValidationErrors().size());
     }
 
@@ -448,7 +405,7 @@ class AclControllerTest {
         doNothing().when(applicationEventPublisher).publishEvent(any());
         when(aclService.create(accessControlEntry)).thenReturn(accessControlEntry);
 
-        var response = accessControlListController.apply(authentication, "test", accessControlEntry, false);
+        var response = aclController.apply(authentication, "test", accessControlEntry, false);
         AccessControlEntry actual = response.body();
         assertEquals("created", response.header("X-Ns4kafka-Result"));
         assertEquals("test", actual.getMetadata().getNamespace());
@@ -481,7 +438,7 @@ class AclControllerTest {
         when(aclService.validate(accessControlEntry, namespace)).thenReturn(List.of());
         when(aclService.findByName("test", "ace1")).thenReturn(Optional.of(accessControlEntry));
 
-        var response = accessControlListController.apply(authentication, "test", accessControlEntry, false);
+        var response = aclController.apply(authentication, "test", accessControlEntry, false);
         AccessControlEntry actual = response.body();
         assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
         assertEquals("test", actual.getMetadata().getNamespace());
@@ -528,7 +485,7 @@ class AclControllerTest {
 
         ResourceValidationException actual = assertThrows(
                 ResourceValidationException.class,
-                () -> accessControlListController.apply(authentication, "test", accessControlEntry, false));
+                () -> aclController.apply(authentication, "test", accessControlEntry, false));
         assertEquals(1, actual.getValidationErrors().size());
         assertEquals(
                 "Invalid \"apply\" operation: field \"spec\" is immutable.",
@@ -577,7 +534,7 @@ class AclControllerTest {
         when(aclService.findByName("test", "ace1")).thenReturn(Optional.of(oldAccessControlEntry));
         when(aclService.create(accessControlEntry)).thenReturn(accessControlEntry);
 
-        var response = accessControlListController.apply(authentication, "test", accessControlEntry, false);
+        var response = aclController.apply(authentication, "test", accessControlEntry, false);
         AccessControlEntry actual = response.body();
         assertEquals("changed", response.header("X-Ns4kafka-Result"));
         assertEquals("test", actual.getMetadata().getNamespace());
@@ -626,7 +583,7 @@ class AclControllerTest {
         when(aclService.validate(accessControlEntry, ns)).thenReturn(List.of());
         when(aclService.findByName("test", "ace1")).thenReturn(Optional.of(oldAccessControlEntry));
 
-        var response = accessControlListController.apply(authentication, "test", accessControlEntry, true);
+        var response = aclController.apply(authentication, "test", accessControlEntry, true);
         AccessControlEntry actual = response.body();
         assertEquals("changed", response.header("X-Ns4kafka-Result"));
         assertEquals("test", actual.getMetadata().getNamespace());
@@ -659,7 +616,7 @@ class AclControllerTest {
         when(aclService.validateSelfAssignedAdmin(accessControlEntry, adminNamespace))
                 .thenReturn(List.of());
 
-        var response = accessControlListController.apply(authentication, "admin", accessControlEntry, true);
+        var response = aclController.apply(authentication, "admin", accessControlEntry, true);
 
         assertEquals("created", response.header("X-Ns4kafka-Result"));
         verify(aclService, never()).create(ArgumentMatchers.any());
@@ -690,7 +647,7 @@ class AclControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(namespace));
         when(aclService.validate(accessControlEntry, namespace)).thenReturn(List.of());
 
-        var response = accessControlListController.apply(authentication, "test", accessControlEntry, true);
+        var response = aclController.apply(authentication, "test", accessControlEntry, true);
 
         assertEquals("created", response.header("X-Ns4kafka-Result"));
         verify(aclService, never()).create(accessControlEntry);
@@ -704,8 +661,7 @@ class AclControllerTest {
         when(aclService.findByName("test", "ace1")).thenReturn(Optional.empty());
 
         ResourceValidationException actual = assertThrows(
-                ResourceValidationException.class,
-                () -> accessControlListController.delete(authentication, "test", "ace1", false));
+                ResourceValidationException.class, () -> aclController.delete(authentication, "test", "ace1", false));
 
         assertEquals(
                 "Invalid value \"ace1\" for field \"name\": resource not found.",
@@ -735,8 +691,7 @@ class AclControllerTest {
         when(aclService.findByName("test", "ace1")).thenReturn(Optional.of(accessControlEntry));
 
         ResourceValidationException actual = assertThrows(
-                ResourceValidationException.class,
-                () -> accessControlListController.delete(authentication, "test", "ace1", false));
+                ResourceValidationException.class, () -> aclController.delete(authentication, "test", "ace1", false));
 
         assertEquals(
                 "Invalid value \"ace1\" for field \"name\": only administrators can delete this ACL.",
@@ -766,7 +721,7 @@ class AclControllerTest {
 
         when(aclService.findByName("test", "ace1")).thenReturn(Optional.of(accessControlEntry));
 
-        HttpResponse<Void> actual = accessControlListController.delete(authentication, "test", "ace1", false);
+        HttpResponse<Void> actual = aclController.delete(authentication, "test", "ace1", false);
 
         assertEquals(HttpStatus.NO_CONTENT, actual.status());
     }
@@ -796,7 +751,7 @@ class AclControllerTest {
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        HttpResponse<Void> actual = accessControlListController.delete(authentication, "test", "ace1", false);
+        HttpResponse<Void> actual = aclController.delete(authentication, "test", "ace1", false);
 
         assertEquals(HttpStatus.NO_CONTENT, actual.status());
     }
@@ -822,7 +777,7 @@ class AclControllerTest {
         Authentication authentication = Authentication.build("user", Map.of("roles", List.of()));
 
         when(aclService.findByName("test", "ace1")).thenReturn(Optional.of(accessControlEntry));
-        HttpResponse<Void> actual = accessControlListController.delete(authentication, "test", "ace1", true);
+        HttpResponse<Void> actual = aclController.delete(authentication, "test", "ace1", true);
 
         verify(aclService, never()).delete(any());
         assertEquals(HttpStatus.NO_CONTENT, actual.status());
@@ -839,7 +794,7 @@ class AclControllerTest {
         when(aclService.findAllGrantedByNamespaceByWildcardName(namespace, "ace1"))
                 .thenReturn(List.of());
 
-        var actual = accessControlListController.bulkDelete(authentication, "test", "ace1", false);
+        var actual = aclController.bulkDelete(authentication, "test", "ace1", false);
         assertEquals(HttpStatus.NOT_FOUND, actual.status());
     }
 
@@ -886,7 +841,7 @@ class AclControllerTest {
 
         ResourceValidationException actual = assertThrows(
                 ResourceValidationException.class,
-                () -> accessControlListController.bulkDelete(authentication, "test", "ace*", false));
+                () -> aclController.bulkDelete(authentication, "test", "ace*", false));
 
         assertEquals(
                 "Invalid value \"ace*\" for field \"name\":"
@@ -921,7 +876,7 @@ class AclControllerTest {
         when(aclService.findAllGrantedByNamespaceByWildcardName(namespace, "ace1"))
                 .thenReturn(List.of(accessControlEntry));
 
-        var actual = accessControlListController.bulkDelete(authentication, "test", "ace1", false);
+        var actual = aclController.bulkDelete(authentication, "test", "ace1", false);
 
         assertEquals(HttpStatus.OK, actual.status());
     }
@@ -970,7 +925,7 @@ class AclControllerTest {
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        var actual = accessControlListController.bulkDelete(authentication, "test", "ace*", false);
+        var actual = aclController.bulkDelete(authentication, "test", "ace*", false);
 
         assertEquals(HttpStatus.OK, actual.status());
     }
@@ -1000,7 +955,7 @@ class AclControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(namespace));
         when(aclService.findAllGrantedByNamespaceByWildcardName(namespace, "ace1"))
                 .thenReturn(List.of(accessControlEntry));
-        var actual = accessControlListController.bulkDelete(authentication, "test", "ace1", true);
+        var actual = aclController.bulkDelete(authentication, "test", "ace1", true);
 
         verify(aclService, never()).delete(any());
         assertEquals(HttpStatus.OK, actual.status());

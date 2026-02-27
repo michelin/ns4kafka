@@ -39,6 +39,7 @@ import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -229,45 +230,43 @@ class StreamServiceTest {
         Namespace ns = Namespace.builder()
                 .metadata(Metadata.builder().name("test").cluster("local").build())
                 .build();
-        KafkaStream stream1 = KafkaStream.builder()
+
+        KafkaStream stream = KafkaStream.builder()
                 .metadata(Metadata.builder()
-                        .name("test_stream1")
-                        .namespace("test")
-                        .cluster("local")
-                        .build())
-                .build();
-        KafkaStream stream2 = KafkaStream.builder()
-                .metadata(Metadata.builder()
-                        .name("test_stream2")
-                        .namespace("test")
-                        .cluster("local")
-                        .build())
-                .build();
-        KafkaStream stream3 = KafkaStream.builder()
-                .metadata(Metadata.builder()
-                        .name("test_stream3")
+                        .name("stream")
                         .namespace("test")
                         .cluster("local")
                         .build())
                 .build();
 
-        when(streamRepository.findAllForCluster("local")).thenReturn(List.of(stream1, stream2, stream3));
+        when(streamRepository.findByName(any(), any())).thenReturn(Optional.of(stream));
 
-        var actual = streamService.findByName(ns, "test_stream2");
+        var actual = streamService.findByName(ns, "stream");
 
         assertTrue(actual.isPresent());
-        assertEquals(stream2, actual.get());
+        assertEquals(stream, actual.get());
     }
 
     @Test
-    void shouldFindByNameWhenEmpty() {
+    void shouldReturnEmptyWhenFindByNameByAnotherNamespace() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Metadata.builder()
+                        .name("malicious-namespace")
+                        .cluster("local")
+                        .build())
                 .build();
 
-        when(streamRepository.findAllForCluster("local")).thenReturn(List.of());
+        KafkaStream stream = KafkaStream.builder()
+                .metadata(Metadata.builder()
+                        .name("stream")
+                        .namespace("test")
+                        .cluster("local")
+                        .build())
+                .build();
 
-        var actual = streamService.findByName(ns, "test_stream2");
+        when(streamRepository.findByName(any(), any())).thenReturn(Optional.of(stream));
+
+        var actual = streamService.findByName(ns, "stream");
 
         assertTrue(actual.isEmpty());
     }

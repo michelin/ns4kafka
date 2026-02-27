@@ -56,6 +56,8 @@ class TopicNonNamespacedControllerTest {
         Collection<Topic> actual = topicController.listAll();
 
         assertEquals(2, actual.size());
-        assertIterableEquals(List.of("topic1", "topic2"), actual.stream().map(topic -> topic.getMetadata().getName()).toList());
+        assertIterableEquals(
+                List.of("topic1", "topic2"),
+                actual.stream().map(topic -> topic.getMetadata().getName()).toList());
     }
 }

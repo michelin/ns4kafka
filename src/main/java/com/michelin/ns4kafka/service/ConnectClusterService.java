@@ -87,13 +87,14 @@ public class ConnectClusterService {
      * @return A list of connect clusters
      */
     public Flux<ConnectCluster> findAll(boolean all, boolean status) {
-        Flux<ConnectCluster> selfHostedConnectClusters = Flux.defer(() -> Flux.fromIterable(connectClusterRepository.findAll()));
+        Flux<ConnectCluster> selfHostedConnectClusters =
+                Flux.defer(() -> Flux.fromIterable(connectClusterRepository.findAll()));
 
         Flux<ConnectCluster> managedConnectClusters = all
                 ? Flux.fromIterable(managedClusterProperties)
-                .filter(cluster -> cluster.getConnects() != null)
-                .flatMap(config ->
-                        Flux.fromIterable(config.getConnects().entrySet())
+                        .filter(cluster -> cluster.getConnects() != null)
+                        .flatMap(config -> Flux.fromIterable(
+                                        config.getConnects().entrySet())
                                 .map(entry -> ConnectCluster.builder()
                                         .metadata(Metadata.builder()
                                                 .name(entry.getKey())
@@ -104,9 +105,8 @@ public class ConnectClusterService {
                                                 .username(entry.getValue().getBasicAuthUsername())
                                                 .password(entry.getValue().getBasicAuthPassword())
                                                 .build())
-                                        .build()
-                                )
-                ) : Flux.empty();
+                                        .build()))
+                : Flux.empty();
 
         Flux<ConnectCluster> combinedFlux = selfHostedConnectClusters.concatWith(managedConnectClusters);
 
@@ -114,22 +114,20 @@ public class ConnectClusterService {
             return combinedFlux;
         }
 
-        return combinedFlux.flatMap(connectCluster ->
-                kafkaConnectClient
-                        .version(
-                                connectCluster.getMetadata().getCluster(),
-                                connectCluster.getMetadata().getName())
-                        .doOnError(error -> {
-                            connectCluster.getSpec().setStatus(ConnectCluster.Status.IDLE);
-                            connectCluster.getSpec().setStatusMessage(error.getMessage());
-                        })
-                        .doOnSuccess(_ -> {
-                            connectCluster.getSpec().setStatus(ConnectCluster.Status.HEALTHY);
-                            connectCluster.getSpec().setStatusMessage(null);
-                        })
-                        .map(_ -> connectCluster)
-                        .onErrorReturn(connectCluster)
-        );
+        return combinedFlux.flatMap(connectCluster -> kafkaConnectClient
+                .version(
+                        connectCluster.getMetadata().getCluster(),
+                        connectCluster.getMetadata().getName())
+                .doOnError(error -> {
+                    connectCluster.getSpec().setStatus(ConnectCluster.Status.IDLE);
+                    connectCluster.getSpec().setStatusMessage(error.getMessage());
+                })
+                .doOnSuccess(_ -> {
+                    connectCluster.getSpec().setStatus(ConnectCluster.Status.HEALTHY);
+                    connectCluster.getSpec().setStatusMessage(null);
+                })
+                .map(_ -> connectCluster)
+                .onErrorReturn(connectCluster));
     }
 
     /**
@@ -204,7 +202,7 @@ public class ConnectClusterService {
     public List<ConnectCluster> findAllForNamespaceWithWritePermission(Namespace namespace) {
         return Stream.concat(
                         findByWildcardNameWithOwnerPermission(namespace, "*").stream(),
-                        findAllForNamespaceByPermissions(namespace, WRITE_OR_OWNER_PERMISSIONS).stream()
+                        findAllForNamespaceByPermissions(namespace, WRITE_ONLY_PERMISSION).stream()
                                 .map(connectCluster -> ConnectCluster.builder()
                                         .metadata(connectCluster.getMetadata())
                                         .spec(ConnectCluster.ConnectClusterSpec.builder()
@@ -355,7 +353,7 @@ public class ConnectClusterService {
     public List<VaultResponse> vaultPassword(
             final Namespace namespace, final String connectCluster, final List<String> passwords) {
         final Optional<ConnectCluster> kafkaConnect =
-                findAllForNamespaceByPermissions(namespace, WRITE_ONLY_PERMISSION).stream()
+                findAllForNamespaceByPermissions(namespace, WRITE_OR_OWNER_PERMISSIONS).stream()
                         .filter(cc -> cc.getMetadata().getName().equals(connectCluster)
                                 && StringUtils.hasText(cc.getSpec().getAes256Key())
                                 && StringUtils.hasText(cc.getSpec().getAes256Salt()))

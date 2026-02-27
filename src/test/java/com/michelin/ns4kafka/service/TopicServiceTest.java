@@ -40,11 +40,10 @@ import com.michelin.ns4kafka.repository.TopicRepository;
 import com.michelin.ns4kafka.service.executor.TopicAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
-import java.util.Collections;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
@@ -87,50 +86,45 @@ class TopicServiceTest {
                         .build())
                 .build();
 
-        Topic t1 = Topic.builder()
-                .metadata(Metadata.builder().name("ns-topic1").build())
+        Topic topic = Topic.builder()
+                .metadata(Metadata.builder()
+                        .name("ns-topic1")
+                        .namespace("namespace")
+                        .build())
                 .build();
 
-        Topic t2 = Topic.builder()
-                .metadata(Metadata.builder().name("ns-topic2").build())
+        when(topicRepository.findByName(any(), any())).thenReturn(Optional.of(topic));
+
+        Optional<Topic> result = topicService.findByName(ns, "ns-topic1");
+
+        assertTrue(result.isPresent());
+        assertEquals(topic, result.get());
+    }
+
+    @Test
+    void shouldReturnEmptyWhenFindByNameByAnotherNamespace() {
+        Namespace ns = Namespace.builder()
+                .metadata(Metadata.builder()
+                        .name("malicious-namespace")
+                        .cluster("local")
+                        .build())
+                .spec(NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
                 .build();
 
-        Topic t3 = Topic.builder()
-                .metadata(Metadata.builder().name("ns1-topic1").build())
+        Topic topic = Topic.builder()
+                .metadata(Metadata.builder()
+                        .namespace("namespace")
+                        .name("ns-topic1")
+                        .build())
                 .build();
 
-        when(topicRepository.findAllForCluster("local")).thenReturn(List.of(t1, t2, t3));
-        when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.TOPIC))
-                .thenReturn(List.of(
-                        AccessControlEntry.builder()
-                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                                        .permission(AccessControlEntry.Permission.OWNER)
-                                        .grantedTo("namespace")
-                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                                        .resource("ns-")
-                                        .build())
-                                .build(),
-                        AccessControlEntry.builder()
-                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                                        .permission(AccessControlEntry.Permission.OWNER)
-                                        .grantedTo("namespace")
-                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                                        .resource("ns1-topic1")
-                                        .build())
-                                .build()));
-        when(aclService.isResourceCoveredByAcls(any(), anyString())).thenReturn(true);
+        when(topicRepository.findByName(any(), any())).thenReturn(Optional.of(topic));
 
-        // search topic by name
-        Optional<Topic> actualTopicPrefixed = topicService.findByName(ns, "ns-topic1");
-        assertEquals(actualTopicPrefixed.orElse(Topic.builder().build()), t1);
+        Optional<Topic> result = topicService.findByName(ns, "ns-topic1");
 
-        Optional<Topic> actualTopicLiteral = topicService.findByName(ns, "ns1-topic1");
-        assertEquals(actualTopicLiteral.orElse(Topic.builder().build()), t3);
-
-        Optional<Topic> actualTopicNotFound = topicService.findByName(ns, "ns2-topic1");
-        assertThrows(NoSuchElementException.class, actualTopicNotFound::get, "No value present");
+        assertTrue(result.isEmpty());
     }
 
     @Test
@@ -337,11 +331,9 @@ class TopicServiceTest {
                         Qualifiers.byName(ns.getMetadata().getCluster())))
                 .thenReturn(topicAsyncExecutor);
 
-        // list of existing broker topics
         when(topicAsyncExecutor.listBrokerTopicNames())
                 .thenReturn(List.of("ns-topic1", "ns-topic2", "ns1-topic1", "ns2-topic1"));
 
-        // list of existing ns4kfk access control entries
         when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, "ns-topic1"))
                 .thenReturn(true);
         when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, "ns-topic2"))
@@ -351,29 +343,7 @@ class TopicServiceTest {
         when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, "ns2-topic1"))
                 .thenReturn(false);
 
-        when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.TOPIC))
-                .thenReturn(List.of(
-                        AccessControlEntry.builder()
-                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                                        .permission(AccessControlEntry.Permission.OWNER)
-                                        .grantedTo("namespace")
-                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                                        .resource("ns-")
-                                        .build())
-                                .build(),
-                        AccessControlEntry.builder()
-                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                                        .permission(AccessControlEntry.Permission.OWNER)
-                                        .grantedTo("namespace")
-                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                                        .resource("ns1-topic1")
-                                        .build())
-                                .build()));
-
-        // no topic exists into ns4kfk
-        when(topicRepository.findAllForCluster("local")).thenReturn(List.of());
+        when(topicRepository.findByName(any(), any())).thenReturn(Optional.empty());
 
         List<String> actual = topicService.listUnsynchronizedTopicNames(ns);
 
@@ -389,7 +359,6 @@ class TopicServiceTest {
     @Test
     void shouldListUnsynchronizedWhenAllExistingTopics()
             throws InterruptedException, ExecutionException, TimeoutException {
-        // init ns4kfk namespace
         Namespace ns = Namespace.builder()
                 .metadata(Metadata.builder().name("namespace").cluster("local").build())
                 .spec(NamespaceSpec.builder()
@@ -398,40 +367,32 @@ class TopicServiceTest {
                 .build();
 
         Topic t1 = Topic.builder()
-                .metadata(Metadata.builder().name("ns-topic1").build())
+                .metadata(Metadata.builder()
+                        .name("ns-topic1")
+                        .namespace("namespace")
+                        .build())
                 .build();
 
         Topic t2 = Topic.builder()
-                .metadata(Metadata.builder().name("ns-topic2").build())
+                .metadata(Metadata.builder()
+                        .name("ns-topic2")
+                        .namespace("namespace")
+                        .build())
                 .build();
 
         Topic t3 = Topic.builder()
-                .metadata(Metadata.builder().name("ns1-topic1").build())
+                .metadata(Metadata.builder()
+                        .name("ns1-topic1")
+                        .namespace("namespace")
+                        .build())
                 .build();
 
         Topic t4 = Topic.builder()
-                .metadata(Metadata.builder().name("ns2-topic1").build())
+                .metadata(Metadata.builder()
+                        .name("ns2-topic1")
+                        .namespace("namespace")
+                        .build())
                 .build();
-
-        List<AccessControlEntry> acls = List.of(
-                AccessControlEntry.builder()
-                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                                .permission(AccessControlEntry.Permission.OWNER)
-                                .grantedTo("namespace")
-                                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                                .resource("ns-")
-                                .build())
-                        .build(),
-                AccessControlEntry.builder()
-                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                                .permission(AccessControlEntry.Permission.OWNER)
-                                .grantedTo("namespace")
-                                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                                .resource("ns1-topic1")
-                                .build())
-                        .build());
 
         when(applicationContext.getBean(
                         TopicAsyncExecutor.class,
@@ -468,16 +429,11 @@ class TopicServiceTest {
                         t4.getMetadata().getName()))
                 .thenReturn(false);
 
-        when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.TOPIC))
-                .thenReturn(acls);
-
-        // all topic exists into ns4kfk
-        when(topicRepository.findAllForCluster("local")).thenReturn(List.of(t1, t2, t3, t4));
-
-        when(aclService.isResourceCoveredByAcls(acls, "ns-topic1")).thenReturn(true);
-        when(aclService.isResourceCoveredByAcls(acls, "ns-topic2")).thenReturn(true);
-        when(aclService.isResourceCoveredByAcls(acls, "ns1-topic1")).thenReturn(true);
-        when(aclService.isResourceCoveredByAcls(acls, "ns2-topic1")).thenReturn(false);
+        when(topicRepository.findByName(any(), any()))
+                .thenReturn(Optional.of(t1))
+                .thenReturn(Optional.of(t2))
+                .thenReturn(Optional.of(t3))
+                .thenReturn(Optional.of(t4));
 
         List<String> actual = topicService.listUnsynchronizedTopicNames(ns);
 
@@ -496,28 +452,11 @@ class TopicServiceTest {
                 .build();
 
         Topic t1 = Topic.builder()
-                .metadata(Metadata.builder().name("ns-topic1").build())
+                .metadata(Metadata.builder()
+                        .namespace("namespace")
+                        .name("ns-topic1")
+                        .build())
                 .build();
-
-        List<AccessControlEntry> acls = List.of(
-                AccessControlEntry.builder()
-                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                                .permission(AccessControlEntry.Permission.OWNER)
-                                .grantedTo("namespace")
-                                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                                .resource("ns-")
-                                .build())
-                        .build(),
-                AccessControlEntry.builder()
-                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                                .permission(AccessControlEntry.Permission.OWNER)
-                                .grantedTo("namespace")
-                                .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                                .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                                .resource("ns1-topic1")
-                                .build())
-                        .build());
 
         when(applicationContext.getBean(
                         TopicAsyncExecutor.class,
@@ -538,12 +477,10 @@ class TopicServiceTest {
         when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, "ns2-topic1"))
                 .thenReturn(false);
 
-        when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.TOPIC))
-                .thenReturn(acls);
-
-        // partial number of topics exists into ns4kfk
-        when(topicRepository.findAllForCluster("local")).thenReturn(List.of(t1));
-        when(aclService.isResourceCoveredByAcls(acls, "ns-topic1")).thenReturn(true);
+        when(topicRepository.findByName(any(), any()))
+                .thenReturn(Optional.of(t1))
+                .thenReturn(Optional.empty())
+                .thenReturn(Optional.empty());
 
         List<String> actual = topicService.listUnsynchronizedTopicNames(ns);
 

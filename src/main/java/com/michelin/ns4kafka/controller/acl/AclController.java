@@ -117,10 +117,7 @@ public class AclController extends NamespacedResourceController {
     @Get("/{acl}")
     @Deprecated(since = "1.12.0")
     public Optional<AccessControlEntry> get(String namespace, String acl) {
-        return aclService.findAllRelatedToNamespace(getNamespace(namespace)).stream()
-                .filter(accessControlEntry ->
-                        accessControlEntry.getMetadata().getName().equals(acl))
-                .findFirst();
+        return aclService.findByName(namespace, acl);
     }
 
     /**

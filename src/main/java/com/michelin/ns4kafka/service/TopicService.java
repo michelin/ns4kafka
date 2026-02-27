@@ -104,17 +104,18 @@ public class TopicService {
     }
 
     /**
-     * Find a topic by namespace and name.
-     * Filter the result by namespace to ensure the namespace is owner of the stream and
-     * not steal from another namespace from the same cluster.
+     * Find a topic by namespace and name. Filter the result by namespace to ensure the namespace is owner of the
+     * resource and not steal from another namespace from the same cluster.
      *
      * @param namespace The namespace
      * @param topic The topic name
      * @return An optional topic
      */
     public Optional<Topic> findByName(Namespace namespace, String topic) {
-        return topicRepository.findByName(namespace.getMetadata().getCluster(), topic)
-                .filter(topicResult -> topicResult.getMetadata()
+        return topicRepository
+                .findByName(namespace.getMetadata().getCluster(), topic)
+                .filter(topicResult -> topicResult
+                        .getMetadata()
                         .getNamespace()
                         .equals(namespace.getMetadata().getName()));
     }

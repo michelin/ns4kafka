@@ -124,8 +124,7 @@ public class TopicController extends NamespacedResourceController {
         Namespace ns = getNamespace(namespace);
 
         List<String> validationErrors = new ArrayList<>();
-        if (!topicService.isNamespaceOwnerOfTopic(
-                namespace, topic.getMetadata().getName())) {
+        if (!topicService.isNamespaceOwnerOfTopic(namespace, topic.getMetadata().getName())) {
             validationErrors.add(invalidOwner(topic.getMetadata().getName()));
         }
 
