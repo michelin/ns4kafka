@@ -38,6 +38,7 @@ import io.micronaut.inject.qualifiers.Qualifiers;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -509,8 +510,8 @@ public class AclService {
      *
      * @return A list of ACLs
      */
-    public List<AccessControlEntry> findAll() {
-        return new ArrayList<>(accessControlEntryRepository.findAll());
+    public Collection<AccessControlEntry> findAll() {
+        return accessControlEntryRepository.findAll();
     }
 
     /**

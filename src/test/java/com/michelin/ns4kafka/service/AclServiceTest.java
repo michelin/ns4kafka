@@ -37,6 +37,7 @@ import com.michelin.ns4kafka.repository.AccessControlEntryRepository;
 import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -988,7 +989,7 @@ class AclServiceTest {
 
         when(accessControlEntryRepository.findAll()).thenReturn(List.of(ace1, ace2, ace3));
 
-        List<AccessControlEntry> actual = aclService.findAll();
+        Collection<AccessControlEntry> actual = aclService.findAll();
         assertEquals(3, actual.size());
     }
 
@@ -1006,6 +1007,11 @@ class AclServiceTest {
                 .build();
 
         AccessControlEntry aceTopicPrefixedOwner = AccessControlEntry.builder()
+                .metadata(Metadata.builder()
+                        .name("acl-name")
+                        .namespace("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -1016,6 +1022,11 @@ class AclServiceTest {
                 .build();
 
         AccessControlEntry aceConnectLiteralOwner = AccessControlEntry.builder()
+                .metadata(Metadata.builder()
+                        .name("acl-name")
+                        .namespace("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.CONNECT)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
@@ -1026,6 +1037,11 @@ class AclServiceTest {
                 .build();
 
         AccessControlEntry aceConnectLiteralWrite = AccessControlEntry.builder()
+                .metadata(Metadata.builder()
+                        .name("acl-name")
+                        .namespace("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.CONNECT)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
