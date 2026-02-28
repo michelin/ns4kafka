@@ -134,7 +134,7 @@ class ConnectClusterControllerTest {
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(connectClusterService.findByNameWithOwnerPermission(ns, "missing")).thenReturn(Optional.empty());
+        when(connectClusterService.findByName(ns, "missing")).thenReturn(Optional.empty());
 
         Optional<ConnectCluster> actual = connectClusterController.get("test", "missing");
         assertTrue(actual.isEmpty());
@@ -148,7 +148,7 @@ class ConnectClusterControllerTest {
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(connectClusterService.findByNameWithOwnerPermission(ns, "connect-cluster"))
+        when(connectClusterService.findByName(ns, "connect-cluster"))
                 .thenReturn(Optional.of(ConnectCluster.builder()
                         .metadata(Metadata.builder().name("connect-cluster").build())
                         .build()));
@@ -184,7 +184,7 @@ class ConnectClusterControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster"))
                 .thenReturn(true);
-        when(connectClusterService.findByNameWithOwnerPermission(ns, "connect-cluster"))
+        when(connectClusterService.findByName(ns, "connect-cluster"))
                 .thenReturn(Optional.empty());
 
         HttpResponse<Void> actual = connectClusterController.delete("test", "connect-cluster", false);
@@ -206,7 +206,7 @@ class ConnectClusterControllerTest {
         when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster"))
                 .thenReturn(true);
         when(connectorService.findAllByConnectCluster(ns, "connect-cluster")).thenReturn(List.of());
-        when(connectClusterService.findByNameWithOwnerPermission(ns, "connect-cluster"))
+        when(connectClusterService.findByName(ns, "connect-cluster"))
                 .thenReturn(Optional.of(connectCluster));
         doNothing().when(connectClusterService).delete(connectCluster);
         when(securityService.username()).thenReturn(Optional.of("test-user"));
@@ -232,7 +232,7 @@ class ConnectClusterControllerTest {
         when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster"))
                 .thenReturn(true);
         when(connectorService.findAllByConnectCluster(ns, "connect-cluster")).thenReturn(List.of());
-        when(connectClusterService.findByNameWithOwnerPermission(ns, "connect-cluster"))
+        when(connectClusterService.findByName(ns, "connect-cluster"))
                 .thenReturn(Optional.of(connectCluster));
 
         HttpResponse<Void> actual = connectClusterController.delete("test", "connect-cluster", true);
@@ -387,7 +387,7 @@ class ConnectClusterControllerTest {
                 .thenReturn(true);
         when(connectClusterService.validateConnectClusterCreation(connectCluster))
                 .thenReturn(Mono.just(List.of()));
-        when(connectClusterService.findByNameWithOwnerPermission(ns, "connect-cluster"))
+        when(connectClusterService.findByName(ns, "connect-cluster"))
                 .thenReturn(Optional.empty());
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
@@ -495,7 +495,7 @@ class ConnectClusterControllerTest {
                 .thenReturn(true);
         when(connectClusterService.validateConnectClusterCreation(connectCluster))
                 .thenReturn(Mono.just(List.of()));
-        when(connectClusterService.findByNameWithOwnerPermission(ns, "connect-cluster"))
+        when(connectClusterService.findByName(ns, "connect-cluster"))
                 .thenReturn(Optional.of(connectCluster));
 
         StepVerifier.create(connectClusterController.apply("test", connectCluster, false))
@@ -536,7 +536,7 @@ class ConnectClusterControllerTest {
                 .thenReturn(true);
         when(connectClusterService.validateConnectClusterCreation(connectCluster))
                 .thenReturn(Mono.just(List.of()));
-        when(connectClusterService.findByNameWithOwnerPermission(ns, "connect-cluster"))
+        when(connectClusterService.findByName(ns, "connect-cluster"))
                 .thenReturn(Optional.of(connectClusterChanged));
         when(connectClusterService.create(connectCluster)).thenReturn(connectCluster);
 
@@ -568,7 +568,7 @@ class ConnectClusterControllerTest {
                 .thenReturn(true);
         when(connectClusterService.validateConnectClusterCreation(connectCluster))
                 .thenReturn(Mono.just(List.of()));
-        when(connectClusterService.findByNameWithOwnerPermission(ns, "connect-cluster"))
+        when(connectClusterService.findByName(ns, "connect-cluster"))
                 .thenReturn(Optional.empty());
 
         StepVerifier.create(connectClusterController.apply("test", connectCluster, true))

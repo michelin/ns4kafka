@@ -33,6 +33,8 @@ import jakarta.inject.Named;
 import jakarta.inject.Singleton;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
+
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
@@ -64,6 +66,18 @@ public class KafkaConnectClusterRepository extends KafkaStore<ConnectCluster> im
     }
 
     /**
+     * Get the message key for a given connect cluster.
+     *
+     * @param connectCluster The message
+     * @return The message key
+     */
+    @Override
+    public String getMessageKey(ConnectCluster connectCluster) {
+        return connectCluster.getMetadata().getNamespace() + "/"
+                + connectCluster.getMetadata().getName();
+    }
+
+    /**
      * Find all connect clusters.
      *
      * @return The list of connect clusters
@@ -88,6 +102,18 @@ public class KafkaConnectClusterRepository extends KafkaStore<ConnectCluster> im
     }
 
     /**
+     * Find a connect cluster by name.
+     *
+     * @param namespace The namespace
+     * @param name The name
+     * @return The connect cluster if found, empty otherwise
+     */
+    @Override
+    public Optional<ConnectCluster> findByName(String namespace, String name) {
+        return Optional.ofNullable(getKafkaStore().get(namespace + "/" + name));
+    }
+
+    /**
      * Create or update a connect cluster.
      *
      * @param connectCluster The connect cluster
@@ -95,7 +121,7 @@ public class KafkaConnectClusterRepository extends KafkaStore<ConnectCluster> im
      */
     @Override
     public ConnectCluster create(ConnectCluster connectCluster) {
-        return this.produce(getMessageKey(connectCluster), connectCluster);
+        return produce(getMessageKey(connectCluster), connectCluster);
     }
 
     /**
@@ -105,7 +131,7 @@ public class KafkaConnectClusterRepository extends KafkaStore<ConnectCluster> im
      */
     @Override
     public void delete(ConnectCluster connectCluster) {
-        this.produce(getMessageKey(connectCluster), null);
+        produce(getMessageKey(connectCluster), null);
     }
 
     /**
@@ -117,17 +143,5 @@ public class KafkaConnectClusterRepository extends KafkaStore<ConnectCluster> im
     @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.connect-workers")
     void receive(ConsumerRecord<String, ConnectCluster> message) {
         super.receive(message);
-    }
-
-    /**
-     * Get the message key for a given connect cluster.
-     *
-     * @param connectCluster The message
-     * @return The message key
-     */
-    @Override
-    String getMessageKey(ConnectCluster connectCluster) {
-        return connectCluster.getMetadata().getNamespace() + "/"
-                + connectCluster.getMetadata().getName();
     }
 }

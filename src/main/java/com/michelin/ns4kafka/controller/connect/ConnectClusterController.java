@@ -106,7 +106,11 @@ public class ConnectClusterController extends NamespacedResourceController {
     @Get("/{connectCluster}")
     @Deprecated(since = "1.12.0")
     public Optional<ConnectCluster> get(String namespace, String connectCluster) {
-        return connectClusterService.findByNameWithOwnerPermission(getNamespace(namespace), connectCluster);
+        if (!connectClusterService.isNamespaceOwnerOfConnectCluster(getNamespace(namespace), connectCluster)) {
+            throw new ResourceValidationException(CONNECT_CLUSTER, connectCluster, invalidOwner(connectCluster));
+        }
+
+        return connectClusterService.findByName(getNamespace(namespace), connectCluster);
     }
 
     /**
@@ -143,7 +147,7 @@ public class ConnectClusterController extends NamespacedResourceController {
                     connectCluster.getMetadata().setNamespace(ns.getMetadata().getName());
 
                     Optional<ConnectCluster> existingConnectCluster =
-                            connectClusterService.findByNameWithOwnerPermission(
+                            connectClusterService.findByName(
                                     ns, connectCluster.getMetadata().getName());
                     if (existingConnectCluster.isPresent()
                             && existingConnectCluster.get().equals(connectCluster)) {
@@ -198,7 +202,7 @@ public class ConnectClusterController extends NamespacedResourceController {
         }
 
         Optional<ConnectCluster> optionalConnectCluster =
-                connectClusterService.findByNameWithOwnerPermission(ns, connectCluster);
+                connectClusterService.findByName(ns, connectCluster);
 
         if (optionalConnectCluster.isEmpty()) {
             return HttpResponse.notFound();

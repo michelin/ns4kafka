@@ -534,7 +534,7 @@ class ConnectClusterServiceTest {
                 .thenReturn(true);
 
         Optional<ConnectCluster> actual =
-                connectClusterService.findByNameWithOwnerPermission(namespace, "prefix.connect-cluster");
+                connectClusterService.findByName(namespace, "prefix.connect-cluster");
 
         assertTrue(actual.isPresent());
         assertEquals("prefix.connect-cluster", actual.get().getMetadata().getName());
@@ -579,7 +579,7 @@ class ConnectClusterServiceTest {
                 .thenReturn(true);
 
         Optional<ConnectCluster> actual =
-                connectClusterService.findByNameWithOwnerPermission(namespace, "prefix.connect-cluster");
+                connectClusterService.findByName(namespace, "prefix.connect-cluster");
 
         assertTrue(actual.isPresent());
         assertEquals("prefix.connect-cluster", actual.get().getMetadata().getName());
@@ -621,7 +621,7 @@ class ConnectClusterServiceTest {
                 .thenReturn(true);
 
         assertTrue(connectClusterService
-                .findByNameWithOwnerPermission(namespace, "does-not-exist")
+                .findByName(namespace, "does-not-exist")
                 .isEmpty());
     }
 

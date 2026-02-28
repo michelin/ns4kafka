@@ -180,17 +180,15 @@ public class ConnectClusterService {
     }
 
     /**
-     * Find a self deployed Connect cluster by namespace and name with owner rights.
+     * Find a self deployed Connect cluster by name.
      *
      * @param namespace The namespace
      * @param connectClusterName The connect worker name
      * @return An optional connect worker
      */
-    public Optional<ConnectCluster> findByNameWithOwnerPermission(Namespace namespace, String connectClusterName) {
-        return findAllForNamespaceWithOwnerPermission(namespace).stream()
-                .filter(cc -> cc.getMetadata().getName().equals(connectClusterName))
-                .map(this::buildConnectClusterWithDecryptedInformation)
-                .findFirst();
+    public Optional<ConnectCluster> findByName(Namespace namespace, String connectClusterName) {
+        return connectClusterRepository.findByName(namespace.getMetadata().getName(), connectClusterName)
+                .map(this::buildConnectClusterWithDecryptedInformation);
     }
 
     /**
@@ -338,8 +336,7 @@ public class ConnectClusterService {
      * @return true if it is, false otherwise
      */
     public boolean isNamespaceOwnerOfConnectCluster(Namespace namespace, String connectCluster) {
-        return aclService.isNamespaceOwnerOfResource(
-                namespace.getMetadata().getName(), AccessControlEntry.ResourceType.CONNECT_CLUSTER, connectCluster);
+        return aclService.isNamespaceOwnerOfResource(namespace, AccessControlEntry.ResourceType.CONNECT_CLUSTER, connectCluster);
     }
 
     /**

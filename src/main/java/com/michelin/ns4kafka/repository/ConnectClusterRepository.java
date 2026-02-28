@@ -21,12 +21,15 @@ package com.michelin.ns4kafka.repository;
 import com.michelin.ns4kafka.model.connect.cluster.ConnectCluster;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 /** Repository to manage Kafka Connect clusters. */
 public interface ConnectClusterRepository {
     Collection<ConnectCluster> findAll();
 
     List<ConnectCluster> findAllForCluster(String cluster);
+
+    Optional<ConnectCluster> findByName(String namespace, String name);
 
     ConnectCluster create(ConnectCluster connectCluster);
 

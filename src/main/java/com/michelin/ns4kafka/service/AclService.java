@@ -512,13 +512,9 @@ public class AclService {
      * @return true if it is, false otherwise
      */
     public boolean isNamespaceOwnerOfResource(
-            String namespace, AccessControlEntry.ResourceType resourceType, String resource) {
-        return accessControlEntryRepository.findAll().stream()
-                .filter(accessControlEntry ->
-                        accessControlEntry.getSpec().getGrantedTo().equals(namespace))
-                .filter(accessControlEntry ->
-                        accessControlEntry.getSpec().getPermission() == AccessControlEntry.Permission.OWNER)
-                .filter(accessControlEntry -> accessControlEntry.getSpec().getResourceType() == resourceType)
+            Namespace namespace, AccessControlEntry.ResourceType resourceType, String resource) {
+        return findResourceOwnerGrantedToNamespace(namespace, resourceType)
+                .stream()
                 .anyMatch(accessControlEntry -> switch (accessControlEntry
                         .getSpec()
                         .getResourcePatternType()) {
@@ -536,7 +532,10 @@ public class AclService {
      * @return An optional ACL
      */
     public Optional<AccessControlEntry> findByName(String namespace, String name) {
-        return accessControlEntryRepository.findByName(namespace, name);
+        return accessControlEntryRepository.findByName(namespace, name)
+                .filter(acl -> acl.getSpec()
+                        .getGrantedTo()
+                        .equals(namespace) || isPublicAcl(acl));
     }
 
     /**

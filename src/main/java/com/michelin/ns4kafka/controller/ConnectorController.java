@@ -105,6 +105,10 @@ public class ConnectorController extends NamespacedResourceController {
     @Get("/{connector}")
     @Deprecated(since = "1.12.0")
     public Optional<Connector> get(String namespace, String connector) {
+        if (!connectorService.isNamespaceOwnerOfConnect(getNamespace(namespace), connector)) {
+            throw new ResourceValidationException(CONNECTOR, connector, invalidOwner(connector));
+        }
+
         return connectorService.findByName(getNamespace(namespace), connector);
     }
 
