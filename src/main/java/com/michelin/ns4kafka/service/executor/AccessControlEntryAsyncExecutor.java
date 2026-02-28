@@ -277,11 +277,7 @@ public class AccessControlEntryAsyncExecutor {
                 new org.apache.kafka.common.acl.AccessControlEntry(
                         principal, "*", aclOperation, AclPermissionType.ALLOW))));
 
-        boolean isGroup = GROUP.equals(acl.getSpec().getResourceType());
-        int extraCapacity = 0;
-        boolean addEos = false;
-        boolean addStream = false;
-        if (isGroup) {
+        if (GROUP.equals(acl.getSpec().getResourceType())) {
             if (namespace.getSpec().isTransactionsEnabled()) {
                 addEosConnectorAclBindings(results, acl, principal);
             } else if (streamService.hasKafkaStream(namespace)) {
