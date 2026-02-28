@@ -443,8 +443,7 @@ class SchemaServiceTest {
     @Test
     void shouldNamespaceBeOwnerOfSchema() {
         Namespace ns = buildNamespace();
-        when(aclService.isNamespaceOwnerOfResource(
-                        "myNamespace", AccessControlEntry.ResourceType.TOPIC, "prefix.schema-one"))
+        when(aclService.isNamespaceOwnerOfResource(ns, AccessControlEntry.ResourceType.TOPIC, "prefix.schema-one"))
                 .thenReturn(true);
 
         assertTrue(schemaService.isNamespaceOwnerOfSubject(ns, "prefix.schema-one-key"));

@@ -237,7 +237,7 @@ class TopicControllerTest {
                 .metadata(Metadata.builder().name("topic.delete").build())
                 .build());
         when(topicService.findByName(ns, "topic.delete")).thenReturn(toDelete);
-        when(topicService.isNamespaceOwnerOfTopic("test", "topic.delete")).thenReturn(true);
+        when(topicService.isNamespaceOwnerOfTopic(ns, "topic.delete")).thenReturn(true);
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(topicService).delete(toDelete.get());
@@ -262,7 +262,7 @@ class TopicControllerTest {
                 .build());
 
         when(topicService.findByName(ns, "topic.delete")).thenReturn(toDelete);
-        when(topicService.isNamespaceOwnerOfTopic("test", "topic.delete")).thenReturn(true);
+        when(topicService.isNamespaceOwnerOfTopic(ns, "topic.delete")).thenReturn(true);
 
         topicController.delete("test", "topic.delete", true);
 
@@ -277,7 +277,7 @@ class TopicControllerTest {
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(topicService.isNamespaceOwnerOfTopic("test", "topic.delete")).thenReturn(false);
+        when(topicService.isNamespaceOwnerOfTopic(ns, "topic.delete")).thenReturn(false);
 
         assertThrows(ResourceValidationException.class, () -> topicController.delete("test", "topic.delete", false));
     }
@@ -857,7 +857,7 @@ class TopicControllerTest {
                 new TopicPartition("topic.empty", 1), 101L);
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(topicService.isNamespaceOwnerOfTopic("test", "topic.empty")).thenReturn(true);
+        when(topicService.isNamespaceOwnerOfTopic(ns, "topic.empty")).thenReturn(true);
         when(topicService.validateDeleteRecordsTopic(toEmpty)).thenReturn(List.of());
         when(topicService.findByName(ns, "topic.empty")).thenReturn(Optional.of(toEmpty));
         when(topicService.prepareRecordsToDelete(toEmpty)).thenReturn(partitionsToDelete);
@@ -899,7 +899,7 @@ class TopicControllerTest {
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(topicService.isNamespaceOwnerOfTopic("test", "topic.empty")).thenReturn(true);
+        when(topicService.isNamespaceOwnerOfTopic(ns, "topic.empty")).thenReturn(true);
         when(topicService.validateDeleteRecordsTopic(toEmpty))
                 .thenReturn(
                         List.of("Cannot delete records on a compacted topic. Please delete and recreate the topic."));
@@ -929,7 +929,7 @@ class TopicControllerTest {
                 new TopicPartition("topic.empty", 1), 101L);
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(topicService.isNamespaceOwnerOfTopic("test", "topic.empty")).thenReturn(true);
+        when(topicService.isNamespaceOwnerOfTopic(ns, "topic.empty")).thenReturn(true);
         when(topicService.validateDeleteRecordsTopic(toEmpty)).thenReturn(List.of());
         when(topicService.findByName(ns, "topic.empty")).thenReturn(Optional.of(toEmpty));
         when(topicService.prepareRecordsToDelete(toEmpty)).thenReturn(partitionsToDelete);
@@ -968,7 +968,7 @@ class TopicControllerTest {
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(topicService.isNamespaceOwnerOfTopic("test", "topic.empty")).thenReturn(false);
+        when(topicService.isNamespaceOwnerOfTopic(ns, "topic.empty")).thenReturn(false);
 
         ResourceValidationException actual = assertThrows(
                 ResourceValidationException.class, () -> topicController.deleteRecords("test", "topic.empty", false));
@@ -986,7 +986,7 @@ class TopicControllerTest {
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(topicService.isNamespaceOwnerOfTopic("test", "topic.empty")).thenReturn(true);
+        when(topicService.isNamespaceOwnerOfTopic(ns, "topic.empty")).thenReturn(true);
         when(topicService.findByName(ns, "topic.empty")).thenReturn(Optional.empty());
 
         ResourceValidationException actual = assertThrows(

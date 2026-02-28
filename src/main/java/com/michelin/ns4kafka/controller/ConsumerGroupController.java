@@ -90,10 +90,9 @@ public class ConsumerGroupController extends NamespacedResourceController {
             @Valid @Body ConsumerGroupResetOffsets consumerGroupResetOffsets,
             @QueryValue(defaultValue = "false") boolean dryrun)
             throws ExecutionException {
-
         List<String> validationErrors = consumerGroupService.validateResetOffsets(consumerGroupResetOffsets);
 
-        if (!consumerGroupService.isNamespaceOwnerOfConsumerGroup(namespace, consumerGroup)) {
+        if (!consumerGroupService.isNamespaceOwnerOfConsumerGroup(getNamespace(namespace), consumerGroup)) {
             validationErrors.add(invalidOwner("group", consumerGroup));
         }
 
@@ -175,11 +174,11 @@ public class ConsumerGroupController extends NamespacedResourceController {
     public HttpResponse<Void> deleteConsumerGroup(
             String namespace, String consumerGroup, @QueryValue(defaultValue = "false") boolean dryrun)
             throws ExecutionException, InterruptedException {
-        if (!consumerGroupService.isNamespaceOwnerOfConsumerGroup(namespace, consumerGroup)) {
+        Namespace ns = getNamespace(namespace);
+
+        if (!consumerGroupService.isNamespaceOwnerOfConsumerGroup(ns, consumerGroup)) {
             throw new ResourceValidationException(CONSUMER_GROUP, consumerGroup, invalidOwner("group", consumerGroup));
         }
-
-        Namespace ns = getNamespace(namespace);
 
         GroupState currentState = consumerGroupService.getConsumerGroupStatus(ns, consumerGroup);
 

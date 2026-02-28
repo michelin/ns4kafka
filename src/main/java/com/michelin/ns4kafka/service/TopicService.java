@@ -123,7 +123,7 @@ public class TopicService {
      * @param topic The topic
      * @return true if it is, false otherwise
      */
-    public boolean isNamespaceOwnerOfTopic(String namespace, String topic) {
+    public boolean isNamespaceOwnerOfTopic(Namespace namespace, String topic) {
         return aclService.isNamespaceOwnerOfResource(namespace, AccessControlEntry.ResourceType.TOPIC, topic);
     }
 
@@ -301,7 +301,7 @@ public class TopicService {
 
         return topicAsyncExecutor.listBrokerTopicNames().stream()
                 // ...that belongs to this namespace
-                .filter(topic -> isNamespaceOwnerOfTopic(namespace.getMetadata().getName(), topic))
+                .filter(topic -> isNamespaceOwnerOfTopic(namespace, topic))
                 // ...and aren't in Ns4Kafka storage
                 .filter(topic -> findByName(namespace, topic).isEmpty())
                 .toList();

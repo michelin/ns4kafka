@@ -131,8 +131,7 @@ public class TopicController extends NamespacedResourceController {
                 : new ArrayList<>();
 
         if (existingTopic.isEmpty()) {
-            if (!topicService.isNamespaceOwnerOfTopic(
-                    namespace, topic.getMetadata().getName())) {
+            if (!topicService.isNamespaceOwnerOfTopic(ns, topic.getMetadata().getName())) {
                 validationErrors.add(invalidOwner(topic.getMetadata().getName()));
             }
 
@@ -232,7 +231,7 @@ public class TopicController extends NamespacedResourceController {
     public HttpResponse<Void> delete(String namespace, String topic, @QueryValue(defaultValue = "false") boolean dryrun)
             throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = getNamespace(namespace);
-        if (!topicService.isNamespaceOwnerOfTopic(namespace, topic)) {
+        if (!topicService.isNamespaceOwnerOfTopic(ns, topic)) {
             throw new ResourceValidationException(TOPIC, topic, invalidOwner(topic));
         }
 
@@ -307,7 +306,7 @@ public class TopicController extends NamespacedResourceController {
             String namespace, String topic, @QueryValue(defaultValue = "false") boolean dryrun)
             throws InterruptedException, ExecutionException {
         Namespace ns = getNamespace(namespace);
-        if (!topicService.isNamespaceOwnerOfTopic(namespace, topic)) {
+        if (!topicService.isNamespaceOwnerOfTopic(ns, topic)) {
             throw new ResourceValidationException(TOPIC, topic, invalidOwner(topic));
         }
 

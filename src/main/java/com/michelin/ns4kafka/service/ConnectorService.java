@@ -187,8 +187,7 @@ public class ConnectorService {
      * @return true if it is, false otherwise
      */
     public boolean isNamespaceOwnerOfConnect(Namespace namespace, String connect) {
-        return aclService.isNamespaceOwnerOfResource(
-                namespace.getMetadata().getName(), AccessControlEntry.ResourceType.CONNECT, connect);
+        return aclService.isNamespaceOwnerOfResource(namespace, AccessControlEntry.ResourceType.CONNECT, connect);
     }
 
     /**

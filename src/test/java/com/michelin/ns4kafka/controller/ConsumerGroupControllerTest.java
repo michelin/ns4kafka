@@ -99,7 +99,7 @@ class ConsumerGroupControllerTest {
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(consumerGroupService.validateResetOffsets(resetOffset)).thenReturn(List.of());
-        when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
+        when(consumerGroupService.isNamespaceOwnerOfConsumerGroup(ns, "groupID"))
                 .thenReturn(true);
         when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(GroupState.EMPTY);
         when(consumerGroupService.getPartitionsToReset(ns, "groupID", "topic1")).thenReturn(topicPartitions);
@@ -153,7 +153,7 @@ class ConsumerGroupControllerTest {
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(consumerGroupService.validateResetOffsets(resetOffset)).thenReturn(List.of());
-        when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
+        when(consumerGroupService.isNamespaceOwnerOfConsumerGroup(ns, "groupID"))
                 .thenReturn(true);
         when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(GroupState.EMPTY);
         when(consumerGroupService.getPartitionsToReset(ns, "groupID", "topic1")).thenReturn(topicPartitions);
@@ -199,7 +199,7 @@ class ConsumerGroupControllerTest {
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(consumerGroupService.validateResetOffsets(resetOffset)).thenReturn(List.of());
-        when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
+        when(consumerGroupService.isNamespaceOwnerOfConsumerGroup(ns, "groupID"))
                 .thenReturn(true);
         when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(GroupState.EMPTY);
         when(consumerGroupService.getPartitionsToReset(ns, "groupID", "topic1"))
@@ -214,6 +214,10 @@ class ConsumerGroupControllerTest {
 
     @Test
     void shouldNotResetConsumerGroupWhenNotOwner() {
+        Namespace ns = Namespace.builder()
+                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .build();
+
         ConsumerGroupResetOffsets resetOffset = ConsumerGroupResetOffsets.builder()
                 .metadata(Metadata.builder().name("groupID").cluster("local").build())
                 .spec(ConsumerGroupResetOffsetsSpec.builder()
@@ -222,8 +226,9 @@ class ConsumerGroupControllerTest {
                         .build())
                 .build();
 
+        when(namespaceService.findByName(any())).thenReturn(Optional.of(ns));
         when(consumerGroupService.validateResetOffsets(resetOffset)).thenReturn(new ArrayList<>());
-        when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
+        when(consumerGroupService.isNamespaceOwnerOfConsumerGroup(ns, "groupID"))
                 .thenReturn(false);
 
         ResourceValidationException result = assertThrows(
@@ -237,6 +242,10 @@ class ConsumerGroupControllerTest {
 
     @Test
     void shouldNotResetConsumerGroupWhenValidationErrors() {
+        Namespace ns = Namespace.builder()
+                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .build();
+
         ConsumerGroupResetOffsets resetOffset = ConsumerGroupResetOffsets.builder()
                 .metadata(Metadata.builder().name("groupID").cluster("local").build())
                 .spec(ConsumerGroupResetOffsetsSpec.builder()
@@ -245,8 +254,9 @@ class ConsumerGroupControllerTest {
                         .build())
                 .build();
 
+        when(namespaceService.findByName(any())).thenReturn(Optional.of(ns));
         when(consumerGroupService.validateResetOffsets(resetOffset)).thenReturn(List.of("Validation Error"));
-        when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
+        when(consumerGroupService.isNamespaceOwnerOfConsumerGroup(ns, "groupID"))
                 .thenReturn(true);
 
         ResourceValidationException result = assertThrows(
@@ -272,7 +282,7 @@ class ConsumerGroupControllerTest {
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(consumerGroupService.validateResetOffsets(resetOffset)).thenReturn(new ArrayList<>());
-        when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
+        when(consumerGroupService.isNamespaceOwnerOfConsumerGroup(ns, "groupID"))
                 .thenReturn(true);
         when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(GroupState.STABLE);
 
@@ -295,7 +305,7 @@ class ConsumerGroupControllerTest {
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
+        when(consumerGroupService.isNamespaceOwnerOfConsumerGroup(ns, "groupID"))
                 .thenReturn(true);
         when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(GroupState.EMPTY);
 
@@ -312,7 +322,7 @@ class ConsumerGroupControllerTest {
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
+        when(consumerGroupService.isNamespaceOwnerOfConsumerGroup(ns, "groupID"))
                 .thenReturn(true);
         when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(GroupState.EMPTY);
 
@@ -324,7 +334,12 @@ class ConsumerGroupControllerTest {
 
     @Test
     void shouldNotDeleteConsumerGroupWhenNotOwner() {
-        when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
+        Namespace ns = Namespace.builder()
+                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .build();
+
+        when(namespaceService.findByName(any())).thenReturn(Optional.of(ns));
+        when(consumerGroupService.isNamespaceOwnerOfConsumerGroup(ns, "groupID"))
                 .thenReturn(false);
 
         ResourceValidationException result = assertThrows(
@@ -345,7 +360,7 @@ class ConsumerGroupControllerTest {
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
+        when(consumerGroupService.isNamespaceOwnerOfConsumerGroup(ns, "groupID"))
                 .thenReturn(true);
         when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(GroupState.STABLE);
 
@@ -369,7 +384,7 @@ class ConsumerGroupControllerTest {
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
+        when(consumerGroupService.isNamespaceOwnerOfConsumerGroup(ns, "groupID"))
                 .thenReturn(true);
         when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(GroupState.DEAD);
 

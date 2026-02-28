@@ -341,13 +341,13 @@ class TopicServiceTest {
                 .thenReturn(List.of("ns-topic1", "ns-topic2", "ns1-topic1", "ns2-topic1"));
 
         // list of existing ns4kfk access control entries
-        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, "ns-topic1"))
+        when(aclService.isNamespaceOwnerOfResource(ns, AccessControlEntry.ResourceType.TOPIC, "ns-topic1"))
                 .thenReturn(true);
-        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, "ns-topic2"))
+        when(aclService.isNamespaceOwnerOfResource(ns, AccessControlEntry.ResourceType.TOPIC, "ns-topic2"))
                 .thenReturn(true);
-        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, "ns1-topic1"))
+        when(aclService.isNamespaceOwnerOfResource(ns, AccessControlEntry.ResourceType.TOPIC, "ns1-topic1"))
                 .thenReturn(true);
-        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, "ns2-topic1"))
+        when(aclService.isNamespaceOwnerOfResource(ns, AccessControlEntry.ResourceType.TOPIC, "ns2-topic1"))
                 .thenReturn(false);
 
         when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.TOPIC))
@@ -447,22 +447,22 @@ class TopicServiceTest {
 
         // list of existing ns4kfk access control entries
         when(aclService.isNamespaceOwnerOfResource(
-                        "namespace",
+                        ns,
                         AccessControlEntry.ResourceType.TOPIC,
                         t1.getMetadata().getName()))
                 .thenReturn(true);
         when(aclService.isNamespaceOwnerOfResource(
-                        "namespace",
+                        ns,
                         AccessControlEntry.ResourceType.TOPIC,
                         t2.getMetadata().getName()))
                 .thenReturn(true);
         when(aclService.isNamespaceOwnerOfResource(
-                        "namespace",
+                        ns,
                         AccessControlEntry.ResourceType.TOPIC,
                         t3.getMetadata().getName()))
                 .thenReturn(true);
         when(aclService.isNamespaceOwnerOfResource(
-                        "namespace",
+                        ns,
                         AccessControlEntry.ResourceType.TOPIC,
                         t4.getMetadata().getName()))
                 .thenReturn(false);
@@ -528,13 +528,13 @@ class TopicServiceTest {
                 .thenReturn(List.of("ns-topic1", "ns-topic2", "ns1-topic1", "ns2-topic1"));
 
         // list of existing ns4kfk access control entries
-        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, "ns-topic1"))
+        when(aclService.isNamespaceOwnerOfResource(ns, AccessControlEntry.ResourceType.TOPIC, "ns-topic1"))
                 .thenReturn(true);
-        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, "ns-topic2"))
+        when(aclService.isNamespaceOwnerOfResource(ns, AccessControlEntry.ResourceType.TOPIC, "ns-topic2"))
                 .thenReturn(true);
-        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, "ns1-topic1"))
+        when(aclService.isNamespaceOwnerOfResource(ns, AccessControlEntry.ResourceType.TOPIC, "ns1-topic1"))
                 .thenReturn(true);
-        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, "ns2-topic1"))
+        when(aclService.isNamespaceOwnerOfResource(ns, AccessControlEntry.ResourceType.TOPIC, "ns2-topic1"))
                 .thenReturn(false);
 
         when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.TOPIC))

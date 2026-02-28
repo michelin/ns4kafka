@@ -994,6 +994,17 @@ class AclServiceTest {
 
     @Test
     void shouldCheckIfNamespaceIsOwnerOfResource() {
+        Namespace ns = Namespace.builder()
+                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .build();
+
+        Namespace anotherNs = Namespace.builder()
+                .metadata(Metadata.builder()
+                        .name("namespace-other")
+                        .cluster("local")
+                        .build())
+                .build();
+
         AccessControlEntry aceTopicPrefixedOwner = AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
@@ -1027,20 +1038,18 @@ class AclServiceTest {
         when(accessControlEntryRepository.findAll())
                 .thenReturn(List.of(aceTopicPrefixedOwner, aceConnectLiteralOwner, aceConnectLiteralWrite));
 
-        assertTrue(
-                aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "connect"));
+        assertTrue(aclService.isNamespaceOwnerOfResource(ns, AccessControlEntry.ResourceType.CONNECT, "connect"));
 
-        assertTrue(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, "main"));
+        assertTrue(aclService.isNamespaceOwnerOfResource(ns, AccessControlEntry.ResourceType.TOPIC, "main"));
 
         assertTrue(
-                aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.TOPIC, "main.sub"),
+                aclService.isNamespaceOwnerOfResource(ns, AccessControlEntry.ResourceType.TOPIC, "main.sub"),
                 "subresource");
 
-        assertFalse(aclService.isNamespaceOwnerOfResource(
-                "namespace-other", AccessControlEntry.ResourceType.TOPIC, "main"));
+        assertFalse(aclService.isNamespaceOwnerOfResource(anotherNs, AccessControlEntry.ResourceType.TOPIC, "main"));
 
-        assertFalse(aclService.isNamespaceOwnerOfResource(
-                "namespace-other", AccessControlEntry.ResourceType.CONNECT, "connect"));
+        assertFalse(
+                aclService.isNamespaceOwnerOfResource(anotherNs, AccessControlEntry.ResourceType.CONNECT, "connect"));
     }
 
     @Test

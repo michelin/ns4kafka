@@ -355,7 +355,7 @@ public class SchemaService {
     public boolean isNamespaceOwnerOfSubject(Namespace namespace, String subjectName) {
         String underlyingTopicName = subjectName.replaceAll("(-key|-value)$", "");
         return aclService.isNamespaceOwnerOfResource(
-                namespace.getMetadata().getName(), AccessControlEntry.ResourceType.TOPIC, underlyingTopicName);
+                namespace, AccessControlEntry.ResourceType.TOPIC, underlyingTopicName);
     }
 
     /**

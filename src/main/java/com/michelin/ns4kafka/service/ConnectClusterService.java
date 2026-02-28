@@ -334,7 +334,7 @@ public class ConnectClusterService {
      */
     public boolean isNamespaceOwnerOfConnectCluster(Namespace namespace, String connectCluster) {
         return aclService.isNamespaceOwnerOfResource(
-                namespace.getMetadata().getName(), AccessControlEntry.ResourceType.CONNECT_CLUSTER, connectCluster);
+                namespace, AccessControlEntry.ResourceType.CONNECT_CLUSTER, connectCluster);
     }
 
     /**

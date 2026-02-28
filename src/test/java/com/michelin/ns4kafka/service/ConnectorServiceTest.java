@@ -859,18 +859,15 @@ class ConnectorServiceTest {
                 .thenReturn(Flux.fromIterable(List.of(c5)));
 
         // list of existing Ns4Kafka access control entries
-        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns-connect1"))
+        when(aclService.isNamespaceOwnerOfResource(ns, AccessControlEntry.ResourceType.CONNECT, "ns-connect1"))
                 .thenReturn(true);
-        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns-connect2"))
+        when(aclService.isNamespaceOwnerOfResource(ns, AccessControlEntry.ResourceType.CONNECT, "ns-connect2"))
                 .thenReturn(true);
-        when(aclService.isNamespaceOwnerOfResource(
-                        "namespace", AccessControlEntry.ResourceType.CONNECT, "ns1-connect1"))
+        when(aclService.isNamespaceOwnerOfResource(ns, AccessControlEntry.ResourceType.CONNECT, "ns1-connect1"))
                 .thenReturn(true);
-        when(aclService.isNamespaceOwnerOfResource(
-                        "namespace", AccessControlEntry.ResourceType.CONNECT, "ns1-connect2"))
+        when(aclService.isNamespaceOwnerOfResource(ns, AccessControlEntry.ResourceType.CONNECT, "ns1-connect2"))
                 .thenReturn(true);
-        when(aclService.isNamespaceOwnerOfResource(
-                        "namespace", AccessControlEntry.ResourceType.CONNECT, "ns2-connect1"))
+        when(aclService.isNamespaceOwnerOfResource(ns, AccessControlEntry.ResourceType.CONNECT, "ns2-connect1"))
                 .thenReturn(false);
 
         when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.CONNECT))
@@ -967,18 +964,15 @@ class ConnectorServiceTest {
         when(connectorRepository.findAllForCluster("local")).thenReturn(List.of(c1, c2, c3, c4, c5));
 
         // list of existing Ns4Kafka access control entries
-        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns-connect1"))
+        when(aclService.isNamespaceOwnerOfResource(ns, AccessControlEntry.ResourceType.CONNECT, "ns-connect1"))
                 .thenReturn(true);
-        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns-connect2"))
+        when(aclService.isNamespaceOwnerOfResource(ns, AccessControlEntry.ResourceType.CONNECT, "ns-connect2"))
                 .thenReturn(true);
-        when(aclService.isNamespaceOwnerOfResource(
-                        "namespace", AccessControlEntry.ResourceType.CONNECT, "ns1-connect1"))
+        when(aclService.isNamespaceOwnerOfResource(ns, AccessControlEntry.ResourceType.CONNECT, "ns1-connect1"))
                 .thenReturn(true);
-        when(aclService.isNamespaceOwnerOfResource(
-                        "namespace", AccessControlEntry.ResourceType.CONNECT, "ns1-connect2"))
+        when(aclService.isNamespaceOwnerOfResource(ns, AccessControlEntry.ResourceType.CONNECT, "ns1-connect2"))
                 .thenReturn(true);
-        when(aclService.isNamespaceOwnerOfResource(
-                        "namespace", AccessControlEntry.ResourceType.CONNECT, "ns2-connect1"))
+        when(aclService.isNamespaceOwnerOfResource(ns, AccessControlEntry.ResourceType.CONNECT, "ns2-connect1"))
                 .thenReturn(false);
 
         when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.CONNECT))
@@ -1053,15 +1047,13 @@ class ConnectorServiceTest {
         when(connectorRepository.findAllForCluster("local")).thenReturn(List.of(c1, c2, c3, c4));
 
         // list of existing Ns4Kafka access control entries
-        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns-connect1"))
+        when(aclService.isNamespaceOwnerOfResource(ns, AccessControlEntry.ResourceType.CONNECT, "ns-connect1"))
                 .thenReturn(true);
-        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns-connect2"))
+        when(aclService.isNamespaceOwnerOfResource(ns, AccessControlEntry.ResourceType.CONNECT, "ns-connect2"))
                 .thenReturn(true);
-        when(aclService.isNamespaceOwnerOfResource(
-                        "namespace", AccessControlEntry.ResourceType.CONNECT, "ns1-connect1"))
+        when(aclService.isNamespaceOwnerOfResource(ns, AccessControlEntry.ResourceType.CONNECT, "ns1-connect1"))
                 .thenReturn(true);
-        when(aclService.isNamespaceOwnerOfResource(
-                        "namespace", AccessControlEntry.ResourceType.CONNECT, "ns2-connect1"))
+        when(aclService.isNamespaceOwnerOfResource(ns, AccessControlEntry.ResourceType.CONNECT, "ns2-connect1"))
                 .thenReturn(false);
 
         when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.CONNECT))
@@ -1137,15 +1129,13 @@ class ConnectorServiceTest {
         when(connectorRepository.findAllForCluster("local")).thenReturn(List.of(c1, c2, c3, c4));
 
         // list of existing Ns4Kafka access control entries
-        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns-connect1"))
+        when(aclService.isNamespaceOwnerOfResource(ns, AccessControlEntry.ResourceType.CONNECT, "ns-connect1"))
                 .thenReturn(true);
-        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns-connect2"))
+        when(aclService.isNamespaceOwnerOfResource(ns, AccessControlEntry.ResourceType.CONNECT, "ns-connect2"))
                 .thenReturn(true);
-        when(aclService.isNamespaceOwnerOfResource(
-                        "namespace", AccessControlEntry.ResourceType.CONNECT, "ns1-connect1"))
+        when(aclService.isNamespaceOwnerOfResource(ns, AccessControlEntry.ResourceType.CONNECT, "ns1-connect1"))
                 .thenReturn(true);
-        when(aclService.isNamespaceOwnerOfResource(
-                        "namespace", AccessControlEntry.ResourceType.CONNECT, "ns2-connect1"))
+        when(aclService.isNamespaceOwnerOfResource(ns, AccessControlEntry.ResourceType.CONNECT, "ns2-connect1"))
                 .thenReturn(false);
 
         when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.CONNECT))
