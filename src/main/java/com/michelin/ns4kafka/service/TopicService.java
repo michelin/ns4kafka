@@ -42,7 +42,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -107,13 +106,15 @@ public class TopicService {
      * Find a topic by namespace and name.
      *
      * @param namespace The namespace
-     * @param topic The topic name
+     * @param topicName The topic name
      * @return An optional topic
      */
-    public Optional<Topic> findByName(Namespace namespace, String topic) {
-        return findAllForNamespace(namespace).stream()
-                .filter(t -> t.getMetadata().getName().equals(topic))
-                .findFirst();
+    public Optional<Topic> findByName(Namespace namespace, String topicName) {
+        return topicRepository
+                .findByName(namespace.getMetadata().getCluster(), topicName)
+                .filter(topic -> topic.getMetadata()
+                        .getNamespace()
+                        .equals(namespace.getMetadata().getName()));
     }
 
     /**
@@ -274,14 +275,9 @@ public class TopicService {
         List<AccessControlEntry> acls =
                 aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.TOPIC);
 
-        Set<String> ns4KafkaTopicNames =
-                topicRepository.findAllForCluster(namespace.getMetadata().getCluster()).stream()
-                        .map(topic -> topic.getMetadata().getName())
-                        .collect(Collectors.toSet());
-
         return topicAsyncExecutor
                 .collectBrokerTopicsFromNames(topicAsyncExecutor.listBrokerTopicNames().stream()
-                        .filter(topic -> !ns4KafkaTopicNames.contains(topic)
+                        .filter(topic -> findByName(namespace, topic).isEmpty()
                                 && aclService.isResourceCoveredByAcls(acls, topic)
                                 && RegexUtils.isResourceCoveredByRegex(topic, nameFilterPatterns))
                         .toList())

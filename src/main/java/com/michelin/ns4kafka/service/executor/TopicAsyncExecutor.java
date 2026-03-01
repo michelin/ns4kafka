@@ -153,23 +153,7 @@ public class TopicAsyncExecutor {
             });
 
             if (managedClusterProperties.isSyncKstreamTopics()) {
-                Set<String> ns4KafkaTopicNames = ns4KafkaTopics.stream()
-                        .map(topic -> topic.getMetadata().getName())
-                        .filter(topic -> topic.endsWith("-changelog") || topic.endsWith("-repartition"))
-                        .collect(Collectors.toSet());
-
-                List<Topic> unsyncStreamInternalTopics =
-                        getUnsyncStreamsInternalTopics(brokerTopics, ns4KafkaTopicNames);
-
-                if (!unsyncStreamInternalTopics.isEmpty()) {
-                    log.atDebug()
-                            .addArgument(unsyncStreamInternalTopics.stream()
-                                    .map(topic -> topic.getMetadata().getName())
-                                    .collect(Collectors.joining(",")))
-                            .log("Kafka Streams internal topics(s) to import: {}");
-
-                    importTopics(unsyncStreamInternalTopics);
-                }
+                importTopics(collectUnsynchronizedStreamTopic(brokerTopics));
             }
 
             if (!createTopics.isEmpty()) {
@@ -205,19 +189,21 @@ public class TopicAsyncExecutor {
      * Between broker topics and Ns4Kafka topics, get the unsynchronized Kafka Streams internal topics.
      *
      * @param brokerTopics The topics from the broker
-     * @param ns4KafkaTopicNames The topic names from Ns4Kafka
      * @return A list of unsynchronized Kafka Streams internal topics
      */
-    private List<Topic> getUnsyncStreamsInternalTopics(
-            Map<String, Topic> brokerTopics, Set<String> ns4KafkaTopicNames) {
+    private List<Topic> collectUnsynchronizedStreamTopic(Map<String, Topic> brokerTopics) {
         List<Namespace> namespaces = namespaceService.findAll();
+
         return brokerTopics.values().stream()
                 // Keep only Kafka Streams internal topics that are not already in Ns4Kafka
-                .filter(topic ->
-                        !ns4KafkaTopicNames.contains(topic.getMetadata().getName())
-                                && (topic.getMetadata().getName().endsWith("-changelog")
-                                        || topic.getMetadata().getName().endsWith("-repartition"))
-                                && !ignoredTopics.contains(topic.getMetadata().getName()))
+                .filter(topic -> topicRepository
+                                .findByName(
+                                        topic.getMetadata().getCluster(),
+                                        topic.getMetadata().getName())
+                                .isEmpty()
+                        && (topic.getMetadata().getName().endsWith("-changelog")
+                                || topic.getMetadata().getName().endsWith("-repartition"))
+                        && !ignoredTopics.contains(topic.getMetadata().getName()))
                 .map(topic -> {
                     // Ignore internal cluster topics. Only keep topics covered by Ns4Kafka.
                     Optional<Namespace> namespace = namespaceService.findByTopicName(
