@@ -43,7 +43,6 @@ import io.micronaut.inject.qualifiers.Qualifiers;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
@@ -59,9 +58,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class TopicServiceTest {
-    @InjectMocks
-    TopicService topicService;
-
     @Mock
     AclService aclService;
 
@@ -77,6 +73,9 @@ class TopicServiceTest {
     @Mock
     List<ManagedClusterProperties> managedClusterProperties;
 
+    @InjectMocks
+    TopicService topicService;
+
     @Test
     void shouldFindByName() {
         Namespace ns = Namespace.builder()
@@ -86,50 +85,42 @@ class TopicServiceTest {
                         .build())
                 .build();
 
-        Topic t1 = Topic.builder()
-                .metadata(Metadata.builder().name("ns-topic1").build())
+        Topic topic = Topic.builder()
+                .metadata(Metadata.builder()
+                        .namespace("namespace")
+                        .name("ns-topic1")
+                        .build())
                 .build();
 
-        Topic t2 = Topic.builder()
-                .metadata(Metadata.builder().name("ns-topic2").build())
-                .build();
+        when(topicRepository.findByName(any(), any())).thenReturn(Optional.of(topic));
 
-        Topic t3 = Topic.builder()
-                .metadata(Metadata.builder().name("ns1-topic1").build())
-                .build();
-
-        when(topicRepository.findAllForCluster("local")).thenReturn(List.of(t1, t2, t3));
-        when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.TOPIC))
-                .thenReturn(List.of(
-                        AccessControlEntry.builder()
-                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                                        .permission(AccessControlEntry.Permission.OWNER)
-                                        .grantedTo("namespace")
-                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                                        .resource("ns-")
-                                        .build())
-                                .build(),
-                        AccessControlEntry.builder()
-                                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                                        .permission(AccessControlEntry.Permission.OWNER)
-                                        .grantedTo("namespace")
-                                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                                        .resource("ns1-topic1")
-                                        .build())
-                                .build()));
-        when(aclService.isResourceCoveredByAcls(any(), anyString())).thenReturn(true);
-
-        // search topic by name
         Optional<Topic> actualTopicPrefixed = topicService.findByName(ns, "ns-topic1");
-        assertEquals(actualTopicPrefixed.orElse(Topic.builder().build()), t1);
+        assertEquals(actualTopicPrefixed.orElse(Topic.builder().build()), topic);
+    }
 
-        Optional<Topic> actualTopicLiteral = topicService.findByName(ns, "ns1-topic1");
-        assertEquals(actualTopicLiteral.orElse(Topic.builder().build()), t3);
+    @Test
+    void shouldNotFindByNameWhenOutsideNamespace() {
+        Namespace ns = Namespace.builder()
+                .metadata(Metadata.builder()
+                        .name("malicious-namespace")
+                        .cluster("local")
+                        .build())
+                .spec(NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
 
-        Optional<Topic> actualTopicNotFound = topicService.findByName(ns, "ns2-topic1");
-        assertThrows(NoSuchElementException.class, actualTopicNotFound::get, "No value present");
+        Topic topic = Topic.builder()
+                .metadata(Metadata.builder()
+                        .namespace("namespace")
+                        .name("ns-topic1")
+                        .build())
+                .build();
+
+        when(topicRepository.findByName(any(), any())).thenReturn(Optional.of(topic));
+
+        Optional<Topic> actualTopic = topicService.findByName(ns, "ns-topic1");
+        assertTrue(actualTopic.isEmpty());
     }
 
     @Test
@@ -896,9 +887,11 @@ class TopicServiceTest {
                         t1.getMetadata().getName(),
                         t2.getMetadata().getName(),
                         t3.getMetadata().getName()));
-        when(topicRepository.findAllForCluster("local")).thenReturn(List.of(t2));
+        when(topicRepository.findByName(any(), any())).thenReturn(Optional.empty());
         when(aclService.isResourceCoveredByAcls(acls, t1.getMetadata().getName()))
                 .thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, t2.getMetadata().getName()))
+                .thenReturn(false);
         when(aclService.isResourceCoveredByAcls(acls, t3.getMetadata().getName()))
                 .thenReturn(false);
         when(topicAsyncExecutor.collectBrokerTopicsFromNames(
@@ -947,7 +940,6 @@ class TopicServiceTest {
                         t1.getMetadata().getName(),
                         t2.getMetadata().getName(),
                         t3.getMetadata().getName()));
-        when(topicRepository.findAllForCluster("local")).thenReturn(List.of());
         when(aclService.isResourceCoveredByAcls(acls, t1.getMetadata().getName()))
                 .thenReturn(false);
         when(aclService.isResourceCoveredByAcls(acls, t2.getMetadata().getName()))
