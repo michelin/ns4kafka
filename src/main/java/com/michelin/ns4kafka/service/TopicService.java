@@ -176,7 +176,7 @@ public class TopicService {
                 Qualifiers.byName(topics.getFirst().getMetadata().getCluster()));
         topicAsyncExecutor.deleteTopics(topics);
 
-        topics.forEach(topic -> topicRepository.delete(topic));
+        topics.forEach(topicRepository::delete);
     }
 
     /**
