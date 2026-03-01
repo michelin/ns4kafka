@@ -36,7 +36,6 @@ import io.micronaut.context.ApplicationContext;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.inject.qualifiers.Qualifiers;
-import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.Collections;
 import java.util.List;
@@ -52,20 +51,33 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @Singleton
 public class ConnectorService {
-    @Inject
-    private AclService aclService;
+    private final AclService aclService;
+    private final ConnectClusterService connectClusterService;
+    private final ConnectorRepository connectorRepository;
+    private final KafkaConnectClient kafkaConnectClient;
+    private final ApplicationContext applicationContext;
 
-    @Inject
-    private KafkaConnectClient kafkaConnectClient;
-
-    @Inject
-    private ConnectorRepository connectorRepository;
-
-    @Inject
-    private ApplicationContext applicationContext;
-
-    @Inject
-    private ConnectClusterService connectClusterService;
+    /**
+     * Constructor.
+     *
+     * @param aclService The ACL service
+     * @param connectClusterService The Connect Cluster service
+     * @param connectorRepository The connector repository
+     * @param kafkaConnectClient The Kafka Connect client
+     * @param applicationContext The application context
+     */
+    public ConnectorService(
+            AclService aclService,
+            ConnectClusterService connectClusterService,
+            ConnectorRepository connectorRepository,
+            KafkaConnectClient kafkaConnectClient,
+            ApplicationContext applicationContext) {
+        this.aclService = aclService;
+        this.connectClusterService = connectClusterService;
+        this.kafkaConnectClient = kafkaConnectClient;
+        this.connectorRepository = connectorRepository;
+        this.applicationContext = applicationContext;
+    }
 
     /**
      * Find all connectors by given namespace.
