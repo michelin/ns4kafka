@@ -19,15 +19,39 @@
 package com.michelin.ns4kafka.repository;
 
 import com.michelin.ns4kafka.model.connect.cluster.ConnectCluster;
+
+import java.util.Collection;
 import java.util.List;
 
 /** Repository to manage Kafka Connect clusters. */
 public interface ConnectClusterRepository {
-    List<ConnectCluster> findAll();
+    /**
+     * Find all Kafka Connect clusters.
+     *
+     * @return The list of Kafka Connect clusters
+     */
+    Collection<ConnectCluster> findAll();
 
+    /**
+     * Find all Kafka Connect clusters for a given cluster.
+     *
+     * @param cluster The cluster name
+     * @return The list of Kafka Connect clusters for the given cluster
+     */
     List<ConnectCluster> findAllForCluster(String cluster);
 
+    /**
+     * Create a Kafka Connect cluster.
+     *
+     * @param connectCluster The Kafka Connect cluster to create
+     * @return The created Kafka Connect cluster
+     */
     ConnectCluster create(ConnectCluster connectCluster);
 
+    /**
+     * Delete a Kafka Connect cluster.
+     *
+     * @param connectCluster The Kafka Connect cluster to delete
+     */
     void delete(ConnectCluster connectCluster);
 }
