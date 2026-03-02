@@ -85,9 +85,8 @@ class ResourceQuotaServiceTest {
 
         when(resourceQuotaRepository.findByNamespace("namespace")).thenReturn(Optional.empty());
 
-        assertTrue(resourceQuotaService
-                .findByNamespace(ns.getMetadata().getName())
-                .isEmpty());
+        assertTrue(
+                resourceQuotaService.findByNamespace(ns.getMetadata().getName()).isEmpty());
     }
 
     @Test
