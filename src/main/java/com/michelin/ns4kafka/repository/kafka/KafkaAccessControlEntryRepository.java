@@ -106,7 +106,7 @@ public class KafkaAccessControlEntryRepository extends KafkaStore<AccessControlE
      */
     @Override
     public AccessControlEntry create(AccessControlEntry accessControlEntry) {
-        return this.produce(getMessageKey(accessControlEntry), accessControlEntry);
+        return produce(getMessageKey(accessControlEntry), accessControlEntry);
     }
 
     /**
