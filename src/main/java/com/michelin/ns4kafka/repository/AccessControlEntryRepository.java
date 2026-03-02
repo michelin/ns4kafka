@@ -24,11 +24,34 @@ import java.util.Optional;
 
 /** Access control entry repository. */
 public interface AccessControlEntryRepository {
+    /**
+     * Find all ACLs.
+     *
+     * @return A collection of ACLs
+     */
     Collection<AccessControlEntry> findAll();
 
+    /**
+     * Find an ACL by name.
+     *
+     * @param namespace The namespace of the ACL
+     * @param name The name of the ACL
+     * @return An optional containing the ACL if found, or empty if not found
+     */
     Optional<AccessControlEntry> findByName(String namespace, String name);
 
+    /**
+     * Create an ACL.
+     *
+     * @param accessControlEntry The ACL to create
+     * @return The created ACL
+     */
     AccessControlEntry create(AccessControlEntry accessControlEntry);
 
+    /**
+     * Delete an ACL.
+     *
+     * @param accessControlEntry The ACL to delete
+     */
     void delete(AccessControlEntry accessControlEntry);
 }

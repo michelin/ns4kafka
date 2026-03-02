@@ -64,8 +64,14 @@ public class KafkaAccessControlEntryRepository extends KafkaStore<AccessControlE
         super(kafkaTopic, kafkaProducer, adminClient, ns4KafkaProperties, taskScheduler);
     }
 
+    /**
+     * Get the message key for an ACL.
+     *
+     * @param accessControlEntry The ACL
+     * @return The message key
+     */
     @Override
-    String getMessageKey(AccessControlEntry accessControlEntry) {
+    public String getMessageKey(AccessControlEntry accessControlEntry) {
         return accessControlEntry.getMetadata().getNamespace() + "/"
                 + accessControlEntry.getMetadata().getName();
     }
