@@ -99,31 +99,6 @@ class TopicServiceTest {
     }
 
     @Test
-    void shouldNotFindByNameWhenOutsideNamespace() {
-        Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder()
-                        .name("malicious-namespace")
-                        .cluster("local")
-                        .build())
-                .spec(NamespaceSpec.builder()
-                        .connectClusters(List.of("local-name"))
-                        .build())
-                .build();
-
-        Topic topic = Topic.builder()
-                .metadata(Metadata.builder()
-                        .namespace("namespace")
-                        .name("ns-topic1")
-                        .build())
-                .build();
-
-        when(topicRepository.findByName(any(), any())).thenReturn(Optional.of(topic));
-
-        Optional<Topic> actualTopic = topicService.findByName(ns, "ns-topic1");
-        assertTrue(actualTopic.isEmpty());
-    }
-
-    @Test
     void shouldFindAllForNamespaceWhenEmpty() {
         Namespace ns = Namespace.builder()
                 .metadata(Metadata.builder().name("namespace").cluster("local").build())

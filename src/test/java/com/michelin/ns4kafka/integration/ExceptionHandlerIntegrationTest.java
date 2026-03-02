@@ -304,7 +304,7 @@ class ExceptionHandlerIntegrationTest extends KafkaIntegrationTest {
 
     @Test
     void shouldNotFoundTopic() {
-        HttpRequest<?> request = HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/topics/not-found-topic")
+        HttpRequest<?> request = HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/topics/ns1-not-found-topic")
                 .bearerAuth(token);
 
         BlockingHttpClient blockingClient = ns4KafkaClient.toBlocking();
