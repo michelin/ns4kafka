@@ -39,7 +39,6 @@ import com.michelin.ns4kafka.repository.ConnectClusterRepository;
 import com.michelin.ns4kafka.service.client.connect.KafkaConnectClient;
 import com.michelin.ns4kafka.util.EncryptionUtils;
 import io.micronaut.http.HttpResponse;
-import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.exceptions.HttpClientException;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,10 +46,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
+
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -66,8 +68,8 @@ class ConnectClusterServiceTest {
     @Mock
     AclService aclService;
 
-    @Mock
-    List<ManagedClusterProperties> managedClusterPropertiesList;
+    @Spy
+    List<ManagedClusterProperties> managedClusterProperties = new ArrayList<>();
 
     @Mock
     Ns4KafkaProperties ns4KafkaProperties;
@@ -75,8 +77,10 @@ class ConnectClusterServiceTest {
     @InjectMocks
     ConnectClusterService connectClusterService;
 
-    @Mock
-    HttpClient httpClient;
+    @BeforeEach
+    void setUp() {
+        managedClusterProperties.clear();
+    }
 
     @Test
     void shouldFindAllConnectClustersWhenEmpty() {
@@ -116,7 +120,7 @@ class ConnectClusterServiceTest {
         ManagedClusterProperties kafka = new ManagedClusterProperties("local");
         kafka.setConnects(Map.of("test-connect", new ManagedClusterProperties.ConnectProperties()));
 
-        when(managedClusterPropertiesList.stream()).thenReturn(Stream.of(kafka));
+        managedClusterProperties.add(kafka);
         when(kafkaConnectClient.version(any(), any()))
                 .thenReturn(Mono.just(HttpResponse.ok()))
                 .thenReturn(Mono.error(new Exception("error")));
@@ -144,12 +148,12 @@ class ConnectClusterServiceTest {
                         .build())
                 .build();
 
-        when(connectClusterRepository.findAll()).thenReturn(new ArrayList<>(List.of(connectCluster)));
+        when(connectClusterRepository.findAll()).thenReturn(List.of(connectCluster));
 
         ManagedClusterProperties kafka = new ManagedClusterProperties("local");
         kafka.setConnects(null);
 
-        when(managedClusterPropertiesList.stream()).thenReturn(Stream.of(kafka));
+        managedClusterProperties.add(kafka);
         when(kafkaConnectClient.version(any(), any()))
                 .thenReturn(Mono.just(HttpResponse.ok()))
                 .thenReturn(Mono.error(new Exception("error")));
@@ -663,7 +667,7 @@ class ConnectClusterServiceTest {
     void shouldValidateConnectClusterCreationWhenNs4KafkaConnectClustersConfigIsNull() {
         ManagedClusterProperties kafka = new ManagedClusterProperties("local");
 
-        when(managedClusterPropertiesList.stream()).thenReturn(Stream.of(kafka));
+        managedClusterProperties.add(kafka);
         when(kafkaConnectClient.version(any())).thenReturn(Mono.just(HttpResponse.ok()));
 
         ConnectCluster connectCluster = ConnectCluster.builder()
@@ -683,7 +687,7 @@ class ConnectClusterServiceTest {
         ManagedClusterProperties kafka = new ManagedClusterProperties("local");
         kafka.setConnects(Map.of("test-connect", new ManagedClusterProperties.ConnectProperties()));
 
-        when(managedClusterPropertiesList.stream()).thenReturn(Stream.of(kafka));
+        managedClusterProperties.add(kafka);
         when(kafkaConnectClient.version(any())).thenReturn(Mono.just(HttpResponse.ok()));
 
         ConnectCluster connectCluster = ConnectCluster.builder()
@@ -703,7 +707,7 @@ class ConnectClusterServiceTest {
         ManagedClusterProperties kafka = new ManagedClusterProperties("local");
         kafka.setConnects(Map.of("test-connect", new ManagedClusterProperties.ConnectProperties()));
 
-        when(managedClusterPropertiesList.stream()).thenReturn(Stream.of(kafka));
+        managedClusterProperties.add(kafka);
         when(kafkaConnectClient.version(any())).thenReturn(Mono.just(HttpResponse.ok()));
 
         ConnectCluster connectCluster = ConnectCluster.builder()
@@ -735,7 +739,7 @@ class ConnectClusterServiceTest {
                         .build())
                 .build();
 
-        when(managedClusterPropertiesList.stream()).thenReturn(Stream.of());
+        when(managedClusterProperties.stream()).thenReturn(Stream.of());
         when(kafkaConnectClient.version(any())).thenReturn(Mono.error(new HttpClientException("Error")));
 
         StepVerifier.create(connectClusterService.validateConnectClusterCreation(connectCluster))
@@ -759,7 +763,7 @@ class ConnectClusterServiceTest {
                         .build())
                 .build();
 
-        when(managedClusterPropertiesList.stream()).thenReturn(Stream.of());
+        when(managedClusterProperties.stream()).thenReturn(Stream.of());
         when(kafkaConnectClient.version(any())).thenReturn(Mono.just(HttpResponse.ok()));
 
         StepVerifier.create(connectClusterService.validateConnectClusterCreation(connectCluster))
@@ -785,7 +789,7 @@ class ConnectClusterServiceTest {
                         .build())
                 .build();
 
-        when(managedClusterPropertiesList.stream()).thenReturn(Stream.of());
+        when(managedClusterProperties.stream()).thenReturn(Stream.of());
         when(kafkaConnectClient.version(any())).thenReturn(Mono.just(HttpResponse.ok()));
 
         StepVerifier.create(connectClusterService.validateConnectClusterCreation(connectCluster))
@@ -811,7 +815,7 @@ class ConnectClusterServiceTest {
                         .build())
                 .build();
 
-        when(managedClusterPropertiesList.stream()).thenReturn(Stream.of());
+        when(managedClusterProperties.stream()).thenReturn(Stream.of());
         when(kafkaConnectClient.version(any())).thenReturn(Mono.error(new HttpClientException("Error")));
 
         StepVerifier.create(connectClusterService.validateConnectClusterCreation(connectCluster))
