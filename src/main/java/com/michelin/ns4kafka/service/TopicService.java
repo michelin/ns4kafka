@@ -110,11 +110,7 @@ public class TopicService {
      * @return An optional topic
      */
     public Optional<Topic> findByName(Namespace namespace, String topicName) {
-        return topicRepository
-                .findByName(namespace.getMetadata().getCluster(), topicName)
-                .filter(topic -> topic.getMetadata()
-                        .getNamespace()
-                        .equals(namespace.getMetadata().getName()));
+        return topicRepository.findByName(namespace.getMetadata().getCluster(), topicName);
     }
 
     /**
