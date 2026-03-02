@@ -31,7 +31,6 @@ import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.TaskScheduler;
 import jakarta.inject.Named;
 import jakarta.inject.Singleton;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import org.apache.kafka.clients.admin.AdminClient;
