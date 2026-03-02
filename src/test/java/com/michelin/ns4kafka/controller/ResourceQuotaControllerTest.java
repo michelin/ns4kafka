@@ -39,7 +39,6 @@ import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.ResourceQuotaService;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.context.event.ApplicationEventPublisher;
-import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.security.utils.SecurityService;
 import java.util.List;
@@ -202,7 +201,7 @@ class ResourceQuotaControllerTest {
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(resourceQuotaService.validateNewResourceQuota(ns, resourceQuota)).thenReturn(List.of());
-        when(resourceQuotaService.findForNamespace(ns.getMetadata().getName())).thenReturn(Optional.of(resourceQuota));
+        when(resourceQuotaService.findByNamespace(ns.getMetadata().getName())).thenReturn(Optional.of(resourceQuota));
 
         var response = resourceQuotaController.apply("test", resourceQuota, false);
         assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
@@ -223,7 +222,7 @@ class ResourceQuotaControllerTest {
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(resourceQuotaService.validateNewResourceQuota(ns, resourceQuota)).thenReturn(List.of());
-        when(resourceQuotaService.findForNamespace(ns.getMetadata().getName())).thenReturn(Optional.empty());
+        when(resourceQuotaService.findByNamespace(ns.getMetadata().getName())).thenReturn(Optional.empty());
 
         var response = resourceQuotaController.apply("test", resourceQuota, true);
         assertEquals("created", response.header("X-Ns4kafka-Result"));
@@ -246,7 +245,7 @@ class ResourceQuotaControllerTest {
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(resourceQuotaService.validateNewResourceQuota(ns, resourceQuota)).thenReturn(List.of());
-        when(resourceQuotaService.findForNamespace(ns.getMetadata().getName())).thenReturn(Optional.empty());
+        when(resourceQuotaService.findByNamespace(ns.getMetadata().getName())).thenReturn(Optional.empty());
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
@@ -282,7 +281,7 @@ class ResourceQuotaControllerTest {
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(resourceQuotaService.validateNewResourceQuota(ns, resourceQuota)).thenReturn(List.of());
-        when(resourceQuotaService.findForNamespace(ns.getMetadata().getName()))
+        when(resourceQuotaService.findByNamespace(ns.getMetadata().getName()))
                 .thenReturn(Optional.of(resourceQuotaExisting));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
@@ -297,70 +296,28 @@ class ResourceQuotaControllerTest {
     }
 
     @Test
-    @SuppressWarnings("deprecation")
     void shouldNotDeleteQuotaWhenNotFound() {
-        when(resourceQuotaService.findByName("test", "quota")).thenReturn(Optional.empty());
-        HttpResponse<Void> actual = resourceQuotaController.delete("test", "quota", false);
-        assertEquals(HttpStatus.NOT_FOUND, actual.getStatus());
-        verify(resourceQuotaService, never()).delete(ArgumentMatchers.any());
-    }
-
-    @Test
-    @SuppressWarnings("deprecation")
-    void shouldNotDeleteQuotaWhenDryRun() {
-        ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(Metadata.builder().cluster("local").name("quota").build())
-                .spec(Map.of("count/topics", "3"))
-                .build();
-
-        when(resourceQuotaService.findByName("test", "quota")).thenReturn(Optional.of(resourceQuota));
-        HttpResponse<Void> actual = resourceQuotaController.delete("test", "quota", true);
-        assertEquals(HttpStatus.NO_CONTENT, actual.getStatus());
-        verify(resourceQuotaService, never()).delete(ArgumentMatchers.any());
-    }
-
-    @Test
-    @SuppressWarnings("deprecation")
-    void shouldDeleteQuota() {
-        ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(Metadata.builder().cluster("local").name("quota").build())
-                .spec(Map.of("count/topics", "3"))
-                .build();
-
-        when(resourceQuotaService.findByName("test", "quota")).thenReturn(Optional.of(resourceQuota));
-        when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
-        doNothing().when(applicationEventPublisher).publishEvent(any());
-        doNothing().when(resourceQuotaService).delete(resourceQuota);
-
-        HttpResponse<Void> actual = resourceQuotaController.delete("test", "quota", false);
-        assertEquals(HttpStatus.NO_CONTENT, actual.getStatus());
-        verify(resourceQuotaService).delete(resourceQuota);
-    }
-
-    @Test
-    void shouldNotBulkDeleteQuotaWhenNotFound() {
         when(resourceQuotaService.findByWildcardName("test", "quota*")).thenReturn(List.of());
-        var actual = resourceQuotaController.bulkDelete("test", "quota*", false);
+        var actual = resourceQuotaController.delete("test", "quota*", false);
         assertEquals(HttpStatus.NOT_FOUND, actual.getStatus());
         verify(resourceQuotaService, never()).delete(ArgumentMatchers.any());
     }
 
     @Test
-    void shouldNotBulkDeleteQuotaInDryRunMode() {
+    void shouldNotDeleteQuotaInDryRunMode() {
         ResourceQuota resourceQuota1 = ResourceQuota.builder()
                 .metadata(Metadata.builder().cluster("local").name("quota1").build())
                 .spec(Map.of("count/topics", "3"))
                 .build();
 
         when(resourceQuotaService.findByWildcardName("test", "quota*")).thenReturn(List.of(resourceQuota1));
-        var actual = resourceQuotaController.bulkDelete("test", "quota*", true);
+        var actual = resourceQuotaController.delete("test", "quota*", true);
         assertEquals(HttpStatus.OK, actual.getStatus());
         verify(resourceQuotaService, never()).delete(ArgumentMatchers.any());
     }
 
     @Test
-    void shouldBulkDeleteQuota() {
+    void shouldDeleteQuota() {
         ResourceQuota resourceQuota = ResourceQuota.builder()
                 .metadata(Metadata.builder().cluster("local").name("quota").build())
                 .spec(Map.of("count/topics", "3"))
@@ -372,7 +329,7 @@ class ResourceQuotaControllerTest {
         doNothing().when(applicationEventPublisher).publishEvent(any());
         doNothing().when(resourceQuotaService).delete(resourceQuota);
 
-        var actual = resourceQuotaController.bulkDelete("test", "quota*", false);
+        var actual = resourceQuotaController.delete("test", "quota*", false);
         assertEquals(HttpStatus.OK, actual.getStatus());
         verify(resourceQuotaService).delete(resourceQuota);
     }

@@ -31,8 +31,7 @@ import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.TaskScheduler;
 import jakarta.inject.Named;
 import jakarta.inject.Singleton;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Collection;
 import java.util.Optional;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -64,8 +63,14 @@ public class KafkaResourceQuotaRepository extends KafkaStore<ResourceQuota> impl
         super(kafkaTopic, kafkaProducer, adminClient, ns4KafkaProperties, taskScheduler);
     }
 
+    /**
+     * Get the message key for a resource quota message, which is the namespace.
+     *
+     * @param message The resource quota message
+     * @return The message key
+     */
     @Override
-    String getMessageKey(ResourceQuota message) {
+    public String getMessageKey(ResourceQuota message) {
         return message.getMetadata().getNamespace();
     }
 
@@ -75,8 +80,8 @@ public class KafkaResourceQuotaRepository extends KafkaStore<ResourceQuota> impl
      * @return The resource quotas
      */
     @Override
-    public List<ResourceQuota> findAll() {
-        return new ArrayList<>(getKafkaStore().values());
+    public Collection<ResourceQuota> findAll() {
+        return getKafkaStore().values();
     }
 
     /**
@@ -86,11 +91,8 @@ public class KafkaResourceQuotaRepository extends KafkaStore<ResourceQuota> impl
      * @return A resource quota
      */
     @Override
-    public Optional<ResourceQuota> findForNamespace(String namespace) {
-        return getKafkaStore().values().stream()
-                .filter(resourceQuota ->
-                        resourceQuota.getMetadata().getNamespace().equals(namespace))
-                .findFirst();
+    public Optional<ResourceQuota> findByNamespace(String namespace) {
+        return Optional.ofNullable(getKafkaStore().get(namespace));
     }
 
     /**
@@ -100,7 +102,7 @@ public class KafkaResourceQuotaRepository extends KafkaStore<ResourceQuota> impl
      */
     @Override
     @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.resource-quotas")
-    void receive(ConsumerRecord<String, ResourceQuota> message) {
+    public void receive(ConsumerRecord<String, ResourceQuota> message) {
         super.receive(message);
     }
 

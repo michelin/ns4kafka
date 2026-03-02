@@ -21,7 +21,6 @@ package com.michelin.ns4kafka.service.executor;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidResetPasswordProvider;
 import static com.michelin.ns4kafka.util.enumation.Kind.KAFKA_USER_RESET_PASSWORD;
 
-import com.michelin.ns4kafka.model.quota.ResourceQuota;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.NamespaceRepository;
 import com.michelin.ns4kafka.repository.ResourceQuotaRepository;
@@ -34,7 +33,6 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -136,16 +134,14 @@ public class UserAsyncExecutor {
      */
     private Map<String, Map<String, Double>> collectNs4KafkaQuotas() {
         return namespaceRepository.findAllForCluster(managedClusterProperties.getName()).stream()
-                .collect(Collectors.toMap(namespace -> namespace.getSpec().getKafkaUser(), namespace -> {
-                    Optional<ResourceQuota> quota = quotaRepository.findForNamespace(
-                            namespace.getMetadata().getName());
-                    return quota.map(resourceQuota -> resourceQuota.getSpec().entrySet().stream()
-                                    .filter(q -> q.getKey().startsWith(USER_QUOTA_PREFIX))
-                                    .collect(Collectors.toMap(
-                                            q -> q.getKey().substring(USER_QUOTA_PREFIX.length()),
-                                            q -> Double.parseDouble(q.getValue()))))
-                            .orElse(Map.of());
-                }));
+                .collect(Collectors.toMap(namespace -> namespace.getSpec().getKafkaUser(), namespace -> quotaRepository
+                        .findByNamespace(namespace.getMetadata().getName())
+                        .map(resourceQuota -> resourceQuota.getSpec().entrySet().stream()
+                                .filter(q -> q.getKey().startsWith(USER_QUOTA_PREFIX))
+                                .collect(Collectors.toMap(
+                                        q -> q.getKey().substring(USER_QUOTA_PREFIX.length()),
+                                        q -> Double.parseDouble(q.getValue()))))
+                        .orElse(Map.of())));
     }
 
     /** Abstract user synchronizer to define the operations required for the user synchronization and password reset. */

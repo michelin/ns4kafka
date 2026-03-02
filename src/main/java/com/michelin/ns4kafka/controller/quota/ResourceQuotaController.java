@@ -127,7 +127,7 @@ public class ResourceQuotaController extends NamespacedResourceController {
             throw new ResourceValidationException(quota, validationErrors);
         }
 
-        Optional<ResourceQuota> resourceQuotaOptional = resourceQuotaService.findForNamespace(namespace);
+        Optional<ResourceQuota> resourceQuotaOptional = resourceQuotaService.findByNamespace(namespace);
         if (resourceQuotaOptional.isPresent() && resourceQuotaOptional.get().equals(quota)) {
             return formatHttpResponse(quota, ApplyStatus.UNCHANGED);
         }
@@ -156,11 +156,10 @@ public class ResourceQuotaController extends NamespacedResourceController {
      * @return An HTTP response
      */
     @Delete
-    public HttpResponse<List<ResourceQuota>> bulkDelete(
+    public HttpResponse<List<ResourceQuota>> delete(
             String namespace,
             @QueryValue(defaultValue = "*") String name,
             @QueryValue(defaultValue = "false") boolean dryrun) {
-
         List<ResourceQuota> resourceQuotas = resourceQuotaService.findByWildcardName(namespace, name);
 
         if (resourceQuotas.isEmpty()) {
@@ -177,35 +176,5 @@ public class ResourceQuotaController extends NamespacedResourceController {
         });
 
         return HttpResponse.ok(resourceQuotas);
-    }
-
-    /**
-     * Delete a quota.
-     *
-     * @param namespace The namespace
-     * @param name The resource quota
-     * @param dryrun Is dry run mode or not?
-     * @return An HTTP response
-     * @deprecated use {@link #bulkDelete(String, String, boolean)} instead.
-     */
-    @Delete("/{name}{?dryrun}")
-    @Deprecated(since = "1.13.0")
-    public HttpResponse<Void> delete(
-            String namespace, String name, @QueryValue(defaultValue = "false") boolean dryrun) {
-        Optional<ResourceQuota> resourceQuota = resourceQuotaService.findByName(namespace, name);
-        if (resourceQuota.isEmpty()) {
-            return HttpResponse.notFound();
-        }
-
-        if (dryrun) {
-            return HttpResponse.noContent();
-        }
-
-        ResourceQuota resourceQuotaToDelete = resourceQuota.get();
-
-        sendEventLog(resourceQuotaToDelete, ApplyStatus.DELETED, resourceQuotaToDelete.getSpec(), null, EMPTY_STRING);
-
-        resourceQuotaService.delete(resourceQuotaToDelete);
-        return HttpResponse.noContent();
     }
 }
