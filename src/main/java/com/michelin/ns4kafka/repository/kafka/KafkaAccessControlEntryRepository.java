@@ -70,32 +70,57 @@ public class KafkaAccessControlEntryRepository extends KafkaStore<AccessControlE
                 + accessControlEntry.getMetadata().getName();
     }
 
+    /**
+     * Find all ACLs.
+     *
+     * @return A collection of ACLs
+     */
+    @Override
+    public Collection<AccessControlEntry> findAll() {
+        return getKafkaStore().values();
+    }
+
+    /**
+     * Find an ACL by name.
+     *
+     * @param namespace The namespace of the ACL
+     * @param name The name of the ACL
+     * @return An optional containing the ACL if found, or empty if not found
+     */
+    @Override
+    public Optional<AccessControlEntry> findByName(String namespace, String name) {
+        return Optional.ofNullable(getKafkaStore().get(namespace + "/" + name));
+    }
+
+    /**
+     * Create an ACL.
+     *
+     * @param accessControlEntry The ACL to create
+     * @return The created ACL
+     */
     @Override
     public AccessControlEntry create(AccessControlEntry accessControlEntry) {
         return this.produce(getMessageKey(accessControlEntry), accessControlEntry);
     }
 
+    /**
+     * Delete an ACL.
+     *
+     * @param accessControlEntry The ACL to delete
+     */
     @Override
     public void delete(AccessControlEntry accessControlEntry) {
         produce(getMessageKey(accessControlEntry), null);
     }
 
-    @Override
-    public Optional<AccessControlEntry> findByName(String namespace, String name) {
-        return getKafkaStore().values().stream()
-                .filter(ace -> ace.getMetadata().getNamespace().equals(namespace))
-                .filter(ace -> ace.getMetadata().getName().equals(name))
-                .findFirst();
-    }
-
+    /**
+     * Receive messages from Kafka topic and update the store accordingly.
+     *
+     * @param message The record
+     */
     @Override
     @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.access-control-entries")
-    void receive(ConsumerRecord<String, AccessControlEntry> message) {
+    public void receive(ConsumerRecord<String, AccessControlEntry> message) {
         super.receive(message);
-    }
-
-    @Override
-    public Collection<AccessControlEntry> findAll() {
-        return getKafkaStore().values();
     }
 }

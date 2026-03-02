@@ -25,6 +25,7 @@ import com.michelin.ns4kafka.controller.acl.AclNonNamespacedController;
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.service.AclService;
+import java.util.Collection;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -58,7 +59,7 @@ class AclNonNamespacedControllerTest {
 
         when(aclService.findAll()).thenReturn(List.of(accessControlEntry, accessControlEntry2));
 
-        List<AccessControlEntry> actual = aclNonNamespacedController.listAll();
+        Collection<AccessControlEntry> actual = aclNonNamespacedController.listAll();
 
         assertEquals(2, actual.size());
         assertEquals(List.of(accessControlEntry, accessControlEntry2), actual);
