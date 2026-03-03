@@ -37,13 +37,22 @@ import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
 import jakarta.inject.Singleton;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /** Access control entry service. */
 @Singleton
 public class AclService {
+    private static final Set<AccessControlEntry.ResourceType> ALLOWED_RESOURCE_TYPES =
+            EnumSet.of(AccessControlEntry.ResourceType.TOPIC, AccessControlEntry.ResourceType.CONNECT_CLUSTER);
+    private static final Set<AccessControlEntry.Permission> ALLOWED_PERMISSIONS =
+            EnumSet.of(AccessControlEntry.Permission.READ, AccessControlEntry.Permission.WRITE);
+    private static final Set<AccessControlEntry.ResourcePatternType> ALLOWED_PATTERN_TYPES =
+            EnumSet.of(AccessControlEntry.ResourcePatternType.LITERAL, AccessControlEntry.ResourcePatternType.PREFIXED);
     public static final String PUBLIC_GRANTED_TO = "*";
 
     private final AccessControlEntryRepository accessControlEntryRepository;
@@ -80,36 +89,25 @@ public class AclService {
      */
     public List<String> validate(AccessControlEntry accessControlEntry, Namespace namespace) {
         List<String> validationErrors = new ArrayList<>();
-
         // Which resource can be granted cross namespaces
-        List<AccessControlEntry.ResourceType> allowedResourceTypes =
-                List.of(AccessControlEntry.ResourceType.TOPIC, AccessControlEntry.ResourceType.CONNECT_CLUSTER);
-
-        // Which permission can be granted cross namespaces: READ, WRITE
-        // Only admin can grant OWNER
-        List<AccessControlEntry.Permission> allowedPermissions =
-                List.of(AccessControlEntry.Permission.READ, AccessControlEntry.Permission.WRITE);
-
-        // Which patternTypes can be granted
-        List<AccessControlEntry.ResourcePatternType> allowedPatternTypes = List.of(
-                AccessControlEntry.ResourcePatternType.LITERAL, AccessControlEntry.ResourcePatternType.PREFIXED);
-
-        if (!allowedResourceTypes.contains(accessControlEntry.getSpec().getResourceType())) {
+        if (!ALLOWED_RESOURCE_TYPES.contains(accessControlEntry.getSpec().getResourceType())) {
             validationErrors.add(invalidAclResourceType(
                     String.valueOf(accessControlEntry.getSpec().getResourceType()),
-                    allowedResourceTypes.stream().map(Object::toString).collect(Collectors.joining(", "))));
+                    ALLOWED_RESOURCE_TYPES.stream().map(Object::toString).collect(Collectors.joining(", "))));
         }
 
-        if (!allowedPermissions.contains(accessControlEntry.getSpec().getPermission())) {
+        // Which permission can be granted cross namespaces
+        if (!ALLOWED_PERMISSIONS.contains(accessControlEntry.getSpec().getPermission())) {
             validationErrors.add(invalidAclPermission(
                     String.valueOf(accessControlEntry.getSpec().getPermission()),
-                    allowedPermissions.stream().map(Object::toString).collect(Collectors.joining(", "))));
+                    ALLOWED_PERMISSIONS.stream().map(Object::toString).collect(Collectors.joining(", "))));
         }
 
-        if (!allowedPatternTypes.contains(accessControlEntry.getSpec().getResourcePatternType())) {
+        // Which pattern types can be granted cross namespaces
+        if (!ALLOWED_PATTERN_TYPES.contains(accessControlEntry.getSpec().getResourcePatternType())) {
             validationErrors.add(invalidAclPatternType(
                     String.valueOf(accessControlEntry.getSpec().getResourcePatternType()),
-                    allowedPatternTypes.stream().map(Object::toString).collect(Collectors.joining(", "))));
+                    ALLOWED_PATTERN_TYPES.stream().map(Object::toString).collect(Collectors.joining(", "))));
         }
 
         // GrantedTo namespace exists?
@@ -517,8 +515,8 @@ public class AclService {
      *
      * @return A list of ACLs
      */
-    public List<AccessControlEntry> findAll() {
-        return new ArrayList<>(accessControlEntryRepository.findAll());
+    public Collection<AccessControlEntry> findAll() {
+        return accessControlEntryRepository.findAll();
     }
 
     /**

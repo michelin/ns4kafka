@@ -37,6 +37,7 @@ import com.michelin.ns4kafka.repository.AccessControlEntryRepository;
 import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -988,7 +989,7 @@ class AclServiceTest {
 
         when(accessControlEntryRepository.findAll()).thenReturn(List.of(ace1, ace2, ace3));
 
-        List<AccessControlEntry> actual = aclService.findAll();
+        Collection<AccessControlEntry> actual = aclService.findAll();
         assertEquals(3, actual.size());
     }
 
