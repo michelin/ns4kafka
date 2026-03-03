@@ -69,9 +69,9 @@ class ResourceQuotaServiceTest {
                 .spec(Map.of(COUNT_TOPICS.toString(), "1"))
                 .build();
 
-        when(resourceQuotaRepository.findForNamespace("namespace")).thenReturn(Optional.of(resourceQuota));
+        when(resourceQuotaRepository.findByNamespace("namespace")).thenReturn(Optional.of(resourceQuota));
 
-        assertEquals(Optional.of(resourceQuota), resourceQuotaService.findForNamespace("namespace"));
+        assertEquals(Optional.of(resourceQuota), resourceQuotaService.findByNamespace("namespace"));
     }
 
     @Test
@@ -83,11 +83,10 @@ class ResourceQuotaServiceTest {
                         .build())
                 .build();
 
-        when(resourceQuotaRepository.findForNamespace("namespace")).thenReturn(Optional.empty());
+        when(resourceQuotaRepository.findByNamespace("namespace")).thenReturn(Optional.empty());
 
-        assertTrue(resourceQuotaService
-                .findForNamespace(ns.getMetadata().getName())
-                .isEmpty());
+        assertTrue(
+                resourceQuotaService.findByNamespace(ns.getMetadata().getName()).isEmpty());
     }
 
     @Test
@@ -101,7 +100,7 @@ class ResourceQuotaServiceTest {
                 .spec(Map.of(COUNT_TOPICS.toString(), "1"))
                 .build();
 
-        when(resourceQuotaRepository.findForNamespace("namespace")).thenReturn(Optional.of(resourceQuota));
+        when(resourceQuotaRepository.findByNamespace("namespace")).thenReturn(Optional.of(resourceQuota));
 
         assertEquals(List.of(resourceQuota), resourceQuotaService.findByWildcardName("namespace", "*"));
     }
@@ -117,7 +116,7 @@ class ResourceQuotaServiceTest {
                 .spec(Map.of(COUNT_TOPICS.toString(), "1"))
                 .build();
 
-        when(resourceQuotaRepository.findForNamespace("namespace")).thenReturn(Optional.of(resourceQuota));
+        when(resourceQuotaRepository.findByNamespace("namespace")).thenReturn(Optional.of(resourceQuota));
 
         assertEquals(List.of(resourceQuota), resourceQuotaService.findByWildcardName("namespace", "quotaName"));
         assertTrue(resourceQuotaService
@@ -136,7 +135,7 @@ class ResourceQuotaServiceTest {
                 .spec(Map.of(COUNT_TOPICS.toString(), "1"))
                 .build();
 
-        when(resourceQuotaRepository.findForNamespace("namespace")).thenReturn(Optional.of(resourceQuota));
+        when(resourceQuotaRepository.findByNamespace("namespace")).thenReturn(Optional.of(resourceQuota));
 
         assertEquals(List.of(resourceQuota), resourceQuotaService.findByWildcardName("namespace", "*"));
         assertEquals(List.of(resourceQuota), resourceQuotaService.findByWildcardName("namespace", "quota????"));
@@ -160,7 +159,7 @@ class ResourceQuotaServiceTest {
                 .spec(Map.of(COUNT_TOPICS.toString(), "1"))
                 .build();
 
-        when(resourceQuotaRepository.findForNamespace("namespace")).thenReturn(Optional.of(resourceQuota));
+        when(resourceQuotaRepository.findByNamespace("namespace")).thenReturn(Optional.of(resourceQuota));
 
         Optional<ResourceQuota> resourceQuotaOptional =
                 resourceQuotaService.findByName(ns.getMetadata().getName(), "test");
@@ -182,7 +181,7 @@ class ResourceQuotaServiceTest {
                 .spec(Map.of(COUNT_TOPICS.toString(), "1"))
                 .build();
 
-        when(resourceQuotaRepository.findForNamespace("namespace")).thenReturn(Optional.of(resourceQuota));
+        when(resourceQuotaRepository.findByNamespace("namespace")).thenReturn(Optional.of(resourceQuota));
 
         Optional<ResourceQuota> resourceQuotaOptional =
                 resourceQuotaService.findByName(ns.getMetadata().getName(), "wrong-name");
@@ -198,7 +197,7 @@ class ResourceQuotaServiceTest {
                         .build())
                 .build();
 
-        when(resourceQuotaRepository.findForNamespace("namespace")).thenReturn(Optional.empty());
+        when(resourceQuotaRepository.findByNamespace("namespace")).thenReturn(Optional.empty());
 
         Optional<ResourceQuota> resourceQuotaOptional =
                 resourceQuotaService.findByName(ns.getMetadata().getName(), "test");
@@ -657,7 +656,7 @@ class ResourceQuotaServiceTest {
                         .build())
                 .build();
 
-        when(resourceQuotaRepository.findForNamespace("namespace")).thenReturn(Optional.of(resourceQuota));
+        when(resourceQuotaRepository.findByNamespace("namespace")).thenReturn(Optional.of(resourceQuota));
         when(topicService.findAllForNamespace(ns)).thenReturn(List.of(topic1, topic2, topic3));
 
         List<String> validationErrors = resourceQuotaService.validateTopicQuota(ns, Optional.empty(), newTopic);
@@ -679,7 +678,7 @@ class ResourceQuotaServiceTest {
                 .spec(Topic.TopicSpec.builder().partitions(6).build())
                 .build();
 
-        when(resourceQuotaRepository.findForNamespace("namespace")).thenReturn(Optional.empty());
+        when(resourceQuotaRepository.findByNamespace("namespace")).thenReturn(Optional.empty());
 
         List<String> validationErrors = resourceQuotaService.validateTopicQuota(ns, Optional.empty(), newTopic);
         assertEquals(0, validationErrors.size());
@@ -741,7 +740,7 @@ class ResourceQuotaServiceTest {
                         .build())
                 .build();
 
-        when(resourceQuotaRepository.findForNamespace("namespace")).thenReturn(Optional.of(resourceQuota));
+        when(resourceQuotaRepository.findByNamespace("namespace")).thenReturn(Optional.of(resourceQuota));
         when(topicService.findAllForNamespace(ns)).thenReturn(List.of(topic1, topic2, topic3));
 
         List<String> validationErrors = resourceQuotaService.validateTopicQuota(ns, Optional.empty(), newTopic);
@@ -815,7 +814,7 @@ class ResourceQuotaServiceTest {
                         .build())
                 .build();
 
-        when(resourceQuotaRepository.findForNamespace("namespace")).thenReturn(Optional.of(resourceQuota));
+        when(resourceQuotaRepository.findByNamespace("namespace")).thenReturn(Optional.of(resourceQuota));
         when(topicService.findAllForNamespace(ns)).thenReturn(List.of(topic1, topic2, topic3));
 
         List<String> validationErrors = resourceQuotaService.validateTopicQuota(ns, Optional.of(topic1), newTopic);
@@ -840,7 +839,7 @@ class ResourceQuotaServiceTest {
                 .spec(Map.of(COUNT_CONNECTORS.toString(), "3"))
                 .build();
 
-        when(resourceQuotaRepository.findForNamespace("namespace")).thenReturn(Optional.of(resourceQuota));
+        when(resourceQuotaRepository.findByNamespace("namespace")).thenReturn(Optional.of(resourceQuota));
         when(connectorService.findAllForNamespace(ns))
                 .thenReturn(List.of(
                         Connector.builder()
@@ -863,7 +862,7 @@ class ResourceQuotaServiceTest {
                         .build())
                 .build();
 
-        when(resourceQuotaRepository.findForNamespace("namespace")).thenReturn(Optional.empty());
+        when(resourceQuotaRepository.findByNamespace("namespace")).thenReturn(Optional.empty());
 
         List<String> validationErrors = resourceQuotaService.validateConnectorQuota(ns);
         assertEquals(0, validationErrors.size());
@@ -883,7 +882,7 @@ class ResourceQuotaServiceTest {
                 .spec(Map.of(COUNT_CONNECTORS.toString(), "2"))
                 .build();
 
-        when(resourceQuotaRepository.findForNamespace("namespace")).thenReturn(Optional.of(resourceQuota));
+        when(resourceQuotaRepository.findByNamespace("namespace")).thenReturn(Optional.of(resourceQuota));
         when(connectorService.findAllForNamespace(ns))
                 .thenReturn(List.of(
                         Connector.builder()
@@ -1105,7 +1104,7 @@ class ResourceQuotaServiceTest {
                         Connector.builder()
                                 .metadata(Metadata.builder().name("connect2").build())
                                 .build()));
-        when(resourceQuotaRepository.findForNamespace(any())).thenReturn(Optional.of(resourceQuota));
+        when(resourceQuotaRepository.findByNamespace(any())).thenReturn(Optional.of(resourceQuota));
 
         List<ResourceQuotaResponse> response =
                 resourceQuotaService.getUsedQuotaByNamespaces(List.of(ns1, ns2, ns3, ns4));

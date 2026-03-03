@@ -85,8 +85,8 @@ public class ResourceQuotaService {
      * @param namespace The namespace used to research
      * @return The researched resource quota
      */
-    public Optional<ResourceQuota> findForNamespace(String namespace) {
-        return resourceQuotaRepository.findForNamespace(namespace);
+    public Optional<ResourceQuota> findByNamespace(String namespace) {
+        return resourceQuotaRepository.findByNamespace(namespace);
     }
 
     /**
@@ -98,7 +98,7 @@ public class ResourceQuotaService {
      */
     public List<ResourceQuota> findByWildcardName(String namespace, String name) {
         List<String> nameFilterPatterns = RegexUtils.convertWildcardStringsToRegex(List.of(name));
-        return findForNamespace(namespace).stream()
+        return findByNamespace(namespace).stream()
                 .filter(quota ->
                         RegexUtils.isResourceCoveredByRegex(quota.getMetadata().getName(), nameFilterPatterns))
                 .toList();
@@ -112,7 +112,7 @@ public class ResourceQuotaService {
      * @return The researched resource quota
      */
     public Optional<ResourceQuota> findByName(String namespace, String quota) {
-        return findForNamespace(namespace).stream()
+        return findByNamespace(namespace).stream()
                 .filter(resourceQuota -> resourceQuota.getMetadata().getName().equals(quota))
                 .findFirst();
     }
@@ -264,7 +264,7 @@ public class ResourceQuotaService {
      */
     public List<String> validateTopicQuota(Namespace namespace, Optional<Topic> existingTopic, Topic newTopic) {
         Optional<ResourceQuota> resourceQuotaOptional =
-                findForNamespace(namespace.getMetadata().getName());
+                findByNamespace(namespace.getMetadata().getName());
         if (resourceQuotaOptional.isEmpty()) {
             return List.of();
         }
@@ -328,7 +328,7 @@ public class ResourceQuotaService {
      */
     public List<String> validateConnectorQuota(Namespace namespace) {
         Optional<ResourceQuota> resourceQuotaOptional =
-                findForNamespace(namespace.getMetadata().getName());
+                findByNamespace(namespace.getMetadata().getName());
         if (resourceQuotaOptional.isEmpty()) {
             return List.of();
         }
@@ -355,7 +355,7 @@ public class ResourceQuotaService {
     public List<ResourceQuotaResponse> getUsedQuotaByNamespaces(List<Namespace> namespaces) {
         return namespaces.stream()
                 .map(namespace -> getUsedResourcesByQuotaByNamespace(
-                        namespace, findForNamespace(namespace.getMetadata().getName())))
+                        namespace, findByNamespace(namespace.getMetadata().getName())))
                 .toList();
     }
 

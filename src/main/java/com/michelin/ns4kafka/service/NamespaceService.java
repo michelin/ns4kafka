@@ -242,7 +242,7 @@ public class NamespaceService {
                                 .map(ace -> ACCESS_CONTROL_ENTRY + "/"
                                         + ace.getMetadata().getName()),
                         resourceQuotaService
-                                .findForNamespace(namespace.getMetadata().getName())
+                                .findByNamespace(namespace.getMetadata().getName())
                                 .stream()
                                 .map(resourceQuota -> RESOURCE_QUOTA + "/"
                                         + resourceQuota.getMetadata().getName()),

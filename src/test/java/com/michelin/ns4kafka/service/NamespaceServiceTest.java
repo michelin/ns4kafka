@@ -517,7 +517,7 @@ class NamespaceServiceTest {
         when(roleBindingService.findAllForNamespace("namespace")).thenReturn(List.of());
         when(aclService.findAllForNamespace(ns)).thenReturn(List.of());
         when(connectClusterService.findAllForNamespaceWithOwnerPermission(ns)).thenReturn(List.of());
-        when(resourceQuotaService.findForNamespace("namespace")).thenReturn(Optional.empty());
+        when(resourceQuotaService.findByNamespace("namespace")).thenReturn(Optional.empty());
 
         List<String> result = namespaceService.findAllResourcesByNamespace(ns);
         assertTrue(result.isEmpty());
@@ -543,7 +543,7 @@ class NamespaceServiceTest {
         when(roleBindingService.findAllForNamespace("namespace")).thenReturn(List.of());
         when(aclService.findAllForNamespace(ns)).thenReturn(List.of());
         when(connectClusterService.findAllForNamespaceWithOwnerPermission(ns)).thenReturn(List.of());
-        when(resourceQuotaService.findForNamespace("namespace")).thenReturn(Optional.empty());
+        when(resourceQuotaService.findByNamespace("namespace")).thenReturn(Optional.empty());
 
         List<String> result = namespaceService.findAllResourcesByNamespace(ns);
         assertEquals(1, result.size());
@@ -572,7 +572,7 @@ class NamespaceServiceTest {
         when(roleBindingService.findAllForNamespace("namespace")).thenReturn(List.of());
         when(aclService.findAllForNamespace(ns)).thenReturn(List.of());
         when(connectClusterService.findAllForNamespaceWithOwnerPermission(ns)).thenReturn(List.of());
-        when(resourceQuotaService.findForNamespace("namespace")).thenReturn(Optional.empty());
+        when(resourceQuotaService.findByNamespace("namespace")).thenReturn(Optional.empty());
 
         List<String> result = namespaceService.findAllResourcesByNamespace(ns);
         assertEquals(1, result.size());
@@ -601,7 +601,7 @@ class NamespaceServiceTest {
         when(roleBindingService.findAllForNamespace("namespace")).thenReturn(List.of(rb));
         when(aclService.findAllForNamespace(ns)).thenReturn(List.of());
         when(connectClusterService.findAllForNamespaceWithOwnerPermission(ns)).thenReturn(List.of());
-        when(resourceQuotaService.findForNamespace("namespace")).thenReturn(Optional.empty());
+        when(resourceQuotaService.findByNamespace("namespace")).thenReturn(Optional.empty());
 
         List<String> result = namespaceService.findAllResourcesByNamespace(ns);
         assertEquals(1, result.size());
@@ -627,7 +627,7 @@ class NamespaceServiceTest {
         when(roleBindingService.findAllForNamespace("namespace")).thenReturn(List.of());
         when(aclService.findAllForNamespace(ns)).thenReturn(List.of(ace));
         when(connectClusterService.findAllForNamespaceWithOwnerPermission(ns)).thenReturn(List.of());
-        when(resourceQuotaService.findForNamespace("namespace")).thenReturn(Optional.empty());
+        when(resourceQuotaService.findByNamespace("namespace")).thenReturn(Optional.empty());
 
         List<String> result = namespaceService.findAllResourcesByNamespace(ns);
         assertEquals(1, result.size());
@@ -656,7 +656,7 @@ class NamespaceServiceTest {
         when(roleBindingService.findAllForNamespace("namespace")).thenReturn(List.of());
         when(aclService.findAllForNamespace(ns)).thenReturn(List.of());
         when(connectClusterService.findAllForNamespaceWithOwnerPermission(ns)).thenReturn(List.of(connectCluster));
-        when(resourceQuotaService.findForNamespace("namespace")).thenReturn(Optional.empty());
+        when(resourceQuotaService.findByNamespace("namespace")).thenReturn(Optional.empty());
 
         List<String> result = namespaceService.findAllResourcesByNamespace(ns);
         assertEquals(1, result.size());
@@ -685,7 +685,7 @@ class NamespaceServiceTest {
         when(roleBindingService.findAllForNamespace("namespace")).thenReturn(List.of());
         when(aclService.findAllForNamespace(ns)).thenReturn(List.of());
         when(connectClusterService.findAllForNamespaceWithOwnerPermission(ns)).thenReturn(List.of());
-        when(resourceQuotaService.findForNamespace("namespace")).thenReturn(Optional.of(resourceQuota));
+        when(resourceQuotaService.findByNamespace("namespace")).thenReturn(Optional.of(resourceQuota));
 
         List<String> result = namespaceService.findAllResourcesByNamespace(ns);
         assertEquals(1, result.size());
