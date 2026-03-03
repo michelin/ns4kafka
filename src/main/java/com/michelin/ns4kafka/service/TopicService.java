@@ -38,7 +38,6 @@ import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
 import jakarta.inject.Singleton;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -118,13 +117,11 @@ public class TopicService {
      * Find a topic by namespace and name.
      *
      * @param namespace The namespace
-     * @param topic The topic name
+     * @param topicName The topic name
      * @return An optional topic
      */
-    public Optional<Topic> findByName(Namespace namespace, String topic) {
-        return findAllForNamespace(namespace).stream()
-                .filter(t -> t.getMetadata().getName().equals(topic))
-                .findFirst();
+    public Optional<Topic> findByName(Namespace namespace, String topicName) {
+        return topicRepository.findByName(namespace.getMetadata().getCluster(), topicName);
     }
 
     /**
@@ -282,39 +279,17 @@ public class TopicService {
                 Qualifiers.byName(namespace.getMetadata().getCluster()));
 
         List<String> nameFilterPatterns = RegexUtils.convertWildcardStringsToRegex(List.of(name));
-        List<String> topicNames = listUnsynchronizedTopicNames(namespace);
+        List<AccessControlEntry> acls =
+                aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.TOPIC);
 
-        // Get topics definitions
-        Collection<Topic> unsynchronizedTopics =
-                topicAsyncExecutor.collectBrokerTopicsFromNames(topicNames).values();
-
-        return new ArrayList<>(unsynchronizedTopics)
+        return topicAsyncExecutor
+                .collectBrokerTopicsFromNames(topicAsyncExecutor.listBrokerTopicNames().stream()
+                        .filter(topic -> findByName(namespace, topic).isEmpty()
+                                && aclService.isResourceCoveredByAcls(acls, topic)
+                                && RegexUtils.isResourceCoveredByRegex(topic, nameFilterPatterns))
+                        .toList())
+                .values()
                 .stream()
-                        .filter(topic -> RegexUtils.isResourceCoveredByRegex(
-                                topic.getMetadata().getName(), nameFilterPatterns))
-                        .toList();
-    }
-
-    /**
-     * List all topic names of a given namespace that are not synchronized to Ns4Kafka.
-     *
-     * @param namespace The namespace
-     * @return The list of topic names
-     * @throws ExecutionException Any execution exception
-     * @throws InterruptedException Any interrupted exception
-     * @throws TimeoutException Any timeout exception
-     */
-    public List<String> listUnsynchronizedTopicNames(Namespace namespace)
-            throws ExecutionException, InterruptedException, TimeoutException {
-        TopicAsyncExecutor topicAsyncExecutor = applicationContext.getBean(
-                TopicAsyncExecutor.class,
-                Qualifiers.byName(namespace.getMetadata().getCluster()));
-
-        return topicAsyncExecutor.listBrokerTopicNames().stream()
-                // ...that belongs to this namespace
-                .filter(topic -> isNamespaceOwnerOfTopic(namespace.getMetadata().getName(), topic))
-                // ...and aren't in Ns4Kafka storage
-                .filter(topic -> findByName(namespace, topic).isEmpty())
                 .toList();
     }
 
