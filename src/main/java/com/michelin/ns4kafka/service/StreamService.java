@@ -27,7 +27,6 @@ import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
 import com.michelin.ns4kafka.util.RegexUtils;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
-import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.HashSet;
 import java.util.List;
@@ -38,17 +37,29 @@ import java.util.concurrent.TimeoutException;
 /** Service to manage Kafka Streams. */
 @Singleton
 public class StreamService {
-    @Inject
-    private StreamRepository streamRepository;
+    private final ApplicationContext applicationContext;
+    private final StreamRepository streamRepository;
+    private final AclService aclService;
+    private final TopicService topicService;
 
-    @Inject
-    private AclService aclService;
-
-    @Inject
-    private ApplicationContext applicationContext;
-
-    @Inject
-    private TopicService topicService;
+    /**
+     * Constructor.
+     *
+     * @param applicationContext The application context
+     * @param streamRepository The stream repository
+     * @param aclService The ACL service
+     * @param topicService The topic service
+     */
+    public StreamService(
+            ApplicationContext applicationContext,
+            StreamRepository streamRepository,
+            AclService aclService,
+            TopicService topicService) {
+        this.applicationContext = applicationContext;
+        this.streamRepository = streamRepository;
+        this.aclService = aclService;
+        this.topicService = topicService;
+    }
 
     /**
      * Find all Kafka Streams of given cluster.

@@ -33,7 +33,6 @@ import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.NamespaceRepository;
 import com.michelin.ns4kafka.util.FormatErrorUtils;
 import com.michelin.ns4kafka.util.RegexUtils;
-import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,29 +45,45 @@ import org.apache.kafka.common.config.TopicConfig;
 public class NamespaceService {
     private static final List<String> NOT_EDITABLE_CONFIGS = List.of(TopicConfig.MIN_CLEANABLE_DIRTY_RATIO_CONFIG);
 
-    @Inject
-    private NamespaceRepository namespaceRepository;
+    private final TopicService topicService;
+    private final RoleBindingService roleBindingService;
+    private final AclService aclService;
+    private final ConnectorService connectorService;
+    private final ConnectClusterService connectClusterService;
+    private final ResourceQuotaService resourceQuotaService;
+    private final NamespaceRepository namespaceRepository;
+    private final List<ManagedClusterProperties> managedClusterProperties;
 
-    @Inject
-    private List<ManagedClusterProperties> managedClusterProperties;
-
-    @Inject
-    private TopicService topicService;
-
-    @Inject
-    private RoleBindingService roleBindingService;
-
-    @Inject
-    private AclService aclService;
-
-    @Inject
-    private ConnectorService connectorService;
-
-    @Inject
-    private ConnectClusterService connectClusterService;
-
-    @Inject
-    private ResourceQuotaService resourceQuotaService;
+    /**
+     * Constructor.
+     *
+     * @param topicService The topic service
+     * @param roleBindingService The role binding service
+     * @param aclService The ACL service
+     * @param connectorService The connector service
+     * @param connectClusterService The Connect cluster service
+     * @param resourceQuotaService The resource quota service
+     * @param namespaceRepository The namespace repository
+     * @param managedClusterProperties The managed cluster properties
+     */
+    public NamespaceService(
+            TopicService topicService,
+            RoleBindingService roleBindingService,
+            AclService aclService,
+            ConnectorService connectorService,
+            ConnectClusterService connectClusterService,
+            ResourceQuotaService resourceQuotaService,
+            NamespaceRepository namespaceRepository,
+            List<ManagedClusterProperties> managedClusterProperties) {
+        this.topicService = topicService;
+        this.roleBindingService = roleBindingService;
+        this.aclService = aclService;
+        this.connectorService = connectorService;
+        this.connectClusterService = connectClusterService;
+        this.resourceQuotaService = resourceQuotaService;
+        this.namespaceRepository = namespaceRepository;
+        this.managedClusterProperties = managedClusterProperties;
+    }
 
     /**
      * List all namespaces.

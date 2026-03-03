@@ -37,7 +37,6 @@ import com.michelin.ns4kafka.service.client.connect.KafkaConnectClient.KafkaConn
 import com.michelin.ns4kafka.util.EncryptionUtils;
 import com.michelin.ns4kafka.util.RegexUtils;
 import io.micronaut.core.util.StringUtils;
-import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -60,24 +59,37 @@ public class ConnectClusterService {
 
     private static final String WILDCARD_SECRET = "*****";
 
+    private final KafkaConnectClient kafkaConnectClient;
+    private final AclService aclService;
+    private final ConnectClusterRepository connectClusterRepository;
+    private final List<ManagedClusterProperties> managedClusterProperties;
+    private final Ns4KafkaProperties ns4KafkaProperties;
+
     @Getter
     @Setter
     private Set<String> healthyConnectClusters = new HashSet<>();
 
-    @Inject
-    private KafkaConnectClient kafkaConnectClient;
-
-    @Inject
-    private AclService aclService;
-
-    @Inject
-    private ConnectClusterRepository connectClusterRepository;
-
-    @Inject
-    private List<ManagedClusterProperties> managedClusterProperties;
-
-    @Inject
-    private Ns4KafkaProperties ns4KafkaProperties;
+    /**
+     * Constructor.
+     *
+     * @param kafkaConnectClient The Kafka Connect client
+     * @param aclService The ACL service
+     * @param connectClusterRepository The Connect cluster repository
+     * @param managedClusterProperties The list of managed cluster properties
+     * @param ns4KafkaProperties The NS4Kafka properties
+     */
+    public ConnectClusterService(
+            KafkaConnectClient kafkaConnectClient,
+            AclService aclService,
+            ConnectClusterRepository connectClusterRepository,
+            List<ManagedClusterProperties> managedClusterProperties,
+            Ns4KafkaProperties ns4KafkaProperties) {
+        this.kafkaConnectClient = kafkaConnectClient;
+        this.aclService = aclService;
+        this.connectClusterRepository = connectClusterRepository;
+        this.managedClusterProperties = managedClusterProperties;
+        this.ns4KafkaProperties = ns4KafkaProperties;
+    }
 
     /**
      * Find all self deployed Connect clusters.

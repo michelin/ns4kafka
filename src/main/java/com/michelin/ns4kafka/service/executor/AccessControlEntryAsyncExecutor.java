@@ -277,7 +277,6 @@ public class AccessControlEntryAsyncExecutor {
                 new org.apache.kafka.common.acl.AccessControlEntry(
                         principal, "*", aclOperation, AclPermissionType.ALLOW))));
 
-        // Generate KafkaStream ACLs and transactions ACLs for GROUP ACL
         if (GROUP.equals(acl.getSpec().getResourceType())) {
             if (namespace.getSpec().isTransactionsEnabled()) {
                 addEosConnectorAclBindings(results, acl, principal);

@@ -32,7 +32,6 @@ import com.michelin.ns4kafka.model.consumer.group.ConsumerGroupResetOffsets.Rese
 import com.michelin.ns4kafka.service.executor.ConsumerGroupAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
-import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.time.Duration;
 import java.time.Instant;
@@ -50,11 +49,19 @@ import org.apache.kafka.common.TopicPartition;
 /** Service to manage the consumer groups. */
 @Singleton
 public class ConsumerGroupService {
-    @Inject
-    private ApplicationContext applicationContext;
+    private final ApplicationContext applicationContext;
+    private final AclService aclService;
 
-    @Inject
-    private AclService aclService;
+    /**
+     * Constructor.
+     *
+     * @param applicationContext The application context
+     * @param aclService The ACL service
+     */
+    public ConsumerGroupService(ApplicationContext applicationContext, AclService aclService) {
+        this.applicationContext = applicationContext;
+        this.aclService = aclService;
+    }
 
     /**
      * Check if a given namespace is owner of a given group.

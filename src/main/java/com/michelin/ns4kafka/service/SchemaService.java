@@ -35,7 +35,6 @@ import com.michelin.ns4kafka.util.RegexUtils;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
 import io.micronaut.core.util.CollectionUtils;
-import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -51,11 +50,19 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @Singleton
 public class SchemaService {
-    @Inject
-    private AclService aclService;
+    private final AclService aclService;
+    private final SchemaRegistryClient schemaRegistryClient;
 
-    @Inject
-    private SchemaRegistryClient schemaRegistryClient;
+    /**
+     * Constructor.
+     *
+     * @param aclService The ACL service
+     * @param schemaRegistryClient The schema registry client
+     */
+    public SchemaService(AclService aclService, SchemaRegistryClient schemaRegistryClient) {
+        this.aclService = aclService;
+        this.schemaRegistryClient = schemaRegistryClient;
+    }
 
     /**
      * Get all the schemas of a given namespace.
