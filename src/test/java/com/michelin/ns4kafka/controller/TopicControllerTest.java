@@ -134,17 +134,10 @@ class TopicControllerTest {
 
     @Test
     @SuppressWarnings("deprecation")
-    void shouldGetTopicWhenEmpty() {
-        Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
-                .build();
+    void shouldGetTopicWhenNotOwner() {
+        when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(false);
 
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(topicService.findByName(ns, "topic.notfound")).thenReturn(Optional.empty());
-
-        Optional<Topic> actual = topicController.get("test", "topic.notfound");
-
-        assertTrue(actual.isEmpty());
+        assertThrows(ResourceValidationException.class, () -> topicController.get("test", "topic.notfound"));
     }
 
     @Test
@@ -154,6 +147,7 @@ class TopicControllerTest {
                 .metadata(Metadata.builder().name("test").cluster("local").build())
                 .build();
 
+        when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(topicService.findByName(ns, "topic.found"))
                 .thenReturn(Optional.of(Topic.builder()
@@ -383,6 +377,7 @@ class TopicControllerTest {
                         .build())
                 .build();
 
+        when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
         when(topicService.create(topic)).thenReturn(topic);
@@ -427,6 +422,7 @@ class TopicControllerTest {
                         .build())
                 .build();
 
+        when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
         when(topicService.validateTags(ns, topic)).thenReturn(List.of("Error on tags"));
@@ -468,6 +464,7 @@ class TopicControllerTest {
                         .build())
                 .build();
 
+        when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
         when(topicService.create(topic)).thenReturn(topic);
@@ -512,6 +509,7 @@ class TopicControllerTest {
                         .build())
                 .build();
 
+        when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
         when(topicService.validateTopicUpdate(ns, existing, topic))
@@ -558,6 +556,7 @@ class TopicControllerTest {
                         .build())
                 .build();
 
+        when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
 

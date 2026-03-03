@@ -32,6 +32,7 @@ import jakarta.inject.Named;
 import jakarta.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
@@ -62,36 +63,15 @@ public class KafkaTopicRepository extends KafkaStore<Topic> implements TopicRepo
         super(kafkaTopic, kafkaProducer, adminClient, ns4KafkaProperties, taskScheduler);
     }
 
+    /**
+     * Get the message key for a given topic.
+     *
+     * @param topic The message
+     * @return The message key
+     */
     @Override
-    String getMessageKey(Topic topic) {
+    public String getMessageKey(Topic topic) {
         return topic.getMetadata().getCluster() + "/" + topic.getMetadata().getName();
-    }
-
-    /**
-     * Create a given topic.
-     *
-     * @param topic The topic to create
-     * @return The created topic
-     */
-    @Override
-    public Topic create(Topic topic) {
-        return this.produce(getMessageKey(topic), topic);
-    }
-
-    /**
-     * Delete a given topic.
-     *
-     * @param topic The topic to delete
-     */
-    @Override
-    public void delete(Topic topic) {
-        this.produce(getMessageKey(topic), null);
-    }
-
-    @Override
-    @io.micronaut.configuration.kafka.annotation.Topic(value = "${ns4kafka.store.kafka.topics.prefix}.topics")
-    void receive(ConsumerRecord<String, Topic> message) {
-        super.receive(message);
     }
 
     /**
@@ -115,5 +95,45 @@ public class KafkaTopicRepository extends KafkaStore<Topic> implements TopicRepo
         return getKafkaStore().values().stream()
                 .filter(topic -> topic.getMetadata().getCluster().equals(cluster))
                 .toList();
+    }
+
+    /**
+     * Find a topic by name and cluster.
+     *
+     * @param cluster The cluster
+     * @param name The topic name
+     * @return An optional topic
+     */
+    @Override
+    public Optional<Topic> findByName(String cluster, String name) {
+        return Optional.ofNullable(getKafkaStore().get(cluster + "/" + name));
+    }
+
+    /**
+     * Create a given topic.
+     *
+     * @param topic The topic to create
+     * @return The created topic
+     */
+    @Override
+    public Topic create(Topic topic) {
+        return this.produce(getMessageKey(topic), topic);
+    }
+
+    /**
+     * Delete a given topic.
+     *
+     * @param topic The topic to delete
+     */
+    @Override
+    public void delete(Topic topic) {
+        this.produce(getMessageKey(topic), null);
+    }
+
+    /** @param message The record */
+    @Override
+    @io.micronaut.configuration.kafka.annotation.Topic(value = "${ns4kafka.store.kafka.topics.prefix}.topics")
+    public void receive(ConsumerRecord<String, Topic> message) {
+        super.receive(message);
     }
 }
