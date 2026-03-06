@@ -40,13 +40,10 @@ import io.micronaut.core.util.StringUtils;
 import jakarta.inject.Singleton;
 import java.util.ArrayList;
 import java.util.EnumSet;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
-import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -155,8 +152,7 @@ public class ConnectClusterService {
 
         Flux<ConnectCluster> managedConnectClusters = Flux.fromIterable(managedClusterProperties)
                 .filter(cluster -> cluster.getName().equals(clusterName) && cluster.getConnects() != null)
-                .flatMap(config -> Flux.fromIterable(
-                                config.getConnects().entrySet())
+                .flatMap(config -> Flux.fromIterable(config.getConnects().entrySet())
                         .map(entry -> ConnectCluster.builder()
                                 .metadata(Metadata.builder()
                                         .name(entry.getKey())
@@ -169,8 +165,7 @@ public class ConnectClusterService {
                                         .build())
                                 .build()));
 
-        return selfHostedConnectClusters.concatWith(managedConnectClusters)
-                .flatMap(connectCluster -> kafkaConnectClient
+        return selfHostedConnectClusters.concatWith(managedConnectClusters).flatMap(connectCluster -> kafkaConnectClient
                 .version(
                         connectCluster.getMetadata().getCluster(),
                         connectCluster.getMetadata().getName())
@@ -217,6 +212,35 @@ public class ConnectClusterService {
     public List<ConnectCluster> findAllForNamespaceWithOwnerPermission(Namespace namespace) {
         return findAllForNamespaceByPermissions(namespace, OWNER_PERMISSIONS).stream()
                 .toList();
+    }
+
+    /**
+     * Find all self deployed Connect clusters whose namespace is owner, filtered by name parameter.
+     *
+     * @param namespace The namespace
+     * @param name The name parameter
+     * @return The list of owned Connect cluster
+     */
+    public Flux<ConnectCluster> findByWildcardNameWithOwnerPermissionAndStatus(Namespace namespace, String name) {
+        List<String> nameFilterPatterns = RegexUtils.convertWildcardStringsToRegex(List.of(name));
+        return Flux.fromIterable(findAllForNamespaceWithOwnerPermission(namespace))
+                .filter(cc ->
+                        RegexUtils.isResourceCoveredByRegex(cc.getMetadata().getName(), nameFilterPatterns))
+                .map(this::buildConnectClusterWithDecryptedInformation)
+                .flatMap(connectCluster -> kafkaConnectClient
+                        .version(
+                                connectCluster.getMetadata().getCluster(),
+                                connectCluster.getMetadata().getName())
+                        .doOnError(error -> {
+                            connectCluster.getSpec().setStatus(ConnectCluster.Status.IDLE);
+                            connectCluster.getSpec().setStatusMessage(error.getMessage());
+                        })
+                        .doOnSuccess(_ -> {
+                            connectCluster.getSpec().setStatus(ConnectCluster.Status.HEALTHY);
+                            connectCluster.getSpec().setStatusMessage(null);
+                        })
+                        .map(_ -> connectCluster)
+                        .onErrorReturn(connectCluster));
     }
 
     /**
@@ -469,7 +493,8 @@ public class ConnectClusterService {
                         .aes256Salt(EncryptionUtils.decryptAes256Gcm(
                                 connectCluster.getSpec().getAes256Salt(),
                                 ns4KafkaProperties.getSecurity().getAes256EncryptionKey()))
-                        .aes256Format(connectCluster.getSpec().getAes256Format()).build())
+                        .aes256Format(connectCluster.getSpec().getAes256Format())
+                        .build())
                 .build();
     }
 }
