@@ -243,24 +243,35 @@ public class ConnectorService {
      * @param namespace The namespace
      * @param connector The connector
      */
-    public Mono<HttpResponse<Void>> delete(Namespace namespace, Connector connector) {
-        return kafkaConnectClient
-                .delete(
-                        namespace.getMetadata().getCluster(),
-                        connector.getSpec().getConnectCluster(),
-                        connector.getMetadata().getName())
-                .defaultIfEmpty(HttpResponse.noContent())
-                .map(httpResponse -> {
-                    connectorRepository.delete(connector);
+    public Mono<HttpResponse<Void>> delete(Namespace namespace, Connector connector, boolean force) {
+        Mono<HttpResponse<Void>> deletePublisher;
 
-                    log.atInfo()
-                            .addArgument(connector.getMetadata().getName())
-                            .addArgument(namespace.getMetadata().getName())
-                            .addArgument(connector.getSpec().getConnectCluster())
-                            .log("Success removing Connector [{}] on Kafka [{}] Connect [{}]");
+        if (force) {
+            log.atWarn()
+                    .addArgument(connector.getMetadata().getName())
+                    .addArgument(namespace.getMetadata().getName())
+                    .addArgument(connector.getSpec().getConnectCluster())
+                    .log(
+                            "Force deleting Connector [{}] on Kafka [{}] Connect [{}] from ns4kafka repository only, bypassing remote API.");
+            deletePublisher = Mono.just(HttpResponse.noContent());
+        } else {
+            deletePublisher = kafkaConnectClient.delete(
+                    namespace.getMetadata().getCluster(),
+                    connector.getSpec().getConnectCluster(),
+                    connector.getMetadata().getName());
+        }
 
-                    return httpResponse;
-                });
+        return deletePublisher.defaultIfEmpty(HttpResponse.noContent()).map(httpResponse -> {
+            connectorRepository.delete(connector);
+
+            log.atInfo()
+                    .addArgument(connector.getMetadata().getName())
+                    .addArgument(namespace.getMetadata().getName())
+                    .addArgument(connector.getSpec().getConnectCluster())
+                    .log("Success removing Connector [{}] on Kafka [{}] Connect [{}]");
+
+            return httpResponse;
+        });
     }
 
     /**
