@@ -59,7 +59,6 @@ public class KafkaConnectClient {
 
     private final ConnectClusterRepository connectClusterRepository;
     private final HttpClient httpClient;
-    private final HttpClient httpClientHealthCheck;
     private final List<ManagedClusterProperties> managedClusterProperties;
     private final Ns4KafkaProperties ns4KafkaProperties;
 
@@ -68,19 +67,16 @@ public class KafkaConnectClient {
      *
      * @param connectClusterRepository The connect cluster repository
      * @param httpClient The HTTP client
-     * @param httpClientHealthCheck The HTTP client for health checks
      * @param managedClusterProperties The managed cluster properties
      * @param ns4KafkaProperties The Ns4Kafka properties
      */
     public KafkaConnectClient(
             ConnectClusterRepository connectClusterRepository,
             @Client(id = "kafka-connect") HttpClient httpClient,
-            @Client(id = "kafka-connect-health-check") HttpClient httpClientHealthCheck,
             List<ManagedClusterProperties> managedClusterProperties,
             Ns4KafkaProperties ns4KafkaProperties) {
         this.connectClusterRepository = connectClusterRepository;
         this.httpClient = httpClient;
-        this.httpClientHealthCheck = httpClientHealthCheck;
         this.managedClusterProperties = managedClusterProperties;
         this.ns4KafkaProperties = ns4KafkaProperties;
     }
@@ -95,7 +91,7 @@ public class KafkaConnectClient {
         HttpRequest<?> request = HttpRequest.GET(URI.create(StringUtils.prependUri(config.getUrl(), "/")))
                 .basicAuth(config.getUsername(), config.getPassword());
 
-        return Mono.from(httpClientHealthCheck.exchange(request, ServerInfo.class));
+        return Mono.from(httpClient.exchange(request, ServerInfo.class));
     }
 
     /**

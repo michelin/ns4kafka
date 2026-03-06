@@ -70,10 +70,6 @@ public class ConnectClusterService {
     private final List<ManagedClusterProperties> managedClusterProperties;
     private final Ns4KafkaProperties ns4KafkaProperties;
 
-    @Getter
-    @Setter
-    private Set<String> healthyConnectClusters = new HashSet<>();
-
     /**
      * Constructor.
      *
@@ -132,6 +128,49 @@ public class ConnectClusterService {
         }
 
         return combinedFlux.flatMap(connectCluster -> kafkaConnectClient
+                .version(
+                        connectCluster.getMetadata().getCluster(),
+                        connectCluster.getMetadata().getName())
+                .doOnError(error -> {
+                    connectCluster.getSpec().setStatus(ConnectCluster.Status.IDLE);
+                    connectCluster.getSpec().setStatusMessage(error.getMessage());
+                })
+                .doOnSuccess(_ -> {
+                    connectCluster.getSpec().setStatus(ConnectCluster.Status.HEALTHY);
+                    connectCluster.getSpec().setStatusMessage(null);
+                })
+                .map(_ -> connectCluster)
+                .onErrorReturn(connectCluster));
+    }
+
+    /**
+     * Find all self deployed Connect clusters.
+     *
+     * @param clusterName The cluster name
+     * @return A list of Connect clusters
+     */
+    public Flux<ConnectCluster> findAllForCluster(String clusterName) {
+        Flux<ConnectCluster> selfHostedConnectClusters =
+                Flux.defer(() -> Flux.fromIterable(connectClusterRepository.findAllForCluster(clusterName)));
+
+        Flux<ConnectCluster> managedConnectClusters = Flux.fromIterable(managedClusterProperties)
+                .filter(cluster -> cluster.getName().equals(clusterName) && cluster.getConnects() != null)
+                .flatMap(config -> Flux.fromIterable(
+                                config.getConnects().entrySet())
+                        .map(entry -> ConnectCluster.builder()
+                                .metadata(Metadata.builder()
+                                        .name(entry.getKey())
+                                        .cluster(config.getName())
+                                        .build())
+                                .spec(ConnectCluster.ConnectClusterSpec.builder()
+                                        .url(entry.getValue().getUrl())
+                                        .username(entry.getValue().getBasicAuthUsername())
+                                        .password(entry.getValue().getBasicAuthPassword())
+                                        .build())
+                                .build()));
+
+        return selfHostedConnectClusters.concatWith(managedConnectClusters)
+                .flatMap(connectCluster -> kafkaConnectClient
                 .version(
                         connectCluster.getMetadata().getCluster(),
                         connectCluster.getMetadata().getName())
@@ -416,28 +455,21 @@ public class ConnectClusterService {
      * @return The connect cluster with decrypted information.
      */
     public ConnectCluster buildConnectClusterWithDecryptedInformation(ConnectCluster connectCluster) {
-        var builder = ConnectCluster.ConnectClusterSpec.builder()
-                .url(connectCluster.getSpec().getUrl())
-                .username(connectCluster.getSpec().getUsername())
-                .password(EncryptionUtils.decryptAes256Gcm(
-                        connectCluster.getSpec().getPassword(),
-                        ns4KafkaProperties.getSecurity().getAes256EncryptionKey()))
-                .aes256Key(EncryptionUtils.decryptAes256Gcm(
-                        connectCluster.getSpec().getAes256Key(),
-                        ns4KafkaProperties.getSecurity().getAes256EncryptionKey()))
-                .aes256Salt(EncryptionUtils.decryptAes256Gcm(
-                        connectCluster.getSpec().getAes256Salt(),
-                        ns4KafkaProperties.getSecurity().getAes256EncryptionKey()))
-                .aes256Format(connectCluster.getSpec().getAes256Format())
-                .status(
-                        healthyConnectClusters.contains(
-                                        connectCluster.getMetadata().getName())
-                                ? ConnectCluster.Status.HEALTHY
-                                : ConnectCluster.Status.IDLE);
-
         return ConnectCluster.builder()
                 .metadata(connectCluster.getMetadata())
-                .spec(builder.build())
+                .spec(ConnectCluster.ConnectClusterSpec.builder()
+                        .url(connectCluster.getSpec().getUrl())
+                        .username(connectCluster.getSpec().getUsername())
+                        .password(EncryptionUtils.decryptAes256Gcm(
+                                connectCluster.getSpec().getPassword(),
+                                ns4KafkaProperties.getSecurity().getAes256EncryptionKey()))
+                        .aes256Key(EncryptionUtils.decryptAes256Gcm(
+                                connectCluster.getSpec().getAes256Key(),
+                                ns4KafkaProperties.getSecurity().getAes256EncryptionKey()))
+                        .aes256Salt(EncryptionUtils.decryptAes256Gcm(
+                                connectCluster.getSpec().getAes256Salt(),
+                                ns4KafkaProperties.getSecurity().getAes256EncryptionKey()))
+                        .aes256Format(connectCluster.getSpec().getAes256Format()).build())
                 .build();
     }
 }
