@@ -51,11 +51,6 @@ micronaut:
         event-loop-group: "connect"
         read-idle-timeout: "10s"
         read-timeout: "10s"
-      kafka-connect-health-check:
-        connect-timeout: "5s"
-        event-loop-group: "connect-health-check"
-        read-idle-timeout: "5s"
-        read-timeout: "5s"
       schema-registry:
         connect-timeout: "10s"
         event-loop-group: "schema"
