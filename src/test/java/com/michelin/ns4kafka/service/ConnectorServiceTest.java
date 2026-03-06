@@ -1180,7 +1180,7 @@ class ConnectorServiceTest {
 
         doNothing().when(connectorRepository).delete(connector);
 
-        StepVerifier.create(connectorService.delete(ns, connector))
+        StepVerifier.create(connectorService.delete(ns, connector, false))
                 .consumeNextWith(response -> assertEquals(HttpStatus.OK, response.getStatus()))
                 .verifyComplete();
 
@@ -1208,11 +1208,37 @@ class ConnectorServiceTest {
         when(kafkaConnectClient.delete(ns.getMetadata().getCluster(), "local-name", "ns-connect1"))
                 .thenReturn(Mono.error(new HttpClientResponseException("Error", HttpResponse.serverError())));
 
-        StepVerifier.create(connectorService.delete(ns, connector))
+        StepVerifier.create(connectorService.delete(ns, connector, false))
                 .consumeErrorWith(response -> assertEquals(HttpClientResponseException.class, response.getClass()))
                 .verify();
 
         verify(connectorRepository, never()).delete(connector);
+    }
+
+    @Test
+    void shouldForceDeleteConnector() {
+        Namespace ns = Namespace.builder()
+                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .spec(NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        Connector connector = Connector.builder()
+                .metadata(Metadata.builder().name("ns-connect1").build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("local-name")
+                        .build())
+                .build();
+
+        doNothing().when(connectorRepository).delete(connector);
+
+        StepVerifier.create(connectorService.delete(ns, connector, true))
+                .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
+                .verifyComplete();
+
+        verify(kafkaConnectClient, never()).delete(any(), any(), any());
+        verify(connectorRepository).delete(connector);
     }
 
     @Test
