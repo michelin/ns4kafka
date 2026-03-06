@@ -621,10 +621,6 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
     /** Force synchronization of all connectors synchronously. */
     private void forceConnectorSynchronization() throws InterruptedException {
         Flux.fromIterable(connectorAsyncExecutorList)
-                .flatMap(ConnectorAsyncExecutor::runHealthCheck)
-                .blockLast();
-
-        Flux.fromIterable(connectorAsyncExecutorList)
                 .flatMap(ConnectorAsyncExecutor::run)
                 .blockLast();
 

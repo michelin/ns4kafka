@@ -64,5 +64,14 @@ public class Resource {
         @EqualsAndHashCode.Exclude
         @JsonFormat(shape = JsonFormat.Shape.STRING)
         private Date creationTimestamp;
+
+        @EqualsAndHashCode.Exclude
+        private DeployStatus deployStatus;
+
+        /** Connector deployment status. */
+        public enum DeployStatus {
+            TO_DEPLOY,
+            DEPLOYED,
+        }
     }
 }

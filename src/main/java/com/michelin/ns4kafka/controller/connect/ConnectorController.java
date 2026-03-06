@@ -24,6 +24,7 @@ import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 
 import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.model.AuditLog;
+import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.connect.ChangeConnectorState;
 import com.michelin.ns4kafka.model.connect.Connector;
@@ -95,20 +96,6 @@ public class ConnectorController extends NamespacedResourceController {
     }
 
     /**
-     * Get a connector by namespace and name.
-     *
-     * @param namespace The namespace
-     * @param connector The name
-     * @return A connector
-     * @deprecated use {@link #list(String, String)} instead.
-     */
-    @Get("/{connector}")
-    @Deprecated(since = "1.12.0")
-    public Optional<Connector> get(String namespace, String connector) {
-        return connectorService.findByName(getNamespace(namespace), connector);
-    }
-
-    /**
      * Create a connector.
      *
      * @param namespace The namespace
@@ -127,29 +114,18 @@ public class ConnectorController extends NamespacedResourceController {
                     connector, invalidOwner(connector.getMetadata().getName())));
         }
 
-        // Set / Override name in spec.config.name, required for several Kafka Connect API calls
-        // This is a response to projects setting a value A in metadata.name, and a value B in spec.config.name
-        // I have considered alternatives :
-        // - Make name in spec.config forbidden, and set it only when necessary (API calls)
-        // - Mask it in the resulting list connectors so that the synchronization process doesn't see changes
-        // I prefer to go this way for 2 reasons:
-        // - It is backward compatible with teams that already define name in spec.config.name
-        // - It doesn't impact the code as much (single line vs 10+ lines)
         connector.getSpec().getConfig().put("name", connector.getMetadata().getName());
 
-        // Validate locally
         return connectorService.validateLocally(ns, connector).flatMap(validationErrors -> {
             if (!validationErrors.isEmpty()) {
                 return Mono.error(new ResourceValidationException(connector, validationErrors));
             }
 
-            // Validate against connect rest API /validate
             return connectorService.validateRemotely(ns, connector).flatMap(remoteValidationErrors -> {
                 if (!remoteValidationErrors.isEmpty()) {
                     return Mono.error(new ResourceValidationException(connector, remoteValidationErrors));
                 }
 
-                // Augment with server side fields
                 connector.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
                 connector.getMetadata().setCluster(ns.getMetadata().getCluster());
                 connector.getMetadata().setNamespace(ns.getMetadata().getName());
@@ -177,9 +153,7 @@ public class ConnectorController extends NamespacedResourceController {
                     return Mono.just(formatHttpResponse(connector, status));
                 }
 
-                // Set a toDeploy flag
-                // Without this trick, if only sensitive fields were updated, the executor wouldn't apply the difference
-                connector.getStatus().setToDeploy(true);
+                connector.getMetadata().setDeployStatus(Metadata.DeployStatus.TO_DEPLOY);
 
                 sendEventLog(
                         connector,
@@ -194,42 +168,6 @@ public class ConnectorController extends NamespacedResourceController {
     }
 
     /**
-     * Delete a connector.
-     *
-     * @param namespace The current namespace
-     * @param connector The current connector name to delete
-     * @param dryrun Is dry run mode or not?
-     * @return A HTTP response
-     * @deprecated use {@link #bulkDelete(String, String, boolean, boolean)} instead.
-     */
-    @Delete("/{connector}{?dryrun}")
-    @Deprecated(since = "1.13.0")
-    public Mono<HttpResponse<Void>> delete(
-            String namespace, String connector, @QueryValue(defaultValue = "false") boolean dryrun) {
-        Namespace ns = getNamespace(namespace);
-
-        // Validate ownership
-        if (!connectorService.isNamespaceOwnerOfConnect(ns, connector)) {
-            return Mono.error(new ResourceValidationException(CONNECTOR, connector, invalidOwner(connector)));
-        }
-
-        Optional<Connector> optionalConnector = connectorService.findByName(ns, connector);
-        if (optionalConnector.isEmpty()) {
-            return Mono.just(HttpResponse.notFound());
-        }
-
-        if (dryrun) {
-            return Mono.just(HttpResponse.noContent());
-        }
-
-        Connector connectorToDelete = optionalConnector.get();
-
-        sendEventLog(connectorToDelete, ApplyStatus.DELETED, connectorToDelete.getSpec(), null, EMPTY_STRING);
-
-        return connectorService.delete(ns, optionalConnector.get(), false).map(_ -> HttpResponse.noContent());
-    }
-
-    /**
      * Delete connectors.
      *
      * @param namespace The current namespace
@@ -239,7 +177,7 @@ public class ConnectorController extends NamespacedResourceController {
      * @return A HTTP response
      */
     @Delete
-    public Mono<HttpResponse<List<Connector>>> bulkDelete(
+    public Mono<HttpResponse<List<Connector>>> delete(
             String namespace,
             @QueryValue(defaultValue = "*") String name,
             @QueryValue(defaultValue = "false") boolean dryrun,
@@ -248,7 +186,6 @@ public class ConnectorController extends NamespacedResourceController {
 
         List<Connector> connectors = connectorService.findByWildcardName(ns, name);
 
-        // Validate ownership
         List<String> validationErrors = connectors.stream()
                 .filter(connector -> !connectorService.isNamespaceOwnerOfConnect(
                         ns, connector.getMetadata().getName()))
