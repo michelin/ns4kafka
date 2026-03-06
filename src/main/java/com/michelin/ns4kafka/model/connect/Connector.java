@@ -97,7 +97,6 @@ public class Connector extends Resource {
         private TaskState state;
         private String workerId;
         private List<TaskStatus> tasks;
-        private boolean toDeploy;
 
         @JsonFormat(shape = JsonFormat.Shape.STRING)
         private Date lastUpdateTime;
