@@ -84,7 +84,6 @@ public class Topic extends MetadataResource {
         @Builder.Default
         @JsonSetter(nulls = Nulls.AS_EMPTY)
         private Map<String, String> configs = new HashMap<>();
-
     }
 
     /** Topic status. */
