@@ -87,27 +87,11 @@ public class KafkaConnectClient {
      * @param config The Kafka Connect config
      * @return The version
      */
-    @Retryable(
-            delay = "${ns4kafka.retry.delay}",
-            attempts = "${ns4kafka.retry.attempt}",
-            multiplier = "${ns4kafka.retry.multiplier}",
-            includes = ReadTimeoutException.class)
     public Mono<HttpResponse<ServerInfo>> version(KafkaConnectHttpConfig config) {
         HttpRequest<?> request = HttpRequest.GET(URI.create(StringUtils.prependUri(config.getUrl(), "/")))
                 .basicAuth(config.getUsername(), config.getPassword());
 
         return Mono.from(httpClient.exchange(request, ServerInfo.class));
-    }
-
-    /**
-     * Get the Kafka connect version. Used to determine if the Kafka Connect is up and running.
-     *
-     * @param kafkaCluster The Kafka cluster
-     * @param connectCluster The Kafka Connect
-     * @return The version
-     */
-    public Mono<HttpResponse<ServerInfo>> version(String kafkaCluster, String connectCluster) {
-        return version(getKafkaConnectConfig(kafkaCluster, connectCluster));
     }
 
     /**

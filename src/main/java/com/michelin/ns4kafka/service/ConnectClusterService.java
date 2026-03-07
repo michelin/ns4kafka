@@ -124,20 +124,25 @@ public class ConnectClusterService {
             return combinedFlux;
         }
 
-        return combinedFlux.flatMap(connectCluster -> kafkaConnectClient
-                .version(
-                        connectCluster.getMetadata().getCluster(),
-                        connectCluster.getMetadata().getName())
-                .doOnError(error -> {
-                    connectCluster.getSpec().setStatus(ConnectCluster.Status.IDLE);
-                    connectCluster.getSpec().setStatusMessage(error.getMessage());
-                })
-                .doOnSuccess(_ -> {
-                    connectCluster.getSpec().setStatus(ConnectCluster.Status.HEALTHY);
-                    connectCluster.getSpec().setStatusMessage(null);
-                })
-                .map(_ -> connectCluster)
-                .onErrorReturn(connectCluster));
+        return combinedFlux.flatMap(connectCluster -> {
+            ConnectCluster decrypted = buildConnectClusterWithDecryptedInformation(connectCluster);
+            return kafkaConnectClient
+                    .version(KafkaConnectHttpConfig.builder()
+                            .username(decrypted.getSpec().getUsername())
+                            .password(decrypted.getSpec().getPassword())
+                            .url(connectCluster.getSpec().getUrl())
+                            .build())
+                    .doOnError(error -> {
+                        connectCluster.getSpec().setStatus(ConnectCluster.Status.IDLE);
+                        connectCluster.getSpec().setStatusMessage(error.getMessage());
+                    })
+                    .doOnSuccess(_ -> {
+                        connectCluster.getSpec().setStatus(ConnectCluster.Status.HEALTHY);
+                        connectCluster.getSpec().setStatusMessage(null);
+                    })
+                    .map(_ -> connectCluster)
+                    .onErrorReturn(connectCluster);
+        });
     }
 
     /**
@@ -165,20 +170,25 @@ public class ConnectClusterService {
                                         .build())
                                 .build()));
 
-        return selfHostedConnectClusters.concatWith(managedConnectClusters).flatMap(connectCluster -> kafkaConnectClient
-                .version(
-                        connectCluster.getMetadata().getCluster(),
-                        connectCluster.getMetadata().getName())
-                .doOnError(error -> {
-                    connectCluster.getSpec().setStatus(ConnectCluster.Status.IDLE);
-                    connectCluster.getSpec().setStatusMessage(error.getMessage());
-                })
-                .doOnSuccess(_ -> {
-                    connectCluster.getSpec().setStatus(ConnectCluster.Status.HEALTHY);
-                    connectCluster.getSpec().setStatusMessage(null);
-                })
-                .map(_ -> connectCluster)
-                .onErrorReturn(connectCluster));
+        return selfHostedConnectClusters.concatWith(managedConnectClusters).flatMap(connectCluster -> {
+            ConnectCluster decrypted = buildConnectClusterWithDecryptedInformation(connectCluster);
+            return kafkaConnectClient
+                    .version(KafkaConnectHttpConfig.builder()
+                            .username(decrypted.getSpec().getUsername())
+                            .password(decrypted.getSpec().getPassword())
+                            .url(connectCluster.getSpec().getUrl())
+                            .build())
+                    .doOnError(error -> {
+                        connectCluster.getSpec().setStatus(ConnectCluster.Status.IDLE);
+                        connectCluster.getSpec().setStatusMessage(error.getMessage());
+                    })
+                    .doOnSuccess(_ -> {
+                        connectCluster.getSpec().setStatus(ConnectCluster.Status.HEALTHY);
+                        connectCluster.getSpec().setStatusMessage(null);
+                    })
+                    .map(_ -> connectCluster)
+                    .onErrorReturn(connectCluster);
+        });
     }
 
     /**
@@ -228,9 +238,11 @@ public class ConnectClusterService {
                         RegexUtils.isResourceCoveredByRegex(cc.getMetadata().getName(), nameFilterPatterns))
                 .map(this::buildConnectClusterWithDecryptedInformation)
                 .flatMap(connectCluster -> kafkaConnectClient
-                        .version(
-                                connectCluster.getMetadata().getCluster(),
-                                connectCluster.getMetadata().getName())
+                        .version(KafkaConnectHttpConfig.builder()
+                                .username(connectCluster.getSpec().getUsername())
+                                .password(connectCluster.getSpec().getPassword())
+                                .url(connectCluster.getSpec().getUrl())
+                                .build())
                         .doOnError(error -> {
                             connectCluster.getSpec().setStatus(ConnectCluster.Status.IDLE);
                             connectCluster.getSpec().setStatusMessage(error.getMessage());
