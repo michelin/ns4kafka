@@ -30,7 +30,7 @@ import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.TaskScheduler;
 import jakarta.inject.Named;
 import jakarta.inject.Singleton;
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -64,7 +64,7 @@ public class KafkaTopicRepository extends KafkaStore<Topic> implements TopicRepo
     }
 
     /**
-     * Get the message key for a given topic.
+     * Get the message key for a topic.
      *
      * @param topic The message
      * @return The message key
@@ -80,8 +80,8 @@ public class KafkaTopicRepository extends KafkaStore<Topic> implements TopicRepo
      * @return The list of topics
      */
     @Override
-    public List<Topic> findAll() {
-        return new ArrayList<>(getKafkaStore().values());
+    public Collection<Topic> findAll() {
+        return getKafkaStore().values();
     }
 
     /**
@@ -98,7 +98,7 @@ public class KafkaTopicRepository extends KafkaStore<Topic> implements TopicRepo
     }
 
     /**
-     * Find a topic by name and cluster.
+     * Find a topic by name.
      *
      * @param cluster The cluster
      * @param name The topic name
@@ -110,7 +110,7 @@ public class KafkaTopicRepository extends KafkaStore<Topic> implements TopicRepo
     }
 
     /**
-     * Create a given topic.
+     * Create a topic.
      *
      * @param topic The topic to create
      * @return The created topic
@@ -121,7 +121,7 @@ public class KafkaTopicRepository extends KafkaStore<Topic> implements TopicRepo
     }
 
     /**
-     * Delete a given topic.
+     * Delete a topic.
      *
      * @param topic The topic to delete
      */
@@ -130,7 +130,11 @@ public class KafkaTopicRepository extends KafkaStore<Topic> implements TopicRepo
         this.produce(getMessageKey(topic), null);
     }
 
-    /** @param message The record */
+    /**
+     * Receive a topic record from Kafka and update the store.
+     *
+     * @param message The record
+     */
     @Override
     @io.micronaut.configuration.kafka.annotation.Topic(value = "${ns4kafka.store.kafka.topics.prefix}.topics")
     public void receive(ConsumerRecord<String, Topic> message) {

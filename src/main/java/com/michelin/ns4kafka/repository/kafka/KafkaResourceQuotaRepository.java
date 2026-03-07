@@ -64,7 +64,7 @@ public class KafkaResourceQuotaRepository extends KafkaStore<ResourceQuota> impl
     }
 
     /**
-     * Get the message key for a resource quota message, which is the namespace.
+     * Get the message key for a resource quota.
      *
      * @param message The resource quota message
      * @return The message key
@@ -75,7 +75,7 @@ public class KafkaResourceQuotaRepository extends KafkaStore<ResourceQuota> impl
     }
 
     /**
-     * Find all quotas of all namespaces.
+     * Find all quotas.
      *
      * @return The resource quotas
      */
@@ -85,7 +85,7 @@ public class KafkaResourceQuotaRepository extends KafkaStore<ResourceQuota> impl
     }
 
     /**
-     * Get resource quota of a given namespace.
+     * Get resource quota of a namespace.
      *
      * @param namespace The namespace used to research
      * @return A resource quota
@@ -93,6 +93,27 @@ public class KafkaResourceQuotaRepository extends KafkaStore<ResourceQuota> impl
     @Override
     public Optional<ResourceQuota> findByNamespace(String namespace) {
         return Optional.ofNullable(getKafkaStore().get(namespace));
+    }
+
+    /**
+     * Create a resource quota.
+     *
+     * @param resourceQuota The resource quota to create
+     * @return The created resource quota
+     */
+    @Override
+    public ResourceQuota create(ResourceQuota resourceQuota) {
+        return produce(getMessageKey(resourceQuota), resourceQuota);
+    }
+
+    /**
+     * Delete a resource quota.
+     *
+     * @param resourceQuota The resource quota to delete
+     */
+    @Override
+    public void delete(ResourceQuota resourceQuota) {
+        produce(getMessageKey(resourceQuota), null);
     }
 
     /**
@@ -104,26 +125,5 @@ public class KafkaResourceQuotaRepository extends KafkaStore<ResourceQuota> impl
     @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.resource-quotas")
     public void receive(ConsumerRecord<String, ResourceQuota> message) {
         super.receive(message);
-    }
-
-    /**
-     * Produce a resource quota message.
-     *
-     * @param resourceQuota The resource quota to create
-     * @return The created resource quota
-     */
-    @Override
-    public ResourceQuota create(ResourceQuota resourceQuota) {
-        return produce(getMessageKey(resourceQuota), resourceQuota);
-    }
-
-    /**
-     * Delete a resource quota message by pushing a tomb stone message.
-     *
-     * @param resourceQuota The resource quota to delete
-     */
-    @Override
-    public void delete(ResourceQuota resourceQuota) {
-        produce(getMessageKey(resourceQuota), null);
     }
 }

@@ -63,27 +63,23 @@ public class KafkaNamespaceRepository extends KafkaStore<Namespace> implements N
         super(kafkaTopic, kafkaProducer, adminClient, ns4KafkaProperties, taskScheduler);
     }
 
+    /**
+     * Get the message key for a namespace.
+     *
+     * @param namespace The message
+     * @return The message key
+     */
     @Override
-    String getMessageKey(Namespace namespace) {
+    public String getMessageKey(Namespace namespace) {
         return namespace.getMetadata().getName();
     }
 
-    @Override
-    public Namespace createNamespace(Namespace namespace) {
-        return produce(getMessageKey(namespace), namespace);
-    }
-
-    @Override
-    public void delete(Namespace namespace) {
-        produce(getMessageKey(namespace), null);
-    }
-
-    @Override
-    @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.namespaces")
-    void receive(ConsumerRecord<String, Namespace> message) {
-        super.receive(message);
-    }
-
+    /**
+     * Find all namespaces for a cluster.
+     *
+     * @param cluster The cluster name
+     * @return The list of namespaces for the cluster
+     */
     @Override
     public List<Namespace> findAllForCluster(String cluster) {
         return getKafkaStore().values().stream()
@@ -91,10 +87,46 @@ public class KafkaNamespaceRepository extends KafkaStore<Namespace> implements N
                 .toList();
     }
 
+    /**
+     * Find a namespace by name.
+     *
+     * @param namespace The namespace name
+     * @return The namespace if found, empty otherwise
+     */
     @Override
     public Optional<Namespace> findByName(String namespace) {
-        return getKafkaStore().values().stream()
-                .filter(ns -> ns.getMetadata().getName().equals(namespace))
-                .findFirst();
+        return Optional.ofNullable(getKafkaStore().get(namespace));
+    }
+
+    /**
+     * Create a namespace.
+     *
+     * @param namespace The namespace to create
+     * @return The created namespace
+     */
+    @Override
+    public Namespace create(Namespace namespace) {
+        return produce(getMessageKey(namespace), namespace);
+    }
+
+    /**
+     * Delete a namespace.
+     *
+     * @param namespace The namespace to delete
+     */
+    @Override
+    public void delete(Namespace namespace) {
+        produce(getMessageKey(namespace), null);
+    }
+
+    /**
+     * Receive a namespace record from Kafka and update the store.
+     *
+     * @param message The record
+     */
+    @Override
+    @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.namespaces")
+    void receive(ConsumerRecord<String, Namespace> message) {
+        super.receive(message);
     }
 }
