@@ -98,7 +98,8 @@ class ConnectClusterServiceTest {
                 .build();
 
         when(connectClusterRepository.findAll()).thenReturn(List.of(connectCluster));
-        when(kafkaConnectClient.version(any(), any())).thenReturn(Mono.just(HttpResponse.ok()));
+        when(kafkaConnectClient.version(any())).thenReturn(Mono.just(HttpResponse.ok()));
+        when(ns4KafkaProperties.getSecurity()).thenReturn(buildSecurityProperties("aes256Key"));
 
         StepVerifier.create(connectClusterService.findAll(false, true))
                 .consumeNextWith(result -> assertEquals(connectCluster, result))
@@ -114,15 +115,16 @@ class ConnectClusterServiceTest {
                         .build())
                 .build();
 
-        when(connectClusterRepository.findAll()).thenReturn(new ArrayList<>(List.of(connectCluster)));
+        when(connectClusterRepository.findAll()).thenReturn(List.of(connectCluster));
 
         ManagedClusterProperties kafka = new ManagedClusterProperties("local");
         kafka.setConnects(Map.of("test-connect", new ManagedClusterProperties.ConnectProperties()));
 
         managedClusterProperties.add(kafka);
-        when(kafkaConnectClient.version(any(), any()))
+        when(kafkaConnectClient.version(any()))
                 .thenReturn(Mono.just(HttpResponse.ok()))
                 .thenReturn(Mono.error(new Exception("error")));
+        when(ns4KafkaProperties.getSecurity()).thenReturn(buildSecurityProperties("aes256Key"));
 
         StepVerifier.create(connectClusterService.findAll(true, true))
                 .consumeNextWith(result -> {
@@ -153,9 +155,10 @@ class ConnectClusterServiceTest {
         kafka.setConnects(null);
 
         managedClusterProperties.add(kafka);
-        when(kafkaConnectClient.version(any(), any()))
+        when(kafkaConnectClient.version(any()))
                 .thenReturn(Mono.just(HttpResponse.ok()))
                 .thenReturn(Mono.error(new Exception("error")));
+        when(ns4KafkaProperties.getSecurity()).thenReturn(buildSecurityProperties("aes256Key"));
 
         StepVerifier.create(connectClusterService.findAll(true, true))
                 .consumeNextWith(result -> {
