@@ -164,7 +164,9 @@ public class ConnectClusterController extends NamespacedResourceController {
                             connectCluster.getSpec(),
                             EMPTY_STRING);
 
-                    return Mono.just(formatHttpResponse(connectClusterService.create(connectCluster), status));
+                    connectClusterService.create(connectCluster);
+
+                    return Mono.just(formatHttpResponse(connectCluster, status));
                 });
     }
 

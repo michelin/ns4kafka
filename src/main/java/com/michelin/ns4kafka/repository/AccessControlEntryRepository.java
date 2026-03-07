@@ -44,9 +44,8 @@ public interface AccessControlEntryRepository {
      * Create an ACL.
      *
      * @param accessControlEntry The ACL to create
-     * @return The created ACL
      */
-    AccessControlEntry create(AccessControlEntry accessControlEntry);
+    void create(AccessControlEntry accessControlEntry);
 
     /**
      * Delete an ACL.

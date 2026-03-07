@@ -18,25 +18,28 @@
  */
 package com.michelin.ns4kafka.repository.kafka;
 
+import com.michelin.ns4kafka.repository.kafka.streams.KafkaStreamsStartListener;
 import io.micronaut.context.event.ApplicationEventListener;
 import io.micronaut.context.event.StartupEvent;
 import jakarta.inject.Singleton;
-import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.streams.KafkaStreams;
 
 /** Delay startup listener. */
 @Slf4j
 @Singleton
 public class DelayStartupListener implements ApplicationEventListener<StartupEvent> {
-    private final List<KafkaStore<?>> kafkaStores;
+    private final KafkaStreams kafkaStreams;
+    private final KafkaStreamsStartListener kafkaStreamsStartListener;
 
     /**
      * Constructor.
      *
-     * @param kafkaStores The Kafka stores
+     * @param kafkaStreams The Kafka Streams instance
      */
-    public DelayStartupListener(List<KafkaStore<?>> kafkaStores) {
-        this.kafkaStores = kafkaStores;
+    public DelayStartupListener(KafkaStreamsStartListener kafkaStreamsStartListener, KafkaStreams kafkaStreams) {
+        this.kafkaStreams = kafkaStreams;
+        this.kafkaStreamsStartListener = kafkaStreamsStartListener;
     }
 
     /**
@@ -47,15 +50,18 @@ public class DelayStartupListener implements ApplicationEventListener<StartupEve
      */
     @Override
     public void onApplicationEvent(StartupEvent event) {
-        while (!kafkaStores.stream().allMatch(KafkaStore::isInitialized)) {
-            try {
-                Thread.sleep(1000);
-                log.info("Waiting for Kafka store to catch up");
-            } catch (InterruptedException e) {
-                log.error("Exception ", e);
-                Thread.currentThread().interrupt();
-            }
-            kafkaStores.forEach(KafkaStore::reportInitProgress);
+        if (kafkaStreams.state() == KafkaStreams.State.RUNNING) {
+            log.info("All stores are ready. Starting Ns4Kafka...");
+            return;
+        }
+
+        try {
+            log.info("Waiting for stores to be ready...");
+            kafkaStreamsStartListener.await();
+            log.info("All stores are ready. Starting Ns4Kafka...");
+        } catch (InterruptedException e) {
+            log.error("Interrupted while waiting for Kafka Streams", e);
+            Thread.currentThread().interrupt();
         }
     }
 }

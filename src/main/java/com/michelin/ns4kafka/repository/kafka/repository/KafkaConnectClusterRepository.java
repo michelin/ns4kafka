@@ -16,33 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.michelin.ns4kafka.repository.kafka;
+package com.michelin.ns4kafka.repository.kafka.repository;
 
 import com.michelin.ns4kafka.model.connect.cluster.ConnectCluster;
-import com.michelin.ns4kafka.property.Ns4KafkaProperties;
 import com.michelin.ns4kafka.repository.ConnectClusterRepository;
+import com.michelin.ns4kafka.repository.kafka.InternalTopic;
+import com.michelin.ns4kafka.repository.kafka.KafkaStore;
 import io.micronaut.configuration.kafka.annotation.KafkaClient;
-import io.micronaut.configuration.kafka.annotation.KafkaListener;
-import io.micronaut.configuration.kafka.annotation.OffsetReset;
-import io.micronaut.configuration.kafka.annotation.OffsetStrategy;
-import io.micronaut.configuration.kafka.annotation.Topic;
 import io.micronaut.context.annotation.Value;
-import io.micronaut.scheduling.TaskExecutors;
-import io.micronaut.scheduling.TaskScheduler;
-import jakarta.inject.Named;
 import jakarta.inject.Singleton;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.state.KeyValueIterator;
 
 /** Kafka Connect Cluster repository. */
 @Singleton
-@KafkaListener(
-        offsetReset = OffsetReset.EARLIEST,
-        groupId = "${ns4kafka.store.kafka.group-id}",
-        offsetStrategy = OffsetStrategy.DISABLED)
 public class KafkaConnectClusterRepository extends KafkaStore<ConnectCluster> implements ConnectClusterRepository {
 
     /**
@@ -50,17 +41,12 @@ public class KafkaConnectClusterRepository extends KafkaStore<ConnectCluster> im
      *
      * @param kafkaTopic The Kafka topic
      * @param kafkaProducer The Kafka producer
-     * @param adminClient The Kafka admin client
-     * @param ns4KafkaProperties Ns4Kafka properties
-     * @param taskScheduler The task scheduler
      */
     public KafkaConnectClusterRepository(
-            @Value("${ns4kafka.store.kafka.topics.prefix}.connect-workers") String kafkaTopic,
-            @KafkaClient("connect-workers") Producer<String, ConnectCluster> kafkaProducer,
-            AdminClient adminClient,
-            Ns4KafkaProperties ns4KafkaProperties,
-            @Named(TaskExecutors.SCHEDULED) TaskScheduler taskScheduler) {
-        super(kafkaTopic, kafkaProducer, adminClient, ns4KafkaProperties, taskScheduler);
+            KafkaStreams kafkaStreams,
+            @Value("${ns4kafka.store.kafka.topics.prefix}." + InternalTopic.CONNECT_CLUSTER) String kafkaTopic,
+            @KafkaClient("connect-workers") Producer<String, ConnectCluster> kafkaProducer) {
+        super(kafkaStreams, kafkaTopic, kafkaProducer);
     }
 
     /**
@@ -82,7 +68,16 @@ public class KafkaConnectClusterRepository extends KafkaStore<ConnectCluster> im
      */
     @Override
     public Collection<ConnectCluster> findAll() {
-        return getKafkaStore().values();
+        List<ConnectCluster> results = new ArrayList<>();
+        try (KeyValueIterator<String, ConnectCluster> iterator = queryAllStore()) {
+            while (iterator.hasNext()) {
+                var entry = iterator.next();
+                if (entry.value != null) {
+                    results.add(entry.value);
+                }
+            }
+        }
+        return results;
     }
 
     /**
@@ -93,21 +88,27 @@ public class KafkaConnectClusterRepository extends KafkaStore<ConnectCluster> im
      */
     @Override
     public List<ConnectCluster> findAllForCluster(String cluster) {
-        return getKafkaStore().values().stream()
-                .filter(connectCluster ->
-                        connectCluster.getMetadata().getCluster().equals(cluster))
-                .toList();
+        List<ConnectCluster> results = new ArrayList<>();
+        try (KeyValueIterator<String, ConnectCluster> iterator = queryAllStore()) {
+            while (iterator.hasNext()) {
+                var entry = iterator.next();
+                if (entry.value != null
+                        && entry.value.getMetadata().getCluster().equals(cluster)) {
+                    results.add(entry.value);
+                }
+            }
+        }
+        return results;
     }
 
     /**
      * Create a Kafka Connect cluster.
      *
      * @param connectCluster The Kafka Connect cluster to create
-     * @return The created Kafka Connect cluster
      */
     @Override
-    public ConnectCluster create(ConnectCluster connectCluster) {
-        return produce(getMessageKey(connectCluster), connectCluster);
+    public void create(ConnectCluster connectCluster) {
+        produce(getMessageKey(connectCluster), connectCluster);
     }
 
     /**
@@ -118,16 +119,5 @@ public class KafkaConnectClusterRepository extends KafkaStore<ConnectCluster> im
     @Override
     public void delete(ConnectCluster connectCluster) {
         produce(getMessageKey(connectCluster), null);
-    }
-
-    /**
-     * Receive a Kafka Connect cluster record from Kafka and update the store.
-     *
-     * @param message The record
-     */
-    @Override
-    @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.connect-workers")
-    void receive(ConsumerRecord<String, ConnectCluster> message) {
-        super.receive(message);
     }
 }

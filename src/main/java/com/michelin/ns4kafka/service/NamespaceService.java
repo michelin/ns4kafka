@@ -206,10 +206,9 @@ public class NamespaceService {
      * Create or update a namespace.
      *
      * @param namespace The namespace to create or update
-     * @return The created or updated namespace
      */
-    public Namespace createOrUpdate(Namespace namespace) {
-        return namespaceRepository.createNamespace(namespace);
+    public void createOrUpdate(Namespace namespace) {
+        namespaceRepository.create(namespace);
     }
 
     /**

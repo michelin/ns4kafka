@@ -153,10 +153,9 @@ public class StreamService {
      * Create a given Kafka Stream.
      *
      * @param stream The Kafka Stream to create
-     * @return The created Kafka Stream
      */
-    public KafkaStream create(KafkaStream stream) {
-        return streamRepository.create(stream);
+    public void create(KafkaStream stream) {
+        streamRepository.create(stream);
     }
 
     /**

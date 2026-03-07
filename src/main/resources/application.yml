@@ -31,6 +31,10 @@ kafka:
       acks: "all"
       request.timeout.ms: 10000
       retries: 1
+  streams:
+    default:
+      application.id: "ns4kafka-streams"
+      state.dir: "/tmp/kafka-streams2"
 micronaut:
   application:
     name: "ns4kafka"

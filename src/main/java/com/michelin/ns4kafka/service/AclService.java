@@ -309,10 +309,9 @@ public class AclService {
      * Create an ACL in internal topic.
      *
      * @param accessControlEntry The ACL
-     * @return The created ACL
      */
-    public AccessControlEntry create(AccessControlEntry accessControlEntry) {
-        return accessControlEntryRepository.create(accessControlEntry);
+    public void create(AccessControlEntry accessControlEntry) {
+        accessControlEntryRepository.create(accessControlEntry);
     }
 
     /**

@@ -144,7 +144,9 @@ public class ResourceQuotaController extends NamespacedResourceController {
                 quota.getSpec(),
                 EMPTY_STRING);
 
-        return formatHttpResponse(resourceQuotaService.create(quota), status);
+        resourceQuotaService.create(quota);
+
+        return formatHttpResponse(quota, status);
     }
 
     /**

@@ -231,10 +231,9 @@ public class ConnectorService {
      * Create a given connector.
      *
      * @param connector The connector to create
-     * @return The created connector
      */
-    public Connector createOrUpdate(Connector connector) {
-        return connectorRepository.create(connector);
+    public void createOrUpdate(Connector connector) {
+        connectorRepository.create(connector);
     }
 
     /**

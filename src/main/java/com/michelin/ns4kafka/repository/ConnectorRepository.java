@@ -35,9 +35,8 @@ public interface ConnectorRepository {
      * Create a given connector.
      *
      * @param connector The connector to create
-     * @return The created connector
      */
-    Connector create(Connector connector);
+    void create(Connector connector);
 
     /**
      * Delete a given connector.

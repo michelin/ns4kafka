@@ -16,52 +16,39 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.michelin.ns4kafka.repository.kafka;
+package com.michelin.ns4kafka.repository.kafka.repository;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
-import com.michelin.ns4kafka.property.Ns4KafkaProperties;
 import com.michelin.ns4kafka.repository.AccessControlEntryRepository;
+import com.michelin.ns4kafka.repository.kafka.InternalTopic;
+import com.michelin.ns4kafka.repository.kafka.KafkaStore;
 import io.micronaut.configuration.kafka.annotation.KafkaClient;
-import io.micronaut.configuration.kafka.annotation.KafkaListener;
-import io.micronaut.configuration.kafka.annotation.OffsetReset;
-import io.micronaut.configuration.kafka.annotation.OffsetStrategy;
-import io.micronaut.configuration.kafka.annotation.Topic;
 import io.micronaut.context.annotation.Value;
-import io.micronaut.scheduling.TaskExecutors;
-import io.micronaut.scheduling.TaskScheduler;
-import jakarta.inject.Named;
 import jakarta.inject.Singleton;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
-import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.state.KeyValueIterator;
 
 /** Access control entry repository. */
 @Singleton
-@KafkaListener(
-        offsetReset = OffsetReset.EARLIEST,
-        groupId = "${ns4kafka.store.kafka.group-id}",
-        offsetStrategy = OffsetStrategy.DISABLED)
 public class KafkaAccessControlEntryRepository extends KafkaStore<AccessControlEntry>
         implements AccessControlEntryRepository {
 
     /**
      * Constructor.
      *
-     * @param kafkaTopic The Kafka topic
+     * @param topicName The Kafka topic
      * @param kafkaProducer The Kafka producer
-     * @param adminClient The Kafka admin client
-     * @param ns4KafkaProperties Ns4Kafka properties
-     * @param taskScheduler The task scheduler
      */
     public KafkaAccessControlEntryRepository(
-            @Value("${ns4kafka.store.kafka.topics.prefix}.access-control-entries") String kafkaTopic,
-            @KafkaClient("access-control-entries-producer") Producer<String, AccessControlEntry> kafkaProducer,
-            AdminClient adminClient,
-            Ns4KafkaProperties ns4KafkaProperties,
-            @Named(TaskExecutors.SCHEDULED) TaskScheduler taskScheduler) {
-        super(kafkaTopic, kafkaProducer, adminClient, ns4KafkaProperties, taskScheduler);
+            KafkaStreams kafkaStreams,
+            @Value("${ns4kafka.store.kafka.topics.prefix}." + InternalTopic.ACL) String topicName,
+            @KafkaClient("access-control-entries-producer") Producer<String, AccessControlEntry> kafkaProducer) {
+        super(kafkaStreams, topicName, kafkaProducer);
     }
 
     /**
@@ -83,7 +70,16 @@ public class KafkaAccessControlEntryRepository extends KafkaStore<AccessControlE
      */
     @Override
     public Collection<AccessControlEntry> findAll() {
-        return getKafkaStore().values();
+        List<AccessControlEntry> results = new ArrayList<>();
+        try (KeyValueIterator<String, AccessControlEntry> iterator = queryAllStore()) {
+            while (iterator.hasNext()) {
+                var entry = iterator.next();
+                if (entry.value != null) {
+                    results.add(entry.value);
+                }
+            }
+        }
+        return results;
     }
 
     /**
@@ -95,18 +91,17 @@ public class KafkaAccessControlEntryRepository extends KafkaStore<AccessControlE
      */
     @Override
     public Optional<AccessControlEntry> findByName(String namespace, String name) {
-        return Optional.ofNullable(getKafkaStore().get(namespace + "/" + name));
+        return Optional.ofNullable(queryStoreByKey(namespace + "/" + name));
     }
 
     /**
      * Create an ACL.
      *
      * @param accessControlEntry The ACL to create
-     * @return The created ACL
      */
     @Override
-    public AccessControlEntry create(AccessControlEntry accessControlEntry) {
-        return produce(getMessageKey(accessControlEntry), accessControlEntry);
+    public void create(AccessControlEntry accessControlEntry) {
+        produce(getMessageKey(accessControlEntry), accessControlEntry);
     }
 
     /**
@@ -117,16 +112,5 @@ public class KafkaAccessControlEntryRepository extends KafkaStore<AccessControlE
     @Override
     public void delete(AccessControlEntry accessControlEntry) {
         produce(getMessageKey(accessControlEntry), null);
-    }
-
-    /**
-     * Receive messages from Kafka topic and update the store accordingly.
-     *
-     * @param message The record
-     */
-    @Override
-    @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.access-control-entries")
-    public void receive(ConsumerRecord<String, AccessControlEntry> message) {
-        super.receive(message);
     }
 }

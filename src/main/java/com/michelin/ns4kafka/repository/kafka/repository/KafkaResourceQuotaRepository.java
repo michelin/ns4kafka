@@ -16,33 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.michelin.ns4kafka.repository.kafka;
+package com.michelin.ns4kafka.repository.kafka.repository;
 
 import com.michelin.ns4kafka.model.quota.ResourceQuota;
-import com.michelin.ns4kafka.property.Ns4KafkaProperties;
 import com.michelin.ns4kafka.repository.ResourceQuotaRepository;
+import com.michelin.ns4kafka.repository.kafka.InternalTopic;
+import com.michelin.ns4kafka.repository.kafka.KafkaStore;
 import io.micronaut.configuration.kafka.annotation.KafkaClient;
-import io.micronaut.configuration.kafka.annotation.KafkaListener;
-import io.micronaut.configuration.kafka.annotation.OffsetReset;
-import io.micronaut.configuration.kafka.annotation.OffsetStrategy;
-import io.micronaut.configuration.kafka.annotation.Topic;
 import io.micronaut.context.annotation.Value;
-import io.micronaut.scheduling.TaskExecutors;
-import io.micronaut.scheduling.TaskScheduler;
-import jakarta.inject.Named;
 import jakarta.inject.Singleton;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
-import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.state.KeyValueIterator;
 
 /** Kafka Resource Quota repository. */
 @Singleton
-@KafkaListener(
-        offsetReset = OffsetReset.EARLIEST,
-        groupId = "${ns4kafka.store.kafka.group-id}",
-        offsetStrategy = OffsetStrategy.DISABLED)
 public class KafkaResourceQuotaRepository extends KafkaStore<ResourceQuota> implements ResourceQuotaRepository {
 
     /**
@@ -50,17 +42,12 @@ public class KafkaResourceQuotaRepository extends KafkaStore<ResourceQuota> impl
      *
      * @param kafkaTopic The Kafka topic
      * @param kafkaProducer The Kafka producer
-     * @param adminClient The Kafka admin client
-     * @param ns4KafkaProperties Ns4Kafka properties
-     * @param taskScheduler The task scheduler
      */
     public KafkaResourceQuotaRepository(
-            @Value("${ns4kafka.store.kafka.topics.prefix}.resource-quotas") String kafkaTopic,
-            @KafkaClient("resource-quotas") Producer<String, ResourceQuota> kafkaProducer,
-            AdminClient adminClient,
-            Ns4KafkaProperties ns4KafkaProperties,
-            @Named(TaskExecutors.SCHEDULED) TaskScheduler taskScheduler) {
-        super(kafkaTopic, kafkaProducer, adminClient, ns4KafkaProperties, taskScheduler);
+            KafkaStreams kafkaStreams,
+            @Value("${ns4kafka.store.kafka.topics.prefix}." + InternalTopic.RESOURCE_QUOTA) String kafkaTopic,
+            @KafkaClient("resource-quotas") Producer<String, ResourceQuota> kafkaProducer) {
+        super(kafkaStreams, kafkaTopic, kafkaProducer);
     }
 
     /**
@@ -81,7 +68,16 @@ public class KafkaResourceQuotaRepository extends KafkaStore<ResourceQuota> impl
      */
     @Override
     public Collection<ResourceQuota> findAll() {
-        return getKafkaStore().values();
+        List<ResourceQuota> results = new ArrayList<>();
+        try (KeyValueIterator<String, ResourceQuota> iterator = queryAllStore()) {
+            while (iterator.hasNext()) {
+                var entry = iterator.next();
+                if (entry.value != null) {
+                    results.add(entry.value);
+                }
+            }
+        }
+        return results;
     }
 
     /**
@@ -92,33 +88,21 @@ public class KafkaResourceQuotaRepository extends KafkaStore<ResourceQuota> impl
      */
     @Override
     public Optional<ResourceQuota> findByNamespace(String namespace) {
-        return Optional.ofNullable(getKafkaStore().get(namespace));
+        return Optional.ofNullable(queryStoreByKey(namespace));
     }
 
     /**
-     * Consume messages from resource quotas topic.
-     *
-     * @param message The resource quota message
-     */
-    @Override
-    @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.resource-quotas")
-    public void receive(ConsumerRecord<String, ResourceQuota> message) {
-        super.receive(message);
-    }
-
-    /**
-     * Produce a resource quota message.
+     * Create a resource quota.
      *
      * @param resourceQuota The resource quota to create
-     * @return The created resource quota
      */
     @Override
-    public ResourceQuota create(ResourceQuota resourceQuota) {
-        return produce(getMessageKey(resourceQuota), resourceQuota);
+    public void create(ResourceQuota resourceQuota) {
+        produce(getMessageKey(resourceQuota), resourceQuota);
     }
 
     /**
-     * Delete a resource quota message by pushing a tomb stone message.
+     * Delete a resource quota.
      *
      * @param resourceQuota The resource quota to delete
      */

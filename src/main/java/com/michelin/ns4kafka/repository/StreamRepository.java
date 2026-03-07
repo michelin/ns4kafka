@@ -25,7 +25,12 @@ import java.util.List;
 public interface StreamRepository {
     List<KafkaStream> findAllForCluster(String cluster);
 
-    KafkaStream create(KafkaStream stream);
+    /**
+     * Create a stream.
+     *
+     * @param stream The stream to create
+     */
+    void create(KafkaStream stream);
 
     void delete(KafkaStream stream);
 }

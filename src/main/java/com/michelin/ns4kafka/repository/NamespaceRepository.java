@@ -26,9 +26,19 @@ import java.util.Optional;
 public interface NamespaceRepository {
     List<Namespace> findAllForCluster(String cluster);
 
-    Namespace createNamespace(Namespace namespace);
-
     Optional<Namespace> findByName(String namespace);
 
+    /**
+     * Create a namespace.
+     *
+     * @param namespace The namespace to create
+     */
+    void create(Namespace namespace);
+
+    /**
+     * Delete a namespace.
+     *
+     * @param namespace The namespace to delete
+     */
     void delete(Namespace namespace);
 }

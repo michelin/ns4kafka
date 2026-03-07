@@ -52,9 +52,8 @@ public interface TopicRepository {
      * Create a given topic.
      *
      * @param topic The topic to create
-     * @return The created topic
      */
-    Topic create(Topic topic);
+    void create(Topic topic);
 
     /**
      * Delete a given topic.

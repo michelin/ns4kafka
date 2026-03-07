@@ -185,7 +185,9 @@ public class AclController extends NamespacedResourceController {
                 accessControlEntry.getSpec(),
                 EMPTY_STRING);
 
-        return formatHttpResponse(aclService.create(accessControlEntry), status);
+        aclService.create(accessControlEntry);
+
+        return formatHttpResponse(accessControlEntry, status);
     }
 
     /**

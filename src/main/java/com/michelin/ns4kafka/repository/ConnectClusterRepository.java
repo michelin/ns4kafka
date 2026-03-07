@@ -43,9 +43,8 @@ public interface ConnectClusterRepository {
      * Create a Kafka Connect cluster.
      *
      * @param connectCluster The Kafka Connect cluster to create
-     * @return The created Kafka Connect cluster
      */
-    ConnectCluster create(ConnectCluster connectCluster);
+    void create(ConnectCluster connectCluster);
 
     /**
      * Delete a Kafka Connect cluster.

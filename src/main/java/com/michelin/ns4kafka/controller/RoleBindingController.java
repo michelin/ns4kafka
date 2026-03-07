@@ -119,6 +119,7 @@ public class RoleBindingController extends NamespacedResourceController {
                 EMPTY_STRING);
 
         roleBindingService.create(roleBinding);
+
         return formatHttpResponse(roleBinding, status);
     }
 

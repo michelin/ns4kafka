@@ -379,7 +379,6 @@ class AclControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(namespace));
         when(aclService.validateSelfAssignedAdmin(accessControlEntry, namespace))
                 .thenReturn(List.of());
-        when(aclService.create(accessControlEntry)).thenReturn(accessControlEntry);
 
         var response = accessControlListController.apply(authentication, "test", accessControlEntry, false);
         AccessControlEntry actual = response.body();
@@ -446,7 +445,6 @@ class AclControllerTest {
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
-        when(aclService.create(accessControlEntry)).thenReturn(accessControlEntry);
 
         var response = accessControlListController.apply(authentication, "test", accessControlEntry, false);
         AccessControlEntry actual = response.body();
@@ -575,7 +573,6 @@ class AclControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(namespace));
         when(aclService.validate(accessControlEntry, namespace)).thenReturn(List.of());
         when(aclService.findByName("test", "ace1")).thenReturn(Optional.of(oldAccessControlEntry));
-        when(aclService.create(accessControlEntry)).thenReturn(accessControlEntry);
 
         var response = accessControlListController.apply(authentication, "test", accessControlEntry, false);
         AccessControlEntry actual = response.body();

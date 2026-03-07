@@ -45,7 +45,7 @@ public interface RoleBindingRepository {
      *
      * @param roleBinding The role binding to create
      */
-    RoleBinding create(RoleBinding roleBinding);
+    void create(RoleBinding roleBinding);
 
     /**
      * Delete a role binding.

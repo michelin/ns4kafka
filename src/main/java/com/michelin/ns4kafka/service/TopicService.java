@@ -37,10 +37,7 @@ import com.michelin.ns4kafka.util.RegexUtils;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
 import jakarta.inject.Singleton;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -139,10 +136,9 @@ public class TopicService {
      * Create a given topic.
      *
      * @param topic The topic to create
-     * @return The created topic
      */
-    public Topic create(Topic topic) {
-        return topicRepository.create(topic);
+    public void create(Topic topic) {
+        topicRepository.create(topic);
     }
 
     /**

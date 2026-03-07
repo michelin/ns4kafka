@@ -186,7 +186,9 @@ public class TopicController extends NamespacedResourceController {
         sendEventLog(
                 topic, status, existingTopic.<Object>map(Topic::getSpec).orElse(null), topic.getSpec(), EMPTY_STRING);
 
-        return formatHttpResponse(topicService.create(topic), status);
+        topicService.create(topic);
+
+        return formatHttpResponse(topic, status);
     }
 
     /**

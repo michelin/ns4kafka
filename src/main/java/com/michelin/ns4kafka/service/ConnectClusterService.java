@@ -242,7 +242,7 @@ public class ConnectClusterService {
      * @param connectCluster The connect worker
      * @return The created connect worker
      */
-    public ConnectCluster create(ConnectCluster connectCluster) {
+    public void create(ConnectCluster connectCluster) {
         if (StringUtils.hasText(connectCluster.getSpec().getPassword())) {
             connectCluster
                     .getSpec()
@@ -269,7 +269,7 @@ public class ConnectClusterService {
                             ns4KafkaProperties.getSecurity().getAes256EncryptionKey()));
         }
 
-        return connectClusterRepository.create(connectCluster);
+        connectClusterRepository.create(connectCluster);
     }
 
     /**

@@ -147,7 +147,9 @@ public class NamespaceController extends ResourceController {
                 namespace.getSpec(),
                 EMPTY_STRING);
 
-        return formatHttpResponse(namespaceService.createOrUpdate(namespace), status);
+        namespaceService.createOrUpdate(namespace);
+
+        return formatHttpResponse(namespace, status);
     }
 
     /**

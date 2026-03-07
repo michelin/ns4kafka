@@ -188,7 +188,9 @@ public class ConnectorController extends NamespacedResourceController {
                         connector.getSpec(),
                         EMPTY_STRING);
 
-                return Mono.just(formatHttpResponse(connectorService.createOrUpdate(connector), status));
+                connectorService.createOrUpdate(connector);
+
+                return Mono.just(formatHttpResponse(connector, status));
             });
         });
     }
@@ -364,7 +366,9 @@ public class ConnectorController extends NamespacedResourceController {
                             unsynchronizedConnector.getSpec(),
                             EMPTY_STRING);
 
-                    return connectorService.createOrUpdate(unsynchronizedConnector);
+                    connectorService.createOrUpdate(unsynchronizedConnector);
+
+                    return unsynchronizedConnector;
                 });
     }
 }

@@ -139,7 +139,9 @@ public class StreamController extends NamespacedResourceController {
                 stream.getMetadata(),
                 EMPTY_STRING);
 
-        return formatHttpResponse(streamService.create(stream), status);
+        streamService.create(stream);
+
+        return formatHttpResponse(stream, status);
     }
 
     /**
