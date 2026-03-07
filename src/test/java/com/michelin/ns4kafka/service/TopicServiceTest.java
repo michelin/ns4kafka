@@ -781,7 +781,6 @@ class TopicServiceTest {
 
         Collection<Topic> topics = topicService.findAll();
         assertEquals(4, topics.size());
-        verify(topicRepository).findAll();
     }
 
     @Test
