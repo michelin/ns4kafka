@@ -52,6 +52,7 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -76,54 +77,29 @@ class ConnectClusterControllerTest {
     ApplicationEventPublisher<AuditLog> applicationEventPublisher;
 
     @Test
-    void shouldListConnectClustersWhenEmpty() {
-        Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
-                .build();
-
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(connectClusterService.findByWildcardNameWithOwnerPermission(ns, "*"))
-                .thenReturn(List.of());
-
-        assertTrue(connectClusterController.list("test", "*").isEmpty());
-    }
-
-    @Test
     void shouldListConnectClusters() {
         Namespace ns = Namespace.builder()
                 .metadata(Metadata.builder().name("test").cluster("local").build())
                 .build();
 
-        List<ConnectCluster> ccs = List.of(
+        Flux<ConnectCluster> ccs = Flux.fromIterable(List.of(
                 ConnectCluster.builder()
                         .metadata(Metadata.builder().name("connect-cluster").build())
                         .build(),
                 ConnectCluster.builder()
                         .metadata(Metadata.builder().name("connect-cluster2").build())
-                        .build());
+                        .build()));
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(connectClusterService.findByWildcardNameWithOwnerPermission(ns, "*"))
+        when(connectClusterService.findByWildcardNameWithOwnerPermissionAndStatus(ns, "*"))
                 .thenReturn(ccs);
 
-        assertEquals(ccs, connectClusterController.list("test", "*"));
-    }
-
-    @Test
-    void shouldListConnectClusterWithNameParameter() {
-        Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
-                .build();
-
-        List<ConnectCluster> ccs = List.of(ConnectCluster.builder()
-                .metadata(Metadata.builder().name("connect-cluster").build())
-                .build());
-
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(connectClusterService.findByWildcardNameWithOwnerPermission(ns, "connect-cluster"))
-                .thenReturn(ccs);
-
-        assertEquals(ccs, connectClusterController.list("test", "connect-cluster"));
+        StepVerifier.create(connectClusterController.list("test", "*"))
+                .consumeNextWith(schemaResponse -> assertEquals(
+                        "connect-cluster", schemaResponse.getMetadata().getName()))
+                .consumeNextWith(schemaResponse -> assertEquals(
+                        "connect-cluster2", schemaResponse.getMetadata().getName()))
+                .verifyComplete();
     }
 
     @Test

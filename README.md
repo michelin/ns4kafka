@@ -541,11 +541,6 @@ micronaut:
         connect-timeout: '10s'
         read-idle-timeout: '10s'
         read-timeout: '10s'
-      kafka-connect-health-check:
-        connect-timeout: '5s'
-        event-loop-group: 'connect-health-check'
-        read-idle-timeout: '5s'
-        read-timeout: '5s'
       schema-registry:
         connect-timeout: '10s'
         read-idle-timeout: '10s'
@@ -556,7 +551,6 @@ micronaut:
 |----------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
 | GitLab                     | Client used to connect to GitLab for user authentication.                                                                                          |
 | Kafka Connect              | Client used to connect to Kafka Connect clusters to manage connectors.                                                                             |
-| Kafka Connect Health Check | Dedicated client used to perform health checks on Kafka Connect clusters. This client uses lower timeouts to quickly detect unresponsive clusters. |
 | Schema Registry            | Client used to connect to the Schema Registry to manage schemas.                                                                                   |
 
 ##### Retry
