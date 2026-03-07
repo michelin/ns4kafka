@@ -62,37 +62,16 @@ public class KafkaConnectorRepository extends KafkaStore<Connector> implements C
         super(kafkaTopic, kafkaProducer, adminClient, ns4KafkaProperties, taskScheduler);
     }
 
+    /**
+     * Get the message key for a connector.
+     *
+     * @param connector The message
+     * @return The message key
+     */
     @Override
-    String getMessageKey(Connector connector) {
+    public String getMessageKey(Connector connector) {
         return connector.getMetadata().getNamespace() + "/"
                 + connector.getMetadata().getName();
-    }
-
-    @Override
-    @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.connectors")
-    void receive(ConsumerRecord<String, Connector> message) {
-        super.receive(message);
-    }
-
-    /**
-     * Create a given connector.
-     *
-     * @param connector The connector to create
-     * @return The created connector
-     */
-    @Override
-    public Connector create(Connector connector) {
-        return this.produce(getMessageKey(connector), connector);
-    }
-
-    /**
-     * Delete a given connector.
-     *
-     * @param connector The connector to delete
-     */
-    @Override
-    public void delete(Connector connector) {
-        this.produce(getMessageKey(connector), null);
     }
 
     /**
@@ -106,5 +85,37 @@ public class KafkaConnectorRepository extends KafkaStore<Connector> implements C
         return getKafkaStore().values().stream()
                 .filter(connector -> connector.getMetadata().getCluster().equals(cluster))
                 .toList();
+    }
+
+    /**
+     * Create a connector.
+     *
+     * @param connector The connector to create
+     * @return The created connector
+     */
+    @Override
+    public Connector create(Connector connector) {
+        return produce(getMessageKey(connector), connector);
+    }
+
+    /**
+     * Delete a connector.
+     *
+     * @param connector The connector to delete
+     */
+    @Override
+    public void delete(Connector connector) {
+        produce(getMessageKey(connector), null);
+    }
+
+    /**
+     * Receive a connector record from Kafka and update the store.
+     *
+     * @param message The record
+     */
+    @Override
+    @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.connectors")
+    public void receive(ConsumerRecord<String, Connector> message) {
+        super.receive(message);
     }
 }

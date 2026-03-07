@@ -24,11 +24,34 @@ import java.util.Optional;
 
 /** Namespace repository. */
 public interface NamespaceRepository {
+    /**
+     * Find all namespaces for a given cluster.
+     *
+     * @param cluster The cluster name
+     * @return The list of namespaces for the given cluster
+     */
     List<Namespace> findAllForCluster(String cluster);
 
-    Namespace createNamespace(Namespace namespace);
-
+    /**
+     * Find a namespace by name.
+     *
+     * @param namespace The namespace name
+     * @return An optional containing the namespace if found, or empty if not found
+     */
     Optional<Namespace> findByName(String namespace);
 
+    /**
+     * Create a namespace.
+     *
+     * @param namespace The namespace to create
+     * @return The created namespace
+     */
+    Namespace create(Namespace namespace);
+
+    /**
+     * Delete a namespace.
+     *
+     * @param namespace The namespace to delete
+     */
     void delete(Namespace namespace);
 }

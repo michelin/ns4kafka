@@ -64,7 +64,7 @@ public class KafkaConnectClusterRepository extends KafkaStore<ConnectCluster> im
     }
 
     /**
-     * Get the message key for a given Kafka Connect cluster.
+     * Get the message key for a Kafka Connect cluster.
      *
      * @param connectCluster The message
      * @return The message key
@@ -86,10 +86,10 @@ public class KafkaConnectClusterRepository extends KafkaStore<ConnectCluster> im
     }
 
     /**
-     * Find all Kafka Connect clusters for a given cluster.
+     * Find all Kafka Connect clusters by cluster.
      *
      * @param cluster The cluster name
-     * @return The list of Kafka Connect clusters for the given cluster
+     * @return The list of Kafka Connect clusters
      */
     @Override
     public List<ConnectCluster> findAllForCluster(String cluster) {
@@ -127,7 +127,7 @@ public class KafkaConnectClusterRepository extends KafkaStore<ConnectCluster> im
      */
     @Override
     @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.connect-workers")
-    void receive(ConsumerRecord<String, ConnectCluster> message) {
+    public void receive(ConsumerRecord<String, ConnectCluster> message) {
         super.receive(message);
     }
 }

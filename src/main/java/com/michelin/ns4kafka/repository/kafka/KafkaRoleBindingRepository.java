@@ -64,47 +64,15 @@ public class KafkaRoleBindingRepository extends KafkaStore<RoleBinding> implemen
     }
 
     /**
-     * Build message key from role binding.
+     * Get the message key for a role binding.
      *
      * @param roleBinding The role binding used to build the key
      * @return A key
      */
     @Override
-    String getMessageKey(RoleBinding roleBinding) {
+    public String getMessageKey(RoleBinding roleBinding) {
         return roleBinding.getMetadata().getNamespace() + "-"
                 + roleBinding.getMetadata().getName();
-    }
-
-    /**
-     * Consume messages from role bindings topic.
-     *
-     * @param message The role binding message
-     */
-    @Override
-    @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.role-bindings")
-    void receive(ConsumerRecord<String, RoleBinding> message) {
-        super.receive(message);
-    }
-
-    /**
-     * Produce a role binding message.
-     *
-     * @param roleBinding The role binding to create
-     * @return The created role binding
-     */
-    @Override
-    public RoleBinding create(RoleBinding roleBinding) {
-        return this.produce(getMessageKey(roleBinding), roleBinding);
-    }
-
-    /**
-     * Delete a role binding message by pushing a tomb stone message.
-     *
-     * @param roleBinding The role binding to delete
-     */
-    @Override
-    public void delete(RoleBinding roleBinding) {
-        this.produce(getMessageKey(roleBinding), null);
     }
 
     /**
@@ -138,5 +106,37 @@ public class KafkaRoleBindingRepository extends KafkaStore<RoleBinding> implemen
         return getKafkaStore().values().stream()
                 .filter(roleBinding -> roleBinding.getMetadata().getNamespace().equals(namespace))
                 .toList();
+    }
+
+    /**
+     * Create a role binding.
+     *
+     * @param roleBinding The role binding to create
+     * @return The created role binding
+     */
+    @Override
+    public RoleBinding create(RoleBinding roleBinding) {
+        return this.produce(getMessageKey(roleBinding), roleBinding);
+    }
+
+    /**
+     * Delete a role binding.
+     *
+     * @param roleBinding The role binding to delete
+     */
+    @Override
+    public void delete(RoleBinding roleBinding) {
+        this.produce(getMessageKey(roleBinding), null);
+    }
+
+    /**
+     * Consume messages from role bindings topic.
+     *
+     * @param message The role binding message
+     */
+    @Override
+    @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.role-bindings")
+    void receive(ConsumerRecord<String, RoleBinding> message) {
+        super.receive(message);
     }
 }
