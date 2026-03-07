@@ -27,6 +27,7 @@ import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_CONFIG;
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.connector.Connector;
 import com.michelin.ns4kafka.model.quota.ResourceQuota;
+import com.michelin.ns4kafka.model.schema.SubjectNameStrategy;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -691,13 +692,22 @@ public class FormatErrorUtils {
     }
 
     /**
-     * Invalid schema suffix.
+     * Invalid schema subject name for the configured naming strategy.
      *
-     * @param invalidNameValue the invalid name value
+     * @param subjectName the subject name
+     * @param strategies the configured naming strategies
      * @return the error message
      */
-    public static String invalidSchemaSuffix(String invalidNameValue) {
-        return INVALID_FIELD.formatted(invalidNameValue, FIELD_NAME, "value must end with -key or -value");
+    public static String invalidSchemaSubjectName(String subjectName, List<SubjectNameStrategy> strategies) {
+        String formattedStrategies = strategies.stream()
+                .map(subject -> subject + " " + subject.toExpectedFormat())
+                .collect(Collectors.joining(", "));
+
+        return String.format(
+                INVALID_FIELD,
+                subjectName,
+                FIELD_NAME,
+                String.format("value must follow authorized strategies: %s", formattedStrategies));
     }
 
     /**
