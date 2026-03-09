@@ -256,9 +256,8 @@ public class ConnectorService {
                         .addArgument(namespace.getMetadata().getName())
                         .addArgument(connector.getSpec().getConnectCluster())
                         .addArgument(error.getMessage())
-                        .log(
-                                "Force deleting Connector [{}] on Kafka [{}] Connect [{}]:"
-                                        + " failed to delete from the connect cluster [{}].");
+                        .log("Force deleting Connector [{}] on Kafka [{}] Connect [{}]:"
+                                + " failed to delete from the connect cluster [{}].");
                 return Mono.just(HttpResponse.noContent());
             });
         }

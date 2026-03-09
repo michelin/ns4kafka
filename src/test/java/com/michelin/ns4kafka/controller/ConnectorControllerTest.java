@@ -247,7 +247,6 @@ class ConnectorControllerTest {
         verify(connectorService, never()).delete(any(), any(), anyBoolean());
     }
 
-
     @Test
     void shouldBulkDeleteConnectors() {
         Namespace ns = Namespace.builder()

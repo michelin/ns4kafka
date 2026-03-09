@@ -268,7 +268,6 @@ class ConnectClusterControllerTest {
                 result.getValidationErrors().getFirst());
     }
 
-
     @Test
     void shouldBulkDeleteConnectClusters() {
         Namespace ns = Namespace.builder()
