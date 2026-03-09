@@ -1231,13 +1231,43 @@ class ConnectorServiceTest {
                         .build())
                 .build();
 
+        when(kafkaConnectClient.delete(ns.getMetadata().getCluster(), "local-name", "ns-connect1"))
+                .thenReturn(Mono.just(HttpResponse.noContent()));
         doNothing().when(connectorRepository).delete(connector);
 
         StepVerifier.create(connectorService.delete(ns, connector, true))
                 .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
                 .verifyComplete();
 
-        verify(kafkaConnectClient, never()).delete(any(), any(), any());
+        verify(kafkaConnectClient).delete(ns.getMetadata().getCluster(), "local-name", "ns-connect1");
+        verify(connectorRepository).delete(connector);
+    }
+
+    @Test
+    void shouldForceDeleteConnectorWhenConnectUnhealthy() {
+        Namespace ns = Namespace.builder()
+                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .spec(NamespaceSpec.builder()
+                        .connectClusters(List.of("local-name"))
+                        .build())
+                .build();
+
+        Connector connector = Connector.builder()
+                .metadata(Metadata.builder().name("ns-connect1").build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("local-name")
+                        .build())
+                .build();
+
+        when(kafkaConnectClient.delete(ns.getMetadata().getCluster(), "local-name", "ns-connect1"))
+                .thenReturn(Mono.error(new HttpClientResponseException("Error", HttpResponse.serverError())));
+        doNothing().when(connectorRepository).delete(connector);
+
+        StepVerifier.create(connectorService.delete(ns, connector, true))
+                .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
+                .verifyComplete();
+
+        verify(kafkaConnectClient).delete(ns.getMetadata().getCluster(), "local-name", "ns-connect1");
         verify(connectorRepository).delete(connector);
     }
 

@@ -244,21 +244,23 @@ public class ConnectorService {
      * @param connector The connector
      */
     public Mono<HttpResponse<Void>> delete(Namespace namespace, Connector connector, boolean force) {
-        Mono<HttpResponse<Void>> deletePublisher;
+        Mono<HttpResponse<Void>> deletePublisher = kafkaConnectClient.delete(
+                namespace.getMetadata().getCluster(),
+                connector.getSpec().getConnectCluster(),
+                connector.getMetadata().getName());
 
         if (force) {
-            log.atWarn()
-                    .addArgument(connector.getMetadata().getName())
-                    .addArgument(namespace.getMetadata().getName())
-                    .addArgument(connector.getSpec().getConnectCluster())
-                    .log(
-                            "Force deleting Connector [{}] on Kafka [{}] Connect [{}] from ns4kafka repository only, bypassing remote API.");
-            deletePublisher = Mono.just(HttpResponse.noContent());
-        } else {
-            deletePublisher = kafkaConnectClient.delete(
-                    namespace.getMetadata().getCluster(),
-                    connector.getSpec().getConnectCluster(),
-                    connector.getMetadata().getName());
+            deletePublisher = deletePublisher.onErrorResume(error -> {
+                log.atWarn()
+                        .addArgument(connector.getMetadata().getName())
+                        .addArgument(namespace.getMetadata().getName())
+                        .addArgument(connector.getSpec().getConnectCluster())
+                        .addArgument(error.getMessage())
+                        .log(
+                                "Force deleting Connector [{}] on Kafka [{}] Connect [{}]:"
+                                        + " failed to delete from the connect cluster [{}].");
+                return Mono.just(HttpResponse.noContent());
+            });
         }
 
         return deletePublisher.defaultIfEmpty(HttpResponse.noContent()).map(httpResponse -> {

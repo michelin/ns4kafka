@@ -199,17 +199,13 @@ public class ConnectorController extends NamespacedResourceController {
      * @param namespace The current namespace
      * @param connector The current connector name to delete
      * @param dryrun Is dry run mode or not?
-     * @param force Force deletion of the connector regardless of remote deletion success
      * @return A HTTP response
      * @deprecated use {@link #bulkDelete(String, String, boolean, boolean)} instead.
      */
     @Delete("/{connector}{?dryrun}")
     @Deprecated(since = "1.13.0")
     public Mono<HttpResponse<Void>> delete(
-            String namespace,
-            String connector,
-            @QueryValue(defaultValue = "false") boolean dryrun,
-            @QueryValue(defaultValue = "false") boolean force) {
+            String namespace, String connector, @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
         // Validate ownership
@@ -230,7 +226,7 @@ public class ConnectorController extends NamespacedResourceController {
 
         sendEventLog(connectorToDelete, ApplyStatus.DELETED, connectorToDelete.getSpec(), null, EMPTY_STRING);
 
-        return connectorService.delete(ns, optionalConnector.get(), force).map(_ -> HttpResponse.noContent());
+        return connectorService.delete(ns, optionalConnector.get(), false).map(_ -> HttpResponse.noContent());
     }
 
     /**
@@ -239,7 +235,7 @@ public class ConnectorController extends NamespacedResourceController {
      * @param namespace The current namespace
      * @param name The name parameter
      * @param dryrun Run in dry mode or not?
-     * @param force Force deletion of the connectors regardless of remote deletion success
+     * @param force Force delete or not?
      * @return A HTTP response
      */
     @Delete

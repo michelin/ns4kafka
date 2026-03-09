@@ -174,17 +174,13 @@ public class ConnectClusterController extends NamespacedResourceController {
      * @param namespace The current namespace
      * @param connectCluster The current connect cluster name to delete
      * @param dryrun Run in dry mode or not
-     * @param force Force deletion of the connect cluster regardless of its connectors
      * @return A HTTP response
      * @deprecated use {@link #bulkDelete(String, String, boolean, boolean)} instead.
      */
     @Delete("/{connectCluster}{?dryrun}")
     @Deprecated(since = "1.13.0")
     public HttpResponse<Void> delete(
-            String namespace,
-            String connectCluster,
-            @QueryValue(defaultValue = "false") boolean dryrun,
-            @QueryValue(defaultValue = "false") boolean force) {
+            String namespace, String connectCluster, @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
         List<String> validationErrors = new ArrayList<>();
@@ -193,7 +189,7 @@ public class ConnectClusterController extends NamespacedResourceController {
         }
 
         List<Connector> connectors = connectorService.findAllByConnectCluster(ns, connectCluster);
-        if (!connectors.isEmpty() && !force) {
+        if (!connectors.isEmpty()) {
             validationErrors.add(invalidConnectClusterDeleteOperation(connectCluster, connectors));
         }
 
@@ -230,7 +226,7 @@ public class ConnectClusterController extends NamespacedResourceController {
      * @param namespace The current namespace
      * @param name The name parameter
      * @param dryrun Run in dry mode or not
-     * @param force Force deletion of the connect cluster regardless of its connectors
+     * @param force Force delete or not?
      * @return A HTTP response
      */
     @Delete
