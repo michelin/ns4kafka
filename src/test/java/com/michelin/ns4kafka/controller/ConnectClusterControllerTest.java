@@ -293,7 +293,7 @@ class ConnectClusterControllerTest {
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        var actual = connectClusterController.bulkDelete("test", "connect-cluster*", false);
+        var actual = connectClusterController.bulkDelete("test", "connect-cluster*", false, false);
         assertEquals(HttpStatus.OK, actual.getStatus());
     }
 
@@ -312,7 +312,7 @@ class ConnectClusterControllerTest {
         when(connectClusterService.findByWildcardNameWithOwnerPermission(ns, "connect-cluster*"))
                 .thenReturn(List.of(connectCluster));
 
-        var actual = connectClusterController.bulkDelete("test", "connect-cluster*", true);
+        var actual = connectClusterController.bulkDelete("test", "connect-cluster*", true, false);
         assertEquals(HttpStatus.OK, actual.getStatus());
 
         verify(connectClusterService, never()).delete(any());
@@ -328,7 +328,7 @@ class ConnectClusterControllerTest {
         when(connectClusterService.findByWildcardNameWithOwnerPermission(ns, "connect-cluster*"))
                 .thenReturn(List.of());
 
-        var actual = connectClusterController.bulkDelete("test", "connect-cluster*", false);
+        var actual = connectClusterController.bulkDelete("test", "connect-cluster*", false, false);
         assertEquals(HttpStatus.NOT_FOUND, actual.getStatus());
     }
 
@@ -360,13 +360,49 @@ class ConnectClusterControllerTest {
 
         ResourceValidationException result = assertThrows(
                 ResourceValidationException.class,
-                () -> connectClusterController.bulkDelete("test", "connect-cluster*", false));
+                () -> connectClusterController.bulkDelete("test", "connect-cluster*", false, false));
 
         assertEquals(1, result.getValidationErrors().size());
         assertEquals(
                 "Invalid \"delete\" operation: The Kafka Connect \"connect-cluster2\" has 1 deployed connector(s): "
                         + "connect1. Please remove the associated connector(s) before deleting it.",
                 result.getValidationErrors().getFirst());
+    }
+
+    @Test
+    void shouldBulkForceDeleteConnectClustersWithConnectors() {
+        Namespace ns = Namespace.builder()
+                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .build();
+
+        Connector connector = Connector.builder()
+                .metadata(Metadata.builder().name("connect1").build())
+                .build();
+
+        ConnectCluster connectCluster1 = ConnectCluster.builder()
+                .metadata(Metadata.builder().name("connect-cluster1").build())
+                .build();
+
+        ConnectCluster connectCluster2 = ConnectCluster.builder()
+                .metadata(Metadata.builder().name("connect-cluster2").build())
+                .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(connectorService.findAllByConnectCluster(ns, "connect-cluster1")).thenReturn(List.of());
+        when(connectorService.findAllByConnectCluster(ns, "connect-cluster2")).thenReturn(List.of(connector));
+        when(connectClusterService.findByWildcardNameWithOwnerPermission(ns, "connect-cluster*"))
+                .thenReturn(List.of(connectCluster1, connectCluster2));
+        doNothing().when(connectClusterService).delete(connectCluster1);
+        doNothing().when(connectClusterService).delete(connectCluster2);
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
+        doNothing().when(applicationEventPublisher).publishEvent(any());
+
+        var actual = connectClusterController.bulkDelete("test", "connect-cluster*", false, true);
+        assertEquals(HttpStatus.OK, actual.getStatus());
+
+        verify(connectClusterService).delete(connectCluster1);
+        verify(connectClusterService).delete(connectCluster2);
     }
 
     @Test

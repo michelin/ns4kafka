@@ -175,7 +175,7 @@ public class ConnectClusterController extends NamespacedResourceController {
      * @param connectCluster The current connect cluster name to delete
      * @param dryrun Run in dry mode or not
      * @return A HTTP response
-     * @deprecated use {@link #bulkDelete(String, String, boolean)} instead.
+     * @deprecated use {@link #bulkDelete(String, String, boolean, boolean)} instead.
      */
     @Delete("/{connectCluster}{?dryrun}")
     @Deprecated(since = "1.13.0")
@@ -226,13 +226,15 @@ public class ConnectClusterController extends NamespacedResourceController {
      * @param namespace The current namespace
      * @param name The name parameter
      * @param dryrun Run in dry mode or not
+     * @param force Force delete or not?
      * @return A HTTP response
      */
     @Delete
     public HttpResponse<List<ConnectCluster>> bulkDelete(
             String namespace,
             @QueryValue(defaultValue = "*") String name,
-            @QueryValue(defaultValue = "false") boolean dryrun) {
+            @QueryValue(defaultValue = "false") boolean dryrun,
+            @QueryValue(defaultValue = "false") boolean force) {
         Namespace ns = getNamespace(namespace);
 
         List<ConnectCluster> connectClusters = connectClusterService.findByWildcardNameWithOwnerPermission(ns, name);
@@ -241,7 +243,7 @@ public class ConnectClusterController extends NamespacedResourceController {
         connectClusters.forEach(cc -> {
             List<Connector> connectors = connectorService.findAllByConnectCluster(
                     ns, cc.getMetadata().getName());
-            if (!connectors.isEmpty()) {
+            if (!connectors.isEmpty() && !force) {
                 validationErrors.add(
                         invalidConnectClusterDeleteOperation(cc.getMetadata().getName(), connectors));
             }
