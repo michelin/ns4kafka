@@ -250,17 +250,18 @@ public class ConnectorService {
                         connector.getSpec().getConnectCluster(),
                         connector.getMetadata().getName())
                 .defaultIfEmpty(HttpResponse.noContent())
-                .doOnError(error -> {
+                .onErrorResume(error -> {
                     if (force) {
-                        connectorRepository.delete(connector);
                         log.atInfo()
                                 .addArgument(connector.getMetadata().getName())
                                 .addArgument(namespace.getMetadata().getName())
                                 .addArgument(connector.getSpec().getConnectCluster())
                                 .addArgument(error.getMessage())
-                                .log("Force deleting Connector [{}] on Kafka [{}] Connect [{}]:"
-                                        + " failed to delete from the connect cluster [{}].");
+                                .log("Success force deleting Connector [{}] on Namespace [{}] from repository."
+                                        + " Failed to delete from Connect cluster [{}]: [{}]");
+                        return Mono.just(HttpResponse.noContent());
                     }
+                    return Mono.error(error);
                 })
                 .map(httpResponse -> {
                     connectorRepository.delete(connector);

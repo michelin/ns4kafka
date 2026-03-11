@@ -1264,7 +1264,8 @@ class ConnectorServiceTest {
         doNothing().when(connectorRepository).delete(connector);
 
         StepVerifier.create(connectorService.delete(ns, connector, true))
-                .verifyError(HttpClientResponseException.class);
+                .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
+                .verifyComplete();
 
         verify(kafkaConnectClient).delete(ns.getMetadata().getCluster(), "local-name", "ns-connect1");
         verify(connectorRepository).delete(connector);
