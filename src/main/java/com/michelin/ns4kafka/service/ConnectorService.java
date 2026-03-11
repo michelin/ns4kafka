@@ -244,36 +244,35 @@ public class ConnectorService {
      * @param connector The connector
      */
     public Mono<HttpResponse<Void>> delete(Namespace namespace, Connector connector, boolean force) {
-        Mono<HttpResponse<Void>> deletePublisher = kafkaConnectClient
+        return kafkaConnectClient
                 .delete(
                         namespace.getMetadata().getCluster(),
                         connector.getSpec().getConnectCluster(),
                         connector.getMetadata().getName())
-                .defaultIfEmpty(HttpResponse.noContent());
+                .defaultIfEmpty(HttpResponse.noContent())
+                .doOnError(error -> {
+                    if (force) {
+                        connectorRepository.delete(connector);
+                        log.atInfo()
+                                .addArgument(connector.getMetadata().getName())
+                                .addArgument(namespace.getMetadata().getName())
+                                .addArgument(connector.getSpec().getConnectCluster())
+                                .addArgument(error.getMessage())
+                                .log("Force deleting Connector [{}] on Kafka [{}] Connect [{}]:"
+                                        + " failed to delete from the connect cluster [{}].");
+                    }
+                })
+                .map(httpResponse -> {
+                    connectorRepository.delete(connector);
 
-        if (force) {
-            deletePublisher = deletePublisher
-                    .doOnError(error -> log.atWarn()
+                    log.atInfo()
                             .addArgument(connector.getMetadata().getName())
                             .addArgument(namespace.getMetadata().getName())
                             .addArgument(connector.getSpec().getConnectCluster())
-                            .addArgument(error.getMessage())
-                            .log("Force deleting Connector [{}] on Kafka [{}] Connect [{}]:"
-                                    + " failed to delete from the connect cluster [{}]."))
-                    .onErrorReturn(HttpResponse.noContent());
-        }
+                            .log("Success removing Connector [{}] on Kafka [{}] Connect [{}]");
 
-        return deletePublisher.map(httpResponse -> {
-            connectorRepository.delete(connector);
-
-            log.atInfo()
-                    .addArgument(connector.getMetadata().getName())
-                    .addArgument(namespace.getMetadata().getName())
-                    .addArgument(connector.getSpec().getConnectCluster())
-                    .log("Success removing Connector [{}] on Kafka [{}] Connect [{}]");
-
-            return httpResponse;
-        });
+                    return httpResponse;
+                });
     }
 
     /**
