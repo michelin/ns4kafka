@@ -53,6 +53,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /** Controller to manage Kafka Connect clusters. */
@@ -227,14 +228,16 @@ public class ConnectClusterController extends NamespacedResourceController {
      * @param name The name parameter
      * @param dryrun Run in dry mode or not
      * @param force Force delete or not?
+     * @param cascade Cascade delete connectors or not?
      * @return A HTTP response
      */
     @Delete
-    public HttpResponse<List<ConnectCluster>> bulkDelete(
+    public Mono<HttpResponse<List<ConnectCluster>>> bulkDelete(
             String namespace,
             @QueryValue(defaultValue = "*") String name,
             @QueryValue(defaultValue = "false") boolean dryrun,
-            @QueryValue(defaultValue = "false") boolean force) {
+            @QueryValue(defaultValue = "false") boolean force,
+            @QueryValue(defaultValue = "false") boolean cascade) {
         Namespace ns = getNamespace(namespace);
 
         List<ConnectCluster> connectClusters = connectClusterService.findByWildcardNameWithOwnerPermission(ns, name);
@@ -243,31 +246,49 @@ public class ConnectClusterController extends NamespacedResourceController {
         connectClusters.forEach(cc -> {
             List<Connector> connectors = connectorService.findAllByConnectCluster(
                     ns, cc.getMetadata().getName());
-            if (!connectors.isEmpty() && !force) {
+            if (!connectors.isEmpty() && !force && !cascade) {
                 validationErrors.add(
                         invalidConnectClusterDeleteOperation(cc.getMetadata().getName(), connectors));
             }
         });
 
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(CONNECT_CLUSTER, name, validationErrors);
+            return Mono.error(new ResourceValidationException(CONNECT_CLUSTER, name, validationErrors));
         }
 
         if (connectClusters.isEmpty()) {
-            return HttpResponse.notFound();
+            return Mono.just(HttpResponse.notFound());
         }
 
         if (dryrun) {
-            return HttpResponse.ok(connectClusters);
+            return Mono.just(HttpResponse.ok(connectClusters));
         }
 
-        connectClusters.forEach(cc -> {
-            sendEventLog(cc, ApplyStatus.DELETED, cc.getSpec(), null, EMPTY_STRING);
+        return Flux.fromIterable(connectClusters)
+                .flatMap(cc -> {
+                    List<Connector> connectors = connectorService.findAllByConnectCluster(
+                            ns, cc.getMetadata().getName());
 
-            connectClusterService.delete(cc);
-        });
+                    Mono<Void> deleteConnectorsMono = Mono.empty();
+                    if (cascade && !connectors.isEmpty()) {
+                        deleteConnectorsMono = Flux.fromIterable(connectors)
+                                .flatMap(connector -> connectorService
+                                        .delete(ns, connector, force)
+                                        .doOnSuccess(_ -> sendEventLog(connector, ApplyStatus.DELETED,
+                                                connector.getSpec(), null, EMPTY_STRING)))
+                                .onErrorMap(error -> new RuntimeException(
+                                        "Failed to delete connectors from Connect cluster [%s]: %s. "
+                                        .formatted(cc.getMetadata().getName(), error.getMessage())
+                                        + "Please use cascade and force option to bypass the error and remove from Ns4kafka", error))
+                                .then();
+                    }
 
-        return HttpResponse.ok(connectClusters);
+                    return deleteConnectorsMono.then(Mono.fromRunnable(() -> {
+                        sendEventLog(cc, ApplyStatus.DELETED, cc.getSpec(), null, EMPTY_STRING);
+                        connectClusterService.delete(cc);
+                    }));
+                })
+                .then(Mono.just(HttpResponse.ok(connectClusters)));
     }
 
     /**
