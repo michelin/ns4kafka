@@ -25,6 +25,7 @@ import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpStatus;
+import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.authentication.AuthenticationException;
 import io.micronaut.security.authentication.AuthorizationException;
@@ -92,6 +93,19 @@ class ExceptionHandlerControllerTest {
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatus());
         assertEquals(HttpStatus.UNAUTHORIZED.getCode(), status.getCode());
+    }
+
+    @Test
+    void shouldHandleHttpStatusException() {
+        var response = exceptionHandlerController.error(
+                HttpRequest.create(HttpMethod.POST, "local"),
+                new HttpStatusException(HttpStatus.BAD_GATEWAY, "Connect cluster unreachable"));
+        var status = response.body();
+
+        assertEquals(HttpStatus.BAD_GATEWAY, response.getStatus());
+        assertEquals(HttpStatus.BAD_GATEWAY.getCode(), status.getCode());
+        assertEquals("Connect cluster unreachable", status.getMessage());
+        assertEquals("Connect cluster unreachable", status.getDetails().getCauses().getFirst());
     }
 
     @Test

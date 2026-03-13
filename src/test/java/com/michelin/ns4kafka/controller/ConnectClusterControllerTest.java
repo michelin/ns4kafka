@@ -43,6 +43,7 @@ import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
+import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.security.utils.SecurityService;
 import java.util.List;
 import java.util.Optional;
@@ -472,7 +473,8 @@ class ConnectClusterControllerTest {
 
         StepVerifier.create(connectClusterController.bulkDelete("test", "connect-cluster", false, false, true))
                 .consumeErrorWith(error -> {
-                    assertEquals(RuntimeException.class, error.getClass());
+                    assertEquals(HttpStatusException.class, error.getClass());
+                    assertEquals(HttpStatus.BAD_GATEWAY, ((HttpStatusException) error).getStatus());
                     assertEquals("Failed to delete connectors from Connect cluster [connect-cluster]: Host is DOWN. Please use cascade and force option to bypass the error and remove from Ns4kafka", error.getMessage());
                 })
                 .verify();

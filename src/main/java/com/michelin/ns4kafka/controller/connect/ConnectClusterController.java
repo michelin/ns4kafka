@@ -37,12 +37,14 @@ import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Delete;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
+import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.micronaut.security.utils.SecurityService;
@@ -276,10 +278,11 @@ public class ConnectClusterController extends NamespacedResourceController {
                                         .delete(ns, connector, force)
                                         .doOnSuccess(_ -> sendEventLog(connector, ApplyStatus.DELETED,
                                                 connector.getSpec(), null, EMPTY_STRING)))
-                                .onErrorMap(error -> new RuntimeException(
-                                        "Failed to delete connectors from Connect cluster [%s]: %s. "
-                                        .formatted(cc.getMetadata().getName(), error.getMessage())
-                                        + "Please use cascade and force option to bypass the error and remove from Ns4kafka", error))
+                            .onErrorMap(error -> new HttpStatusException(
+                                HttpStatus.BAD_GATEWAY,
+                                "Failed to delete connectors from Connect cluster [%s]: %s. "
+                                    .formatted(cc.getMetadata().getName(), error.getMessage())
+                                    + "Please use cascade and force option to bypass the error and remove from Ns4kafka"))
                                 .then();
                     }
 
