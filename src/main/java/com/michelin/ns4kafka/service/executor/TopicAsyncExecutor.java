@@ -158,10 +158,10 @@ public class TopicAsyncExecutor {
 
             if (!createTopics.isEmpty()) {
                 log.atDebug()
-                        .addArgument("Topic(s) to create: {}")
-                        .log(createTopics.stream()
+                        .addArgument(createTopics.stream()
                                 .map(topic -> topic.getMetadata().getName())
-                                .collect(Collectors.joining(",")));
+                                .collect(Collectors.joining(",")))
+                        .log("Topic(s) to create: {}");
 
                 createTopics(createTopics);
             }
