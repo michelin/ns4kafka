@@ -190,26 +190,26 @@ public class ExceptionHandlerController {
         return HttpResponse.status(HttpStatus.FORBIDDEN).body(status);
     }
 
-        /**
-         * Handle http status exception.
-         *
-         * @param request the request
-         * @param exception the exception
-         * @return the http response
-         */
-        @Error(global = true)
-        public HttpResponse<Status> error(HttpRequest<?> request, HttpStatusException exception) {
+    /**
+     * Handle http status exception.
+     *
+     * @param request the request
+     * @param exception the exception
+     * @return the http response
+     */
+    @Error(global = true)
+    public HttpResponse<Status> error(HttpRequest<?> request, HttpStatusException exception) {
         var status = Status.builder()
-            .status(FAILED)
-            .message(exception.getMessage())
-            .httpStatus(exception.getStatus())
-            .details(StatusDetails.builder()
-                .causes(List.of(exception.getMessage()))
-                .build())
-            .build();
+                .status(FAILED)
+                .message(exception.getStatus().getReason())
+                .httpStatus(exception.getStatus())
+                .details(StatusDetails.builder()
+                        .causes(List.of(exception.getMessage()))
+                        .build())
+                .build();
 
         return HttpResponse.status(exception.getStatus()).body(status);
-        }
+    }
 
     /**
      * Handle exception.

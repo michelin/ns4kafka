@@ -104,7 +104,7 @@ class ExceptionHandlerControllerTest {
 
         assertEquals(HttpStatus.BAD_GATEWAY, response.getStatus());
         assertEquals(HttpStatus.BAD_GATEWAY.getCode(), status.getCode());
-        assertEquals("Connect cluster unreachable", status.getMessage());
+        assertEquals("Bad Gateway", status.getMessage());
         assertEquals("Connect cluster unreachable", status.getDetails().getCauses().getFirst());
     }
 
