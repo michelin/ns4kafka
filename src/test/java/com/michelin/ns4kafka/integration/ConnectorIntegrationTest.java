@@ -620,7 +620,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
                                 ConnectorStateInfo.class);
 
                 connectorInState = response.body().connector().getState().equals(state);
-            } catch (HttpClientResponseException _) {
+            } catch (HttpClientResponseException e) {
                 // Connector not found, retry
             }
         }
