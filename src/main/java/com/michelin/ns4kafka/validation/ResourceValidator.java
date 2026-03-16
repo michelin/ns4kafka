@@ -129,7 +129,7 @@ public abstract class ResourceValidator {
             }
             try {
                 n = Double.valueOf(o.toString());
-            } catch (NumberFormatException _) {
+            } catch (NumberFormatException e) {
                 throw new FieldValidationException(invalidFieldValidationNumber(name, o.toString()));
             }
             if (min != null && n.doubleValue() < min.doubleValue()) {

@@ -329,7 +329,7 @@ public class ConnectorService {
                                 connector.getSpec().getConnectCluster(),
                                 connector.getMetadata().getName(),
                                 task.getId()))
-                        .doOnNext(_ -> log.info(
+                        .doOnNext(e -> log.info(
                                 "Success restarting connector [{}] on namespace [{}] connect [{}]",
                                 connector.getMetadata().getName(),
                                 namespace.getMetadata().getName(),
@@ -350,7 +350,7 @@ public class ConnectorService {
                         namespace.getMetadata().getCluster(),
                         connector.getSpec().getConnectCluster(),
                         connector.getMetadata().getName())
-                .map(_ -> {
+                .map(e -> {
                     log.info(
                             "Success pausing Connector [{}] on Namespace [{}] Connect [{}]",
                             connector.getMetadata().getName(),
@@ -374,7 +374,7 @@ public class ConnectorService {
                         namespace.getMetadata().getCluster(),
                         connector.getSpec().getConnectCluster(),
                         connector.getMetadata().getName())
-                .map(_ -> {
+                .map(e -> {
                     log.info(
                             "Success resuming Connector [{}] on Namespace [{}] Connect [{}]",
                             connector.getMetadata().getName(),

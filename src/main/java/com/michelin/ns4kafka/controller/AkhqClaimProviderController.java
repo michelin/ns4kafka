@@ -296,14 +296,14 @@ public class AkhqClaimProviderController {
         List<String> clusters =
                 managedClusters.stream().map(c -> "^%s$".formatted(c.getName())).toList();
 
-        bindings.forEach((_, value) -> {
+        bindings.forEach((e, value) -> {
             // Same pattern on all the clusters, we remove all the clusters and keep the *
             if (new HashSet<>(value.getClusters()).containsAll(clusters)) {
                 value.setClusters(List.of("^.*$"));
             }
         });
 
-        bindings.forEach((_, value) -> result.stream()
+        bindings.forEach((e, value) -> result.stream()
                 // Search bindings with the same role and cluster filtering
                 .filter(r -> r.role.equals(value.role)
                         && r.clusters.size() == value.clusters.size()

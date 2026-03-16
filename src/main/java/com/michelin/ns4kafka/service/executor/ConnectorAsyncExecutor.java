@@ -298,7 +298,7 @@ public class ConnectorAsyncExecutor {
                         ConnectorSpecs.builder()
                                 .config(connector.getSpec().getConfig())
                                 .build())
-                .doOnSuccess(_ -> {
+                .doOnSuccess(e -> {
                     connector.getStatus().setToDeploy(false);
                     connectorRepository.create(connector);
 

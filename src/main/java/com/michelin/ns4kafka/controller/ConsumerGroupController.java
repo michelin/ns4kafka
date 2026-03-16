@@ -154,7 +154,7 @@ public class ConsumerGroupController extends NamespacedResourceController {
                                     .build())
                             .build())
                     .toList();
-        } catch (InterruptedException _) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
 

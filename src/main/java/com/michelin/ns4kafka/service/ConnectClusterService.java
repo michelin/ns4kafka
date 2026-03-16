@@ -139,11 +139,11 @@ public class ConnectClusterService {
                     connectCluster.getSpec().setStatus(ConnectCluster.Status.IDLE);
                     connectCluster.getSpec().setStatusMessage(error.getMessage());
                 })
-                .doOnSuccess(_ -> {
+                .doOnSuccess(e -> {
                     connectCluster.getSpec().setStatus(ConnectCluster.Status.HEALTHY);
                     connectCluster.getSpec().setStatusMessage(null);
                 })
-                .map(_ -> connectCluster)
+                .map(e -> connectCluster)
                 .onErrorReturn(connectCluster));
     }
 
@@ -306,7 +306,7 @@ public class ConnectClusterService {
                         errors.add(invalidConnectClusterEncryptionConfig());
                     }
                 })
-                .map(_ -> errors)
+                .map(e -> errors)
                 .onErrorReturn(errors);
     }
 

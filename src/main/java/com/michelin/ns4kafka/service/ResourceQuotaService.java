@@ -191,7 +191,7 @@ public class ResourceQuotaService {
         if (StringUtils.hasText(producerByteRate)) {
             try {
                 Double.parseDouble(producerByteRate);
-            } catch (NumberFormatException _) {
+            } catch (NumberFormatException e) {
                 errors.add(invalidFieldValidationNumber(USER_PRODUCER_BYTE_RATE.toString(), producerByteRate));
             }
         }
@@ -200,7 +200,7 @@ public class ResourceQuotaService {
         if (StringUtils.hasText(consumerByteRate)) {
             try {
                 Double.parseDouble(consumerByteRate);
-            } catch (NumberFormatException _) {
+            } catch (NumberFormatException e) {
                 errors.add(invalidFieldValidationNumber(USER_CONSUMER_BYTE_RATE.toString(), consumerByteRate));
             }
         }

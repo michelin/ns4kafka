@@ -99,14 +99,14 @@ public class ConsumerGroupService {
             case SHIFT_BY -> {
                 try {
                     Integer.parseInt(options);
-                } catch (NumberFormatException _) {
+                } catch (NumberFormatException e) {
                     validationErrors.add(invalidConsumerGroupShiftBy(options));
                 }
             }
             case BY_DURATION -> {
                 try {
                     Duration.parse(options);
-                } catch (NullPointerException | DateTimeParseException _) {
+                } catch (NullPointerException | DateTimeParseException e) {
                     validationErrors.add(invalidConsumerGroupDuration(options));
                 }
             }
@@ -114,7 +114,7 @@ public class ConsumerGroupService {
                 // OffsetDateTime is of format iso6801 with time zone
                 try {
                     OffsetDateTime.parse(options);
-                } catch (Exception _) {
+                } catch (Exception e) {
                     validationErrors.add(invalidConsumerGroupDatetime(options));
                 }
             }
@@ -124,7 +124,7 @@ public class ConsumerGroupService {
                     if (offset < 0) {
                         validationErrors.add(invalidConsumerGroupOffsetNegative(options));
                     }
-                } catch (NumberFormatException _) {
+                } catch (NumberFormatException e) {
                     validationErrors.add(invalidConsumerGroupOffsetInteger(options));
                 }
             }
@@ -152,7 +152,7 @@ public class ConsumerGroupService {
                     .describeConsumerGroups(List.of(groupId))
                     .get(groupId)
                     .groupState();
-        } catch (ExecutionException _) {
+        } catch (ExecutionException e) {
             // If the consumer group doesn't exist, describeConsumerGroups throw an ExecutionException
             // Check KIP1043
             // https://cwiki.apache.org/confluence/display/KAFKA/KIP-1043%3A+Administration+of+groups#KIP1043:Administrationofgroups-Compatibility,Deprecation,andMigrationPlan

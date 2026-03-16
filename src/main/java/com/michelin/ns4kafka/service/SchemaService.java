@@ -276,7 +276,7 @@ public class SchemaService {
     public Mono<Integer[]> deleteAllVersions(Namespace namespace, String subject) {
         return schemaRegistryClient
                 .deleteSubject(namespace.getMetadata().getCluster(), subject, false)
-                .flatMap(_ -> schemaRegistryClient.deleteSubject(
+                .flatMap(e -> schemaRegistryClient.deleteSubject(
                         namespace.getMetadata().getCluster(), subject, true));
     }
 

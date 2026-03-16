@@ -175,7 +175,7 @@ public class SchemaController extends NamespacedResourceController {
 
                                             return schemaService
                                                     .register(ns, schema)
-                                                    .map(_ -> {
+                                                    .map(e -> {
                                                         sendEventLog(
                                                                 schema,
                                                                 status,
@@ -247,7 +247,7 @@ public class SchemaController extends NamespacedResourceController {
                                                 schema.getSpec(),
                                                 null,
                                                 versionOptional
-                                                        .map(_ -> String.valueOf(deletedVersionIds))
+                                                        .map(e -> String.valueOf(deletedVersionIds))
                                                         .orElse(EMPTY_STRING));
                                         return Mono.just(HttpResponse.noContent());
                                     }))
@@ -307,7 +307,7 @@ public class SchemaController extends NamespacedResourceController {
                                         deletedSchema.getSpec(),
                                         null,
                                         versionOptional
-                                                .map(_ -> String.valueOf(deletedVersionIds))
+                                                .map(e -> String.valueOf(deletedVersionIds))
                                                 .orElse(EMPTY_STRING));
 
                                 return HttpResponse.noContent();
@@ -354,7 +354,7 @@ public class SchemaController extends NamespacedResourceController {
 
                     return schemaService
                             .updateSubjectCompatibility(ns, latestSubjectOptional.get(), compatibility)
-                            .map(_ -> {
+                            .map(e -> {
                                 sendEventLog(
                                         latestSubjectOptional.get(),
                                         ApplyStatus.CHANGED,

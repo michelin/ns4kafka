@@ -379,7 +379,7 @@ public class TopicAsyncExecutor {
                 schemaRegistryClient
                         .updateDescription(managedClusterProperties.getName(), body)
                         .subscribe(
-                                _ -> {
+                                e -> {
                                     log.info(
                                             "Success update description {}",
                                             qualifiedName + ": "
@@ -667,13 +667,13 @@ public class TopicAsyncExecutor {
         return schemaRegistryClient
                 .createTags(managedClusterProperties.getName(), tagsToCreate)
                 .subscribe(
-                        _ -> {
+                        e -> {
                             log.info("Success creating tag {}.", tagsListString);
 
                             schemaRegistryClient
                                     .associateTags(managedClusterProperties.getName(), tagsToAssociate)
                                     .subscribe(
-                                            _ -> topicTags.forEach((topic, tags) -> {
+                                            ex -> topicTags.forEach((topic, tags) -> {
                                                 log.info(
                                                         "Success associating tag {}.",
                                                         managedClusterProperties
@@ -728,7 +728,7 @@ public class TopicAsyncExecutor {
                                         + topic.getMetadata().getName(),
                                 tag)
                         .subscribe(
-                                _ -> {
+                                e -> {
                                     log.info(
                                             "Success dissociating tag {}.",
                                             managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
@@ -796,7 +796,7 @@ public class TopicAsyncExecutor {
                         .stream()
                         .flatMap(topicDescriptionEntry -> topicDescriptionEntry.getValue().partitions().stream())
                         .map(partitionInfo -> new TopicPartition(topic, partitionInfo.partition()))
-                        .collect(Collectors.toMap(Function.identity(), _ -> OffsetSpec.latest()));
+                        .collect(Collectors.toMap(Function.identity(), e -> OffsetSpec.latest()));
 
         // list all latest offsets for each partitions
         return managedClusterProperties

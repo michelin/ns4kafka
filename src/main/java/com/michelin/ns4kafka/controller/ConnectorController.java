@@ -226,7 +226,7 @@ public class ConnectorController extends NamespacedResourceController {
 
         sendEventLog(connectorToDelete, ApplyStatus.DELETED, connectorToDelete.getSpec(), null, EMPTY_STRING);
 
-        return connectorService.delete(ns, optionalConnector.get(), false).map(_ -> HttpResponse.noContent());
+        return connectorService.delete(ns, optionalConnector.get(), false).map(e -> HttpResponse.noContent());
     }
 
     /**
@@ -326,7 +326,7 @@ public class ConnectorController extends NamespacedResourceController {
                     state.setMetadata(optionalConnector.get().getMetadata());
                     state.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
                 })
-                .map(_ -> HttpResponse.ok(state))
+                .map(e -> HttpResponse.ok(state))
                 .onErrorReturn(HttpResponse.ok(state));
     }
 

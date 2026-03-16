@@ -100,10 +100,10 @@ public class KafkaAsyncExecutorScheduler {
                         Duration.ofSeconds(12),
                         Duration.ofMillis(schedulerProperties.getConnector().getIntervalMs()))
                 .onBackpressureDrop(
-                        _ -> log.debug("Skipping next connector synchronization. The previous one is still running."))
-                .concatMap(_ -> Flux.fromIterable(connectorAsyncExecutors)
+                        e -> log.debug("Skipping next connector synchronization. The previous one is still running."))
+                .concatMap(e -> Flux.fromIterable(connectorAsyncExecutors)
                         .flatMap(ConnectorAsyncExecutor::run, connectorAsyncExecutors.size()))
-                .onErrorContinue((error, _) ->
+                .onErrorContinue((error, e) ->
                         log.trace("Continue connector synchronization after error: {}.", error.getMessage()))
                 .subscribe(connectorInfo ->
                         log.trace("Synchronization completed for connector \"{}\".", connectorInfo.name()));
@@ -118,11 +118,11 @@ public class KafkaAsyncExecutorScheduler {
         return Flux.interval(
                         Duration.ofSeconds(5),
                         Duration.ofMillis(schedulerProperties.getConnect().getIntervalMs()))
-                .onBackpressureDrop(_ ->
+                .onBackpressureDrop(e ->
                         log.debug("Skipping next Connect cluster health check. The previous one is still running."))
-                .concatMap(_ -> Flux.fromIterable(connectorAsyncExecutors)
+                .concatMap(e -> Flux.fromIterable(connectorAsyncExecutors)
                         .flatMap(ConnectorAsyncExecutor::runHealthCheck, connectorAsyncExecutors.size()))
-                .onErrorContinue((error, _) ->
+                .onErrorContinue((error, e) ->
                         log.trace("Continue Connect cluster health check after error: {}.", error.getMessage()))
                 .subscribe(connectCluster -> log.trace(
                         "Health check completed for Connect cluster \"{}\".",
