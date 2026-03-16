@@ -276,13 +276,21 @@ public class ConnectClusterController extends NamespacedResourceController {
                         deleteConnectorsMono = Flux.fromIterable(connectors)
                                 .flatMap(connector -> connectorService
                                         .delete(ns, connector, force)
-                                        .doOnSuccess(_ -> sendEventLog(connector, ApplyStatus.DELETED,
-                                                connector.getSpec(), null, EMPTY_STRING)))
-                            .onErrorMap(error -> new HttpStatusException(
-                                HttpStatus.BAD_GATEWAY,
-                                "Failed to delete connectors from Connect cluster [%s]: %s. "
-                                    .formatted(cc.getMetadata().getName(), error.getMessage())
-                                    + "Please use cascade and force option to bypass the error and remove from Ns4kafka"))
+                                        .doOnSuccess(_ -> sendEventLog(
+                                                connector,
+                                                ApplyStatus.DELETED,
+                                                connector.getSpec(),
+                                                null,
+                                                EMPTY_STRING)))
+                                .onErrorMap(
+                                        error -> new HttpStatusException(
+                                                HttpStatus.BAD_GATEWAY,
+                                                "Failed to delete connectors from Connect cluster [%s]: %s. "
+                                                                .formatted(
+                                                                        cc.getMetadata()
+                                                                                .getName(),
+                                                                        error.getMessage())
+                                                        + "Please use cascade and force option to bypass the error and remove from Ns4kafka"))
                                 .then();
                     }
 

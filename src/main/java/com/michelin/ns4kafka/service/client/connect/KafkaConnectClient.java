@@ -207,8 +207,7 @@ public class KafkaConnectClient {
                         URI.create(StringUtils.prependUri(config.getUrl(), CONNECTORS + encodedConnector)))
                 .basicAuth(config.getUsername(), config.getPassword());
 
-        return Mono.from(httpClient.exchange(request))
-                .map(response -> HttpResponse.status(response.getStatus()));
+        return Mono.from(httpClient.exchange(request)).map(response -> HttpResponse.status(response.getStatus()));
     }
 
     /**

@@ -475,7 +475,9 @@ class ConnectClusterControllerTest {
                 .consumeErrorWith(error -> {
                     assertEquals(HttpStatusException.class, error.getClass());
                     assertEquals(HttpStatus.BAD_GATEWAY, ((HttpStatusException) error).getStatus());
-                    assertEquals("Failed to delete connectors from Connect cluster [connect-cluster]: Host is DOWN. Please use cascade and force option to bypass the error and remove from Ns4kafka", error.getMessage());
+                    assertEquals(
+                            "Failed to delete connectors from Connect cluster [connect-cluster]: Host is DOWN. Please use cascade and force option to bypass the error and remove from Ns4kafka",
+                            error.getMessage());
                 })
                 .verify();
 
