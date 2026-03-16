@@ -80,7 +80,7 @@ jobs:
           context: .
           file: .docker/Dockerfile
           platforms: linux/amd64,linux/arm64
-          push: ${{ github.ref == 'refs/heads/master' && 'true' || 'false' }}
+          push: true
           tags: michelin/ns4kafka:${{ steps.metadata.outputs.current_version }}
         env:
           DOCKER_BUILD_SUMMARY: false
