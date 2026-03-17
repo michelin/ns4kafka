@@ -49,7 +49,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
-import org.apache.kafka.common.GroupState;
+import org.apache.kafka.common.ConsumerGroupState;
 import org.apache.kafka.common.TopicPartition;
 
 /** Controller to manage the consumer groups. */
@@ -110,14 +110,14 @@ public class ConsumerGroupController extends NamespacedResourceController {
         try {
             // Validate Consumer Group is empty or dead
             // The check for DEAD state is for retro compatibility with Kafka server 3.X
-            GroupState currentState = consumerGroupService.getConsumerGroupStatus(ns, consumerGroup);
-            if (!List.of(GroupState.EMPTY, GroupState.DEAD).contains(currentState)) {
+            ConsumerGroupState currentState = consumerGroupService.getConsumerGroupStatus(ns, consumerGroup);
+            if (!List.of(ConsumerGroupState.EMPTY, ConsumerGroupState.DEAD).contains(currentState)) {
                 throw new ResourceValidationException(
                         CONSUMER_GROUP_RESET_OFFSET,
                         consumerGroup,
                         invalidConsumerGroupOperation(
                                 consumerGroup,
-                                GroupState.EMPTY.toString().toLowerCase(),
+                                ConsumerGroupState.EMPTY.toString().toLowerCase(),
                                 currentState.toString().toLowerCase()));
             }
 
@@ -181,19 +181,19 @@ public class ConsumerGroupController extends NamespacedResourceController {
 
         Namespace ns = getNamespace(namespace);
 
-        GroupState currentState = consumerGroupService.getConsumerGroupStatus(ns, consumerGroup);
+        ConsumerGroupState currentState = consumerGroupService.getConsumerGroupStatus(ns, consumerGroup);
 
-        if (currentState == GroupState.DEAD) {
+        if (currentState == ConsumerGroupState.DEAD) {
             return HttpResponse.notFound();
         }
 
-        if (currentState != GroupState.EMPTY) {
+        if (currentState != ConsumerGroupState.EMPTY) {
             throw new ResourceValidationException(
                     CONSUMER_GROUP,
                     consumerGroup,
                     invalidConsumerGroupDeleteOperation(
                             consumerGroup,
-                            GroupState.EMPTY.toString().toLowerCase(),
+                            ConsumerGroupState.EMPTY.toString().toLowerCase(),
                             currentState.toString().toLowerCase()));
         }
 

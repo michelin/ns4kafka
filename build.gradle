@@ -1,6 +1,6 @@
 plugins {
-    id("com.gradleup.shadow") version "8.3.9"
     id("io.micronaut.application") version "4.6.2"
+    id("com.gradleup.shadow") version "8.3.9"
     id("jacoco")
     id("org.sonarqube") version "7.2.3.7755"
     id("pl.allegro.tech.build.axion-release") version "1.21.1"
@@ -24,22 +24,23 @@ dependencies {
     annotationProcessor("io.micronaut.security:micronaut-security-annotations")
     annotationProcessor("io.micronaut.validation:micronaut-validation-processor")
 
+    implementation("io.micrometer:context-propagation")
     implementation("io.micronaut:micronaut-http-client")
     implementation("io.micronaut:micronaut-jackson-databind")
-    implementation("io.micronaut.kafka:micronaut-kafka")
     implementation("io.micronaut:micronaut-management")
-    implementation("io.micronaut.validation:micronaut-validation")
-    implementation("io.micronaut.reactor:micronaut-reactor")
     implementation("io.micronaut:micronaut-retry")
+    implementation("io.micronaut.kafka:micronaut-kafka")
+    implementation("io.micronaut.reactor:micronaut-reactor")
+    implementation("io.micronaut.reactor:micronaut-reactor-http-client")
     implementation("io.micronaut.security:micronaut-security")
     implementation("io.micronaut.security:micronaut-security-jwt")
     implementation("io.micronaut.security:micronaut-security-ldap")
-    implementation("io.micronaut.openapi:micronaut-openapi")
-    implementation("io.swagger.core.v3:swagger-annotations")
+    implementation("io.micronaut.validation:micronaut-validation")
     implementation("jakarta.annotation:jakarta.annotation-api")
     implementation("jakarta.validation:jakarta.validation-api")
-    implementation("io.confluent:kafka-schema-registry-client:8.2.0")
+    implementation("io.confluent:kafka-schema-registry-client:7.9.1")
 
+    compileOnly("io.micronaut.openapi:micronaut-openapi-annotations")
     compileOnly("org.projectlombok:lombok")
 
     runtimeOnly("ch.qos.logback:logback-classic")

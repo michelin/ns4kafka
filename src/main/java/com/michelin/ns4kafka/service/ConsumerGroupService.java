@@ -43,7 +43,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import org.apache.kafka.common.GroupState;
+import org.apache.kafka.common.ConsumerGroupState;
 import org.apache.kafka.common.TopicPartition;
 
 /** Service to manage the consumer groups. */
@@ -143,7 +143,7 @@ public class ConsumerGroupService {
      * @return The consumer group status
      * @throws InterruptedException Any interrupted exception during consumer groups description
      */
-    public GroupState getConsumerGroupStatus(Namespace namespace, String groupId) throws InterruptedException {
+    public ConsumerGroupState getConsumerGroupStatus(Namespace namespace, String groupId) throws InterruptedException {
         ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor = applicationContext.getBean(
                 ConsumerGroupAsyncExecutor.class,
                 Qualifiers.byName(namespace.getMetadata().getCluster()));
@@ -151,12 +151,12 @@ public class ConsumerGroupService {
             return consumerGroupAsyncExecutor
                     .describeConsumerGroups(List.of(groupId))
                     .get(groupId)
-                    .groupState();
+                    .state();
         } catch (ExecutionException e) {
             // If the consumer group doesn't exist, describeConsumerGroups throw an ExecutionException
             // Check KIP1043
             // https://cwiki.apache.org/confluence/display/KAFKA/KIP-1043%3A+Administration+of+groups#KIP1043:Administrationofgroups-Compatibility,Deprecation,andMigrationPlan
-            return GroupState.DEAD;
+            return ConsumerGroupState.DEAD;
         }
     }
 
