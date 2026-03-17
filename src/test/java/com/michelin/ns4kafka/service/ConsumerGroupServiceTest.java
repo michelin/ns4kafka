@@ -38,7 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import org.apache.kafka.clients.admin.ConsumerGroupDescription;
-import org.apache.kafka.common.GroupState;
+import org.apache.kafka.common.ConsumerGroupState;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -358,7 +358,7 @@ class ConsumerGroupServiceTest {
 
         String groupId = "testGroup";
         ConsumerGroupDescription consumerGroupDescription =
-                new ConsumerGroupDescription(null, true, null, null, null, GroupState.STABLE, null, null, null, null);
+                new ConsumerGroupDescription(null, true, null, null, ConsumerGroupState.STABLE, null);
 
         ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor = mock(ConsumerGroupAsyncExecutor.class);
         when(applicationContext.getBean(
@@ -368,9 +368,9 @@ class ConsumerGroupServiceTest {
         when(consumerGroupAsyncExecutor.describeConsumerGroups(List.of(groupId)))
                 .thenReturn(Map.of(groupId, consumerGroupDescription));
 
-        GroupState result = consumerGroupService.getConsumerGroupStatus(namespace, groupId);
+        ConsumerGroupState result = consumerGroupService.getConsumerGroupStatus(namespace, groupId);
 
-        assertEquals(GroupState.STABLE, result);
+        assertEquals(ConsumerGroupState.STABLE, result);
     }
 
     @Test
@@ -390,9 +390,9 @@ class ConsumerGroupServiceTest {
         when(consumerGroupAsyncExecutor.describeConsumerGroups(List.of(groupId)))
                 .thenThrow(new ExecutionException("", new Exception()));
 
-        GroupState result = consumerGroupService.getConsumerGroupStatus(namespace, groupId);
+        ConsumerGroupState result = consumerGroupService.getConsumerGroupStatus(namespace, groupId);
 
-        assertEquals(GroupState.DEAD, result);
+        assertEquals(ConsumerGroupState.DEAD, result);
     }
 
     @Test

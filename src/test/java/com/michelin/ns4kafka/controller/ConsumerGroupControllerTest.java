@@ -52,7 +52,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
-import org.apache.kafka.common.GroupState;
+import org.apache.kafka.common.ConsumerGroupState;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -274,7 +274,7 @@ class ConsumerGroupControllerTest {
         when(consumerGroupService.validateResetOffsets(resetOffset)).thenReturn(new ArrayList<>());
         when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
                 .thenReturn(true);
-        when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(GroupState.STABLE);
+        when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(ConsumerGroupState.STABLE);
 
         ResourceValidationException result = assertThrows(
                 ResourceValidationException.class,
@@ -282,8 +282,9 @@ class ConsumerGroupControllerTest {
 
         assertEquals(
                 "Invalid \"reset offset\" operation: offsets can only be reset if the consumer group "
-                        + "\"groupID\" is " + GroupState.EMPTY.toString().toLowerCase() + " but the current state is "
-                        + GroupState.STABLE.toString().toLowerCase()
+                        + "\"groupID\" is "
+                        + ConsumerGroupState.EMPTY.toString().toLowerCase() + " but the current state is "
+                        + ConsumerGroupState.STABLE.toString().toLowerCase()
                         + ". Stop the consumption and wait \"session.timeout.ms\" before retrying.",
                 result.getValidationErrors().getFirst());
     }
@@ -297,7 +298,7 @@ class ConsumerGroupControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
                 .thenReturn(true);
-        when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(GroupState.EMPTY);
+        when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(ConsumerGroupState.EMPTY);
 
         HttpResponse<Void> response = consumerGroupController.deleteConsumerGroup("test", "groupID", false);
 
@@ -314,7 +315,7 @@ class ConsumerGroupControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
                 .thenReturn(true);
-        when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(GroupState.EMPTY);
+        when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(ConsumerGroupState.EMPTY);
 
         HttpResponse<Void> response = consumerGroupController.deleteConsumerGroup("test", "groupID", true);
 
@@ -347,7 +348,7 @@ class ConsumerGroupControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
                 .thenReturn(true);
-        when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(GroupState.STABLE);
+        when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(ConsumerGroupState.STABLE);
 
         ResourceValidationException result = assertThrows(
                 ResourceValidationException.class,
@@ -357,8 +358,8 @@ class ConsumerGroupControllerTest {
         assertEquals("groupID", result.getName());
         assertEquals(
                 "Invalid \"delete\" operation: consumer group \"groupID\" can only be deleted if it is "
-                        + GroupState.EMPTY.toString().toLowerCase() + " but the current state is "
-                        + GroupState.STABLE.toString().toLowerCase() + ".",
+                        + ConsumerGroupState.EMPTY.toString().toLowerCase() + " but the current state is "
+                        + ConsumerGroupState.STABLE.toString().toLowerCase() + ".",
                 result.getValidationErrors().getFirst());
     }
 
@@ -371,7 +372,7 @@ class ConsumerGroupControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
                 .thenReturn(true);
-        when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(GroupState.DEAD);
+        when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(ConsumerGroupState.DEAD);
 
         HttpResponse<Void> response = consumerGroupController.deleteConsumerGroup("test", "groupID", false);
 
