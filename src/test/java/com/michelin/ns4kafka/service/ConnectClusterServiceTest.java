@@ -98,7 +98,8 @@ class ConnectClusterServiceTest {
                 .build();
 
         when(connectClusterRepository.findAll()).thenReturn(List.of(connectCluster));
-        when(kafkaConnectClient.version(any(), any())).thenReturn(Mono.just(HttpResponse.ok()));
+        when(kafkaConnectClient.version(any())).thenReturn(Mono.just(HttpResponse.ok()));
+        when(ns4KafkaProperties.getSecurity()).thenReturn(buildSecurityProperties("aes256Key"));
 
         StepVerifier.create(connectClusterService.findAll(false, true))
                 .consumeNextWith(result -> assertEquals(connectCluster, result))
@@ -114,15 +115,16 @@ class ConnectClusterServiceTest {
                         .build())
                 .build();
 
-        when(connectClusterRepository.findAll()).thenReturn(new ArrayList<>(List.of(connectCluster)));
+        when(connectClusterRepository.findAll()).thenReturn(List.of(connectCluster));
 
         ManagedClusterProperties kafka = new ManagedClusterProperties("local");
         kafka.setConnects(Map.of("test-connect", new ManagedClusterProperties.ConnectProperties()));
 
         managedClusterProperties.add(kafka);
-        when(kafkaConnectClient.version(any(), any()))
+        when(kafkaConnectClient.version(any()))
                 .thenReturn(Mono.just(HttpResponse.ok()))
                 .thenReturn(Mono.error(new Exception("error")));
+        when(ns4KafkaProperties.getSecurity()).thenReturn(buildSecurityProperties("aes256Key"));
 
         StepVerifier.create(connectClusterService.findAll(true, true))
                 .consumeNextWith(result -> {
@@ -153,9 +155,10 @@ class ConnectClusterServiceTest {
         kafka.setConnects(null);
 
         managedClusterProperties.add(kafka);
-        when(kafkaConnectClient.version(any(), any()))
+        when(kafkaConnectClient.version(any()))
                 .thenReturn(Mono.just(HttpResponse.ok()))
                 .thenReturn(Mono.error(new Exception("error")));
+        when(ns4KafkaProperties.getSecurity()).thenReturn(buildSecurityProperties("aes256Key"));
 
         StepVerifier.create(connectClusterService.findAll(true, true))
                 .consumeNextWith(result -> {
@@ -513,8 +516,6 @@ class ConnectClusterServiceTest {
                         .build())
                 .build();
 
-        connectClusterService.setHealthyConnectClusters(Set.of("prefix.connect-cluster"));
-
         when(connectClusterRepository.findAllForCluster("local")).thenReturn(List.of(connectCluster));
 
         when(aclService.findAllGrantedToNamespace(namespace))
@@ -537,52 +538,7 @@ class ConnectClusterServiceTest {
 
         assertTrue(actual.isPresent());
         assertEquals("prefix.connect-cluster", actual.get().getMetadata().getName());
-        assertEquals(ConnectCluster.Status.HEALTHY, actual.get().getSpec().getStatus());
-    }
-
-    @Test
-    void shouldFindConnectClusterByNamespaceAndNameWhenStatusIsUnhealthy() {
-        Namespace namespace = Namespace.builder()
-                .metadata(
-                        Metadata.builder().name("myNamespace").cluster("local").build())
-                .spec(Namespace.NamespaceSpec.builder().build())
-                .build();
-
-        ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(Metadata.builder()
-                        .name("prefix.connect-cluster")
-                        .cluster("local")
-                        .build())
-                .spec(ConnectCluster.ConnectClusterSpec.builder()
-                        .url("https://after")
-                        .build())
-                .build();
-
-        connectClusterService.setHealthyConnectClusters(Set.of());
-
-        when(connectClusterRepository.findAllForCluster("local")).thenReturn(List.of(connectCluster));
-
-        when(aclService.findAllGrantedToNamespace(namespace))
-                .thenReturn(List.of(AccessControlEntry.builder()
-                        .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                                .permission(AccessControlEntry.Permission.OWNER)
-                                .grantedTo("namespace")
-                                .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                                .resourceType(AccessControlEntry.ResourceType.CONNECT_CLUSTER)
-                                .resource("prefix.")
-                                .build())
-                        .build()));
-
-        when(ns4KafkaProperties.getSecurity()).thenReturn(buildSecurityProperties("aes256Key"));
-        when(aclService.isResourceCoveredByAcls(any(), eq("prefix.connect-cluster")))
-                .thenReturn(true);
-
-        Optional<ConnectCluster> actual =
-                connectClusterService.findByNameWithOwnerPermission(namespace, "prefix.connect-cluster");
-
-        assertTrue(actual.isPresent());
-        assertEquals("prefix.connect-cluster", actual.get().getMetadata().getName());
-        assertEquals(ConnectCluster.Status.IDLE, actual.get().getSpec().getStatus());
+        assertNull(actual.get().getSpec().getStatus());
     }
 
     @Test
