@@ -101,7 +101,7 @@ class ConsumerGroupControllerTest {
         when(consumerGroupService.validateResetOffsets(resetOffset)).thenReturn(List.of());
         when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
                 .thenReturn(true);
-        when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(GroupState.EMPTY);
+        when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(ConsumerGroupState.EMPTY);
         when(consumerGroupService.getPartitionsToReset(ns, "groupID", "topic1")).thenReturn(topicPartitions);
         when(consumerGroupService.prepareOffsetsToReset(
                         ns, "groupID", null, topicPartitions, ResetOffsetsMethod.TO_EARLIEST))
@@ -155,7 +155,7 @@ class ConsumerGroupControllerTest {
         when(consumerGroupService.validateResetOffsets(resetOffset)).thenReturn(List.of());
         when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
                 .thenReturn(true);
-        when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(GroupState.EMPTY);
+        when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(ConsumerGroupState.EMPTY);
         when(consumerGroupService.getPartitionsToReset(ns, "groupID", "topic1")).thenReturn(topicPartitions);
         when(consumerGroupService.prepareOffsetsToReset(
                         ns, "groupID", null, topicPartitions, ResetOffsetsMethod.TO_EARLIEST))
@@ -201,7 +201,7 @@ class ConsumerGroupControllerTest {
         when(consumerGroupService.validateResetOffsets(resetOffset)).thenReturn(List.of());
         when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
                 .thenReturn(true);
-        when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(GroupState.EMPTY);
+        when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(ConsumerGroupState.EMPTY);
         when(consumerGroupService.getPartitionsToReset(ns, "groupID", "topic1"))
                 .thenThrow(new ExecutionException("Error during getPartitionsToReset", new Throwable()));
 
