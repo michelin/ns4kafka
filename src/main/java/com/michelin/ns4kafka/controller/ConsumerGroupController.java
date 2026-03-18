@@ -28,6 +28,7 @@ import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.consumer.group.ConsumerGroup;
 import com.michelin.ns4kafka.model.consumer.group.ConsumerGroupResetOffsets;
 import com.michelin.ns4kafka.model.consumer.group.ConsumerGroupResetOffsetsResponse;
 import com.michelin.ns4kafka.service.ConsumerGroupService;
@@ -39,6 +40,7 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Delete;
+import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
 import io.micronaut.security.utils.SecurityService;
@@ -72,6 +74,19 @@ public class ConsumerGroupController extends NamespacedResourceController {
             ApplicationEventPublisher<AuditLog> applicationEventPublisher) {
         super(namespaceService, securityService, applicationEventPublisher);
         this.consumerGroupService = consumerGroupService;
+    }
+
+    /**
+     * List consumer groups owned by the namespace.
+     *
+     * @param namespace The namespace
+     * @return The list of consumer groups
+     * @throws ExecutionException Any execution exception
+     * @throws InterruptedException Any interrupted exception
+     */
+    @Get
+    public List<ConsumerGroup> list(String namespace) throws ExecutionException, InterruptedException {
+        return consumerGroupService.findAllForNamespace(getNamespace(namespace));
     }
 
     /**
