@@ -54,9 +54,9 @@ public class TopicValidator extends ResourceValidator {
     public static TopicValidator makeDefault() {
         return TopicValidator.builder()
                 .validationConstraints(Map.of(
-                        "replication.factor",
+                        REPLICATION_FACTOR,
                         ResourceValidator.Range.between(3, 3),
-                        "partitions",
+                        PARTITIONS,
                         ResourceValidator.Range.between(3, 6),
                         "cleanup.policy",
                         ResourceValidator.ValidList.in("delete", "compact"),
@@ -79,9 +79,9 @@ public class TopicValidator extends ResourceValidator {
     public static TopicValidator makeDefaultOneBroker() {
         return TopicValidator.builder()
                 .validationConstraints(Map.of(
-                        "replication.factor",
+                        REPLICATION_FACTOR,
                         ResourceValidator.Range.between(1, 1),
-                        "partitions",
+                        PARTITIONS,
                         ResourceValidator.Range.between(3, 6),
                         "cleanup.policy",
                         ResourceValidator.ValidList.in("delete", "compact"),
@@ -101,8 +101,8 @@ public class TopicValidator extends ResourceValidator {
      *
      * @param topic The topic
      * @return A list of validation errors
-     * @see <a
-     *     href="https://github.com/apache/kafka/blob/trunk/clients/src/main/java/org/apache/kafka/common/internals/Topic.java#L36">
+     * @see <a href=
+     *     "https://github.com/apache/kafka/blob/trunk/clients/src/main/java/org/apache/kafka/common/internals/Topic.java#L36">
      *     GitHub</a>
      */
     public List<String> validate(Topic topic) {
@@ -136,21 +136,23 @@ public class TopicValidator extends ResourceValidator {
 
         validationConstraints.forEach((key, value) -> {
             try {
-                if (key.equals(PARTITIONS)) {
-                    value.ensureValid(key, topic.getSpec().getPartitions());
-                } else if (key.equals(REPLICATION_FACTOR)) {
-                    value.ensureValid(key, topic.getSpec().getReplicationFactor());
-                } else {
-                    if (topic.getSpec().getConfigs() != null) {
-                        value.ensureValid(key, topic.getSpec().getConfigs().get(key));
-                    } else {
-                        validationErrors.add(invalidFieldValidationNull(key));
+                switch (key) {
+                    case PARTITIONS -> value.ensureValid(key, topic.getSpec().getPartitions());
+                    case REPLICATION_FACTOR ->
+                        value.ensureValid(key, topic.getSpec().getReplicationFactor());
+                    default -> {
+                        if (topic.getSpec().getConfigs() != null) {
+                            value.ensureValid(key, topic.getSpec().getConfigs().get(key));
+                        } else {
+                            validationErrors.add(invalidFieldValidationNull(key));
+                        }
                     }
                 }
             } catch (FieldValidationException e) {
                 validationErrors.add(e.getMessage());
             }
         });
+
         return validationErrors;
     }
 }
