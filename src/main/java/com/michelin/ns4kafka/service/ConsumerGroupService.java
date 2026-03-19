@@ -26,7 +26,9 @@ import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidConsumerGroupSh
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidConsumerGroupTopic;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
+import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.consumer.group.ConsumerGroup;
 import com.michelin.ns4kafka.model.consumer.group.ConsumerGroupResetOffsets;
 import com.michelin.ns4kafka.model.consumer.group.ConsumerGroupResetOffsets.ResetOffsetsMethod;
 import com.michelin.ns4kafka.service.executor.ConsumerGroupAsyncExecutor;
@@ -43,6 +45,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.apache.kafka.clients.admin.ConsumerGroupDescription;
 import org.apache.kafka.common.GroupState;
 import org.apache.kafka.common.TopicPartition;
 
@@ -61,6 +64,52 @@ public class ConsumerGroupService {
     public ConsumerGroupService(ApplicationContext applicationContext, AclService aclService) {
         this.applicationContext = applicationContext;
         this.aclService = aclService;
+    }
+
+    /**
+     * Find all consumer groups owned by a given namespace.
+     *
+     * @param namespace The namespace
+     * @return A list of consumer groups
+     * @throws ExecutionException Any execution exception during consumer groups listing
+     * @throws InterruptedException Any interrupted exception during consumer groups listing
+     */
+    public List<ConsumerGroup> findAllForNamespace(Namespace namespace)
+            throws ExecutionException, InterruptedException {
+        ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor = applicationContext.getBean(
+                ConsumerGroupAsyncExecutor.class,
+                Qualifiers.byName(namespace.getMetadata().getCluster()));
+
+        List<String> allGroupIds = consumerGroupAsyncExecutor.listConsumerGroupIds();
+
+        List<String> consumerGroupIds = allGroupIds.stream()
+                .filter(groupId -> isNamespaceOwnerOfConsumerGroup(namespace, groupId))
+                .sorted()
+                .toList();
+
+        if (consumerGroupIds.isEmpty()) {
+            return List.of();
+        }
+
+        Map<String, ConsumerGroupDescription> descriptions =
+                consumerGroupAsyncExecutor.describeConsumerGroups(consumerGroupIds);
+
+        List<ConsumerGroup> consumerGroups = new ArrayList<>();
+        for (String groupId : consumerGroupIds) {
+            Map<TopicPartition, Long> committedOffsets;
+            try {
+                committedOffsets = consumerGroupAsyncExecutor.getCommittedOffsets(groupId);
+            } catch (ExecutionException exception) {
+                committedOffsets = Map.of();
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                committedOffsets = Map.of();
+            }
+
+            consumerGroups.add(buildConsumerGroup(namespace, groupId, descriptions.get(groupId), committedOffsets));
+        }
+
+        return consumerGroups;
     }
 
     /**
@@ -284,5 +333,33 @@ public class ConsumerGroupService {
                 ConsumerGroupAsyncExecutor.class,
                 Qualifiers.byName(namespace.getMetadata().getCluster()));
         consumerGroupAsyncExecutor.alterConsumerGroupOffsets(consumerGroupId, preparedOffsets);
+    }
+
+    private ConsumerGroup buildConsumerGroup(
+            Namespace namespace,
+            String consumerGroupId,
+            ConsumerGroupDescription description,
+            Map<TopicPartition, Long> committedOffsets) {
+        return ConsumerGroup.builder()
+                .metadata(Metadata.builder()
+                        .name(consumerGroupId)
+                        .namespace(namespace.getMetadata().getName())
+                        .cluster(namespace.getMetadata().getCluster())
+                        .build())
+                .status(ConsumerGroup.ConsumerGroupStatus.builder()
+                        .state(description == null ? GroupState.UNKNOWN : description.groupState())
+                        .offsets(committedOffsets.entrySet().stream()
+                                .sorted(Map.Entry.<TopicPartition, Long>comparingByKey(
+                                                java.util.Comparator.comparing(TopicPartition::topic)
+                                                        .thenComparingInt(TopicPartition::partition))
+                                        .thenComparing(Map.Entry.comparingByValue()))
+                                .map(entry -> ConsumerGroup.ConsumerGroupOffset.builder()
+                                        .topic(entry.getKey().topic())
+                                        .partition(entry.getKey().partition())
+                                        .currentOffset(entry.getValue())
+                                        .build())
+                                .toList())
+                        .build())
+                .build();
     }
 }
