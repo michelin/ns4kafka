@@ -119,8 +119,10 @@ public class ConsumerGroupService {
      * @param groupId The group
      * @return true if it is, false otherwise
      */
-    public boolean isNamespaceOwnerOfConsumerGroup(String namespace, String groupId) {
-        return aclService.isNamespaceOwnerOfResource(namespace, AccessControlEntry.ResourceType.GROUP, groupId);
+    public boolean isNamespaceOwnerOfConsumerGroup(Namespace namespace, String groupId) {
+        List<AccessControlEntry> ownerAcls =
+                aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.GROUP);
+        return aclService.isResourceCoveredByAcls(ownerAcls, groupId);
     }
 
     /**
