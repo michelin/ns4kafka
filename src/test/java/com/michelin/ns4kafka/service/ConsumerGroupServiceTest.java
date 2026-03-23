@@ -25,8 +25,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.consumer.group.ConsumerGroup;
 import com.michelin.ns4kafka.model.consumer.group.ConsumerGroupResetOffsets;
 import com.michelin.ns4kafka.model.consumer.group.ConsumerGroupResetOffsets.ConsumerGroupResetOffsetsSpec;
 import com.michelin.ns4kafka.model.consumer.group.ConsumerGroupResetOffsets.ResetOffsetsMethod;
@@ -53,8 +55,131 @@ class ConsumerGroupServiceTest {
     @Mock
     ApplicationContext applicationContext;
 
+    @Mock
+    AclService aclService;
+
     @InjectMocks
     ConsumerGroupService consumerGroupService;
+
+    @Test
+    void shouldFindConsumerGroupsOwnedByNamespace() throws InterruptedException, ExecutionException {
+        Namespace namespace = Namespace.builder()
+                .metadata(Metadata.builder().name("namespace").cluster("test").build())
+                .build();
+
+        List<AccessControlEntry> acls = List.of(AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.GROUP)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .grantedTo("namespace")
+                        .resource("namespace-")
+                        .build())
+                .build());
+
+        ConsumerGroupDescription stableDescription =
+                new ConsumerGroupDescription(null, true, null, null, null, GroupState.STABLE, null, null, null, null);
+
+        TopicPartition firstPartition = new TopicPartition("topic1", 0);
+        TopicPartition secondPartition = new TopicPartition("topic1", 1);
+        TopicPartition thirdPartition = new TopicPartition("topic2", 0);
+
+        ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor = mock(ConsumerGroupAsyncExecutor.class);
+        when(applicationContext.getBean(
+                        ConsumerGroupAsyncExecutor.class,
+                        Qualifiers.byName(namespace.getMetadata().getCluster())))
+                .thenReturn(consumerGroupAsyncExecutor);
+        when(consumerGroupAsyncExecutor.listConsumerGroupIds())
+                .thenReturn(List.of("other-group", "namespace-group2", "namespace-group1"));
+        when(aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.GROUP))
+                .thenReturn(acls);
+        when(aclService.isResourceCoveredByAcls(acls, "other-group")).thenReturn(false);
+        when(aclService.isResourceCoveredByAcls(acls, "namespace-group2")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, "namespace-group1")).thenReturn(true);
+        when(consumerGroupAsyncExecutor.describeConsumerGroups(List.of("namespace-group1", "namespace-group2")))
+                .thenReturn(Map.of("namespace-group1", stableDescription));
+        when(consumerGroupAsyncExecutor.getCommittedOffsets("namespace-group1"))
+                .thenReturn(Map.of(thirdPartition, 2L, secondPartition, 7L, firstPartition, 5L));
+        when(consumerGroupAsyncExecutor.getCommittedOffsets("namespace-group2"))
+                .thenThrow(new ExecutionException("offset lookup failed", new Exception()));
+
+        List<ConsumerGroup> result = consumerGroupService.findAllForNamespace(namespace);
+
+        assertEquals(2, result.size());
+
+        ConsumerGroup firstGroup = result.get(0);
+        assertEquals("namespace-group1", firstGroup.getMetadata().getName());
+        assertEquals("namespace", firstGroup.getMetadata().getNamespace());
+        assertEquals("test", firstGroup.getMetadata().getCluster());
+        assertEquals(GroupState.STABLE, firstGroup.getStatus().getState());
+        assertEquals(3, firstGroup.getStatus().getOffsets().size());
+        assertEquals("topic1", firstGroup.getStatus().getOffsets().get(0).getTopic());
+        assertEquals(0, firstGroup.getStatus().getOffsets().get(0).getPartition());
+        assertEquals(5L, firstGroup.getStatus().getOffsets().get(0).getCurrentOffset());
+        assertEquals("topic1", firstGroup.getStatus().getOffsets().get(1).getTopic());
+        assertEquals(1, firstGroup.getStatus().getOffsets().get(1).getPartition());
+        assertEquals(7L, firstGroup.getStatus().getOffsets().get(1).getCurrentOffset());
+        assertEquals("topic2", firstGroup.getStatus().getOffsets().get(2).getTopic());
+        assertEquals(0, firstGroup.getStatus().getOffsets().get(2).getPartition());
+        assertEquals(2L, firstGroup.getStatus().getOffsets().get(2).getCurrentOffset());
+
+        ConsumerGroup secondGroup = result.get(1);
+        assertEquals("namespace-group2", secondGroup.getMetadata().getName());
+        assertEquals(GroupState.UNKNOWN, secondGroup.getStatus().getState());
+        assertTrue(secondGroup.getStatus().getOffsets().isEmpty());
+    }
+
+    @Test
+    void shouldReturnEmptyConsumerGroupListWhenNamespaceOwnsNone() throws InterruptedException, ExecutionException {
+        Namespace namespace = Namespace.builder()
+                .metadata(Metadata.builder().name("namespace").cluster("test").build())
+                .build();
+
+        List<AccessControlEntry> acls = List.of(AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.GROUP)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .grantedTo("namespace")
+                        .resource("namespace-")
+                        .build())
+                .build());
+
+        ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor = mock(ConsumerGroupAsyncExecutor.class);
+        when(applicationContext.getBean(
+                        ConsumerGroupAsyncExecutor.class,
+                        Qualifiers.byName(namespace.getMetadata().getCluster())))
+                .thenReturn(consumerGroupAsyncExecutor);
+        when(consumerGroupAsyncExecutor.listConsumerGroupIds()).thenReturn(List.of("other-group"));
+        when(aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.GROUP))
+                .thenReturn(acls);
+        when(aclService.isResourceCoveredByAcls(acls, "other-group")).thenReturn(false);
+
+        assertEquals(List.of(), consumerGroupService.findAllForNamespace(namespace));
+    }
+
+    @Test
+    void shouldCheckNamespaceOwnershipFromAclCoverage() {
+        Namespace namespace = Namespace.builder()
+                .metadata(Metadata.builder().name("namespace").cluster("test").build())
+                .build();
+
+        List<AccessControlEntry> acls = List.of(AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.GROUP)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .grantedTo("namespace")
+                        .resource("namespace-group1")
+                        .build())
+                .build());
+
+        when(aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.GROUP))
+                .thenReturn(acls);
+        when(aclService.isResourceCoveredByAcls(acls, "namespace-group1")).thenReturn(true);
+
+        assertTrue(consumerGroupService.isNamespaceOwnerOfConsumerGroup(namespace, "namespace-group1"));
+    }
 
     @ParameterizedTest
     @CsvSource({"*", "namespace_testTopic01", "namespace_testTopic01:2"})
