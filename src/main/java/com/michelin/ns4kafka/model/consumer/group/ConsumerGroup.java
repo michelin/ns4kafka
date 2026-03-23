@@ -41,9 +41,7 @@ import org.apache.kafka.common.GroupState;
 @EqualsAndHashCode(callSuper = true)
 public class ConsumerGroup extends MetadataResource {
     @EqualsAndHashCode.Exclude
-    @Valid
-    @NotNull
-    private ConsumerGroupStatus status;
+    @Valid @NotNull private ConsumerGroupStatus status;
 
     /**
      * Constructor.

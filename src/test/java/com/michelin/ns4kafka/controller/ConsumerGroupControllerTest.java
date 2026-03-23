@@ -85,8 +85,14 @@ class ConsumerGroupControllerTest {
                 .metadata(Metadata.builder().name("test").cluster("local").build())
                 .build();
         List<ConsumerGroup> expected = List.of(ConsumerGroup.builder()
-                .metadata(Metadata.builder().name("groupID").namespace("test").cluster("local").build())
-                .status(ConsumerGroup.ConsumerGroupStatus.builder().state(GroupState.STABLE).build())
+                .metadata(Metadata.builder()
+                        .name("groupID")
+                        .namespace("test")
+                        .cluster("local")
+                        .build())
+                .status(ConsumerGroup.ConsumerGroupStatus.builder()
+                        .state(GroupState.STABLE)
+                        .build())
                 .build());
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
