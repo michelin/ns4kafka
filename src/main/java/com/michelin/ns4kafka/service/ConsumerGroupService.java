@@ -99,9 +99,9 @@ public class ConsumerGroupService {
             Map<TopicPartition, Long> committedOffsets;
             try {
                 committedOffsets = consumerGroupAsyncExecutor.getCommittedOffsets(groupId);
-            } catch (ExecutionException exception) {
+            } catch (ExecutionException _) {
                 committedOffsets = Map.of();
-            } catch (InterruptedException exception) {
+            } catch (InterruptedException _) {
                 Thread.currentThread().interrupt();
                 committedOffsets = Map.of();
             }
