@@ -38,6 +38,7 @@ import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
 import jakarta.inject.Singleton;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -79,7 +80,7 @@ public class TopicService {
      *
      * @return The list of topics
      */
-    public List<Topic> findAll() {
+    public Collection<Topic> findAll() {
         return topicRepository.findAll();
     }
 
