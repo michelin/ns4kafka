@@ -98,7 +98,9 @@ public class ConnectClusterService {
      */
     public Flux<ConnectCluster> findAll(boolean all, boolean status) {
         Flux<ConnectCluster> selfHostedConnectClusters =
-                Flux.defer(() -> Flux.fromIterable(connectClusterRepository.findAll()));
+                Flux.defer(() -> Flux.fromIterable(connectClusterRepository.findAll().stream()
+                        .map(this::buildConnectClusterWithDecryptedInformation)
+                        .toList()));
 
         Flux<ConnectCluster> managedConnectClusters = all
                 ? Flux.fromIterable(managedClusterProperties)
@@ -124,25 +126,22 @@ public class ConnectClusterService {
             return combinedFlux;
         }
 
-        return combinedFlux.flatMap(connectCluster -> {
-            ConnectCluster decrypted = buildConnectClusterWithDecryptedInformation(connectCluster);
-            return kafkaConnectClient
-                    .version(KafkaConnectHttpConfig.builder()
-                            .username(decrypted.getSpec().getUsername())
-                            .password(decrypted.getSpec().getPassword())
-                            .url(connectCluster.getSpec().getUrl())
-                            .build())
-                    .doOnError(error -> {
-                        connectCluster.getSpec().setStatus(ConnectCluster.Status.IDLE);
-                        connectCluster.getSpec().setStatusMessage(error.getMessage());
-                    })
-                    .doOnSuccess(_ -> {
-                        connectCluster.getSpec().setStatus(ConnectCluster.Status.HEALTHY);
-                        connectCluster.getSpec().setStatusMessage(null);
-                    })
-                    .map(_ -> connectCluster)
-                    .onErrorReturn(connectCluster);
-        });
+        return combinedFlux.flatMap(connectCluster -> kafkaConnectClient
+                .version(KafkaConnectHttpConfig.builder()
+                        .username(connectCluster.getSpec().getUsername())
+                        .password(connectCluster.getSpec().getPassword())
+                        .url(connectCluster.getSpec().getUrl())
+                        .build())
+                .doOnError(error -> {
+                    connectCluster.getSpec().setStatus(ConnectCluster.Status.IDLE);
+                    connectCluster.getSpec().setStatusMessage(error.getMessage());
+                })
+                .doOnSuccess(_ -> {
+                    connectCluster.getSpec().setStatus(ConnectCluster.Status.HEALTHY);
+                    connectCluster.getSpec().setStatusMessage(null);
+                })
+                .map(_ -> connectCluster)
+                .onErrorReturn(connectCluster));
     }
 
     /**
@@ -153,7 +152,9 @@ public class ConnectClusterService {
      */
     public Flux<ConnectCluster> findAllForCluster(String clusterName) {
         Flux<ConnectCluster> selfHostedConnectClusters =
-                Flux.defer(() -> Flux.fromIterable(connectClusterRepository.findAllForCluster(clusterName)));
+                Flux.defer(() -> Flux.fromIterable(connectClusterRepository.findAllForCluster(clusterName).stream()
+                        .map(this::buildConnectClusterWithDecryptedInformation)
+                        .toList()));
 
         Flux<ConnectCluster> managedConnectClusters = Flux.fromIterable(managedClusterProperties)
                 .filter(cluster -> cluster.getName().equals(clusterName) && cluster.getConnects() != null)
@@ -170,25 +171,22 @@ public class ConnectClusterService {
                                         .build())
                                 .build()));
 
-        return selfHostedConnectClusters.concatWith(managedConnectClusters).flatMap(connectCluster -> {
-            ConnectCluster decrypted = buildConnectClusterWithDecryptedInformation(connectCluster);
-            return kafkaConnectClient
-                    .version(KafkaConnectHttpConfig.builder()
-                            .username(decrypted.getSpec().getUsername())
-                            .password(decrypted.getSpec().getPassword())
-                            .url(connectCluster.getSpec().getUrl())
-                            .build())
-                    .doOnError(error -> {
-                        connectCluster.getSpec().setStatus(ConnectCluster.Status.IDLE);
-                        connectCluster.getSpec().setStatusMessage(error.getMessage());
-                    })
-                    .doOnSuccess(_ -> {
-                        connectCluster.getSpec().setStatus(ConnectCluster.Status.HEALTHY);
-                        connectCluster.getSpec().setStatusMessage(null);
-                    })
-                    .map(_ -> connectCluster)
-                    .onErrorReturn(connectCluster);
-        });
+        return selfHostedConnectClusters.concatWith(managedConnectClusters).flatMap(connectCluster -> kafkaConnectClient
+                .version(KafkaConnectHttpConfig.builder()
+                        .username(connectCluster.getSpec().getUsername())
+                        .password(connectCluster.getSpec().getPassword())
+                        .url(connectCluster.getSpec().getUrl())
+                        .build())
+                .doOnError(error -> {
+                    connectCluster.getSpec().setStatus(ConnectCluster.Status.IDLE);
+                    connectCluster.getSpec().setStatusMessage(error.getMessage());
+                })
+                .doOnSuccess(_ -> {
+                    connectCluster.getSpec().setStatus(ConnectCluster.Status.HEALTHY);
+                    connectCluster.getSpec().setStatusMessage(null);
+                })
+                .map(_ -> connectCluster)
+                .onErrorReturn(connectCluster));
     }
 
     /**

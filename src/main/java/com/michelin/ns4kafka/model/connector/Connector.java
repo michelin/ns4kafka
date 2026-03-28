@@ -47,6 +47,9 @@ public class Connector extends MetadataResource {
     @Valid @NotNull private ConnectorSpec spec;
 
     @EqualsAndHashCode.Exclude
+    private DeployStatus deployStatus;
+
+    @EqualsAndHashCode.Exclude
     private ConnectorStatus status;
 
     /**
@@ -74,6 +77,12 @@ public class Connector extends MetadataResource {
         DESTROYED,
     }
 
+    /** Connector deployment status. */
+    public enum DeployStatus {
+        TO_DEPLOY,
+        DEPLOYED,
+    }
+
     /** Connector specification. */
     @Data
     @Builder
@@ -98,7 +107,6 @@ public class Connector extends MetadataResource {
         private TaskState state;
         private String workerId;
         private List<TaskStatus> tasks;
-        private boolean toDeploy;
 
         @JsonFormat(shape = JsonFormat.Shape.STRING)
         private Date lastUpdateTime;

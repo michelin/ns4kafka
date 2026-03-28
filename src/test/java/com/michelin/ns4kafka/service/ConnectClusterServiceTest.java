@@ -94,6 +94,8 @@ class ConnectClusterServiceTest {
                 .metadata(Metadata.builder().name("connect-cluster").build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .url("https://after")
+                        .username("username")
+                        .password("password")
                         .build())
                 .build();
 
@@ -112,13 +114,20 @@ class ConnectClusterServiceTest {
                 .metadata(Metadata.builder().name("connect-cluster").build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .url("https://after")
+                        .username("username")
+                        .password("password")
                         .build())
                 .build();
 
         when(connectClusterRepository.findAll()).thenReturn(List.of(connectCluster));
 
+        ManagedClusterProperties.ConnectProperties connectProperties = new ManagedClusterProperties.ConnectProperties();
+        connectProperties.setUrl("https://after");
+        connectProperties.setBasicAuthUsername("username");
+        connectProperties.setBasicAuthPassword("password");
+
         ManagedClusterProperties kafka = new ManagedClusterProperties("local");
-        kafka.setConnects(Map.of("test-connect", new ManagedClusterProperties.ConnectProperties()));
+        kafka.setConnects(Map.of("test-connect", connectProperties));
 
         managedClusterProperties.add(kafka);
         when(kafkaConnectClient.version(any()))
@@ -146,6 +155,8 @@ class ConnectClusterServiceTest {
                 .metadata(Metadata.builder().name("connect-cluster").build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .url("https://after")
+                        .username("username")
+                        .password("password")
                         .build())
                 .build();
 

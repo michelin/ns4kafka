@@ -83,9 +83,10 @@ public class KafkaAsyncExecutorScheduler {
             topicAsyncExecutors.forEach(TopicAsyncExecutor::run);
             accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
             userAsyncExecutors.forEach(UserAsyncExecutor::run);
-        } else {
-            log.warn("Scheduled jobs did not start because Micronaut is not ready yet.");
+            return;
         }
+
+        log.warn("Scheduled jobs did not start because Micronaut is not ready yet.");
     }
 
     /**

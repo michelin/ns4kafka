@@ -18,22 +18,14 @@
  */
 package com.michelin.ns4kafka.service.executor;
 
-import com.michelin.ns4kafka.model.Metadata;
-import com.michelin.ns4kafka.model.connect.cluster.ConnectCluster;
 import com.michelin.ns4kafka.model.connector.Connector;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.ConnectorRepository;
-import com.michelin.ns4kafka.service.ConnectClusterService;
 import com.michelin.ns4kafka.service.client.connect.KafkaConnectClient;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorInfo;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorSpecs;
-import com.michelin.ns4kafka.service.client.connect.entities.ConnectorStatus;
 import io.micronaut.context.annotation.EachBean;
-import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import jakarta.inject.Singleton;
-import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -43,11 +35,9 @@ import reactor.core.publisher.Mono;
 @EachBean(ManagedClusterProperties.class)
 @Singleton
 public class ConnectorAsyncExecutor {
-    private static final String SENSITIVE_FIELD_MASK = "••••••••••••";
     private final ManagedClusterProperties managedClusterProperties;
     private final ConnectorRepository connectorRepository;
     private final KafkaConnectClient kafkaConnectClient;
-    private final ConnectClusterService connectClusterService;
 
     /**
      * Constructor.
@@ -55,17 +45,14 @@ public class ConnectorAsyncExecutor {
      * @param managedClusterProperties The managed cluster properties
      * @param connectorRepository The connector repository
      * @param kafkaConnectClient The Kafka Connect client
-     * @param connectClusterService The connect cluster service
      */
     public ConnectorAsyncExecutor(
             ManagedClusterProperties managedClusterProperties,
             ConnectorRepository connectorRepository,
-            KafkaConnectClient kafkaConnectClient,
-            ConnectClusterService connectClusterService) {
+            KafkaConnectClient kafkaConnectClient) {
         this.managedClusterProperties = managedClusterProperties;
         this.connectorRepository = connectorRepository;
         this.kafkaConnectClient = kafkaConnectClient;
-        this.connectClusterService = connectClusterService;
     }
 
     /**
@@ -75,151 +62,16 @@ public class ConnectorAsyncExecutor {
      */
     public Flux<ConnectorInfo> run() {
         if (managedClusterProperties.isManageConnectors()) {
-            return synchronizeConnectors();
+            log.atDebug()
+                    .addArgument(managedClusterProperties::getName)
+                    .log("Starting connector synchronization for Kafka cluster {}.");
+
+            return Flux.fromIterable(connectorRepository.findAllForCluster(managedClusterProperties.getName()))
+                    .filter(connector -> Connector.DeployStatus.TO_DEPLOY.equals(connector.getDeployStatus()))
+                    .flatMap(this::deployConnector);
         }
 
         return Flux.empty();
-    }
-
-    /** For each connect cluster, start the synchronization of connectors. */
-    private Flux<ConnectorInfo> synchronizeConnectors() {
-        log.atDebug()
-                .addArgument(managedClusterProperties::getName)
-                .log("Starting connector synchronization for Kafka cluster {}.");
-
-        return connectClusterService
-                .findAllForCluster(managedClusterProperties.getName())
-                .filter(connectCluster -> connectCluster.getSpec().getStatus().equals(ConnectCluster.Status.HEALTHY))
-                .map(connectCluster -> connectCluster.getMetadata().getName())
-                .flatMap(this::synchronizeConnectCluster);
-    }
-
-    /**
-     * Synchronize connectors of given connect cluster.
-     *
-     * @param connectCluster The connect cluster
-     */
-    private Flux<ConnectorInfo> synchronizeConnectCluster(String connectCluster) {
-        log.info(
-                "Starting connector collection for Kafka cluster {} and Kafka Connect {}.",
-                managedClusterProperties.getName(),
-                connectCluster);
-
-        return collectBrokerConnectors(connectCluster)
-                .doOnError(error -> {
-                    if (error instanceof HttpClientResponseException httpClientResponseException) {
-                        log.error(
-                                "Invalid HTTP response {} ({}) during connectors synchronization for Kafka cluster {}"
-                                        + " and Kafka Connect {}.",
-                                httpClientResponseException.getStatus(),
-                                httpClientResponseException.getResponse().getStatus(),
-                                managedClusterProperties.getName(),
-                                connectCluster);
-                    } else {
-                        log.error(
-                                "Error during connectors synchronization for Kafka cluster {} and Kafka Connect {}: {}.",
-                                managedClusterProperties.getName(),
-                                connectCluster,
-                                error.getMessage());
-                    }
-                })
-                .collectMap(connector -> connector.getMetadata().getName())
-                .flatMapMany(brokerConnectorsMap -> Flux.fromStream(collectNs4KafkaConnectors(connectCluster))
-                        .filter(connector -> {
-                            if (connector.getStatus() != null
-                                    && connector.getStatus().isToDeploy()) {
-                                return true;
-                            }
-
-                            Connector clusterConnector = brokerConnectorsMap.get(
-                                    connector.getMetadata().getName());
-                            return clusterConnector == null || !connectorsAreSame(connector, clusterConnector);
-                        })
-                        .flatMap(this::deployConnector));
-    }
-
-    /**
-     * Collect the connectors deployed on the given connect cluster.
-     *
-     * @param connectCluster The connect cluster
-     * @return A list of connectors
-     */
-    public Flux<Connector> collectBrokerConnectors(String connectCluster) {
-        return kafkaConnectClient
-                .listAll(managedClusterProperties.getName(), connectCluster)
-                .flatMapMany(connectors -> {
-                    log.debug(
-                            "{} connectors found on Kafka Connect {} of Kafka cluster {}.",
-                            connectors.size(),
-                            connectCluster,
-                            managedClusterProperties.getName());
-
-                    return Flux.fromIterable(connectors.values())
-                            .map(connectorStatus -> buildConnectorFromConnectorStatus(connectorStatus, connectCluster));
-                });
-    }
-
-    /**
-     * Build a connector from a given connector status.
-     *
-     * @param connectorStatus The connector status
-     * @param connectCluster The connect cluster
-     * @return The built connector
-     */
-    private Connector buildConnectorFromConnectorStatus(ConnectorStatus connectorStatus, String connectCluster) {
-        return Connector.builder()
-                .metadata(Metadata.builder()
-                        // Any other metadata is not useful for this process
-                        .name(connectorStatus.info().name())
-                        .build())
-                .spec(Connector.ConnectorSpec.builder()
-                        .connectCluster(connectCluster)
-                        .config(connectorStatus.info().config())
-                        .build())
-                .build();
-    }
-
-    /**
-     * Collect the connectors from Ns4Kafka deployed on the given connect cluster.
-     *
-     * @param connectCluster The connect cluster
-     * @return A list of connectors
-     */
-    private Stream<Connector> collectNs4KafkaConnectors(String connectCluster) {
-        return connectorRepository.findAllForCluster(managedClusterProperties.getName()).stream()
-                .filter(connector -> connector.getSpec().getConnectCluster().equals(connectCluster));
-    }
-
-    /**
-     * Check if both given connectors are equal.
-     *
-     * @param expected The first connector
-     * @param actual The second connector
-     * @return true it they are, false otherwise
-     */
-    boolean connectorsAreSame(Connector expected, Connector actual) {
-        Map<String, String> expectedMap = expected.getSpec().getConfig();
-        Map<String, String> actualMap = actual.getSpec().getConfig();
-
-        if (expectedMap.size() != actualMap.size()) {
-            return false;
-        }
-
-        return actualMap.entrySet().stream().allMatch(e -> {
-            String actualValue = e.getValue();
-            String expectedValue = expectedMap.get(e.getKey());
-            return (actualValue == null && expectedValue == null)
-                    // Password fields are masked when returned by the Connect API in CP 7.9.3+,
-                    // so they interfere with the comparison.
-                    // Two possible solutions:
-                    // 1) Check via the Connect API which fields are masked and ignore the
-                    //    comparison for those specific fields.
-                    // 2) Store the mask string and ignore the comparison when the "actual"
-                    //    value matches this mask.
-                    // Solution 2 is chosen since it is simpler and does not require additional API calls.
-                    || SENSITIVE_FIELD_MASK.equals(actualValue)
-                    || Objects.equals(actualValue, expectedValue);
-        });
     }
 
     /**
@@ -237,7 +89,7 @@ public class ConnectorAsyncExecutor {
                                 .config(connector.getSpec().getConfig())
                                 .build())
                 .doOnSuccess(_ -> {
-                    connector.getStatus().setToDeploy(false);
+                    connector.setDeployStatus(Connector.DeployStatus.DEPLOYED);
                     connectorRepository.create(connector);
 
                     log.info(
@@ -247,10 +99,10 @@ public class ConnectorAsyncExecutor {
                             managedClusterProperties.getName());
                 })
                 .doOnError(httpError -> log.error(
-                        "Error deploying connector {} on Kafka Connect {} of Kafka cluster {}: {}",
+                        "Error deploying connector {} on Kafka Connect {} of Kafka cluster {}.",
                         connector.getMetadata().getName(),
                         connector.getSpec().getConnectCluster(),
                         managedClusterProperties.getName(),
-                        httpError.getMessage()));
+                        httpError));
     }
 }
