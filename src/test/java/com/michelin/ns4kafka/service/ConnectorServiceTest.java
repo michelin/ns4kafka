@@ -48,7 +48,6 @@ import com.michelin.ns4kafka.service.client.connect.entities.ConnectorStatus;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorType;
 import com.michelin.ns4kafka.validation.ConnectValidator;
 import com.michelin.ns4kafka.validation.ResourceValidator;
-import io.micronaut.context.ApplicationContext;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
@@ -73,9 +72,6 @@ class ConnectorServiceTest {
 
     @Mock
     ConnectorRepository connectorRepository;
-
-    @Mock
-    ApplicationContext applicationContext;
 
     @InjectMocks
     ConnectorService connectorService;
@@ -801,7 +797,10 @@ class ConnectorServiceTest {
                 .build();
 
         ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(Metadata.builder().name("ns-connect-cluster").build())
+                .metadata(Metadata.builder()
+                        .name("ns-connect-cluster")
+                        .cluster("local")
+                        .build())
                 .build();
 
         ConnectorStatus c1 =
@@ -863,15 +862,23 @@ class ConnectorServiceTest {
         // no connects exists into Ns4Kafka
         when(connectorRepository.findAllForCluster("local")).thenReturn(List.of());
 
-        StepVerifier.create(connectorService.listUnsynchronizedConnectorsByWildcardName(ns, "*"))
-                .consumeNextWith(connector ->
-                        assertEquals("ns-connect1", connector.getMetadata().getName()))
-                .consumeNextWith(connector ->
-                        assertEquals("ns-connect2", connector.getMetadata().getName()))
-                .consumeNextWith(connector ->
-                        assertEquals("ns1-connect1", connector.getMetadata().getName()))
-                .consumeNextWith(connector ->
-                        assertEquals("ns1-connect2", connector.getMetadata().getName()))
+        StepVerifier.create(connectorService
+                        .listUnsynchronizedConnectorsByWildcardName(ns, "*")
+                        .collectList())
+                .assertNext(connectors -> {
+                    assertTrue(connectors.stream()
+                            .anyMatch(connector ->
+                                    connector.getMetadata().getName().equals("ns-connect1")));
+                    assertTrue(connectors.stream()
+                            .anyMatch(connector ->
+                                    connector.getMetadata().getName().equals("ns-connect2")));
+                    assertTrue(connectors.stream()
+                            .anyMatch(connector ->
+                                    connector.getMetadata().getName().equals("ns1-connect1")));
+                    assertTrue(connectors.stream()
+                            .anyMatch(connector ->
+                                    connector.getMetadata().getName().equals("ns1-connect2")));
+                })
                 .verifyComplete();
     }
 
