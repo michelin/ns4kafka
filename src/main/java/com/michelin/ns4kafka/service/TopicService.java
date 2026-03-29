@@ -147,19 +147,6 @@ public class TopicService {
     }
 
     /**
-     * Delete a given topic.
-     *
-     * @param topic The topic
-     */
-    public void delete(Topic topic) throws InterruptedException, ExecutionException, TimeoutException {
-        TopicAsyncExecutor topicAsyncExecutor = applicationContext.getBean(
-                TopicAsyncExecutor.class, Qualifiers.byName(topic.getMetadata().getCluster()));
-        topicAsyncExecutor.deleteTopics(List.of(topic));
-
-        topicRepository.delete(topic);
-    }
-
-    /**
      * Delete multiple topics.
      *
      * @param topics The topics list

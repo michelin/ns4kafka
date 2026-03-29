@@ -40,7 +40,6 @@ import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.context.event.ApplicationEventPublisher;
-import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.security.utils.SecurityService;
 import java.util.List;
@@ -139,172 +138,7 @@ class ConnectClusterControllerTest {
     }
 
     @Test
-    @SuppressWarnings("deprecation")
-    void shouldGetConnectClusterWhenEmpty() {
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
-
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(connectClusterService.findByNameWithOwnerPermission(ns, "missing")).thenReturn(Optional.empty());
-
-        Optional<ConnectCluster> actual = connectClusterController.get("test", "missing");
-        assertTrue(actual.isEmpty());
-    }
-
-    @Test
-    @SuppressWarnings("deprecation")
-    void shouldGetConnectCluster() {
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
-
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(connectClusterService.findByNameWithOwnerPermission(ns, "connect-cluster"))
-                .thenReturn(Optional.of(ConnectCluster.builder()
-                        .metadata(Resource.Metadata.builder()
-                                .name("connect-cluster")
-                                .build())
-                        .build()));
-
-        Optional<ConnectCluster> actual = connectClusterController.get("test", "connect-cluster");
-        assertTrue(actual.isPresent());
-        assertEquals("connect-cluster", actual.get().getMetadata().getName());
-    }
-
-    @Test
-    @SuppressWarnings("deprecation")
-    void shouldNotDeleteConnectClusterWhenNotOwner() {
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
-
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster"))
-                .thenReturn(false);
-
-        assertThrows(
-                ResourceValidationException.class,
-                () -> connectClusterController.delete("test", "connect-cluster", false));
-    }
-
-    @Test
-    @SuppressWarnings("deprecation")
-    void shouldNotDeleteConnectClusterWhenNotFound() {
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
-
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster"))
-                .thenReturn(true);
-        when(connectClusterService.findByNameWithOwnerPermission(ns, "connect-cluster"))
-                .thenReturn(Optional.empty());
-
-        HttpResponse<Void> actual = connectClusterController.delete("test", "connect-cluster", false);
-        assertEquals(HttpStatus.NOT_FOUND, actual.getStatus());
-    }
-
-    @Test
-    @SuppressWarnings("deprecation")
-    void shouldDeleteConnectCluster() {
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
-
-        ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(Resource.Metadata.builder().name("connect-cluster").build())
-                .build();
-
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster"))
-                .thenReturn(true);
-        when(connectorService.findAllByConnectCluster(ns, "connect-cluster")).thenReturn(List.of());
-        when(connectClusterService.findByNameWithOwnerPermission(ns, "connect-cluster"))
-                .thenReturn(Optional.of(connectCluster));
-        doNothing().when(connectClusterService).delete(connectCluster);
-        when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
-        doNothing().when(applicationEventPublisher).publishEvent(any());
-
-        HttpResponse<Void> actual = connectClusterController.delete("test", "connect-cluster", false);
-        assertEquals(HttpStatus.NO_CONTENT, actual.getStatus());
-    }
-
-    @Test
-    @SuppressWarnings("deprecation")
-    void shouldDeleteConnectClusterInDryRunMode() {
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
-
-        ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(Resource.Metadata.builder().name("connect-cluster").build())
-                .build();
-
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster"))
-                .thenReturn(true);
-        when(connectorService.findAllByConnectCluster(ns, "connect-cluster")).thenReturn(List.of());
-        when(connectClusterService.findByNameWithOwnerPermission(ns, "connect-cluster"))
-                .thenReturn(Optional.of(connectCluster));
-
-        HttpResponse<Void> actual = connectClusterController.delete("test", "connect-cluster", true);
-        assertEquals(HttpStatus.NO_CONTENT, actual.getStatus());
-
-        verify(connectClusterService, never()).delete(any());
-    }
-
-    @Test
-    @SuppressWarnings("deprecation")
-    void shouldNotDeleteConnectClusterWithConnectors() {
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
-
-        Connector connector = Connector.builder()
-                .metadata(Resource.Metadata.builder().name("connect1").build())
-                .build();
-
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(connectClusterService.isNamespaceOwnerOfConnectCluster(ns, "connect-cluster"))
-                .thenReturn(true);
-        when(connectorService.findAllByConnectCluster(ns, "connect-cluster")).thenReturn(List.of(connector));
-
-        ResourceValidationException result = assertThrows(
-                ResourceValidationException.class,
-                () -> connectClusterController.delete("test", "connect-cluster", false));
-
-        assertEquals(1, result.getValidationErrors().size());
-        assertEquals(
-                "Invalid \"delete\" operation: The Kafka Connect \"connect-cluster\" has 1 deployed connector(s): "
-                        + "connect1. Please remove the associated connector(s) before deleting it.",
-                result.getValidationErrors().getFirst());
-    }
-
-    @Test
-    void shouldBulkDeleteConnectClusters() {
+    void shouldDeleteConnectClusters() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test")
@@ -331,12 +165,12 @@ class ConnectClusterControllerTest {
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        var actual = connectClusterController.bulkDelete("test", "connect-cluster*", false, false);
+        var actual = connectClusterController.delete("test", "connect-cluster*", false, false);
         assertEquals(HttpStatus.OK, actual.getStatus());
     }
 
     @Test
-    void shouldNotBulkDeleteConnectClustersInDryRunMode() {
+    void shouldNotDeleteConnectClustersInDryRunMode() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test")
@@ -353,14 +187,14 @@ class ConnectClusterControllerTest {
         when(connectClusterService.findByWildcardNameWithOwnerPermission(ns, "connect-cluster*"))
                 .thenReturn(List.of(connectCluster));
 
-        var actual = connectClusterController.bulkDelete("test", "connect-cluster*", true, false);
+        var actual = connectClusterController.delete("test", "connect-cluster*", true, false);
         assertEquals(HttpStatus.OK, actual.getStatus());
 
         verify(connectClusterService, never()).delete(any());
     }
 
     @Test
-    void shouldNotBulkDeleteConnectClustersWhenNotFound() {
+    void shouldNotDeleteConnectClustersWhenNotFound() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test")
@@ -372,12 +206,12 @@ class ConnectClusterControllerTest {
         when(connectClusterService.findByWildcardNameWithOwnerPermission(ns, "connect-cluster*"))
                 .thenReturn(List.of());
 
-        var actual = connectClusterController.bulkDelete("test", "connect-cluster*", false, false);
+        var actual = connectClusterController.delete("test", "connect-cluster*", false, false);
         assertEquals(HttpStatus.NOT_FOUND, actual.getStatus());
     }
 
     @Test
-    void shouldNotBulkDeleteConnectClustersWithConnectors() {
+    void shouldNotDeleteConnectClustersWithConnectors() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test")
@@ -407,7 +241,7 @@ class ConnectClusterControllerTest {
 
         ResourceValidationException result = assertThrows(
                 ResourceValidationException.class,
-                () -> connectClusterController.bulkDelete("test", "connect-cluster*", false, false));
+                () -> connectClusterController.delete("test", "connect-cluster*", false, false));
 
         assertEquals(1, result.getValidationErrors().size());
         assertEquals(
@@ -448,7 +282,7 @@ class ConnectClusterControllerTest {
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        var actual = connectClusterController.bulkDelete("test", "connect-cluster*", false, true);
+        var actual = connectClusterController.delete("test", "connect-cluster*", false, true);
         assertEquals(HttpStatus.OK, actual.getStatus());
 
         verify(connectClusterService).delete(connectCluster1);

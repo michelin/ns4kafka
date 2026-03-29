@@ -99,26 +99,6 @@ public class SchemaController extends NamespacedResourceController {
     }
 
     /**
-     * Get the last version of a schema by namespace and subject.
-     *
-     * @param namespace The namespace
-     * @param subject The subject
-     * @return A schema
-     * @deprecated use {@link #list(String, String)} instead.
-     */
-    @Get("/{subject}")
-    @Deprecated(since = "1.12.0")
-    public Mono<Schema> get(String namespace, String subject) {
-        Namespace ns = getNamespace(namespace);
-
-        if (!schemaService.isNamespaceOwnerOfSubject(ns, subject)) {
-            return Mono.empty();
-        }
-
-        return schemaService.getSubjectLatestVersion(ns, subject);
-    }
-
-    /**
      * Publish a schema.
      *
      * @param namespace The namespace
@@ -205,7 +185,7 @@ public class SchemaController extends NamespacedResourceController {
      * @return A HTTP response
      */
     @Delete
-    public Mono<HttpResponse<List<Schema>>> bulkDelete(
+    public Mono<HttpResponse<List<Schema>>> delete(
             String namespace,
             @QueryValue(defaultValue = "*") String name,
             @QueryValue("version") Optional<String> versionOptional,
@@ -252,66 +232,6 @@ public class SchemaController extends NamespacedResourceController {
                                         return Mono.just(HttpResponse.noContent());
                                     }))
                             .then(Mono.just(HttpResponse.ok(schemas)));
-                });
-    }
-
-    /**
-     * Delete all schema versions or a specific schema version if specified, under the given subject.
-     *
-     * @param namespace The namespace
-     * @param subject The subject
-     * @param versionOptional The version of the schema to delete
-     * @param dryrun Run in dry mode or not?
-     * @return A HTTP response
-     * @deprecated use {@link #bulkDelete(String, String, Optional, boolean)} instead.
-     */
-    @Delete("/{subject}")
-    @Deprecated(since = "1.13.0")
-    public Mono<HttpResponse<Void>> delete(
-            String namespace,
-            @PathVariable String subject,
-            @QueryValue("version") Optional<String> versionOptional,
-            @QueryValue(defaultValue = "false") boolean dryrun) {
-        Namespace ns = getNamespace(namespace);
-
-        // Validate ownership
-        if (!schemaService.isNamespaceOwnerOfSubject(ns, subject)) {
-            return Mono.error(new ResourceValidationException(SCHEMA, subject, invalidOwner(subject)));
-        }
-
-        return versionOptional
-                // If version is specified, get the schema with the version
-                .map(version -> schemaService.getSubjectByVersion(ns, subject, version))
-                // If version is not specified, get the latest schema
-                .orElseGet(() -> schemaService.getSubjectLatestVersion(ns, subject))
-                .map(Optional::of)
-                .defaultIfEmpty(Optional.empty())
-                .flatMap(subjectOptional -> {
-                    if (subjectOptional.isEmpty()) {
-                        return Mono.just(HttpResponse.notFound());
-                    }
-
-                    if (dryrun) {
-                        return Mono.just(HttpResponse.noContent());
-                    }
-
-                    return (versionOptional.isEmpty()
-                                    ? schemaService.deleteAllVersions(ns, subject)
-                                    : schemaService.deleteVersion(ns, subject, versionOptional.get()))
-                            .map(deletedVersionIds -> {
-                                Schema deletedSchema = subjectOptional.get();
-
-                                sendEventLog(
-                                        deletedSchema,
-                                        ApplyStatus.DELETED,
-                                        deletedSchema.getSpec(),
-                                        null,
-                                        versionOptional
-                                                .map(_ -> String.valueOf(deletedVersionIds))
-                                                .orElse(EMPTY_STRING));
-
-                                return HttpResponse.noContent();
-                            });
                 });
     }
 

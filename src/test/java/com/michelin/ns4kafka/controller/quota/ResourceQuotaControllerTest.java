@@ -134,58 +134,6 @@ class ResourceQuotaControllerTest {
     }
 
     @Test
-    @SuppressWarnings("deprecation")
-    void shouldGetQuotaWhenEmpty() {
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
-
-        when(resourceQuotaService.findByName(ns.getMetadata().getName(), "quotaName"))
-                .thenReturn(Optional.empty());
-
-        Optional<ResourceQuotaResponse> actual = resourceQuotaController.get("test", "quotaName");
-        assertTrue(actual.isEmpty());
-    }
-
-    @Test
-    @SuppressWarnings("deprecation")
-    void shouldGetQuotaWhenPresent() {
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
-
-        ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(Resource.Metadata.builder()
-                        .cluster("local")
-                        .name("test")
-                        .build())
-                .spec(Map.of("count/topics", "1"))
-                .build();
-
-        ResourceQuotaResponse response = ResourceQuotaResponse.builder()
-                .spec(ResourceQuotaResponse.ResourceQuotaResponseSpec.builder()
-                        .countTopic("0/INF")
-                        .build())
-                .build();
-
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(resourceQuotaService.findByName(ns.getMetadata().getName(), "quotaName"))
-                .thenReturn(Optional.of(resourceQuota));
-        when(resourceQuotaService.getUsedResourcesByQuotaByNamespace(ns, Optional.of(resourceQuota)))
-                .thenReturn(response);
-
-        Optional<ResourceQuotaResponse> actual = resourceQuotaController.get("test", "quotaName");
-        assertTrue(actual.isPresent());
-        assertEquals(response, actual.get());
-    }
-
-    @Test
     void shouldApplyValidationErrors() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()

@@ -157,47 +157,6 @@ class StreamControllerTest {
     }
 
     @Test
-    @SuppressWarnings("deprecation")
-    void shouldGetStreamsWhenEmpty() {
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
-
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-
-        when(streamService.findByName(ns, "test_stream1")).thenReturn(Optional.empty());
-
-        Optional<KafkaStream> actual = streamController.get("test", "test_stream1");
-        assertTrue(actual.isEmpty());
-    }
-
-    @Test
-    @SuppressWarnings("deprecation")
-    void shouldGetStreams() {
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
-
-        KafkaStream stream1 = KafkaStream.builder()
-                .metadata(Resource.Metadata.builder().name("test_stream1").build())
-                .build();
-
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-
-        when(streamService.findByName(ns, "test_stream1")).thenReturn(Optional.of(stream1));
-
-        Optional<KafkaStream> actual = streamController.get("test", "test_stream1");
-        assertTrue(actual.isPresent());
-        assertEquals(stream1, actual.get());
-    }
-
-    @Test
     void shouldCreateStreams() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
@@ -301,99 +260,7 @@ class StreamControllerTest {
     }
 
     @Test
-    @SuppressWarnings("deprecation")
     void shouldDeleteStreams() throws ExecutionException, InterruptedException, TimeoutException {
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
-
-        KafkaStream stream = KafkaStream.builder()
-                .metadata(Resource.Metadata.builder().name("test_stream1").build())
-                .build();
-
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-
-        when(streamService.isNamespaceOwnerOfKafkaStream(ns, "test_stream1")).thenReturn(true);
-
-        when(streamService.findByName(ns, "test_stream1")).thenReturn(Optional.of(stream));
-
-        when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
-        doNothing().when(applicationEventPublisher).publishEvent(any());
-        doNothing().when(streamService).delete(ns, stream);
-        var response = streamController.delete("test", "test_stream1", false);
-        assertEquals(HttpStatus.NO_CONTENT, response.getStatus());
-    }
-
-    @Test
-    @SuppressWarnings("deprecation")
-    void shouldDeleteStreamsInDryRunMode() throws ExecutionException, InterruptedException, TimeoutException {
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
-
-        KafkaStream stream1 = KafkaStream.builder()
-                .metadata(Resource.Metadata.builder().name("test_stream1").build())
-                .build();
-
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-
-        when(streamService.isNamespaceOwnerOfKafkaStream(ns, "test_stream1")).thenReturn(true);
-
-        when(streamService.findByName(ns, "test_stream1")).thenReturn(Optional.of(stream1));
-
-        var response = streamController.delete("test", "test_stream1", true);
-        verify(streamService, never()).delete(any(), any());
-        assertEquals(HttpStatus.NO_CONTENT, response.getStatus());
-    }
-
-    @Test
-    @SuppressWarnings("deprecation")
-    void shouldNotDeleteStreamsWhenNotFound() throws ExecutionException, InterruptedException, TimeoutException {
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
-
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(streamService.isNamespaceOwnerOfKafkaStream(ns, "test_stream1")).thenReturn(true);
-
-        when(streamService.findByName(ns, "test_stream1")).thenReturn(Optional.empty());
-
-        var response = streamController.delete("test", "test_stream1", false);
-        verify(streamService, never()).delete(any(), any());
-
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatus());
-    }
-
-    @Test
-    @SuppressWarnings("deprecation")
-    void shouldNotDeleteStreamsWhenNotOwner() throws ExecutionException, InterruptedException, TimeoutException {
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
-
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-
-        when(streamService.isNamespaceOwnerOfKafkaStream(ns, "test_stream1")).thenReturn(false);
-
-        assertThrows(ResourceValidationException.class, () -> streamController.delete("test", "test_stream1", false));
-        verify(streamService, never()).delete(any(), any());
-    }
-
-    @Test
-    void shouldBulkDeleteStreams() throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test")
@@ -422,12 +289,12 @@ class StreamControllerTest {
         doNothing().when(applicationEventPublisher).publishEvent(any());
         doNothing().when(streamService).delete(ns, stream1);
         doNothing().when(streamService).delete(ns, stream2);
-        var response = streamController.bulkDelete("test", "test_stream*", false);
+        var response = streamController.delete("test", "test_stream*", false);
         assertEquals(HttpStatus.OK, response.getStatus());
     }
 
     @Test
-    void shouldNotBulkDeleteStreamsInDryRunMode() throws ExecutionException, InterruptedException, TimeoutException {
+    void shouldNotDeleteStreamsInDryRunMode() throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test")
@@ -451,13 +318,13 @@ class StreamControllerTest {
 
         when(streamService.findByWildcardName(ns, "test_stream*")).thenReturn(List.of(stream1, stream2));
 
-        var response = streamController.bulkDelete("test", "test_stream*", true);
+        var response = streamController.delete("test", "test_stream*", true);
         verify(streamService, never()).delete(any(), any());
         assertEquals(HttpStatus.OK, response.getStatus());
     }
 
     @Test
-    void shouldNotBulkDeleteStreamsWhenNotFound() throws ExecutionException, InterruptedException, TimeoutException {
+    void shouldNotDeleteStreamsWhenNotFound() throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test")
@@ -469,14 +336,14 @@ class StreamControllerTest {
 
         when(streamService.findByWildcardName(ns, "test_stream*")).thenReturn(List.of());
 
-        var response = streamController.bulkDelete("test", "test_stream*", false);
+        var response = streamController.delete("test", "test_stream*", false);
         verify(streamService, never()).delete(any(), any());
 
         assertEquals(HttpStatus.NOT_FOUND, response.getStatus());
     }
 
     @Test
-    void shouldNotBulkDeleteStreamsWhenNotOwner() throws ExecutionException, InterruptedException, TimeoutException {
+    void shouldNotDeleteStreamsWhenNotOwner() throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test")
@@ -500,8 +367,7 @@ class StreamControllerTest {
 
         when(streamService.findByWildcardName(ns, "test_stream*")).thenReturn(List.of(stream1, stream2));
 
-        assertThrows(
-                ResourceValidationException.class, () -> streamController.bulkDelete("test", "test_stream*", false));
+        assertThrows(ResourceValidationException.class, () -> streamController.delete("test", "test_stream*", false));
         verify(streamService, never()).delete(any(), any());
     }
 }

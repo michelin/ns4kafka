@@ -96,24 +96,6 @@ public class TopicController extends NamespacedResourceController {
     }
 
     /**
-     * Get a topic by namespace and name.
-     *
-     * @param namespace The name
-     * @param topic The topic name
-     * @return The topic
-     * @deprecated use {@link #list(String, String)} instead.
-     */
-    @Get("/{topic}")
-    @Deprecated(since = "1.12.0")
-    public Optional<Topic> get(String namespace, String topic) {
-        if (!topicService.isNamespaceOwnerOfTopic(namespace, topic)) {
-            throw new ResourceValidationException(TOPIC, topic, invalidOwner(topic));
-        }
-
-        return topicService.findByName(getNamespace(namespace), topic);
-    }
-
-    /**
      * Create a topic.
      *
      * @param namespace The namespace
@@ -198,7 +180,7 @@ public class TopicController extends NamespacedResourceController {
      * @return An HTTP response
      */
     @Delete
-    public HttpResponse<List<Topic>> bulkDelete(
+    public HttpResponse<List<Topic>> delete(
             String namespace,
             @QueryValue(defaultValue = "*") String name,
             @QueryValue(defaultValue = "false") boolean dryrun)
@@ -220,43 +202,6 @@ public class TopicController extends NamespacedResourceController {
         topicService.deleteTopics(topics);
 
         return HttpResponse.ok(topics);
-    }
-
-    /**
-     * Delete a topic.
-     *
-     * @param namespace The namespace
-     * @param topic The topic
-     * @param dryrun Is dry run mode or not?
-     * @return An HTTP response
-     * @deprecated use {@link #bulkDelete(String, String, boolean)} instead.
-     */
-    @Delete("/{topic}{?dryrun}")
-    @Deprecated(since = "1.13.0")
-    public HttpResponse<Void> delete(String namespace, String topic, @QueryValue(defaultValue = "false") boolean dryrun)
-            throws InterruptedException, ExecutionException, TimeoutException {
-        Namespace ns = getNamespace(namespace);
-        if (!topicService.isNamespaceOwnerOfTopic(namespace, topic)) {
-            throw new ResourceValidationException(TOPIC, topic, invalidOwner(topic));
-        }
-
-        Optional<Topic> optionalTopic = topicService.findByName(ns, topic);
-
-        if (optionalTopic.isEmpty()) {
-            return HttpResponse.notFound();
-        }
-
-        if (dryrun) {
-            return HttpResponse.noContent();
-        }
-
-        Topic topicToDelete = optionalTopic.get();
-
-        sendEventLog(topicToDelete, ApplyStatus.DELETED, topicToDelete.getSpec(), null, EMPTY_STRING);
-
-        topicService.delete(topicToDelete);
-
-        return HttpResponse.noContent();
     }
 
     /**
