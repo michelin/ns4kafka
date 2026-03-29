@@ -20,7 +20,7 @@ package com.michelin.ns4kafka.controller.connect;
 
 import com.michelin.ns4kafka.controller.generic.ResourceController;
 import com.michelin.ns4kafka.model.AuditLog;
-import com.michelin.ns4kafka.model.connect.cluster.ConnectCluster;
+import com.michelin.ns4kafka.model.connect.ConnectCluster;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.service.ConnectClusterService;
 import io.micronaut.context.event.ApplicationEventPublisher;

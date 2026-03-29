@@ -16,15 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.michelin.ns4kafka.controller;
+package com.michelin.ns4kafka.controller.topic;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
-import com.michelin.ns4kafka.controller.acl.AclNonNamespacedController;
-import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Metadata;
-import com.michelin.ns4kafka.service.AclService;
+import com.michelin.ns4kafka.model.Topic;
+import com.michelin.ns4kafka.service.TopicService;
 import java.util.Collection;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -34,34 +33,28 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class AclNonNamespacedControllerTest {
+class TopicNonNamespacedControllerTest {
     @Mock
-    AclService aclService;
+    TopicService topicService;
 
     @InjectMocks
-    AclNonNamespacedController aclNonNamespacedController;
+    TopicNonNamespacedController topicController;
 
     @Test
-    void shouldListAcls() {
-        AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Metadata.builder().namespace("namespace1").build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .grantedTo("namespace1")
-                        .build())
+    void shouldFindAll() {
+        Topic topic = Topic.builder()
+                .metadata(Metadata.builder().name("topic1").build())
                 .build();
 
-        AccessControlEntry accessControlEntry2 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().namespace("namespace2").build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .grantedTo("namespace2")
-                        .build())
+        Topic topic2 = Topic.builder()
+                .metadata(Metadata.builder().name("topic2").build())
                 .build();
 
-        when(aclService.findAll()).thenReturn(List.of(accessControlEntry, accessControlEntry2));
+        when(topicService.findAll()).thenReturn(List.of(topic, topic2));
 
-        Collection<AccessControlEntry> actual = aclNonNamespacedController.listAll();
+        Collection<Topic> actual = topicController.listAll();
 
         assertEquals(2, actual.size());
-        assertEquals(List.of(accessControlEntry, accessControlEntry2), actual);
+        assertEquals(List.of(topic, topic2), actual);
     }
 }
