@@ -21,7 +21,7 @@ package com.michelin.ns4kafka.model;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
-import com.michelin.ns4kafka.model.connector.Connector;
+import com.michelin.ns4kafka.model.connect.Connector;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 

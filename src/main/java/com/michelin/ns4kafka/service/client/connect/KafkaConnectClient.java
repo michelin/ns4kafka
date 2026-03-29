@@ -18,7 +18,7 @@
  */
 package com.michelin.ns4kafka.service.client.connect;
 
-import com.michelin.ns4kafka.model.connect.cluster.ConnectCluster;
+import com.michelin.ns4kafka.model.connect.ConnectCluster;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.property.Ns4KafkaProperties;
 import com.michelin.ns4kafka.repository.ConnectClusterRepository;

@@ -24,7 +24,7 @@ import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.controller.connect.ConnectClusterNonNamespacedController;
 import com.michelin.ns4kafka.model.Metadata;
-import com.michelin.ns4kafka.model.connect.cluster.ConnectCluster;
+import com.michelin.ns4kafka.model.connect.ConnectCluster;
 import com.michelin.ns4kafka.service.ConnectClusterService;
 import java.util.List;
 import org.junit.jupiter.api.Test;

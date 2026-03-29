@@ -18,7 +18,7 @@
  */
 package com.michelin.ns4kafka.repository;
 
-import com.michelin.ns4kafka.model.connector.Connector;
+import com.michelin.ns4kafka.model.connect.Connector;
 import java.util.List;
 
 /** Connector repository. */

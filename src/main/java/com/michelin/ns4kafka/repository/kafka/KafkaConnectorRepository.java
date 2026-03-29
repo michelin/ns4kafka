@@ -18,7 +18,7 @@
  */
 package com.michelin.ns4kafka.repository.kafka;
 
-import com.michelin.ns4kafka.model.connector.Connector;
+import com.michelin.ns4kafka.model.connect.Connector;
 import com.michelin.ns4kafka.property.Ns4KafkaProperties;
 import com.michelin.ns4kafka.repository.ConnectorRepository;
 import io.micronaut.configuration.kafka.annotation.KafkaClient;

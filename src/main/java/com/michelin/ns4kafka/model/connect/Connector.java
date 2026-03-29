@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.michelin.ns4kafka.model.connector;
+package com.michelin.ns4kafka.model.connect;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.CONNECTOR;
 
