@@ -29,8 +29,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
-import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.connect.ConnectCluster;
 import com.michelin.ns4kafka.model.connect.VaultResponse;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
@@ -91,7 +91,7 @@ class ConnectClusterServiceTest {
     @Test
     void shouldFindAllConnectClustersExcludingThoseDeclaredInNs4KafkaConfig() {
         ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(Metadata.builder().name("connect-cluster").build())
+                .metadata(Resource.Metadata.builder().name("connect-cluster").build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .url("https://after")
                         .username("username")
@@ -111,7 +111,7 @@ class ConnectClusterServiceTest {
     @Test
     void shouldFindAllConnectClustersIncludingThoseDeclaredInNs4KafkaConfig() {
         ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(Metadata.builder().name("connect-cluster").build())
+                .metadata(Resource.Metadata.builder().name("connect-cluster").build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .url("https://after")
                         .username("username")
@@ -152,7 +152,7 @@ class ConnectClusterServiceTest {
     @Test
     void shouldFindAllConnectClustersIncludingThoseDeclaredInNs4KafkaConfigEvenIfNull() {
         ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(Metadata.builder().name("connect-cluster").build())
+                .metadata(Resource.Metadata.builder().name("connect-cluster").build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .url("https://after")
                         .username("username")
@@ -183,34 +183,41 @@ class ConnectClusterServiceTest {
     @Test
     void shouldFindAllConnectClustersForNamespaceWithOwnership() {
         Namespace namespace = Namespace.builder()
-                .metadata(
-                        Metadata.builder().name("myNamespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("myNamespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder().build())
                 .build();
 
         ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(Metadata.builder().name("prefix.connect-cluster").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("prefix.connect-cluster")
+                        .build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .url("https://after")
                         .build())
                 .build();
 
         ConnectCluster connectClusterTwo = ConnectCluster.builder()
-                .metadata(Metadata.builder().name("prefix2.connect-two").build())
+                .metadata(
+                        Resource.Metadata.builder().name("prefix2.connect-two").build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .url("https://after")
                         .build())
                 .build();
 
         ConnectCluster connectClusterThree = ConnectCluster.builder()
-                .metadata(Metadata.builder().name("prefix3.connect-cluster").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("prefix3.connect-cluster")
+                        .build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .url("https://after")
                         .build())
                 .build();
 
         ConnectCluster connectClusterFour = ConnectCluster.builder()
-                .metadata(Metadata.builder().name("not-owner").build())
+                .metadata(Resource.Metadata.builder().name("not-owner").build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .url("https://after")
                         .build())
@@ -275,20 +282,22 @@ class ConnectClusterServiceTest {
     @Test
     void shouldListConnectClusterWithNameParameter() {
         Namespace namespace = Namespace.builder()
-                .metadata(
-                        Metadata.builder().name("myNamespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("myNamespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder().build())
                 .build();
 
         ConnectCluster cc1 = ConnectCluster.builder()
-                .metadata(Metadata.builder().name("abc.cc").build())
+                .metadata(Resource.Metadata.builder().name("abc.cc").build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .url("https://after")
                         .build())
                 .build();
 
         ConnectCluster cc2 = ConnectCluster.builder()
-                .metadata(Metadata.builder().name("xyz.connect-two").build())
+                .metadata(Resource.Metadata.builder().name("xyz.connect-two").build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .url("https://after")
                         .build())
@@ -329,41 +338,44 @@ class ConnectClusterServiceTest {
     @Test
     void shouldListConnectClusterWithWildcardNameParameter() {
         Namespace namespace = Namespace.builder()
-                .metadata(
-                        Metadata.builder().name("myNamespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("myNamespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder().build())
                 .build();
 
         ConnectCluster cc1 = ConnectCluster.builder()
-                .metadata(Metadata.builder().name("prefix.cc1").build())
+                .metadata(Resource.Metadata.builder().name("prefix.cc1").build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .url("https://after")
                         .build())
                 .build();
 
         ConnectCluster cc2 = ConnectCluster.builder()
-                .metadata(Metadata.builder().name("prefix.cc2").build())
+                .metadata(Resource.Metadata.builder().name("prefix.cc2").build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .url("https://after")
                         .build())
                 .build();
 
         ConnectCluster cc3 = ConnectCluster.builder()
-                .metadata(Metadata.builder().name("prefix2.connect-two").build())
+                .metadata(
+                        Resource.Metadata.builder().name("prefix2.connect-two").build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .url("https://after")
                         .build())
                 .build();
 
         ConnectCluster cc4 = ConnectCluster.builder()
-                .metadata(Metadata.builder().name("prefix3.connect1").build())
+                .metadata(Resource.Metadata.builder().name("prefix3.connect1").build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .url("https://after")
                         .build())
                 .build();
 
         ConnectCluster cc5 = ConnectCluster.builder()
-                .metadata(Metadata.builder().name("prefix3.connect2").build())
+                .metadata(Resource.Metadata.builder().name("prefix3.connect2").build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .url("https://after")
                         .build())
@@ -432,13 +444,15 @@ class ConnectClusterServiceTest {
     void shouldFindAllConnectClustersWithWritePermissionAndHideCredentialsWhenNotOwner() {
         String encryptKey = "changeitchangeitchangeitchangeit";
         Namespace namespace = Namespace.builder()
-                .metadata(
-                        Metadata.builder().name("myNamespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("myNamespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder().build())
                 .build();
 
         ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("prefix.connect-cluster")
                         .cluster("local")
                         .build())
@@ -450,7 +464,7 @@ class ConnectClusterServiceTest {
                 .build();
 
         ConnectCluster connectClusterOwner = ConnectCluster.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("owner.connect-cluster")
                         .cluster("local")
                         .build())
@@ -512,13 +526,15 @@ class ConnectClusterServiceTest {
     @Test
     void shouldFindConnectClusterByNamespaceAndName() {
         Namespace namespace = Namespace.builder()
-                .metadata(
-                        Metadata.builder().name("myNamespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("myNamespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder().build())
                 .build();
 
         ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("prefix.connect-cluster")
                         .cluster("local")
                         .build())
@@ -555,13 +571,15 @@ class ConnectClusterServiceTest {
     @Test
     void shouldNotFindConnectClusterByNamespaceAndNameWhenDoesNotExist() {
         Namespace namespace = Namespace.builder()
-                .metadata(
-                        Metadata.builder().name("myNamespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("myNamespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder().build())
                 .build();
 
         ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("prefix.connect-cluster")
                         .cluster("local")
                         .build())
@@ -594,7 +612,9 @@ class ConnectClusterServiceTest {
     @Test
     void shouldCreateConnectCluster() {
         ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(Metadata.builder().name("prefix.connect-cluster").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("prefix.connect-cluster")
+                        .build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .url("https://after")
                         .build())
@@ -609,7 +629,9 @@ class ConnectClusterServiceTest {
     @Test
     void shouldCreateConnectClusterWithEncryptedCredentials() {
         ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(Metadata.builder().name("prefix.connect-cluster").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("prefix.connect-cluster")
+                        .build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .url("https://after")
                         .username("myUsername")
@@ -637,7 +659,7 @@ class ConnectClusterServiceTest {
         when(kafkaConnectClient.version(any())).thenReturn(Mono.just(HttpResponse.ok()));
 
         ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(Metadata.builder().name("test-connect").build())
+                .metadata(Resource.Metadata.builder().name("test-connect").build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .url("https://after")
                         .build())
@@ -657,7 +679,7 @@ class ConnectClusterServiceTest {
         when(kafkaConnectClient.version(any())).thenReturn(Mono.just(HttpResponse.ok()));
 
         ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(Metadata.builder().name("test-connect2").build())
+                .metadata(Resource.Metadata.builder().name("test-connect2").build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .url("https://after")
                         .build())
@@ -677,7 +699,7 @@ class ConnectClusterServiceTest {
         when(kafkaConnectClient.version(any())).thenReturn(Mono.just(HttpResponse.ok()));
 
         ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(Metadata.builder().name("test-connect").build())
+                .metadata(Resource.Metadata.builder().name("test-connect").build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .url("https://after")
                         .build())
@@ -697,7 +719,7 @@ class ConnectClusterServiceTest {
     @Test
     void shouldValidateConnectClusterCreationWhenDown() {
         ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(Metadata.builder().name("test-connect").build())
+                .metadata(Resource.Metadata.builder().name("test-connect").build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .url("https://after")
                         .username("username")
@@ -720,7 +742,7 @@ class ConnectClusterServiceTest {
     @Test
     void shouldValidateConnectClusterCreationWhenBadAes256MissingSalt() {
         ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(Metadata.builder().name("test-connect").build())
+                .metadata(Resource.Metadata.builder().name("test-connect").build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .url("https://after")
                         .username("username")
@@ -746,7 +768,7 @@ class ConnectClusterServiceTest {
     @Test
     void shouldValidateConnectClusterCreationWhenBadAes256MissingKey() {
         ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(Metadata.builder().name("test-connect").build())
+                .metadata(Resource.Metadata.builder().name("test-connect").build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .url("https://after")
                         .username("username")
@@ -772,7 +794,7 @@ class ConnectClusterServiceTest {
     @Test
     void shouldValidateConnectClusterCreationWhenDownAndMissingKey() {
         ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(Metadata.builder().name("test-connect").build())
+                .metadata(Resource.Metadata.builder().name("test-connect").build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .url("https://after")
                         .username("username")
@@ -797,13 +819,17 @@ class ConnectClusterServiceTest {
     @Test
     void shouldNotValidateConnectClusterVaultWhenNoConnectClusterAvailable() {
         Namespace namespace = Namespace.builder()
-                .metadata(
-                        Metadata.builder().name("myNamespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("myNamespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder().build())
                 .build();
 
         ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(Metadata.builder().name("prefix.connect-cluster").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("prefix.connect-cluster")
+                        .build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .aes256Key("aes256Key")
                         .aes256Salt("aes256Salt")
@@ -836,20 +862,24 @@ class ConnectClusterServiceTest {
     void shouldNotValidateConnectClusterVaultWhenNoConnectClusterAvailableWithAes256() {
         String encryptKey = "changeitchangeitchangeitchangeit";
         Namespace namespace = Namespace.builder()
-                .metadata(
-                        Metadata.builder().name("myNamespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("myNamespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder().build())
                 .build();
 
         ConnectCluster ccNoAesKeyAndSalt = ConnectCluster.builder()
-                .metadata(Metadata.builder().name("prefix.noAesKeyAndSalt").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("prefix.noAesKeyAndSalt")
+                        .build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .password(EncryptionUtils.encryptAes256Gcm("password", encryptKey))
                         .build())
                 .build();
 
         ConnectCluster ccNoAesSalt = ConnectCluster.builder()
-                .metadata(Metadata.builder().name("prefix.noAesSalt").build())
+                .metadata(Resource.Metadata.builder().name("prefix.noAesSalt").build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .password(EncryptionUtils.encryptAes256Gcm("password", encryptKey))
                         .aes256Salt(EncryptionUtils.encryptAes256Gcm("aes256Salt", encryptKey))
@@ -857,7 +887,7 @@ class ConnectClusterServiceTest {
                 .build();
 
         ConnectCluster ccNoAesKey = ConnectCluster.builder()
-                .metadata(Metadata.builder().name("prefix.noAesKey").build())
+                .metadata(Resource.Metadata.builder().name("prefix.noAesKey").build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .password(EncryptionUtils.encryptAes256Gcm("password", encryptKey))
                         .aes256Key(EncryptionUtils.encryptAes256Gcm("aes256Key", encryptKey))
@@ -901,13 +931,17 @@ class ConnectClusterServiceTest {
     void shouldValidateConnectClusterVault() {
         String encryptKey = "changeitchangeitchangeitchangeit";
         Namespace namespace = Namespace.builder()
-                .metadata(
-                        Metadata.builder().name("myNamespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("myNamespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder().build())
                 .build();
 
         ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(Metadata.builder().name("prefix.connect-cluster").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("prefix.connect-cluster")
+                        .build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .username("username")
                         .password(EncryptionUtils.encryptAes256Gcm("password", encryptKey))
@@ -941,13 +975,17 @@ class ConnectClusterServiceTest {
     @Test
     void shouldNotVaultPasswordWhenConnectClusterMissesAes256Config() {
         Namespace namespace = Namespace.builder()
-                .metadata(
-                        Metadata.builder().name("myNamespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("myNamespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder().build())
                 .build();
 
         ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(Metadata.builder().name("prefix.connect-cluster").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("prefix.connect-cluster")
+                        .build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .aes256Key("aes256Key")
                         .build())
@@ -976,13 +1014,15 @@ class ConnectClusterServiceTest {
     void shouldFindAllByNamespaceWriteAsOwner() {
         String encryptKey = "changeitchangeitchangeitchangeit";
         Namespace namespace = Namespace.builder()
-                .metadata(
-                        Metadata.builder().name("myNamespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("myNamespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder().build())
                 .build();
 
         ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("prefix.connect-cluster")
                         .cluster("local")
                         .build())
@@ -994,7 +1034,7 @@ class ConnectClusterServiceTest {
                 .build();
 
         ConnectCluster connectClusterOwner = ConnectCluster.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("owner.connect-cluster")
                         .cluster("local")
                         .build())
@@ -1055,7 +1095,7 @@ class ConnectClusterServiceTest {
     @Test
     void shouldDeleteConnectCluster() {
         ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("prefix.connect-cluster")
                         .cluster("local")
                         .build())
@@ -1070,8 +1110,10 @@ class ConnectClusterServiceTest {
     @Test
     void shouldValidateNamespaceOwnerOfConnectCluster() {
         Namespace namespace = Namespace.builder()
-                .metadata(
-                        Metadata.builder().name("myNamespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("myNamespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder().build())
                 .build();
 
@@ -1087,13 +1129,17 @@ class ConnectClusterServiceTest {
         String encryptionKey = "changeitchangeitchangeitchangeit";
 
         Namespace namespace = Namespace.builder()
-                .metadata(
-                        Metadata.builder().name("myNamespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("myNamespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder().build())
                 .build();
 
         ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(Metadata.builder().name("prefix.connect-cluster").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("prefix.connect-cluster")
+                        .build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .aes256Key(EncryptionUtils.encryptAes256Gcm("aes256Key", encryptionKey))
                         .aes256Salt(EncryptionUtils.encryptAes256Gcm("aes256Salt", encryptionKey))
@@ -1128,13 +1174,17 @@ class ConnectClusterServiceTest {
         String encryptionKey = "changeitchangeitchangeitchangeit";
 
         Namespace namespace = Namespace.builder()
-                .metadata(
-                        Metadata.builder().name("myNamespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("myNamespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder().build())
                 .build();
 
         ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(Metadata.builder().name("prefix.connect-cluster").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("prefix.connect-cluster")
+                        .build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .aes256Key(EncryptionUtils.encryptAes256Gcm("aes256Key", encryptionKey))
                         .aes256Salt(EncryptionUtils.encryptAes256Gcm("aes256Salt", encryptionKey))

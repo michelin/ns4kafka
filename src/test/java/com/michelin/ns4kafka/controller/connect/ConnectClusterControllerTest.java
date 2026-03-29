@@ -94,7 +94,7 @@ class ConnectClusterControllerTest {
                         .metadata(Resource.Metadata.builder()
                                 .name("connect-cluster2")
                                 .build())
-                        .build());
+                        .build()));
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(connectClusterService.findByWildcardNameWithOwnerPermissionAndStatus(ns, "*"))

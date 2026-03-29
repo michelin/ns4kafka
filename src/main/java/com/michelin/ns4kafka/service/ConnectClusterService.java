@@ -160,7 +160,7 @@ public class ConnectClusterService {
                 .filter(cluster -> cluster.getName().equals(clusterName) && cluster.getConnects() != null)
                 .flatMap(config -> Flux.fromIterable(config.getConnects().entrySet())
                         .map(entry -> ConnectCluster.builder()
-                                .metadata(Metadata.builder()
+                                .metadata(Resource.Metadata.builder()
                                         .name(entry.getKey())
                                         .cluster(config.getName())
                                         .build())

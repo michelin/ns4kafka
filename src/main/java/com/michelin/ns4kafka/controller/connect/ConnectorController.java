@@ -24,8 +24,8 @@ import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 
 import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.model.AuditLog;
-import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.connect.ChangeConnectorState;
 import com.michelin.ns4kafka.model.connect.Connector;
 import com.michelin.ns4kafka.service.ConnectorService;
@@ -153,7 +153,7 @@ public class ConnectorController extends NamespacedResourceController {
                     return Mono.just(formatHttpResponse(connector, status));
                 }
 
-                connector.getMetadata().setDeployStatus(Metadata.DeployStatus.TO_DEPLOY);
+                connector.getMetadata().setDeployStatus(Resource.Metadata.DeployStatus.TO_DEPLOY);
 
                 sendEventLog(
                         connector,

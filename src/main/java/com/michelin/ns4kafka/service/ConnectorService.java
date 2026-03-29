@@ -24,8 +24,8 @@ import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidConnectorNoPlug
 import static com.michelin.ns4kafka.util.config.ConnectorConfig.CONNECTOR_CLASS;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
-import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.connect.Connector;
 import com.michelin.ns4kafka.repository.ConnectorRepository;
 import com.michelin.ns4kafka.service.client.connect.KafkaConnectClient;
@@ -290,7 +290,7 @@ public class ConnectorService {
                 .listAll(namespace.getMetadata().getCluster(), connectClusterName)
                 .flatMapMany(
                         connectors -> Flux.fromIterable(connectors.values()).map(connectorStatus -> Connector.builder()
-                                .metadata(Metadata.builder()
+                                .metadata(Resource.Metadata.builder()
                                         .name(connectorStatus.info().name())
                                         .build())
                                 .spec(Connector.ConnectorSpec.builder()

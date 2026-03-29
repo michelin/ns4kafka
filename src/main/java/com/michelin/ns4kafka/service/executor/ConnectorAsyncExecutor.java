@@ -18,8 +18,8 @@
  */
 package com.michelin.ns4kafka.service.executor;
 
-import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.connect.Connector;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.ConnectorRepository;
@@ -30,8 +30,6 @@ import com.michelin.ns4kafka.service.client.connect.entities.ConnectorInfo;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorSpecs;
 import io.micronaut.context.annotation.EachBean;
 import jakarta.inject.Singleton;
-import java.time.Instant;
-import java.util.Date;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -82,7 +80,7 @@ public class ConnectorAsyncExecutor {
                     .log("Starting connector synchronization for Kafka cluster {}.");
 
             return Flux.fromIterable(connectorRepository.findAllForCluster(managedClusterProperties.getName()))
-                    .filter(connector -> Metadata.DeployStatus.TO_DEPLOY.equals(
+                    .filter(connector -> Resource.Metadata.DeployStatus.TO_DEPLOY.equals(
                             connector.getMetadata().getDeployStatus()))
                     .flatMap(this::deployConnector);
         }
@@ -109,7 +107,7 @@ public class ConnectorAsyncExecutor {
                             .getMetadata()
                             .setGeneration(connector.getMetadata().getGeneration() + 1);
                     if (!hasBeenReapplied(connector)) {
-                        connector.getMetadata().setDeployStatus(Metadata.DeployStatus.DEPLOYED);
+                        connector.getMetadata().setDeployStatus(Resource.Metadata.DeployStatus.DEPLOYED);
                     }
                     connectorRepository.create(connector);
 

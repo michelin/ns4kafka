@@ -30,9 +30,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
-import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Namespace.NamespaceSpec;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.connect.ConnectCluster;
 import com.michelin.ns4kafka.model.connect.Connector;
 import com.michelin.ns4kafka.repository.ConnectorRepository;
@@ -82,7 +82,10 @@ class ConnectorServiceTest {
     @Test
     void shouldListConnectorsWhenEmpty() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .build();
 
         when(connectorRepository.findAllForCluster("local")).thenReturn(List.of());
@@ -93,27 +96,30 @@ class ConnectorServiceTest {
     @Test
     void shouldFindAllForNamespace() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .build();
 
         Connector c1 = Connector.builder()
-                .metadata(Metadata.builder().name("ns-connect1").build())
+                .metadata(Resource.Metadata.builder().name("ns-connect1").build())
                 .build();
 
         Connector c2 = Connector.builder()
-                .metadata(Metadata.builder().name("ns-connect2").build())
+                .metadata(Resource.Metadata.builder().name("ns-connect2").build())
                 .build();
 
         Connector c3 = Connector.builder()
-                .metadata(Metadata.builder().name("other-connect1").build())
+                .metadata(Resource.Metadata.builder().name("other-connect1").build())
                 .build();
 
         Connector c4 = Connector.builder()
-                .metadata(Metadata.builder().name("other-connect2").build())
+                .metadata(Resource.Metadata.builder().name("other-connect2").build())
                 .build();
 
         Connector c5 = Connector.builder()
-                .metadata(Metadata.builder().name("ns2-connect1").build())
+                .metadata(Resource.Metadata.builder().name("ns2-connect1").build())
                 .build();
 
         List<AccessControlEntry> acls = List.of(
@@ -152,23 +158,26 @@ class ConnectorServiceTest {
     @Test
     void shouldFindConnectorsWithWildcardName() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .build();
 
         Connector c1 = Connector.builder()
-                .metadata(Metadata.builder().name("ns-connect1").build())
+                .metadata(Resource.Metadata.builder().name("ns-connect1").build())
                 .build();
 
         Connector c2 = Connector.builder()
-                .metadata(Metadata.builder().name("other-connect1").build())
+                .metadata(Resource.Metadata.builder().name("other-connect1").build())
                 .build();
 
         Connector c3 = Connector.builder()
-                .metadata(Metadata.builder().name("other-connect2").build())
+                .metadata(Resource.Metadata.builder().name("other-connect2").build())
                 .build();
 
         Connector c4 = Connector.builder()
-                .metadata(Metadata.builder().name("ns2-connect1").build())
+                .metadata(Resource.Metadata.builder().name("ns2-connect1").build())
                 .build();
 
         List<AccessControlEntry> acls = List.of(
@@ -206,23 +215,26 @@ class ConnectorServiceTest {
     @Test
     void shouldFindConnectorsWithNameParameter() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .build();
 
         Connector c1 = Connector.builder()
-                .metadata(Metadata.builder().name("ns-connect1").build())
+                .metadata(Resource.Metadata.builder().name("ns-connect1").build())
                 .build();
 
         Connector c2 = Connector.builder()
-                .metadata(Metadata.builder().name("other-connect1").build())
+                .metadata(Resource.Metadata.builder().name("other-connect1").build())
                 .build();
 
         Connector c3 = Connector.builder()
-                .metadata(Metadata.builder().name("other-connect2").build())
+                .metadata(Resource.Metadata.builder().name("other-connect2").build())
                 .build();
 
         Connector c4 = Connector.builder()
-                .metadata(Metadata.builder().name("ns2-connect1").build())
+                .metadata(Resource.Metadata.builder().name("ns2-connect1").build())
                 .build();
 
         List<AccessControlEntry> acls = List.of(
@@ -263,23 +275,26 @@ class ConnectorServiceTest {
     @Test
     void shouldFindConnectorWithWildcardNameParameter() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .build();
 
         Connector c1 = Connector.builder()
-                .metadata(Metadata.builder().name("ns-connect1").build())
+                .metadata(Resource.Metadata.builder().name("ns-connect1").build())
                 .build();
         Connector c2 = Connector.builder()
-                .metadata(Metadata.builder().name("ns-connect2").build())
+                .metadata(Resource.Metadata.builder().name("ns-connect2").build())
                 .build();
         Connector c3 = Connector.builder()
-                .metadata(Metadata.builder().name("other-connect1").build())
+                .metadata(Resource.Metadata.builder().name("other-connect1").build())
                 .build();
         Connector c4 = Connector.builder()
-                .metadata(Metadata.builder().name("other-connect2").build())
+                .metadata(Resource.Metadata.builder().name("other-connect2").build())
                 .build();
         Connector c5 = Connector.builder()
-                .metadata(Metadata.builder().name("ns2-connect1").build())
+                .metadata(Resource.Metadata.builder().name("ns2-connect1").build())
                 .build();
 
         List<AccessControlEntry> acls = List.of(
@@ -322,7 +337,10 @@ class ConnectorServiceTest {
     @Test
     void shouldNotFindByName() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .build();
 
         when(connectorRepository.findAllForCluster("local")).thenReturn(List.of());
@@ -333,22 +351,25 @@ class ConnectorServiceTest {
     @Test
     void shouldFindByName() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
 
         Connector c1 = Connector.builder()
-                .metadata(Metadata.builder().name("ns-connect1").build())
+                .metadata(Resource.Metadata.builder().name("ns-connect1").build())
                 .build();
 
         Connector c2 = Connector.builder()
-                .metadata(Metadata.builder().name("ns-connect2").build())
+                .metadata(Resource.Metadata.builder().name("ns-connect2").build())
                 .build();
 
         Connector c3 = Connector.builder()
-                .metadata(Metadata.builder().name("other-connect1").build())
+                .metadata(Resource.Metadata.builder().name("other-connect1").build())
                 .build();
 
         List<AccessControlEntry> acls = List.of(
@@ -387,42 +408,45 @@ class ConnectorServiceTest {
     @Test
     void shouldFindAllByConnectCluster() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
 
         Connector c1 = Connector.builder()
-                .metadata(Metadata.builder().name("ns-connect1").build())
+                .metadata(Resource.Metadata.builder().name("ns-connect1").build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("connect-cluster")
                         .build())
                 .build();
 
         Connector c2 = Connector.builder()
-                .metadata(Metadata.builder().name("ns-connect2").build())
+                .metadata(Resource.Metadata.builder().name("ns-connect2").build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("connect-cluster2")
                         .build())
                 .build();
 
         Connector c3 = Connector.builder()
-                .metadata(Metadata.builder().name("other-connect1").build())
+                .metadata(Resource.Metadata.builder().name("other-connect1").build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("connect-cluster3")
                         .build())
                 .build();
 
         Connector c4 = Connector.builder()
-                .metadata(Metadata.builder().name("other-connect2").build())
+                .metadata(Resource.Metadata.builder().name("other-connect2").build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("connect-cluster4")
                         .build())
                 .build();
 
         Connector c5 = Connector.builder()
-                .metadata(Metadata.builder().name("ns2-connect1").build())
+                .metadata(Resource.Metadata.builder().name("ns2-connect1").build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("connect-cluster5")
                         .build())
@@ -440,7 +464,7 @@ class ConnectorServiceTest {
     @Test
     void shouldNotValidateLocallyWhenInvalidConnectCluster() {
         Connector connector = Connector.builder()
-                .metadata(Metadata.builder().name("connect1").build())
+                .metadata(Resource.Metadata.builder().name("connect1").build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("wrong")
                         .config(Map.of("connector.class", "Test"))
@@ -448,7 +472,10 @@ class ConnectorServiceTest {
                 .build();
 
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .connectValidator(ConnectValidator.builder()
                                 .validationConstraints(Map.of())
@@ -475,7 +502,7 @@ class ConnectorServiceTest {
     @Test
     void shouldNotValidateLocallyWhenNoClassName() {
         Connector connector = Connector.builder()
-                .metadata(Metadata.builder().name("connect1").build())
+                .metadata(Resource.Metadata.builder().name("connect1").build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("local-name")
                         .config(Map.of())
@@ -483,7 +510,10 @@ class ConnectorServiceTest {
                 .build();
 
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
@@ -502,7 +532,7 @@ class ConnectorServiceTest {
     @Test
     void shouldNotValidateLocallyWhenInvalidClassName() {
         Connector connector = Connector.builder()
-                .metadata(Metadata.builder().name("connect1").build())
+                .metadata(Resource.Metadata.builder().name("connect1").build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("local-name")
                         .config(Map.of("connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector"))
@@ -510,7 +540,10 @@ class ConnectorServiceTest {
                 .build();
 
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
@@ -533,7 +566,7 @@ class ConnectorServiceTest {
     @Test
     void shouldNotValidateLocallyWhenValidationErrors() {
         Connector connector = Connector.builder()
-                .metadata(Metadata.builder().name("connect1").build())
+                .metadata(Resource.Metadata.builder().name("connect1").build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("local-name")
                         .config(Map.of("connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector"))
@@ -541,7 +574,10 @@ class ConnectorServiceTest {
                 .build();
 
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .connectValidator(ConnectValidator.builder()
                                 .validationConstraints(Map.of("missing.field", new ResourceValidator.NonEmptyString()))
@@ -570,7 +606,7 @@ class ConnectorServiceTest {
     @Test
     void shouldValidateLocally() {
         Connector connector = Connector.builder()
-                .metadata(Metadata.builder().name("connect1").build())
+                .metadata(Resource.Metadata.builder().name("connect1").build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("local-name")
                         .config(Map.of("connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector"))
@@ -578,7 +614,10 @@ class ConnectorServiceTest {
                 .build();
 
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .connectValidator(ConnectValidator.builder()
                                 .classValidationConstraints(Map.of())
@@ -602,7 +641,7 @@ class ConnectorServiceTest {
     @Test
     void shouldValidateLocallyWhenConstraintNull() {
         Connector connector = Connector.builder()
-                .metadata(Metadata.builder().name("connect1").build())
+                .metadata(Resource.Metadata.builder().name("connect1").build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("local-name")
                         .config(Map.of("connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector"))
@@ -610,7 +649,10 @@ class ConnectorServiceTest {
                 .build();
 
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
@@ -628,7 +670,7 @@ class ConnectorServiceTest {
     @Test
     void shouldValidateLocallyWhenConstraintEmpty() {
         Connector connector = Connector.builder()
-                .metadata(Metadata.builder().name("connect1").build())
+                .metadata(Resource.Metadata.builder().name("connect1").build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("local-name")
                         .config(Map.of("connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector"))
@@ -636,7 +678,10 @@ class ConnectorServiceTest {
                 .build();
 
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .connectValidator(ConnectValidator.builder()
                                 .classValidationConstraints(Map.of())
@@ -659,7 +704,7 @@ class ConnectorServiceTest {
     @Test
     void shouldValidateLocallyWhenSinkValidationConstraintNull() {
         Connector connector = Connector.builder()
-                .metadata(Metadata.builder().name("connect1").build())
+                .metadata(Resource.Metadata.builder().name("connect1").build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("local-name")
                         .config(Map.of("connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector"))
@@ -667,7 +712,10 @@ class ConnectorServiceTest {
                 .build();
 
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .connectValidator(ConnectValidator.builder()
                                 .classValidationConstraints(Map.of())
@@ -690,7 +738,7 @@ class ConnectorServiceTest {
     @Test
     void shouldValidateLocallyOnSelfDeployedConnectCluster() {
         Connector connector = Connector.builder()
-                .metadata(Metadata.builder().name("connect1").build())
+                .metadata(Resource.Metadata.builder().name("connect1").build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("local-name")
                         .config(Map.of("connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector"))
@@ -698,7 +746,10 @@ class ConnectorServiceTest {
                 .build();
 
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .connectValidator(ConnectValidator.builder()
                                 .classValidationConstraints(Map.of())
@@ -712,7 +763,7 @@ class ConnectorServiceTest {
 
         when(connectClusterService.findAllForNamespaceWithWritePermission(ns))
                 .thenReturn(List.of(ConnectCluster.builder()
-                        .metadata(Metadata.builder().name("local-name").build())
+                        .metadata(Resource.Metadata.builder().name("local-name").build())
                         .build()));
 
         when(kafkaConnectClient.connectPlugins("local", "local-name"))
@@ -727,7 +778,7 @@ class ConnectorServiceTest {
     @Test
     void shouldNotValidateRemotelyWhenErrorHappens() {
         Connector connector = Connector.builder()
-                .metadata(Metadata.builder().name("connect1").build())
+                .metadata(Resource.Metadata.builder().name("connect1").build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("local-name")
                         .config(Map.of("connector.class", "com.michelin.NoClass"))
@@ -735,7 +786,10 @@ class ConnectorServiceTest {
                 .build();
 
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
@@ -763,7 +817,7 @@ class ConnectorServiceTest {
     @Test
     void shouldValidateRemotely() {
         Connector connector = Connector.builder()
-                .metadata(Metadata.builder().name("connect1").build())
+                .metadata(Resource.Metadata.builder().name("connect1").build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("local-name")
                         .config(Map.of("connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector"))
@@ -771,7 +825,10 @@ class ConnectorServiceTest {
                 .build();
 
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
@@ -790,14 +847,17 @@ class ConnectorServiceTest {
     @Test
     void shouldListUnsynchronizedConnectors() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
 
         ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns-connect-cluster")
                         .cluster("local")
                         .build())
@@ -885,34 +945,37 @@ class ConnectorServiceTest {
     @Test
     void shouldListUnsynchronizedConnectorsWhenAllExistingAlready() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
 
         ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(Metadata.builder().name("ns-connect-cluster").build())
+                .metadata(Resource.Metadata.builder().name("ns-connect-cluster").build())
                 .build();
 
         Connector co1 = Connector.builder()
-                .metadata(Metadata.builder().name("ns-connect1").build())
+                .metadata(Resource.Metadata.builder().name("ns-connect1").build())
                 .build();
 
         Connector co2 = Connector.builder()
-                .metadata(Metadata.builder().name("ns-connect2").build())
+                .metadata(Resource.Metadata.builder().name("ns-connect2").build())
                 .build();
 
         Connector co3 = Connector.builder()
-                .metadata(Metadata.builder().name("ns1-connect1").build())
+                .metadata(Resource.Metadata.builder().name("ns1-connect1").build())
                 .build();
 
         Connector co4 = Connector.builder()
-                .metadata(Metadata.builder().name("ns2-connect1").build())
+                .metadata(Resource.Metadata.builder().name("ns2-connect1").build())
                 .build();
 
         Connector co5 = Connector.builder()
-                .metadata(Metadata.builder().name("ns1-connect2").build())
+                .metadata(Resource.Metadata.builder().name("ns1-connect2").build())
                 .build();
 
         ConnectorStatus c1 =
@@ -993,7 +1056,10 @@ class ConnectorServiceTest {
     @Test
     void shouldListUnsynchronizedConnectorsWhenNotAllExisting() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
@@ -1010,19 +1076,19 @@ class ConnectorServiceTest {
                 new ConnectorStatus(new ConnectorInfo("ns2-connect1", Map.of(), List.of(), ConnectorType.SINK), null);
 
         Connector co1 = Connector.builder()
-                .metadata(Metadata.builder().name("ns-connect1").build())
+                .metadata(Resource.Metadata.builder().name("ns-connect1").build())
                 .build();
 
         Connector co2 = Connector.builder()
-                .metadata(Metadata.builder().name("ns-connect2").build())
+                .metadata(Resource.Metadata.builder().name("ns-connect2").build())
                 .build();
 
         Connector co3 = Connector.builder()
-                .metadata(Metadata.builder().name("ns1-connect1").build())
+                .metadata(Resource.Metadata.builder().name("ns1-connect1").build())
                 .build();
 
         Connector co4 = Connector.builder()
-                .metadata(Metadata.builder().name("ns2-connect1").build())
+                .metadata(Resource.Metadata.builder().name("ns2-connect1").build())
                 .build();
 
         List<AccessControlEntry> acls = List.of(
@@ -1092,7 +1158,10 @@ class ConnectorServiceTest {
     @Test
     void shouldListUnsynchronizedConnectorsWithNameParameter() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
@@ -1109,19 +1178,19 @@ class ConnectorServiceTest {
                 new ConnectorStatus(new ConnectorInfo("ns2-connect1", Map.of(), List.of(), ConnectorType.SINK), null);
 
         Connector co1 = Connector.builder()
-                .metadata(Metadata.builder().name("ns-connect1").build())
+                .metadata(Resource.Metadata.builder().name("ns-connect1").build())
                 .build();
 
         Connector co2 = Connector.builder()
-                .metadata(Metadata.builder().name("ns-connect2").build())
+                .metadata(Resource.Metadata.builder().name("ns-connect2").build())
                 .build();
 
         Connector co3 = Connector.builder()
-                .metadata(Metadata.builder().name("ns1-connect1").build())
+                .metadata(Resource.Metadata.builder().name("ns1-connect1").build())
                 .build();
 
         Connector co4 = Connector.builder()
-                .metadata(Metadata.builder().name("ns2-connect1").build())
+                .metadata(Resource.Metadata.builder().name("ns2-connect1").build())
                 .build();
 
         List<AccessControlEntry> acls = List.of(
@@ -1177,14 +1246,17 @@ class ConnectorServiceTest {
     @Test
     void shouldDeleteConnector() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
 
         Connector connector = Connector.builder()
-                .metadata(Metadata.builder().name("ns-connect1").build())
+                .metadata(Resource.Metadata.builder().name("ns-connect1").build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("local-name")
                         .build())
@@ -1207,14 +1279,17 @@ class ConnectorServiceTest {
     @Test
     void shouldNotDeleteConnectorWhenConnectClusterReturnsError() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
 
         Connector connector = Connector.builder()
-                .metadata(Metadata.builder().name("ns-connect1").build())
+                .metadata(Resource.Metadata.builder().name("ns-connect1").build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("local-name")
                         .build())
@@ -1233,14 +1308,17 @@ class ConnectorServiceTest {
     @Test
     void shouldForceDeleteConnector() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
 
         Connector connector = Connector.builder()
-                .metadata(Metadata.builder().name("ns-connect1").build())
+                .metadata(Resource.Metadata.builder().name("ns-connect1").build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("local-name")
                         .build())
@@ -1261,14 +1339,17 @@ class ConnectorServiceTest {
     @Test
     void shouldForceDeleteConnectorWhenConnectUnhealthy() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
 
         Connector connector = Connector.builder()
-                .metadata(Metadata.builder().name("ns-connect1").build())
+                .metadata(Resource.Metadata.builder().name("ns-connect1").build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("local-name")
                         .build())
@@ -1289,11 +1370,14 @@ class ConnectorServiceTest {
     @Test
     void shouldRestartAllTasksOfConnector() {
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .build();
 
         Connector connector = Connector.builder()
-                .metadata(Metadata.builder().name("ns-connect1").build())
+                .metadata(Resource.Metadata.builder().name("ns-connect1").build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("local-name")
                         .build())
