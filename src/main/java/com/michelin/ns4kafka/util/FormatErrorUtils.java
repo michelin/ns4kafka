@@ -25,7 +25,7 @@ import static com.michelin.ns4kafka.util.BytesUtils.MEBIBYTE;
 import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_CONFIG;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
-import com.michelin.ns4kafka.model.connector.Connector;
+import com.michelin.ns4kafka.model.connect.Connector;
 import com.michelin.ns4kafka.model.quota.ResourceQuota;
 import com.michelin.ns4kafka.model.schema.SubjectNameStrategy;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;

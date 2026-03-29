@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.michelin.ns4kafka.controller;
+package com.michelin.ns4kafka.controller.acl;
 
 import static com.michelin.ns4kafka.security.auth.JwtCustomClaimNames.ROLES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -29,7 +29,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.michelin.ns4kafka.controller.acl.AclController;
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.Metadata;

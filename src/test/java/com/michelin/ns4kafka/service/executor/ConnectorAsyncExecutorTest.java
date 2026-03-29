@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.michelin.ns4kafka.model.Metadata;
-import com.michelin.ns4kafka.model.connector.Connector;
+import com.michelin.ns4kafka.model.connect.Connector;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

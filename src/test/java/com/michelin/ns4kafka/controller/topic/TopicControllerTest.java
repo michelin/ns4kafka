@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.michelin.ns4kafka.controller;
+package com.michelin.ns4kafka.controller.topic;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertLinesMatch;
@@ -32,7 +32,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.michelin.ns4kafka.controller.topic.TopicController;
 import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.DeleteRecordsResponse;
 import com.michelin.ns4kafka.model.Metadata;

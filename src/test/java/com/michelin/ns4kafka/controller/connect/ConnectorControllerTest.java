@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.michelin.ns4kafka.controller;
+package com.michelin.ns4kafka.controller.connect;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -32,8 +32,8 @@ import static org.mockito.Mockito.when;
 import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
-import com.michelin.ns4kafka.model.connector.ChangeConnectorState;
-import com.michelin.ns4kafka.model.connector.Connector;
+import com.michelin.ns4kafka.model.connect.ChangeConnectorState;
+import com.michelin.ns4kafka.model.connect.Connector;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.service.ConnectorService;
 import com.michelin.ns4kafka.service.NamespaceService;
