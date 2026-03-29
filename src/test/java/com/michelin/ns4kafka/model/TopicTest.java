@@ -28,7 +28,7 @@ class TopicTest {
     @Test
     void shouldBeEqual() {
         Topic original = Topic.builder()
-                .metadata(Metadata.builder().name("topic1").build())
+                .metadata(Resource.Metadata.builder().name("topic1").build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(3)
                         .partitions(3)
@@ -38,7 +38,7 @@ class TopicTest {
                 .build();
 
         Topic same = Topic.builder()
-                .metadata(Metadata.builder().name("topic1").build())
+                .metadata(Resource.Metadata.builder().name("topic1").build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(3)
                         .partitions(3)
@@ -50,7 +50,7 @@ class TopicTest {
         assertEquals(original, same);
 
         Topic differentByMetadata = Topic.builder()
-                .metadata(Metadata.builder().name("topic2").build())
+                .metadata(Resource.Metadata.builder().name("topic2").build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(3)
                         .partitions(3)
@@ -62,7 +62,7 @@ class TopicTest {
         assertNotEquals(original, differentByMetadata);
 
         Topic differentByReplicationFactor = Topic.builder()
-                .metadata(Metadata.builder().name("topic2").build())
+                .metadata(Resource.Metadata.builder().name("topic2").build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(99)
                         .partitions(3)
@@ -74,7 +74,7 @@ class TopicTest {
         assertNotEquals(original, differentByReplicationFactor);
 
         Topic differentByPartitions = Topic.builder()
-                .metadata(Metadata.builder().name("topic2").build())
+                .metadata(Resource.Metadata.builder().name("topic2").build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(3)
                         .partitions(99)
@@ -86,7 +86,7 @@ class TopicTest {
         assertNotEquals(original, differentByPartitions);
 
         Topic differentByConfigs = Topic.builder()
-                .metadata(Metadata.builder().name("topic2").build())
+                .metadata(Resource.Metadata.builder().name("topic2").build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(3)
                         .partitions(3)

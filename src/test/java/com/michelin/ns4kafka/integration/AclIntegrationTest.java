@@ -29,9 +29,9 @@ import com.michelin.ns4kafka.model.AccessControlEntry.Permission;
 import com.michelin.ns4kafka.model.AccessControlEntry.ResourcePatternType;
 import com.michelin.ns4kafka.model.AccessControlEntry.ResourceType;
 import com.michelin.ns4kafka.model.KafkaStream;
-import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Namespace.NamespaceSpec;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.RoleBinding;
 import com.michelin.ns4kafka.model.RoleBinding.Role;
 import com.michelin.ns4kafka.model.RoleBinding.RoleBindingSpec;
@@ -79,7 +79,10 @@ class AclIntegrationTest extends KafkaIntegrationTest {
     @BeforeAll
     void init() {
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder().name("ns1").cluster("test-cluster").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1")
+                        .cluster("test-cluster")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .kafkaUser("user1")
                         .protectionEnabled(Boolean.FALSE)
@@ -89,7 +92,10 @@ class AclIntegrationTest extends KafkaIntegrationTest {
                 .build();
 
         RoleBinding roleBinding = RoleBinding.builder()
-                .metadata(Metadata.builder().name("ns1-rb").namespace("ns1").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-rb")
+                        .namespace("ns1")
+                        .build())
                 .spec(RoleBindingSpec.builder()
                         .role(Role.builder()
                                 .resourceTypes(List.of("topics", "acls"))
@@ -127,7 +133,7 @@ class AclIntegrationTest extends KafkaIntegrationTest {
     @Test
     void shouldCreateAndDeleteTopicReadAcl() throws InterruptedException, ExecutionException {
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-acl-topic")
                         .namespace("ns1")
                         .build())
@@ -183,7 +189,7 @@ class AclIntegrationTest extends KafkaIntegrationTest {
     @Test
     void shouldCreateAndDeletePublicAcl() throws InterruptedException, ExecutionException {
         AccessControlEntry aclTopicOwner = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-acl-topic-owner")
                         .namespace("ns1")
                         .build())
@@ -206,7 +212,7 @@ class AclIntegrationTest extends KafkaIntegrationTest {
         accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
 
         AccessControlEntry aclTopicPublic = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-public-acl-topic")
                         .namespace("ns1")
                         .build())
@@ -262,7 +268,7 @@ class AclIntegrationTest extends KafkaIntegrationTest {
     @Test
     void shouldCreateAclThatDoesAlreadyExistOnBroker() throws InterruptedException, ExecutionException {
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-acl-topic")
                         .namespace("ns1")
                         .build())
@@ -319,7 +325,7 @@ class AclIntegrationTest extends KafkaIntegrationTest {
     @Test
     void shouldCreateConnectAclWithOwnerPermission() throws InterruptedException, ExecutionException {
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-acl-connect")
                         .namespace("ns1")
                         .build())
@@ -376,7 +382,10 @@ class AclIntegrationTest extends KafkaIntegrationTest {
     @Test
     void shouldCreateKafkaStreamsAcls() throws InterruptedException, ExecutionException {
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder().name("ns3").cluster("test-cluster").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns3")
+                        .cluster("test-cluster")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .kafkaUser("user3")
                         .transactionsEnabled(false)
@@ -391,7 +400,7 @@ class AclIntegrationTest extends KafkaIntegrationTest {
                         .body(namespace));
 
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-acl-topic")
                         .namespace("ns1")
                         .build())
@@ -405,7 +414,7 @@ class AclIntegrationTest extends KafkaIntegrationTest {
                 .build();
 
         AccessControlEntry aclGroup = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-acl-group")
                         .namespace("ns1")
                         .build())
@@ -487,8 +496,10 @@ class AclIntegrationTest extends KafkaIntegrationTest {
                 aclBindingTopicRead, aclBindingTopicWrite, aclBindingGroupRead, aclBindingTopicDescribeConfigs)));
 
         KafkaStream kafkaStream = KafkaStream.builder()
-                .metadata(
-                        Metadata.builder().name("ns1-stream1").namespace("ns1").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-stream1")
+                        .namespace("ns1")
+                        .build())
                 .build();
 
         ns4KafkaClient
@@ -536,8 +547,10 @@ class AclIntegrationTest extends KafkaIntegrationTest {
 
         // Create another Stream and check 2 ACLs are created
         KafkaStream kafkaStream2 = KafkaStream.builder()
-                .metadata(
-                        Metadata.builder().name("ns1-stream2").namespace("ns1").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-stream2")
+                        .namespace("ns1")
+                        .build())
                 .build();
 
         ns4KafkaClient
@@ -587,7 +600,7 @@ class AclIntegrationTest extends KafkaIntegrationTest {
 
         // Create another group ACL and check new ACLs are created
         AccessControlEntry aclGroup2 = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-acl-group2")
                         .namespace("ns1")
                         .build())
@@ -636,7 +649,7 @@ class AclIntegrationTest extends KafkaIntegrationTest {
     void shouldGrantAclToAnotherNamespace() throws ExecutionException, InterruptedException {
         // Ownership of first namespace
         AccessControlEntry accessControlEntryNamespace1 = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-acl-topic-owner")
                         .namespace("ns1")
                         .build())
@@ -660,7 +673,10 @@ class AclIntegrationTest extends KafkaIntegrationTest {
 
         // Create second namespace
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder().name("ns2").cluster("test-cluster").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns2")
+                        .cluster("test-cluster")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .kafkaUser("user2")
                         .topicValidator(TopicValidator.makeDefaultOneBroker())
@@ -675,7 +691,7 @@ class AclIntegrationTest extends KafkaIntegrationTest {
 
         // Grant ACL from namespace 1 to namespace 2 on topic prefixed by ns1-
         AccessControlEntry grantedAclOnPrefix = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-granted-acl-on-prefix")
                         .namespace("ns1")
                         .build())
@@ -759,7 +775,7 @@ class AclIntegrationTest extends KafkaIntegrationTest {
 
         // Create Group ACL
         AccessControlEntry accessControlEntryNamespace1 = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-group-owner")
                         .namespace("ns1")
                         .build())
@@ -780,7 +796,10 @@ class AclIntegrationTest extends KafkaIntegrationTest {
 
         // allow transactions on the namespace
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder().name("ns1").cluster("test-cluster").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1")
+                        .cluster("test-cluster")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .kafkaUser("user1")
                         .protectionEnabled(false)
@@ -837,7 +856,10 @@ class AclIntegrationTest extends KafkaIntegrationTest {
     void shouldNotCreateTransactionalIdAclsWhenTransactionsAreForbidden()
             throws ExecutionException, InterruptedException {
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder().name("ns3").cluster("test-cluster").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns3")
+                        .cluster("test-cluster")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .kafkaUser("user3")
                         .transactionsEnabled(false)
@@ -853,7 +875,7 @@ class AclIntegrationTest extends KafkaIntegrationTest {
 
         // Create Group ACL
         AccessControlEntry accessControlEntryNamespace1 = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns3-group-owner")
                         .namespace("ns3")
                         .build())

@@ -25,8 +25,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.consumer.group.ConsumerGroupResetOffsets;
 import com.michelin.ns4kafka.model.consumer.group.ConsumerGroupResetOffsets.ConsumerGroupResetOffsetsSpec;
 import com.michelin.ns4kafka.model.consumer.group.ConsumerGroupResetOffsets.ResetOffsetsMethod;
@@ -244,7 +244,7 @@ class ConsumerGroupServiceTest {
     @Test
     void shouldGetPartitionsToResetFromAllTopics() throws InterruptedException, ExecutionException {
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder().cluster("test").build())
+                .metadata(Resource.Metadata.builder().cluster("test").build())
                 .build();
         String groupId = "testGroup";
         String topic = "*";
@@ -274,7 +274,7 @@ class ConsumerGroupServiceTest {
     @Test
     void shouldGetPartitionsToResetFromOneTopic() throws InterruptedException, ExecutionException {
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder().cluster("test").build())
+                .metadata(Resource.Metadata.builder().cluster("test").build())
                 .build();
         String groupId = "testGroup";
         String topic = "topic1";
@@ -298,7 +298,7 @@ class ConsumerGroupServiceTest {
     @Test
     void shouldGetPartitionsToResetFromOneTopicPartition() throws InterruptedException, ExecutionException {
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder().cluster("test").build())
+                .metadata(Resource.Metadata.builder().cluster("test").build())
                 .build();
         String groupId = "testGroup";
         String topic = "topic1:0";
@@ -314,7 +314,7 @@ class ConsumerGroupServiceTest {
     @Test
     void doPrepareOffsetsToResetShiftBy() throws ExecutionException, InterruptedException {
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder().cluster("test").build())
+                .metadata(Resource.Metadata.builder().cluster("test").build())
                 .build();
 
         String groupId = "testGroup";
@@ -353,7 +353,7 @@ class ConsumerGroupServiceTest {
     @Test
     void shouldGetConsumerGroupStatusWhenDescribeCompletesNormally() throws InterruptedException, ExecutionException {
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder().cluster("test").build())
+                .metadata(Resource.Metadata.builder().cluster("test").build())
                 .build();
 
         String groupId = "testGroup";
@@ -377,7 +377,7 @@ class ConsumerGroupServiceTest {
     void shouldGetConsumerGroupStatusWhenDescribeCompletesExceptionally()
             throws InterruptedException, ExecutionException {
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder().cluster("test").build())
+                .metadata(Resource.Metadata.builder().cluster("test").build())
                 .build();
 
         String groupId = "testGroup";
@@ -398,7 +398,7 @@ class ConsumerGroupServiceTest {
     @Test
     void shouldDeleteConsumerGroup() throws InterruptedException, ExecutionException {
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder().cluster("test").build())
+                .metadata(Resource.Metadata.builder().cluster("test").build())
                 .build();
         String groupId = "testGroup";
 

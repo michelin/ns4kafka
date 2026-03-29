@@ -31,8 +31,8 @@ import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.KafkaStream;
-import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.repository.StreamRepository;
 import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
@@ -68,7 +68,10 @@ class StreamServiceTest {
     @Test
     void shouldFindAllForClusterWhenEmpty() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         when(streamRepository.findAllForCluster("local")).thenReturn(List.of());
@@ -80,24 +83,27 @@ class StreamServiceTest {
     @Test
     void shouldFindAllForCluster() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
         KafkaStream stream1 = KafkaStream.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("test_stream1")
                         .namespace("test")
                         .cluster("local")
                         .build())
                 .build();
         KafkaStream stream2 = KafkaStream.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("test_stream2")
                         .namespace("test")
                         .cluster("local")
                         .build())
                 .build();
         KafkaStream stream3 = KafkaStream.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("test_stream3")
                         .namespace("test")
                         .cluster("local")
@@ -117,11 +123,14 @@ class StreamServiceTest {
     @Test
     void shouldFindAllForNamespaceWithParameter() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         KafkaStream stream1 = KafkaStream.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("test_stream1")
                         .namespace("test")
                         .cluster("local")
@@ -129,7 +138,7 @@ class StreamServiceTest {
                 .build();
 
         KafkaStream stream2 = KafkaStream.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("test_stream2")
                         .namespace("test")
                         .cluster("local")
@@ -137,7 +146,7 @@ class StreamServiceTest {
                 .build();
 
         KafkaStream stream3 = KafkaStream.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("test_stream3")
                         .namespace("test")
                         .cluster("local")
@@ -159,11 +168,14 @@ class StreamServiceTest {
     @Test
     void shouldFindAllForNamespaceWithWildcardParameter() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         KafkaStream stream1 = KafkaStream.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("test_stream1")
                         .namespace("test")
                         .cluster("local")
@@ -171,7 +183,7 @@ class StreamServiceTest {
                 .build();
 
         KafkaStream stream2 = KafkaStream.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("test_stream2")
                         .namespace("test")
                         .cluster("local")
@@ -179,7 +191,7 @@ class StreamServiceTest {
                 .build();
 
         KafkaStream stream3 = KafkaStream.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("test_stream3")
                         .namespace("test")
                         .cluster("local")
@@ -187,7 +199,7 @@ class StreamServiceTest {
                 .build();
 
         KafkaStream stream4 = KafkaStream.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("test.stream1")
                         .namespace("test")
                         .cluster("local")
@@ -195,7 +207,7 @@ class StreamServiceTest {
                 .build();
 
         KafkaStream stream5 = KafkaStream.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("stream2_test")
                         .namespace("test")
                         .cluster("local")
@@ -203,7 +215,7 @@ class StreamServiceTest {
                 .build();
 
         KafkaStream stream6 = KafkaStream.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("prefix.stream_test1")
                         .namespace("test2")
                         .cluster("local")
@@ -227,24 +239,27 @@ class StreamServiceTest {
     @Test
     void shouldFindByName() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
         KafkaStream stream1 = KafkaStream.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("test_stream1")
                         .namespace("test")
                         .cluster("local")
                         .build())
                 .build();
         KafkaStream stream2 = KafkaStream.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("test_stream2")
                         .namespace("test")
                         .cluster("local")
                         .build())
                 .build();
         KafkaStream stream3 = KafkaStream.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("test_stream3")
                         .namespace("test")
                         .cluster("local")
@@ -262,7 +277,10 @@ class StreamServiceTest {
     @Test
     void shouldFindByNameWhenEmpty() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         when(streamRepository.findAllForCluster("local")).thenReturn(List.of());
@@ -275,7 +293,10 @@ class StreamServiceTest {
     @Test
     void shouldNamespaceBeOwnerOfStreams() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         AccessControlEntry ace1 = AccessControlEntry.builder()
@@ -360,15 +381,21 @@ class StreamServiceTest {
     @Test
     void shouldNamespaceHaveKafkaStreams() {
         Namespace ns1 = Namespace.builder()
-                .metadata(Metadata.builder().name("test1").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test1")
+                        .cluster("local")
+                        .build())
                 .build();
 
         Namespace ns2 = Namespace.builder()
-                .metadata(Metadata.builder().name("test2").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test2")
+                        .cluster("local")
+                        .build())
                 .build();
 
         KafkaStream stream1 = KafkaStream.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("test_stream1")
                         .namespace("test1")
                         .cluster("local")
@@ -376,7 +403,7 @@ class StreamServiceTest {
                 .build();
 
         KafkaStream stream3 = KafkaStream.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("test_stream3")
                         .namespace("test3")
                         .cluster("local")
@@ -392,11 +419,12 @@ class StreamServiceTest {
     @Test
     void shouldDeleteKafkaStreamAndRelatedTopics() throws Exception {
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder().name("ns").cluster("local").build())
+                .metadata(
+                        Resource.Metadata.builder().name("ns").cluster("local").build())
                 .build();
 
         KafkaStream stream = KafkaStream.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("prefix1.stream_app_id1")
                         .namespace("ns")
                         .cluster("local")
@@ -404,49 +432,49 @@ class StreamServiceTest {
                 .build();
 
         Topic topic1 = Topic.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("prefix1.stream_app_id1-topic1-repartition")
                         .build())
                 .build();
 
         Topic topic2 = Topic.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("prefix1.stream_app_id1-topic1-changelog")
                         .build())
                 .build();
 
         Topic topic3 = Topic.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("prefix1.stream_app_id1-topic1-norepartition")
                         .build())
                 .build();
 
         Topic topic4 = Topic.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("prefix1.stream_app_id1-topic1-nochangelog")
                         .build())
                 .build();
 
         Topic topic5 = Topic.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("prefix2.stream_app_id2-topic1-norepartition")
                         .build())
                 .build();
 
         Topic topic6 = Topic.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("prefix2.stream_app_id2-topic2-nochangelog")
                         .build())
                 .build();
 
         Topic topic7 = Topic.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("prefix1.stream_app_id1-sub-appid-overlap-topic1-repartition")
                         .build())
                 .build();
 
         KafkaStream kafkaStream = KafkaStream.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .namespace("ns")
                         .name("prefix1.stream_app_id1-sub-appid-overlap")
                         .build())
@@ -488,11 +516,12 @@ class StreamServiceTest {
     @Test
     void shouldDeleteKafkaStreamAndRelatedTopicsWhenOverlapKafkaStreamsIsEmpty() throws Exception {
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder().name("ns").cluster("local").build())
+                .metadata(
+                        Resource.Metadata.builder().name("ns").cluster("local").build())
                 .build();
 
         KafkaStream stream = KafkaStream.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("prefix.stream_app_id")
                         .namespace("ns")
                         .cluster("local")
@@ -500,37 +529,37 @@ class StreamServiceTest {
                 .build();
 
         Topic topic1 = Topic.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("prefix1.stream_app_id1-topic1-repartition")
                         .build())
                 .build();
 
         Topic topic2 = Topic.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("prefix1.stream_app_id1-topic1-changelog")
                         .build())
                 .build();
 
         Topic topic3 = Topic.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("prefix1.stream_app_id1-topic1-norepartition")
                         .build())
                 .build();
 
         Topic topic4 = Topic.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("prefix1.stream_app_id1-topic1-nochangelog")
                         .build())
                 .build();
 
         Topic topic5 = Topic.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("prefix2.stream_app_id2-topic1-norepartition")
                         .build())
                 .build();
 
         Topic topic6 = Topic.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("prefix2.stream_app_id2-topic2-nochangelog")
                         .build())
                 .build();
@@ -570,11 +599,12 @@ class StreamServiceTest {
     @Test
     void shouldNotCallDeleteTopicsWhenStreamTopicListIsEmpty() throws Exception {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("ns").cluster("local").build())
+                .metadata(
+                        Resource.Metadata.builder().name("ns").cluster("local").build())
                 .build();
 
         KafkaStream stream = KafkaStream.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("prefix.stream_app_id")
                         .namespace("ns")
                         .cluster("local")

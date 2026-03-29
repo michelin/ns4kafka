@@ -32,7 +32,7 @@ import lombok.NoArgsConstructor;
 @Data
 @Introspected
 @EqualsAndHashCode(callSuper = true)
-public class KafkaUserResetPassword extends MetadataResource {
+public class KafkaUserResetPassword extends Resource {
     private KafkaUserResetPasswordSpec spec;
 
     /**

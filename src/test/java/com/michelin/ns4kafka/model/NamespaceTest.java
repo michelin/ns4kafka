@@ -30,7 +30,10 @@ class NamespaceTest {
     @Test
     void shouldBeEqual() {
         Namespace original = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace1").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace1")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .kafkaUser("user1")
                         .connectClusters(List.of("connect1"))
@@ -39,7 +42,10 @@ class NamespaceTest {
                         .build())
                 .build();
         Namespace same = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace1").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace1")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .kafkaUser("user1")
                         .connectClusters(List.of("connect1"))
@@ -48,7 +54,10 @@ class NamespaceTest {
                         .build())
                 .build();
         Namespace differentByMetadata = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace2").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace2")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .kafkaUser("user1")
                         .connectClusters(List.of("connect1"))
@@ -62,7 +71,10 @@ class NamespaceTest {
         assertNotEquals(original, differentByMetadata);
 
         Namespace differentByUser = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace1").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace1")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .kafkaUser("user2")
                         .connectClusters(List.of("connect1"))
@@ -74,7 +86,10 @@ class NamespaceTest {
         assertNotEquals(original, differentByUser);
 
         Namespace differentByConnectClusters = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace1").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace1")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .kafkaUser("user1")
                         .connectClusters(List.of("connect1", "connect2"))
@@ -86,7 +101,10 @@ class NamespaceTest {
         assertNotEquals(original, differentByConnectClusters);
 
         Namespace differentByTopicValidator = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace1").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace1")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .kafkaUser("user1")
                         .connectClusters(List.of("connect1"))
@@ -98,7 +116,10 @@ class NamespaceTest {
         assertNotEquals(original, differentByTopicValidator);
 
         Namespace differentByConnectValidator = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace1").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace1")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .kafkaUser("user1")
                         .connectClusters(List.of("connect1"))

@@ -36,7 +36,7 @@ import lombok.NoArgsConstructor;
 @Data
 @Introspected
 @EqualsAndHashCode(callSuper = true)
-public class RoleBinding extends MetadataResource {
+public class RoleBinding extends Resource {
     @Valid @NotNull private RoleBindingSpec spec;
 
     /**

@@ -25,8 +25,8 @@ import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidSchemaResource;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidSchemaSubjectName;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
-import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.schema.Schema;
 import com.michelin.ns4kafka.model.schema.SubjectNameStrategy;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
@@ -82,7 +82,7 @@ public class SchemaService {
                 .getSubjects(namespace.getMetadata().getCluster())
                 .filter(subject -> aclService.isResourceCoveredByAcls(acls, extractResourceNameFromSubject(subject)))
                 .map(subject -> Schema.builder()
-                        .metadata(Metadata.builder()
+                        .metadata(Resource.Metadata.builder()
                                 .cluster(namespace.getMetadata().getCluster())
                                 .namespace(namespace.getMetadata().getName())
                                 .name(subject)
@@ -115,7 +115,7 @@ public class SchemaService {
         return schemaRegistryClient
                 .getAllSubjectVersions(namespace.getMetadata().getCluster(), subject)
                 .map(subjectResponse -> Schema.builder()
-                        .metadata(Metadata.builder()
+                        .metadata(Resource.Metadata.builder()
                                 .cluster(namespace.getMetadata().getCluster())
                                 .namespace(namespace.getMetadata().getName())
                                 .name(subjectResponse.subject())
@@ -151,7 +151,7 @@ public class SchemaService {
                             : Schema.Compatibility.GLOBAL;
 
                     return Schema.builder()
-                            .metadata(Metadata.builder()
+                            .metadata(Resource.Metadata.builder()
                                     .cluster(namespace.getMetadata().getCluster())
                                     .namespace(namespace.getMetadata().getName())
                                     .name(subjectOptional.subject())

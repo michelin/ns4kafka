@@ -22,8 +22,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.quota.ResourceQuotaResponse;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.ResourceQuotaService;
@@ -48,7 +48,10 @@ class ResourceQuotaNonNamespacedControllerTest {
     @Test
     void shouldFindAll() {
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())

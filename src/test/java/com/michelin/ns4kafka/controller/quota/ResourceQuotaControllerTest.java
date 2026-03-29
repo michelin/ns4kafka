@@ -29,8 +29,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.model.AuditLog;
-import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.quota.ResourceQuota;
 import com.michelin.ns4kafka.model.quota.ResourceQuotaResponse;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
@@ -70,11 +70,17 @@ class ResourceQuotaControllerTest {
     @Test
     void shouldListQuotaWithoutNameParameter() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         ResourceQuota quota = ResourceQuota.builder()
-                .metadata(Metadata.builder().cluster("local").name("test").build())
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
                 .build();
 
         ResourceQuotaResponse response = ResourceQuotaResponse.builder()
@@ -96,11 +102,17 @@ class ResourceQuotaControllerTest {
     @Test
     void shouldListQuotaWithNameParameter() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         ResourceQuota quota = ResourceQuota.builder()
-                .metadata(Metadata.builder().cluster("local").name("quotaName").build())
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("quotaName")
+                        .build())
                 .build();
 
         ResourceQuotaResponse response = ResourceQuotaResponse.builder()
@@ -125,7 +137,10 @@ class ResourceQuotaControllerTest {
     @SuppressWarnings("deprecation")
     void shouldGetQuotaWhenEmpty() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         when(resourceQuotaService.findByName(ns.getMetadata().getName(), "quotaName"))
@@ -139,11 +154,17 @@ class ResourceQuotaControllerTest {
     @SuppressWarnings("deprecation")
     void shouldGetQuotaWhenPresent() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(Metadata.builder().cluster("local").name("test").build())
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
                 .spec(Map.of("count/topics", "1"))
                 .build();
 
@@ -167,11 +188,17 @@ class ResourceQuotaControllerTest {
     @Test
     void shouldApplyValidationErrors() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(Metadata.builder().cluster("local").name("test").build())
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
                 .spec(Map.of("count/topics", "1"))
                 .build();
 
@@ -190,11 +217,17 @@ class ResourceQuotaControllerTest {
     @Test
     void shouldApplyUnchanged() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(Metadata.builder().cluster("local").name("test").build())
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
                 .spec(Map.of("count/topics", "1"))
                 .build();
 
@@ -211,11 +244,17 @@ class ResourceQuotaControllerTest {
     @Test
     void shouldApplyDryRun() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(Metadata.builder().cluster("local").name("test").build())
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
                 .spec(Map.of("count/topics", "1"))
                 .build();
 
@@ -231,11 +270,14 @@ class ResourceQuotaControllerTest {
     @Test
     void shouldApplyCreated() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .cluster("local")
                         .name("created-quota")
                         .build())
@@ -259,11 +301,14 @@ class ResourceQuotaControllerTest {
     @Test
     void shouldApplyUpdated() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         ResourceQuota resourceQuotaExisting = ResourceQuota.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .cluster("local")
                         .name("created-quota")
                         .build())
@@ -271,7 +316,7 @@ class ResourceQuotaControllerTest {
                 .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .cluster("local")
                         .name("created-quota")
                         .build())
@@ -305,7 +350,10 @@ class ResourceQuotaControllerTest {
     @Test
     void shouldNotDeleteQuotaInDryRunMode() {
         ResourceQuota resourceQuota1 = ResourceQuota.builder()
-                .metadata(Metadata.builder().cluster("local").name("quota1").build())
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("quota1")
+                        .build())
                 .spec(Map.of("count/topics", "3"))
                 .build();
 
@@ -318,7 +366,10 @@ class ResourceQuotaControllerTest {
     @Test
     void shouldDeleteQuota() {
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(Metadata.builder().cluster("local").name("quota").build())
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("quota")
+                        .build())
                 .spec(Map.of("count/topics", "3"))
                 .build();
 

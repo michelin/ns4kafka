@@ -18,7 +18,7 @@
  */
 package com.michelin.ns4kafka.service.executor;
 
-import com.michelin.ns4kafka.model.Metadata;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.connect.ConnectCluster;
 import com.michelin.ns4kafka.model.connect.Connector;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
@@ -230,7 +230,7 @@ public class ConnectorAsyncExecutor {
      */
     private Connector buildConnectorFromConnectorStatus(ConnectorStatus connectorStatus, String connectCluster) {
         return Connector.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         // Any other metadata is not useful for this process
                         .name(connectorStatus.info().name())
                         .build())

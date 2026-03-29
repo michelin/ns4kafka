@@ -45,7 +45,7 @@ import lombok.Setter;
 @Data
 @Introspected
 @EqualsAndHashCode(callSuper = true)
-public class Topic extends MetadataResource {
+public class Topic extends Resource {
     @Valid @NotNull private TopicSpec spec;
 
     @EqualsAndHashCode.Exclude

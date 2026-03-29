@@ -29,8 +29,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
-import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.schema.Schema;
 import com.michelin.ns4kafka.model.schema.SubjectNameStrategy;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
@@ -489,8 +489,10 @@ class SchemaServiceTest {
             String schemaContent,
             boolean expectedResult) {
         Namespace namespace = Namespace.builder()
-                .metadata(
-                        Metadata.builder().name("myNamespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("myNamespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .subjectNameStrategies(subjectNameStrategies)
                         .topicValidator(TopicValidator.makeDefault())
@@ -498,7 +500,7 @@ class SchemaServiceTest {
                 .build();
 
         Schema schema = Schema.builder()
-                .metadata(Metadata.builder().name(subjectName).build())
+                .metadata(Resource.Metadata.builder().name(subjectName).build())
                 .spec(Schema.SchemaSpec.builder()
                         .schema(schemaContent)
                         .references(List.of(Schema.SchemaSpec.Reference.builder()
@@ -807,8 +809,10 @@ class SchemaServiceTest {
 
     private Namespace buildNamespace() {
         return Namespace.builder()
-                .metadata(
-                        Metadata.builder().name("myNamespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("myNamespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .topicValidator(TopicValidator.makeDefaultOneBroker())
                         .build())
@@ -817,7 +821,7 @@ class SchemaServiceTest {
 
     private Schema buildSchema(String subject) {
         return Schema.builder()
-                .metadata(Metadata.builder().name(subject).build())
+                .metadata(Resource.Metadata.builder().name(subject).build())
                 .spec(Schema.SchemaSpec.builder()
                         .compatibility(Schema.Compatibility.BACKWARD)
                         .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
@@ -838,7 +842,8 @@ class SchemaServiceTest {
 
     private Schema buildSchemaV2() {
         return Schema.builder()
-                .metadata(Metadata.builder().name("prefix.subject-value").build())
+                .metadata(
+                        Resource.Metadata.builder().name("prefix.subject-value").build())
                 .spec(Schema.SchemaSpec.builder()
                         .id(1)
                         .version(2)

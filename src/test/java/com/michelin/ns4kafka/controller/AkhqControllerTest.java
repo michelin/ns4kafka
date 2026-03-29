@@ -26,8 +26,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
-import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.property.Ns4KafkaProperties;
 import com.michelin.ns4kafka.service.AclService;
 import com.michelin.ns4kafka.service.NamespaceService;
@@ -147,31 +147,31 @@ class AkhqControllerTest {
     @Test
     void shouldGenerateClaimV2() {
         Namespace ns1 = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1")
                         .labels(Map.of("support-group", "GP-PROJECT1-SUPPORT"))
                         .build())
                 .build();
         Namespace ns2 = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns2")
                         .labels(Map.of("support-group", "GP-PROJECT1-SUPPORT"))
                         .build())
                 .build();
         Namespace ns3 = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns3")
                         .labels(Map.of("support-group", "GP-PROJECT2-SUPPORT"))
                         .build())
                 .build();
         Namespace ns4 = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns4")
                         .labels(Map.of("other-key", "anything"))
                         .build())
                 .build();
         Namespace ns5 = Namespace.builder()
-                .metadata(Metadata.builder().name("ns5").build())
+                .metadata(Resource.Metadata.builder().name("ns5").build())
                 .build();
 
         AccessControlEntry ns1Ace1 = AccessControlEntry.builder()

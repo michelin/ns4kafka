@@ -25,8 +25,8 @@ import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.KafkaUserResetPassword;
-import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.executor.UserAsyncExecutor;
 import com.michelin.ns4kafka.util.enumation.ApplyStatus;
@@ -92,7 +92,7 @@ public class UserController extends NamespacedResourceController {
         String password = userAsyncExecutor.resetPassword(ns.getSpec().getKafkaUser());
 
         KafkaUserResetPassword response = KafkaUserResetPassword.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name(ns.getSpec().getKafkaUser())
                         .namespace(namespace)
                         .cluster(ns.getMetadata().getCluster())

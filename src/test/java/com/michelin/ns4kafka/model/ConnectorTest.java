@@ -29,7 +29,7 @@ class ConnectorTest {
     @Test
     void shouldBeEqual() {
         Connector original = Connector.builder()
-                .metadata(Metadata.builder().name("connect1").build())
+                .metadata(Resource.Metadata.builder().name("connect1").build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("cluster1")
                         .config(Map.of(
@@ -42,7 +42,7 @@ class ConnectorTest {
                 .build();
 
         Connector same = Connector.builder()
-                .metadata(Metadata.builder().name("connect1").build())
+                .metadata(Resource.Metadata.builder().name("connect1").build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("cluster1")
                         // inverted map
@@ -82,7 +82,7 @@ class ConnectorTest {
         assertNotEquals(original, differentByConfig);
 
         Connector differentByMetadata = Connector.builder()
-                .metadata(Metadata.builder().name("connect2").build())
+                .metadata(Resource.Metadata.builder().name("connect2").build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("cluster1")
                         .config(Map.of("k1", "v1", "k2", "v2"))
