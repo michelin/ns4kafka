@@ -49,9 +49,6 @@ import lombok.Getter;
 @RolesAllowed(SecurityRule.IS_ANONYMOUS)
 @Controller("/akhq-claim")
 public class AkhqController {
-    private static final String TOPICS_FILTER_REGEX = "topicsFilterRegexp";
-    private static final String CONNECTS_FILTER_REGEX = "connectsFilterRegexp";
-    private static final String CONSUMER_GROUPS_FILTER_REGEX = "consumerGroupsFilterRegexp";
     private static final List<String> EMPTY_REGEXP = List.of("^none$");
     private static final List<String> ADMIN_REGEXP = List.of(".*");
 
