@@ -572,7 +572,6 @@ public class TopicAsyncExecutor {
 
             try {
                 value.get(managedClusterProperties.getTimeout().getTopic().getAlterConfigs(), TimeUnit.MILLISECONDS);
-                updatedTopic.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
                 updatedTopic
                         .getMetadata()
                         .setGeneration(updatedTopic.getMetadata().getGeneration() + 1);
@@ -632,7 +631,6 @@ public class TopicAsyncExecutor {
 
             try {
                 value.get(managedClusterProperties.getTimeout().getTopic().getCreate(), TimeUnit.MILLISECONDS);
-                createdTopic.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
                 createdTopic.getMetadata().setGeneration(1);
                 createdTopic.setStatus(Topic.TopicStatus.ofSuccess("Topic created"));
                 log.info("Success creating topic {} on cluster {}", key, managedClusterProperties.getName());
