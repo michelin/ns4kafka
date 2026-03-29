@@ -153,7 +153,7 @@ public class ConnectorController extends NamespacedResourceController {
                     return Mono.just(formatHttpResponse(connector, status));
                 }
 
-                connector.getMetadata().setDeployStatus(Resource.Metadata.DeployStatus.TO_DEPLOY);
+                connector.getMetadata().setStatus(Resource.Metadata.Status.ofPending());
 
                 sendEventLog(
                         connector,

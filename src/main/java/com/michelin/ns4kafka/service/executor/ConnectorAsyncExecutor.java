@@ -80,8 +80,7 @@ public class ConnectorAsyncExecutor {
                     .log("Starting connector synchronization for Kafka cluster {}.");
 
             return Flux.fromIterable(connectorRepository.findAllForCluster(managedClusterProperties.getName()))
-                    .filter(connector -> Resource.Metadata.DeployStatus.TO_DEPLOY.equals(
-                            connector.getMetadata().getDeployStatus()))
+                    .filter(Resource::isPending)
                     .flatMap(this::deployConnector);
         }
 
@@ -103,48 +102,56 @@ public class ConnectorAsyncExecutor {
                                 .config(connector.getSpec().getConfig())
                                 .build())
                 .doOnSuccess(_ -> {
-                    connector
-                            .getMetadata()
-                            .setGeneration(connector.getMetadata().getGeneration() + 1);
-                    if (!hasBeenReapplied(connector)) {
-                        connector.getMetadata().setDeployStatus(Resource.Metadata.DeployStatus.DEPLOYED);
-                    }
-                    connectorRepository.create(connector);
+                    if (isUnchangedSinceLastApply(connector)) {
+                        connector
+                                .getMetadata()
+                                .setGeneration(connector.getMetadata().getGeneration() + 1);
+                        connector.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
+                        connectorRepository.create(connector);
 
-                    log.info(
-                            "Success deploying connector {} on Kafka Connect {} of Kafka cluster {}.",
-                            connector.getMetadata().getName(),
-                            connector.getSpec().getConnectCluster(),
-                            managedClusterProperties.getName());
+                        log.info(
+                                "Success deploying connector {} on Kafka Connect {} of Kafka cluster {}.",
+                                connector.getMetadata().getName(),
+                                connector.getSpec().getConnectCluster(),
+                                managedClusterProperties.getName());
+                    }
                 })
-                .doOnError(httpError -> log.error(
-                        "Error deploying connector {} on Kafka Connect {} of Kafka cluster {}.",
-                        connector.getMetadata().getName(),
-                        connector.getSpec().getConnectCluster(),
-                        managedClusterProperties.getName(),
-                        httpError));
+                .doOnError(httpError -> {
+                    if (isUnchangedSinceLastApply(connector)) {
+                        connector.getMetadata().setStatus(Resource.Metadata.Status.ofFailed(httpError.getMessage()));
+                        connectorRepository.create(connector);
+
+                        log.error(
+                                "Error deploying connector {} on Kafka Connect {} of Kafka cluster {}: {}.",
+                                connector.getMetadata().getName(),
+                                connector.getSpec().getConnectCluster(),
+                                managedClusterProperties.getName(),
+                                httpError.getMessage());
+                    }
+                });
     }
 
     /**
-     * Check if the connector has been reapplied since the last deployment.
+     * Checks whether the connector has been reapplied since the last deployment. Avoids publishing over a connector
+     * that has already been changed.
      *
      * @param connector The connector to deploy
      * @return True if it has been reapplied, false otherwise
      */
-    private boolean hasBeenReapplied(Connector connector) {
+    private boolean isUnchangedSinceLastApply(Connector connector) {
         Optional<Namespace> existingNamespace =
                 namespaceService.findByName(connector.getMetadata().getNamespace());
         if (existingNamespace.isPresent()) {
             Optional<Connector> existingConnector = connectorService.findByName(
                     existingNamespace.get(), connector.getMetadata().getName());
-            return existingConnector.isPresent()
-                    && existingConnector
+            return existingConnector.isEmpty()
+                    || !existingConnector
                             .get()
                             .getMetadata()
                             .getCreationTimestamp()
                             .after(connector.getMetadata().getCreationTimestamp());
         }
 
-        return false;
+        return true;
     }
 }

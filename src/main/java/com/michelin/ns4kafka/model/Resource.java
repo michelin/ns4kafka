@@ -21,12 +21,14 @@ package com.michelin.ns4kafka.model;
 import static com.michelin.ns4kafka.security.ResourceBasedSecurityRule.RESOURCE_PATTERN;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.michelin.ns4kafka.util.enumation.Kind;
 import io.micronaut.core.annotation.Introspected;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import java.time.Instant;
 import java.util.Date;
 import java.util.Map;
 import lombok.AllArgsConstructor;
@@ -45,7 +47,6 @@ public class Resource {
 
     @Valid @NotNull private Metadata metadata;
 
-    /** Object metadata. */
     @Data
     @Builder
     @Introspected
@@ -66,12 +67,72 @@ public class Resource {
         private Date creationTimestamp;
 
         @EqualsAndHashCode.Exclude
-        private DeployStatus deployStatus;
+        private Status status;
 
-        /** Connector deployment status. */
-        public enum DeployStatus {
-            TO_DEPLOY,
-            DEPLOYED,
+        @Data
+        @Builder
+        @Introspected
+        @NoArgsConstructor
+        @AllArgsConstructor
+        public static class Status {
+            private Phase phase;
+            private String message;
+
+            @JsonFormat(shape = JsonFormat.Shape.STRING)
+            private Date lastUpdateTime;
+
+            public static Status ofSuccess() {
+                return Status.builder()
+                        .phase(Phase.SUCCESS)
+                        .lastUpdateTime(Date.from(Instant.now()))
+                        .build();
+            }
+
+            public static Status ofFailed(String message) {
+                return Status.builder()
+                        .phase(Phase.SUCCESS)
+                        .message(message)
+                        .lastUpdateTime(Date.from(Instant.now()))
+                        .build();
+            }
+
+            public static Status ofPending() {
+                return Status.builder()
+                        .phase(Phase.PENDING)
+                        .message("Awaiting processing by executor")
+                        .build();
+            }
         }
+
+        public enum Phase {
+            PENDING("Pending"),
+            FAIL("Fail"),
+            SUCCESS("Success");
+
+            private final String name;
+
+            Phase(String name) {
+                this.name = name;
+            }
+
+            @JsonValue
+            @Override
+            public String toString() {
+                return name;
+            }
+        }
+    }
+
+    /**
+     * Indicates whether the resource is pending deployment.
+     *
+     * @return {@code true} if it is, {@code false} otherwise
+     */
+    public boolean isPending() {
+        if (metadata == null || metadata.getStatus() == null) {
+            return false;
+        }
+
+        return metadata.getStatus().getPhase().equals(Metadata.Phase.PENDING);
     }
 }
