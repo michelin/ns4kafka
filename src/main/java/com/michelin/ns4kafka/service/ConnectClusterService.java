@@ -145,51 +145,6 @@ public class ConnectClusterService {
     }
 
     /**
-     * Find all self deployed Connect clusters.
-     *
-     * @param clusterName The cluster name
-     * @return A list of Connect clusters
-     */
-    public Flux<ConnectCluster> findAllForCluster(String clusterName) {
-        Flux<ConnectCluster> selfHostedConnectClusters =
-                Flux.defer(() -> Flux.fromIterable(connectClusterRepository.findAllForCluster(clusterName).stream()
-                        .map(this::buildConnectClusterWithDecryptedInformation)
-                        .toList()));
-
-        Flux<ConnectCluster> managedConnectClusters = Flux.fromIterable(managedClusterProperties)
-                .filter(cluster -> cluster.getName().equals(clusterName) && cluster.getConnects() != null)
-                .flatMap(config -> Flux.fromIterable(config.getConnects().entrySet())
-                        .map(entry -> ConnectCluster.builder()
-                                .metadata(Resource.Metadata.builder()
-                                        .name(entry.getKey())
-                                        .cluster(config.getName())
-                                        .build())
-                                .spec(ConnectCluster.ConnectClusterSpec.builder()
-                                        .url(entry.getValue().getUrl())
-                                        .username(entry.getValue().getBasicAuthUsername())
-                                        .password(entry.getValue().getBasicAuthPassword())
-                                        .build())
-                                .build()));
-
-        return selfHostedConnectClusters.concatWith(managedConnectClusters).flatMap(connectCluster -> kafkaConnectClient
-                .version(KafkaConnectHttpConfig.builder()
-                        .username(connectCluster.getSpec().getUsername())
-                        .password(connectCluster.getSpec().getPassword())
-                        .url(connectCluster.getSpec().getUrl())
-                        .build())
-                .doOnError(error -> {
-                    connectCluster.getSpec().setStatus(ConnectCluster.Status.IDLE);
-                    connectCluster.getSpec().setStatusMessage(error.getMessage());
-                })
-                .doOnSuccess(_ -> {
-                    connectCluster.getSpec().setStatus(ConnectCluster.Status.HEALTHY);
-                    connectCluster.getSpec().setStatusMessage(null);
-                })
-                .map(_ -> connectCluster)
-                .onErrorReturn(connectCluster));
-    }
-
-    /**
      * Find all self deployed Connect clusters of a given namespace, with a given list of permissions.
      *
      * @param namespace The namespace

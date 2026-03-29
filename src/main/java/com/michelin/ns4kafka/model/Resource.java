@@ -90,7 +90,7 @@ public class Resource {
 
             public static Status ofFailed(String message) {
                 return Status.builder()
-                        .phase(Phase.SUCCESS)
+                        .phase(Phase.FAIL)
                         .message(message)
                         .lastUpdateTime(Date.from(Instant.now()))
                         .build();

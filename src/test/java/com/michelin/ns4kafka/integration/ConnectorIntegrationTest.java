@@ -343,6 +343,13 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
                         Argument.listOf(Connector.class));
 
         assertTrue(connectors.getBody().isPresent());
+        assertTrue(connectors.getBody().get().stream()
+                .allMatch(connector -> Resource.Metadata.Phase.SUCCESS.equals(
+                        connector.getMetadata().getStatus().getPhase())));
+        assertTrue(connectors.getBody().get().stream()
+                .allMatch(connector -> connector.getMetadata().getStatus().getLastUpdateTime() != null));
+        assertTrue(connectors.getBody().get().stream()
+                .allMatch(connector -> connector.getMetadata().getGeneration() == 1));
         assertEquals(0, connectors.getBody().get().size());
     }
 
