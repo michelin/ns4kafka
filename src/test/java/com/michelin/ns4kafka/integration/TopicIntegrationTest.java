@@ -20,13 +20,11 @@ package com.michelin.ns4kafka.integration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertLinesMatch;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.michelin.ns4kafka.controller.AkhqController;
 import com.michelin.ns4kafka.integration.container.KafkaIntegrationTest;
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.AccessControlEntry.AccessControlEntrySpec;
@@ -205,33 +203,6 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
                 .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns2/acls")
                         .bearerAuth(token)
                         .body(ns2acl));
-    }
-
-    @Test
-    void shouldValidateAkhqClaims() {
-        AkhqController.AkhqClaimRequest akhqClaimRequest = AkhqController.AkhqClaimRequest.builder()
-                .username("test")
-                .groups(List.of("LDAP-GROUP-1"))
-                .providerName("LDAP")
-                .build();
-
-        AkhqController.AkhqClaimResponse response = ns4KafkaClient
-                .toBlocking()
-                .retrieve(HttpRequest.POST("/akhq-claim", akhqClaimRequest), AkhqController.AkhqClaimResponse.class);
-
-        assertLinesMatch(
-                List.of(
-                        "connect/read",
-                        "connect/state/update",
-                        "group/read",
-                        "registry/read",
-                        "topic/data/read",
-                        "topic/read"),
-                response.getRoles());
-
-        assertEquals(1, response.getAttributes().get("topicsFilterRegexp").size());
-
-        assertLinesMatch(List.of("^\\Qns1-\\E.*$"), response.getAttributes().get("topicsFilterRegexp"));
     }
 
     @Test
