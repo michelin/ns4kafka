@@ -408,7 +408,7 @@ Reminder that the `config.cluster.id` parameter from [managed Kafka cluster prop
 
 #### AKHQ
 
-[AKHQ](https://github.com/tchiotludo/akhq) can be integrated with Ns4Kafka to provide access to resources within your namespace.
+Starting with version 0.20.0, [AKHQ](https://github.com/tchiotludo/akhq) can be integrated with Ns4Kafka to provide access to resources within your namespace.
 The link between AKHQ and Ns4Kafka namespaces is established using LDAP groups and LDAP authentication in AKHQ.
 
 To enable this integration:
@@ -427,7 +427,7 @@ akhq:
 For AKHQ versions:
 - `v0.25` and later, use the `/akhq-claim/v3` endpoint.
 - `v0.20` to `v0.24`, use the `/akhq-claim/v2` endpoint.
-- `v0.20` and earlier, use the `/akhq-claim/v1` endpoint.
+- Prior to `v0.20`, claims are no longer supported.
 
 3. In your Ns4Kafka configuration, specify the following settings for AKHQ:
 

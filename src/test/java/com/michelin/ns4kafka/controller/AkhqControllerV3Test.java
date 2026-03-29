@@ -40,7 +40,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class AkhqClaimProviderControllerV3Test {
+class AkhqControllerV3Test {
     @Mock
     NamespaceService namespaceService;
 
@@ -54,21 +54,21 @@ class AkhqClaimProviderControllerV3Test {
     Ns4KafkaProperties ns4KafkaProperties;
 
     @InjectMocks
-    AkhqClaimProviderController akhqClaimProviderController;
+    AkhqController akhqController;
 
     @Test
     void shouldGenerateClaimForAdmin() {
         when(ns4KafkaProperties.getAkhq()).thenReturn(buildAkhqProperties());
 
-        AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
+        AkhqController.AkhqClaimRequest request = AkhqController.AkhqClaimRequest.builder()
                 .groups(List.of("GP-ADMIN"))
                 .build();
 
-        AkhqClaimProviderController.AkhqClaimResponseV3 actual = akhqClaimProviderController.generateClaimV3(request);
+        AkhqController.AkhqClaimResponseV3 actual = akhqController.generateClaimV3(request);
 
         assertEquals(1, actual.getGroups().size());
 
-        List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups =
+        List<AkhqController.AkhqClaimResponseV3.Group> groups =
                 actual.getGroups().get("group");
 
         assertEquals(4, groups.size());
@@ -104,15 +104,15 @@ class AkhqClaimProviderControllerV3Test {
         when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1));
         when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Ns1Cluster1));
 
-        AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
+        AkhqController.AkhqClaimRequest request = AkhqController.AkhqClaimRequest.builder()
                 .groups(List.of("GP-PROJECT1-SUPPORT"))
                 .build();
 
-        AkhqClaimProviderController.AkhqClaimResponseV3 actual = akhqClaimProviderController.generateClaimV3(request);
+        AkhqController.AkhqClaimResponseV3 actual = akhqController.generateClaimV3(request);
 
         assertEquals(1, actual.getGroups().size());
 
-        List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups =
+        List<AkhqController.AkhqClaimResponseV3.Group> groups =
                 actual.getGroups().get("group");
         assertEquals(2, groups.size());
         assertEquals("topic-read", groups.getFirst().getRole());
@@ -154,15 +154,15 @@ class AkhqClaimProviderControllerV3Test {
         when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1));
         when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Ns1Cluster1, ace2Ns1Cluster1));
 
-        AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
+        AkhqController.AkhqClaimRequest request = AkhqController.AkhqClaimRequest.builder()
                 .groups(List.of("GP-PROJECT1-SUPPORT"))
                 .build();
 
-        AkhqClaimProviderController.AkhqClaimResponseV3 actual = akhqClaimProviderController.generateClaimV3(request);
+        AkhqController.AkhqClaimResponseV3 actual = akhqController.generateClaimV3(request);
 
         assertEquals(1, actual.getGroups().size());
 
-        List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups =
+        List<AkhqController.AkhqClaimResponseV3.Group> groups =
                 actual.getGroups().get("group");
         assertEquals(3, groups.size());
         assertEquals("topic-read", groups.getFirst().getRole());
@@ -198,15 +198,15 @@ class AkhqClaimProviderControllerV3Test {
         when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1));
         when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Ns1Cluster1));
 
-        AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
+        AkhqController.AkhqClaimRequest request = AkhqController.AkhqClaimRequest.builder()
                 .groups(List.of("GP-PROJECT1-SUPPORT"))
                 .build();
 
-        AkhqClaimProviderController.AkhqClaimResponseV3 actual = akhqClaimProviderController.generateClaimV3(request);
+        AkhqController.AkhqClaimResponseV3 actual = akhqController.generateClaimV3(request);
 
         assertEquals(1, actual.getGroups().size());
 
-        List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups =
+        List<AkhqController.AkhqClaimResponseV3.Group> groups =
                 actual.getGroups().get("group");
         assertEquals(2, groups.size());
         assertEquals("topic-read", groups.getFirst().getRole());
@@ -244,15 +244,15 @@ class AkhqClaimProviderControllerV3Test {
         when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1));
         when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Ns1Cluster1));
 
-        AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
+        AkhqController.AkhqClaimRequest request = AkhqController.AkhqClaimRequest.builder()
                 .groups(List.of("GP-PROJECT1-SUPPORT"))
                 .build();
 
-        AkhqClaimProviderController.AkhqClaimResponseV3 actual = akhqClaimProviderController.generateClaimV3(request);
+        AkhqController.AkhqClaimResponseV3 actual = akhqController.generateClaimV3(request);
 
         assertEquals(1, actual.getGroups().size());
 
-        List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups =
+        List<AkhqController.AkhqClaimResponseV3.Group> groups =
                 actual.getGroups().get("group");
         assertEquals(2, groups.size());
         assertEquals("topic-read", groups.getFirst().getRole());
@@ -277,11 +277,11 @@ class AkhqClaimProviderControllerV3Test {
                         Stream.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2")));
         when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1));
 
-        AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
+        AkhqController.AkhqClaimRequest request = AkhqController.AkhqClaimRequest.builder()
                 .groups(List.of("GP-PROJECT2-SUPPORT"))
                 .build();
 
-        AkhqClaimProviderController.AkhqClaimResponseV3 actual = akhqClaimProviderController.generateClaimV3(request);
+        AkhqController.AkhqClaimResponseV3 actual = akhqController.generateClaimV3(request);
         assertNull(actual.getGroups());
     }
 
@@ -301,11 +301,11 @@ class AkhqClaimProviderControllerV3Test {
                         Stream.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2")));
         when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1));
 
-        AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
+        AkhqController.AkhqClaimRequest request = AkhqController.AkhqClaimRequest.builder()
                 .groups(List.of("GP-PROJECT1-SUPPORT"))
                 .build();
 
-        AkhqClaimProviderController.AkhqClaimResponseV3 actual = akhqClaimProviderController.generateClaimV3(request);
+        AkhqController.AkhqClaimResponseV3 actual = akhqController.generateClaimV3(request);
         assertNull(actual.getGroups());
     }
 
@@ -354,15 +354,15 @@ class AkhqClaimProviderControllerV3Test {
 
         when(aclService.findAllGrantedToNamespace(ns1Cluster2)).thenReturn(List.of(ace1Ns1Cluster2));
 
-        AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
+        AkhqController.AkhqClaimRequest request = AkhqController.AkhqClaimRequest.builder()
                 .groups(List.of("GP-PROJECT1-SUPPORT"))
                 .build();
 
-        AkhqClaimProviderController.AkhqClaimResponseV3 actual = akhqClaimProviderController.generateClaimV3(request);
+        AkhqController.AkhqClaimResponseV3 actual = akhqController.generateClaimV3(request);
 
         assertEquals(1, actual.getGroups().size());
 
-        List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups =
+        List<AkhqController.AkhqClaimResponseV3.Group> groups =
                 actual.getGroups().get("group");
         assertEquals(2, groups.size());
         assertEquals("topic-read", groups.getFirst().getRole());
@@ -416,15 +416,15 @@ class AkhqClaimProviderControllerV3Test {
 
         when(aclService.findAllGrantedToNamespace(ns2Cluster1)).thenReturn(List.of(ace2Ns2Cluster1));
 
-        AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
+        AkhqController.AkhqClaimRequest request = AkhqController.AkhqClaimRequest.builder()
                 .groups(List.of("GP-PROJECT1&2-SUPPORT"))
                 .build();
 
-        AkhqClaimProviderController.AkhqClaimResponseV3 actual = akhqClaimProviderController.generateClaimV3(request);
+        AkhqController.AkhqClaimResponseV3 actual = akhqController.generateClaimV3(request);
 
         assertEquals(1, actual.getGroups().size());
 
-        List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups =
+        List<AkhqController.AkhqClaimResponseV3.Group> groups =
                 actual.getGroups().get("group");
         assertEquals(2, groups.size());
         assertEquals("topic-read", groups.getFirst().getRole());
@@ -480,15 +480,15 @@ class AkhqClaimProviderControllerV3Test {
 
         when(aclService.findAllGrantedToNamespace(ns1Cluster2)).thenReturn(List.of(ace1Cluster2));
 
-        AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
+        AkhqController.AkhqClaimRequest request = AkhqController.AkhqClaimRequest.builder()
                 .groups(List.of("GP-PROJECT1-SUPPORT"))
                 .build();
 
-        AkhqClaimProviderController.AkhqClaimResponseV3 actual = akhqClaimProviderController.generateClaimV3(request);
+        AkhqController.AkhqClaimResponseV3 actual = akhqController.generateClaimV3(request);
 
         assertEquals(1, actual.getGroups().size());
 
-        List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups =
+        List<AkhqController.AkhqClaimResponseV3.Group> groups =
                 actual.getGroups().get("group");
         assertEquals(2, groups.size());
         assertEquals("topic-read", groups.getFirst().getRole());
@@ -542,15 +542,15 @@ class AkhqClaimProviderControllerV3Test {
 
         when(aclService.findAllGrantedToNamespace(ns2Cluster2)).thenReturn(List.of(ace1Ns2Cluster2));
 
-        AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
+        AkhqController.AkhqClaimRequest request = AkhqController.AkhqClaimRequest.builder()
                 .groups(List.of("GP-PROJECT1&2-SUPPORT"))
                 .build();
 
-        AkhqClaimProviderController.AkhqClaimResponseV3 actual = akhqClaimProviderController.generateClaimV3(request);
+        AkhqController.AkhqClaimResponseV3 actual = akhqController.generateClaimV3(request);
 
         assertEquals(1, actual.getGroups().size());
 
-        List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups =
+        List<AkhqController.AkhqClaimResponseV3.Group> groups =
                 actual.getGroups().get("group");
         assertEquals(4, groups.size());
         assertEquals("topic-read", groups.getFirst().getRole());
@@ -696,12 +696,12 @@ class AkhqClaimProviderControllerV3Test {
         when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1));
         when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(inputAcls);
 
-        AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
+        AkhqController.AkhqClaimRequest request = AkhqController.AkhqClaimRequest.builder()
                 .groups(List.of("GP-PROJECT1&2-SUPPORT"))
                 .build();
-        AkhqClaimProviderController.AkhqClaimResponseV3 actual = akhqClaimProviderController.generateClaimV3(request);
+        AkhqController.AkhqClaimResponseV3 actual = akhqController.generateClaimV3(request);
 
-        List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups =
+        List<AkhqController.AkhqClaimResponseV3.Group> groups =
                 actual.getGroups().get("group");
         assertEquals(3, groups.size());
         assertEquals("topic-read", groups.getFirst().getRole());
@@ -816,12 +816,12 @@ class AkhqClaimProviderControllerV3Test {
         when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1));
         when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(inputAcls);
 
-        AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
+        AkhqController.AkhqClaimRequest request = AkhqController.AkhqClaimRequest.builder()
                 .groups(List.of("GP-PROJECT1&2-SUPPORT"))
                 .build();
-        AkhqClaimProviderController.AkhqClaimResponseV3 actual = akhqClaimProviderController.generateClaimV3(request);
+        AkhqController.AkhqClaimResponseV3 actual = akhqController.generateClaimV3(request);
 
-        List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups =
+        List<AkhqController.AkhqClaimResponseV3.Group> groups =
                 actual.getGroups().get("group");
         assertEquals(6, groups.size());
         assertEquals("topic-read", groups.getFirst().getRole());
@@ -901,12 +901,12 @@ class AkhqClaimProviderControllerV3Test {
         when(namespaceService.findAll()).thenReturn(List.of(ns));
         when(aclService.findAllGrantedToNamespace(ns)).thenReturn(inputAcls);
 
-        AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
+        AkhqController.AkhqClaimRequest request = AkhqController.AkhqClaimRequest.builder()
                 .groups(List.of("GP-PROJECT-SUPPORT"))
                 .build();
-        AkhqClaimProviderController.AkhqClaimResponseV3 actual = akhqClaimProviderController.generateClaimV3(request);
+        AkhqController.AkhqClaimResponseV3 actual = akhqController.generateClaimV3(request);
 
-        List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups =
+        List<AkhqController.AkhqClaimResponseV3.Group> groups =
                 actual.getGroups().get("group");
         assertEquals(2, groups.size());
         assertEquals("topic-read", groups.getFirst().getRole());
@@ -960,12 +960,12 @@ class AkhqClaimProviderControllerV3Test {
         when(aclService.findAllGrantedToNamespace(ns1)).thenReturn(acls1);
         when(aclService.findAllGrantedToNamespace(ns2)).thenReturn(acls2);
 
-        AkhqClaimProviderController.AkhqClaimRequest request = AkhqClaimProviderController.AkhqClaimRequest.builder()
+        AkhqController.AkhqClaimRequest request = AkhqController.AkhqClaimRequest.builder()
                 .groups(List.of("GP-PROJECT-SUPPORT"))
                 .build();
-        AkhqClaimProviderController.AkhqClaimResponseV3 actual = akhqClaimProviderController.generateClaimV3(request);
+        AkhqController.AkhqClaimResponseV3 actual = akhqController.generateClaimV3(request);
 
-        List<AkhqClaimProviderController.AkhqClaimResponseV3.Group> groups =
+        List<AkhqController.AkhqClaimResponseV3.Group> groups =
                 actual.getGroups().get("group");
         assertEquals(2, groups.size());
         assertEquals("topic-read", groups.getFirst().getRole());

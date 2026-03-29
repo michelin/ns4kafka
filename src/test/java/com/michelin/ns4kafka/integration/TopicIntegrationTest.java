@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.michelin.ns4kafka.controller.AkhqClaimProviderController;
+import com.michelin.ns4kafka.controller.AkhqController;
 import com.michelin.ns4kafka.integration.container.KafkaIntegrationTest;
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.AccessControlEntry.AccessControlEntrySpec;
@@ -209,18 +209,15 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
 
     @Test
     void shouldValidateAkhqClaims() {
-        AkhqClaimProviderController.AkhqClaimRequest akhqClaimRequest =
-                AkhqClaimProviderController.AkhqClaimRequest.builder()
-                        .username("test")
-                        .groups(List.of("LDAP-GROUP-1"))
-                        .providerName("LDAP")
-                        .build();
+        AkhqController.AkhqClaimRequest akhqClaimRequest = AkhqController.AkhqClaimRequest.builder()
+                .username("test")
+                .groups(List.of("LDAP-GROUP-1"))
+                .providerName("LDAP")
+                .build();
 
-        AkhqClaimProviderController.AkhqClaimResponse response = ns4KafkaClient
+        AkhqController.AkhqClaimResponse response = ns4KafkaClient
                 .toBlocking()
-                .retrieve(
-                        HttpRequest.POST("/akhq-claim", akhqClaimRequest),
-                        AkhqClaimProviderController.AkhqClaimResponse.class);
+                .retrieve(HttpRequest.POST("/akhq-claim", akhqClaimRequest), AkhqController.AkhqClaimResponse.class);
 
         assertLinesMatch(
                 List.of(
