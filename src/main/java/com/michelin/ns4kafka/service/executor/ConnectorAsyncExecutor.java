@@ -19,6 +19,7 @@
 package com.michelin.ns4kafka.service.executor;
 
 import com.michelin.ns4kafka.model.Metadata;
+import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.connect.Connector;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.ConnectorRepository;
@@ -104,7 +105,6 @@ public class ConnectorAsyncExecutor {
                                 .config(connector.getSpec().getConfig())
                                 .build())
                 .doOnSuccess(_ -> {
-                    connector.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
                     connector
                             .getMetadata()
                             .setGeneration(connector.getMetadata().getGeneration() + 1);
