@@ -25,7 +25,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -42,17 +41,17 @@ import com.michelin.ns4kafka.service.client.connect.entities.ConfigInfo;
 import com.michelin.ns4kafka.service.client.connect.entities.ConfigInfos;
 import com.michelin.ns4kafka.service.client.connect.entities.ConfigKeyInfo;
 import com.michelin.ns4kafka.service.client.connect.entities.ConfigValueInfo;
+import com.michelin.ns4kafka.service.client.connect.entities.ConnectorInfo;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorPluginInfo;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorStateInfo;
+import com.michelin.ns4kafka.service.client.connect.entities.ConnectorStatus;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorType;
-import com.michelin.ns4kafka.service.executor.ConnectorAsyncExecutor;
 import com.michelin.ns4kafka.validation.ConnectValidator;
 import com.michelin.ns4kafka.validation.ResourceValidator;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
-import io.micronaut.inject.qualifiers.Qualifiers;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -61,7 +60,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -802,35 +800,20 @@ class ConnectorServiceTest {
                         .build())
                 .build();
 
-        ConnectorAsyncExecutor connectorAsyncExecutor = mock(ConnectorAsyncExecutor.class);
-        when(applicationContext.getBean(
-                        ConnectorAsyncExecutor.class,
-                        Qualifiers.byName(ns.getMetadata().getCluster())))
-                .thenReturn(connectorAsyncExecutor);
-
         ConnectCluster connectCluster = ConnectCluster.builder()
                 .metadata(Metadata.builder().name("ns-connect-cluster").build())
                 .build();
 
-        Connector c1 = Connector.builder()
-                .metadata(Metadata.builder().name("ns-connect1").build())
-                .build();
-
-        Connector c2 = Connector.builder()
-                .metadata(Metadata.builder().name("ns-connect2").build())
-                .build();
-
-        Connector c3 = Connector.builder()
-                .metadata(Metadata.builder().name("ns1-connect1").build())
-                .build();
-
-        Connector c5 = Connector.builder()
-                .metadata(Metadata.builder().name("ns2-connect1").build())
-                .build();
-
-        Connector c4 = Connector.builder()
-                .metadata(Metadata.builder().name("ns1-connect2").build())
-                .build();
+        ConnectorStatus c1 =
+                new ConnectorStatus(new ConnectorInfo("ns-connect1", Map.of(), List.of(), ConnectorType.SINK), null);
+        ConnectorStatus c2 =
+                new ConnectorStatus(new ConnectorInfo("ns-connect2", Map.of(), List.of(), ConnectorType.SINK), null);
+        ConnectorStatus c3 =
+                new ConnectorStatus(new ConnectorInfo("ns1-connect1", Map.of(), List.of(), ConnectorType.SINK), null);
+        ConnectorStatus c4 =
+                new ConnectorStatus(new ConnectorInfo("ns2-connect1", Map.of(), List.of(), ConnectorType.SINK), null);
+        ConnectorStatus c5 =
+                new ConnectorStatus(new ConnectorInfo("ns1-connect2", Map.of(), List.of(), ConnectorType.SINK), null);
 
         List<AccessControlEntry> acls = List.of(
                 AccessControlEntry.builder()
@@ -853,10 +836,11 @@ class ConnectorServiceTest {
                         .build());
 
         when(connectClusterService.findAllForNamespaceWithWritePermission(ns)).thenReturn(List.of(connectCluster));
-        when(connectorAsyncExecutor.collectBrokerConnectors("local-name"))
-                .thenReturn(Flux.fromIterable(List.of(c1, c2, c3, c4)));
-        when(connectorAsyncExecutor.collectBrokerConnectors("ns-connect-cluster"))
-                .thenReturn(Flux.fromIterable(List.of(c5)));
+        when(kafkaConnectClient.listAll("local", "local-name"))
+                .thenReturn(Mono.just(
+                        Map.of("ns-connect1", c1, "ns-connect2", c2, "ns1-connect1", c3, "ns2-connect1", c4)));
+        when(kafkaConnectClient.listAll("local", "ns-connect-cluster"))
+                .thenReturn(Mono.just(Map.of("ns1-connect2", c5)));
 
         // list of existing Ns4Kafka access control entries
         when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns-connect1"))
@@ -900,35 +884,40 @@ class ConnectorServiceTest {
                         .build())
                 .build();
 
-        ConnectorAsyncExecutor connectorAsyncExecutor = mock(ConnectorAsyncExecutor.class);
-        when(applicationContext.getBean(
-                        ConnectorAsyncExecutor.class,
-                        Qualifiers.byName(ns.getMetadata().getCluster())))
-                .thenReturn(connectorAsyncExecutor);
-
         ConnectCluster connectCluster = ConnectCluster.builder()
                 .metadata(Metadata.builder().name("ns-connect-cluster").build())
                 .build();
 
-        Connector c1 = Connector.builder()
+        Connector co1 = Connector.builder()
                 .metadata(Metadata.builder().name("ns-connect1").build())
                 .build();
 
-        Connector c2 = Connector.builder()
+        Connector co2 = Connector.builder()
                 .metadata(Metadata.builder().name("ns-connect2").build())
                 .build();
 
-        Connector c3 = Connector.builder()
+        Connector co3 = Connector.builder()
                 .metadata(Metadata.builder().name("ns1-connect1").build())
                 .build();
 
-        Connector c4 = Connector.builder()
+        Connector co4 = Connector.builder()
                 .metadata(Metadata.builder().name("ns2-connect1").build())
                 .build();
 
-        Connector c5 = Connector.builder()
+        Connector co5 = Connector.builder()
                 .metadata(Metadata.builder().name("ns1-connect2").build())
                 .build();
+
+        ConnectorStatus c1 =
+                new ConnectorStatus(new ConnectorInfo("ns-connect1", Map.of(), List.of(), ConnectorType.SINK), null);
+        ConnectorStatus c2 =
+                new ConnectorStatus(new ConnectorInfo("ns-connect2", Map.of(), List.of(), ConnectorType.SINK), null);
+        ConnectorStatus c3 =
+                new ConnectorStatus(new ConnectorInfo("ns1-connect1", Map.of(), List.of(), ConnectorType.SINK), null);
+        ConnectorStatus c4 =
+                new ConnectorStatus(new ConnectorInfo("ns2-connect1", Map.of(), List.of(), ConnectorType.SINK), null);
+        ConnectorStatus c5 =
+                new ConnectorStatus(new ConnectorInfo("ns1-connect2", Map.of(), List.of(), ConnectorType.SINK), null);
 
         List<AccessControlEntry> acls = List.of(
                 AccessControlEntry.builder()
@@ -960,11 +949,12 @@ class ConnectorServiceTest {
                         .build());
 
         when(connectClusterService.findAllForNamespaceWithWritePermission(ns)).thenReturn(List.of(connectCluster));
-        when(connectorAsyncExecutor.collectBrokerConnectors("local-name"))
-                .thenReturn(Flux.fromIterable(List.of(c1, c2, c3, c4)));
-        when(connectorAsyncExecutor.collectBrokerConnectors("ns-connect-cluster"))
-                .thenReturn(Flux.fromIterable(List.of(c5)));
-        when(connectorRepository.findAllForCluster("local")).thenReturn(List.of(c1, c2, c3, c4, c5));
+        when(kafkaConnectClient.listAll("local", "local-name"))
+                .thenReturn(Mono.just(
+                        Map.of("ns-connect1", c1, "ns-connect2", c2, "ns1-connect1", c3, "ns2-connect1", c4)));
+        when(kafkaConnectClient.listAll("local", "ns-connect-cluster"))
+                .thenReturn(Mono.just(Map.of("ns1-connect2", c5)));
+        when(connectorRepository.findAllForCluster("local")).thenReturn(List.of(co1, co2, co3, co4, co5));
 
         // list of existing Ns4Kafka access control entries
         when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns-connect1"))
@@ -1002,27 +992,29 @@ class ConnectorServiceTest {
                         .build())
                 .build();
 
-        // init connectorAsyncExecutor
-        ConnectorAsyncExecutor connectorAsyncExecutor = mock(ConnectorAsyncExecutor.class);
-        when(applicationContext.getBean(
-                        ConnectorAsyncExecutor.class,
-                        Qualifiers.byName(ns.getMetadata().getCluster())))
-                .thenReturn(connectorAsyncExecutor);
-
         // list of existing broker connectors
-        Connector c1 = Connector.builder()
+        ConnectorStatus c1 =
+                new ConnectorStatus(new ConnectorInfo("ns-connect1", Map.of(), List.of(), ConnectorType.SINK), null);
+        ConnectorStatus c2 =
+                new ConnectorStatus(new ConnectorInfo("ns-connect2", Map.of(), List.of(), ConnectorType.SINK), null);
+        ConnectorStatus c3 =
+                new ConnectorStatus(new ConnectorInfo("ns1-connect1", Map.of(), List.of(), ConnectorType.SINK), null);
+        ConnectorStatus c4 =
+                new ConnectorStatus(new ConnectorInfo("ns2-connect1", Map.of(), List.of(), ConnectorType.SINK), null);
+
+        Connector co1 = Connector.builder()
                 .metadata(Metadata.builder().name("ns-connect1").build())
                 .build();
 
-        Connector c2 = Connector.builder()
+        Connector co2 = Connector.builder()
                 .metadata(Metadata.builder().name("ns-connect2").build())
                 .build();
 
-        Connector c3 = Connector.builder()
+        Connector co3 = Connector.builder()
                 .metadata(Metadata.builder().name("ns1-connect1").build())
                 .build();
 
-        Connector c4 = Connector.builder()
+        Connector co4 = Connector.builder()
                 .metadata(Metadata.builder().name("ns2-connect1").build())
                 .build();
 
@@ -1046,11 +1038,12 @@ class ConnectorServiceTest {
                                 .build())
                         .build());
 
-        when(connectorAsyncExecutor.collectBrokerConnectors("local-name"))
-                .thenReturn(Flux.fromIterable(List.of(c1, c2, c3, c4)));
+        when(kafkaConnectClient.listAll("local", "local-name"))
+                .thenReturn(Mono.just(
+                        Map.of("ns-connect1", c1, "ns-connect2", c2, "ns1-connect1", c3, "ns2-connect1", c4)));
 
         // list of existing broker connects
-        when(connectorRepository.findAllForCluster("local")).thenReturn(List.of(c1, c2, c3, c4));
+        when(connectorRepository.findAllForCluster("local")).thenReturn(List.of(co1, co2, co3, co4));
 
         // list of existing Ns4Kafka access control entries
         when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns-connect1"))
@@ -1066,7 +1059,7 @@ class ConnectorServiceTest {
 
         when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.CONNECT))
                 .thenReturn(acls);
-        when(connectorRepository.findAllForCluster("local")).thenReturn(List.of(c1));
+        when(connectorRepository.findAllForCluster("local")).thenReturn(List.of(co1));
         when(aclService.isResourceCoveredByAcls(acls, "ns-connect1")).thenReturn(true);
 
         StepVerifier.create(connectorService.listUnsynchronizedConnectorsByWildcardName(ns, "*"))
@@ -1086,27 +1079,29 @@ class ConnectorServiceTest {
                         .build())
                 .build();
 
-        // init connectorAsyncExecutor
-        ConnectorAsyncExecutor connectorAsyncExecutor = mock(ConnectorAsyncExecutor.class);
-        when(applicationContext.getBean(
-                        ConnectorAsyncExecutor.class,
-                        Qualifiers.byName(ns.getMetadata().getCluster())))
-                .thenReturn(connectorAsyncExecutor);
-
         // list of existing broker connectors
-        Connector c1 = Connector.builder()
+        ConnectorStatus c1 =
+                new ConnectorStatus(new ConnectorInfo("ns-connect1", Map.of(), List.of(), ConnectorType.SINK), null);
+        ConnectorStatus c2 =
+                new ConnectorStatus(new ConnectorInfo("ns-connect2", Map.of(), List.of(), ConnectorType.SINK), null);
+        ConnectorStatus c3 =
+                new ConnectorStatus(new ConnectorInfo("ns1-connect1", Map.of(), List.of(), ConnectorType.SINK), null);
+        ConnectorStatus c4 =
+                new ConnectorStatus(new ConnectorInfo("ns2-connect1", Map.of(), List.of(), ConnectorType.SINK), null);
+
+        Connector co1 = Connector.builder()
                 .metadata(Metadata.builder().name("ns-connect1").build())
                 .build();
 
-        Connector c2 = Connector.builder()
+        Connector co2 = Connector.builder()
                 .metadata(Metadata.builder().name("ns-connect2").build())
                 .build();
 
-        Connector c3 = Connector.builder()
+        Connector co3 = Connector.builder()
                 .metadata(Metadata.builder().name("ns1-connect1").build())
                 .build();
 
-        Connector c4 = Connector.builder()
+        Connector co4 = Connector.builder()
                 .metadata(Metadata.builder().name("ns2-connect1").build())
                 .build();
 
@@ -1130,11 +1125,12 @@ class ConnectorServiceTest {
                                 .build())
                         .build());
 
-        when(connectorAsyncExecutor.collectBrokerConnectors("local-name"))
-                .thenReturn(Flux.fromIterable(List.of(c1, c2, c3, c4)));
+        when(kafkaConnectClient.listAll("local", "local-name"))
+                .thenReturn(Mono.just(
+                        Map.of("ns-connect1", c1, "ns-connect2", c2, "ns1-connect1", c3, "ns2-connect1", c4)));
 
         // list of existing broker connects
-        when(connectorRepository.findAllForCluster("local")).thenReturn(List.of(c1, c2, c3, c4));
+        when(connectorRepository.findAllForCluster("local")).thenReturn(List.of(co1, co2, co3, co4));
 
         // list of existing Ns4Kafka access control entries
         when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns-connect1"))
@@ -1150,7 +1146,7 @@ class ConnectorServiceTest {
 
         when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.CONNECT))
                 .thenReturn(acls);
-        when(connectorRepository.findAllForCluster("local")).thenReturn(List.of(c1));
+        when(connectorRepository.findAllForCluster("local")).thenReturn(List.of(co1));
         when(aclService.isResourceCoveredByAcls(acls, "ns-connect1")).thenReturn(true);
 
         StepVerifier.create(connectorService.listUnsynchronizedConnectorsByWildcardName(ns, "ns-*"))
