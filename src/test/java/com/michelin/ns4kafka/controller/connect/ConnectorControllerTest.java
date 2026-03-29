@@ -696,10 +696,14 @@ class ConnectorControllerTest {
         when(connectorService.createOrUpdate(connector2)).thenReturn(connector2);
 
         StepVerifier.create(connectorController.importResources("test", "*", false))
-                .consumeNextWith(connect1 ->
-                        assertEquals("connect1", connect1.getMetadata().getName()))
-                .consumeNextWith(connect2 ->
-                        assertEquals("connect2", connect2.getMetadata().getName()))
+                .consumeNextWith(connect1 -> {
+                    assertEquals("connect1", connect1.getMetadata().getName());
+                    assertNotNull(connect1.getMetadata().getCreationTimestamp());
+                })
+                .consumeNextWith(connect2 -> {
+                    assertEquals("connect2", connect2.getMetadata().getName());
+                    assertNotNull(connect2.getMetadata().getCreationTimestamp());
+                })
                 .verifyComplete();
     }
 
@@ -719,8 +723,10 @@ class ConnectorControllerTest {
         when(connectorService.createOrUpdate(connector1)).thenReturn(connector1);
 
         StepVerifier.create(connectorController.importResources("test", "connect1", false))
-                .consumeNextWith(connect1 ->
-                        assertEquals("connect1", connect1.getMetadata().getName()))
+                .consumeNextWith(connect1 -> {
+                    assertEquals("connect1", connect1.getMetadata().getName());
+                    assertNotNull(connect1.getMetadata().getCreationTimestamp());
+                })
                 .verifyComplete();
     }
 

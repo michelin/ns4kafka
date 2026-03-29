@@ -315,7 +315,6 @@ public class ConnectorController extends NamespacedResourceController {
                             .code(success.status())
                             .build());
                     state.setMetadata(optionalConnector.get().getMetadata());
-                    state.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
                 })
                 .doOnError(error -> {
                     state.setStatus(ChangeConnectorState.ChangeConnectorStateStatus.builder()
@@ -324,7 +323,6 @@ public class ConnectorController extends NamespacedResourceController {
                             .errorMessage(error.getMessage())
                             .build());
                     state.setMetadata(optionalConnector.get().getMetadata());
-                    state.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
                 })
                 .map(_ -> HttpResponse.ok(state))
                 .onErrorReturn(HttpResponse.ok(state));
@@ -348,6 +346,7 @@ public class ConnectorController extends NamespacedResourceController {
                 .listUnsynchronizedConnectorsByWildcardName(ns, name)
                 .map(unsynchronizedConnector -> {
                     unsynchronizedConnector.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
+                    unsynchronizedConnector.getMetadata().setGeneration(1);
                     unsynchronizedConnector
                             .getMetadata()
                             .setCluster(ns.getMetadata().getCluster());
