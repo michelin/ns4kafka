@@ -29,9 +29,9 @@ import com.michelin.ns4kafka.model.AccessControlEntry.AccessControlEntrySpec;
 import com.michelin.ns4kafka.model.AccessControlEntry.Permission;
 import com.michelin.ns4kafka.model.AccessControlEntry.ResourcePatternType;
 import com.michelin.ns4kafka.model.AccessControlEntry.ResourceType;
-import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Namespace.NamespaceSpec;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.RoleBinding;
 import com.michelin.ns4kafka.model.RoleBinding.Role;
 import com.michelin.ns4kafka.model.RoleBinding.RoleBindingSpec;
@@ -69,7 +69,10 @@ class ExceptionHandlerIntegrationTest extends KafkaIntegrationTest {
     @BeforeAll
     void init() {
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder().name("ns1").cluster("test-cluster").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1")
+                        .cluster("test-cluster")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .kafkaUser("user1")
                         .connectClusters(List.of("test-connect"))
@@ -78,7 +81,10 @@ class ExceptionHandlerIntegrationTest extends KafkaIntegrationTest {
                 .build();
 
         RoleBinding roleBinding = RoleBinding.builder()
-                .metadata(Metadata.builder().name("ns1-rb").namespace("ns1").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-rb")
+                        .namespace("ns1")
+                        .build())
                 .spec(RoleBindingSpec.builder()
                         .role(Role.builder()
                                 .resourceTypes(List.of("topics", "acls"))
@@ -113,7 +119,10 @@ class ExceptionHandlerIntegrationTest extends KafkaIntegrationTest {
                         .body(roleBinding));
 
         AccessControlEntry ns1acl = AccessControlEntry.builder()
-                .metadata(Metadata.builder().name("ns1-acl").namespace("ns1").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-acl")
+                        .namespace("ns1")
+                        .build())
                 .spec(AccessControlEntrySpec.builder()
                         .resourceType(ResourceType.TOPIC)
                         .resource("ns1-")
@@ -133,7 +142,7 @@ class ExceptionHandlerIntegrationTest extends KafkaIntegrationTest {
     @Test
     void shouldInvalidateTopicName() {
         Topic topicFirstCreate = Topic.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-invalid-é")
                         .namespace("ns1")
                         .build())
@@ -198,7 +207,7 @@ class ExceptionHandlerIntegrationTest extends KafkaIntegrationTest {
     @Test
     void shouldThrowNamespaceForbiddenWhenAccessingForbiddenNamespaceAsUser() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("userNs")
                         .cluster("test-cluster")
                         .build())
@@ -210,8 +219,10 @@ class ExceptionHandlerIntegrationTest extends KafkaIntegrationTest {
                 .build();
 
         RoleBinding rb = RoleBinding.builder()
-                .metadata(
-                        Metadata.builder().name("userNs-rb").namespace("userNs").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("userNs-rb")
+                        .namespace("userNs")
+                        .build())
                 .spec(RoleBindingSpec.builder()
                         .role(Role.builder()
                                 .resourceTypes(List.of("topics", "acls"))
@@ -261,7 +272,10 @@ class ExceptionHandlerIntegrationTest extends KafkaIntegrationTest {
     @Test
     void shouldThrowResourceForbiddenWhenAccessingForbiddenResourceAsUser() {
         RoleBinding rb2 = RoleBinding.builder()
-                .metadata(Metadata.builder().name("ns1-rb2").namespace("ns1").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-rb2")
+                        .namespace("ns1")
+                        .build())
                 .spec(RoleBindingSpec.builder()
                         .role(Role.builder()
                                 .resourceTypes(List.of("acls"))

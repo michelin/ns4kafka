@@ -20,8 +20,7 @@ package com.michelin.ns4kafka.model.consumer.group;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.CONSUMER_GROUP_RESET_OFFSET;
 
-import com.michelin.ns4kafka.model.Metadata;
-import com.michelin.ns4kafka.model.MetadataResource;
+import com.michelin.ns4kafka.model.Resource;
 import io.micronaut.core.annotation.Introspected;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -39,7 +38,7 @@ import lombok.ToString;
 @Data
 @Introspected
 @EqualsAndHashCode(callSuper = true)
-public class ConsumerGroupResetOffsets extends MetadataResource {
+public class ConsumerGroupResetOffsets extends Resource {
     @Valid @NotNull private ConsumerGroupResetOffsetsSpec spec;
 
     /**

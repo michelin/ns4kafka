@@ -20,8 +20,7 @@ package com.michelin.ns4kafka.model.quota;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.RESOURCE_QUOTA;
 
-import com.michelin.ns4kafka.model.Metadata;
-import com.michelin.ns4kafka.model.MetadataResource;
+import com.michelin.ns4kafka.model.Resource;
 import io.micronaut.core.annotation.Introspected;
 import jakarta.validation.constraints.NotNull;
 import java.util.Map;
@@ -35,7 +34,7 @@ import lombok.Getter;
 @Data
 @Introspected
 @EqualsAndHashCode(callSuper = true)
-public class ResourceQuota extends MetadataResource {
+public class ResourceQuota extends Resource {
     @NotNull private Map<String, String> spec;
 
     /**

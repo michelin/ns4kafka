@@ -32,8 +32,8 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.model.connect.Connector;
 import com.michelin.ns4kafka.model.quota.ResourceQuota;
@@ -65,7 +65,10 @@ class ResourceQuotaServiceTest {
     @Test
     void shouldFindQuota() {
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(Metadata.builder().cluster("local").name("test").build())
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
                 .spec(Map.of(COUNT_TOPICS.toString(), "1"))
                 .build();
 
@@ -77,7 +80,10 @@ class ResourceQuotaServiceTest {
     @Test
     void shouldGetQuotasWhenEmpty() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
@@ -92,7 +98,7 @@ class ResourceQuotaServiceTest {
     @Test
     void shouldListQuotasWithoutParameter() {
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .cluster("local")
                         .namespace("namespace")
                         .name("quotaName")
@@ -108,7 +114,7 @@ class ResourceQuotaServiceTest {
     @Test
     void shouldListQuotasWithNameParameter() {
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .cluster("local")
                         .namespace("namespace")
                         .name("quotaName")
@@ -127,7 +133,7 @@ class ResourceQuotaServiceTest {
     @Test
     void shouldListQuotasWithWildcardNameParameter() {
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .cluster("local")
                         .name("quotaName")
                         .namespace("namespace")
@@ -148,14 +154,20 @@ class ResourceQuotaServiceTest {
     @Test
     void shouldFindByName() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(Metadata.builder().cluster("local").name("test").build())
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
                 .spec(Map.of(COUNT_TOPICS.toString(), "1"))
                 .build();
 
@@ -170,14 +182,20 @@ class ResourceQuotaServiceTest {
     @Test
     void shouldFindByNameWrongName() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(Metadata.builder().cluster("local").name("test").build())
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
                 .spec(Map.of(COUNT_TOPICS.toString(), "1"))
                 .build();
 
@@ -191,7 +209,10 @@ class ResourceQuotaServiceTest {
     @Test
     void shouldFindByNameWhenEmpty() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
@@ -207,7 +228,10 @@ class ResourceQuotaServiceTest {
     @Test
     void shouldCreateQuota() {
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(Metadata.builder().cluster("local").name("test").build())
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
                 .spec(Map.of(COUNT_TOPICS.toString(), "1"))
                 .build();
 
@@ -221,7 +245,10 @@ class ResourceQuotaServiceTest {
     @Test
     void shouldDeleteQuota() {
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(Metadata.builder().cluster("local").name("test").build())
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
                 .spec(Map.of(COUNT_TOPICS.toString(), "1"))
                 .build();
 
@@ -234,30 +261,42 @@ class ResourceQuotaServiceTest {
     @Test
     void shouldValidateNewQuotaAgainstCurrentResourceSuccess() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(Metadata.builder().cluster("local").name("test").build())
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
                 .spec(Map.of(COUNT_TOPICS.toString(), "10"))
                 .build();
 
         Topic topic1 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .build();
 
         Topic topic2 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .build();
 
         Topic topic3 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .build();
 
         when(topicService.findAllForNamespace(ns)).thenReturn(List.of(topic1, topic2, topic3));
@@ -269,30 +308,42 @@ class ResourceQuotaServiceTest {
     @Test
     void shouldValidateNewQuotaAgainstCurrentResourceForCountTopics() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(Metadata.builder().cluster("local").name("test").build())
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
                 .spec(Map.of(COUNT_TOPICS.toString(), "2"))
                 .build();
 
         Topic topic1 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .build();
 
         Topic topic2 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .build();
 
         Topic topic3 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .build();
 
         when(topicService.findAllForNamespace(ns)).thenReturn(List.of(topic1, topic2, topic3));
@@ -307,32 +358,44 @@ class ResourceQuotaServiceTest {
     @Test
     void shouldValidateNewQuotaAgainstCurrentResourceForCountPartitions() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(Metadata.builder().cluster("local").name("test").build())
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
                 .spec(Map.of(COUNT_PARTITIONS.toString(), "10"))
                 .build();
 
         Topic topic1 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .spec(Topic.TopicSpec.builder().partitions(6).build())
                 .build();
 
         Topic topic2 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .spec(Topic.TopicSpec.builder().partitions(3).build())
                 .build();
 
         Topic topic3 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .spec(Topic.TopicSpec.builder().partitions(10).build())
                 .build();
 
@@ -348,14 +411,20 @@ class ResourceQuotaServiceTest {
     @Test
     void shouldValidateNewQuotaDiskTopicsFormat() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(Metadata.builder().cluster("local").name("test").build())
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
                 .spec(Map.of(DISK_TOPICS.toString(), "10"))
                 .build();
 
@@ -369,20 +438,28 @@ class ResourceQuotaServiceTest {
     @Test
     void shouldValidateNewQuotaAgainstCurrentResourceForDiskTopics() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(Metadata.builder().cluster("local").name("test").build())
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
                 .spec(Map.of(DISK_TOPICS.toString(), "5000B"))
                 .build();
 
         Topic topic1 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(6)
                         .configs(Map.of("retention.bytes", "1000"))
@@ -390,8 +467,10 @@ class ResourceQuotaServiceTest {
                 .build();
 
         Topic topic2 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(3)
                         .configs(Map.of("retention.bytes", "1000"))
@@ -410,24 +489,34 @@ class ResourceQuotaServiceTest {
     @Test
     void shouldValidateNewQuotaAgainstCurrentResourceForCountConnectors() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(Metadata.builder().cluster("local").name("test").build())
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
                 .spec(Map.of(COUNT_CONNECTORS.toString(), "1"))
                 .build();
 
         when(connectorService.findAllForNamespace(ns))
                 .thenReturn(List.of(
                         Connector.builder()
-                                .metadata(Metadata.builder().name("connect1").build())
+                                .metadata(Resource.Metadata.builder()
+                                        .name("connect1")
+                                        .build())
                                 .build(),
                         Connector.builder()
-                                .metadata(Metadata.builder().name("connect2").build())
+                                .metadata(Resource.Metadata.builder()
+                                        .name("connect2")
+                                        .build())
                                 .build()));
 
         List<String> validationErrors = resourceQuotaService.validateNewResourceQuota(ns, resourceQuota);
@@ -440,11 +529,17 @@ class ResourceQuotaServiceTest {
     @Test
     void shouldValidateUserQuotaFormatError() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(Metadata.builder().cluster("local").name("test").build())
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
                 .spec(Map.of(
                         USER_PRODUCER_BYTE_RATE.toString(), "producer", USER_CONSUMER_BYTE_RATE.toString(), "consumer"))
                 .build();
@@ -463,11 +558,17 @@ class ResourceQuotaServiceTest {
     @Test
     void shouldValidateUserQuotaFormatSuccess() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(Metadata.builder().cluster("local").name("test").build())
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
                 .spec(Map.of(
                         USER_PRODUCER_BYTE_RATE.toString(), "102400", USER_CONSUMER_BYTE_RATE.toString(), "102400"))
                 .build();
@@ -480,25 +581,34 @@ class ResourceQuotaServiceTest {
     @Test
     void shouldGetCurrentUsedResourceForCountTopicsByNamespace() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
 
         Topic topic1 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .build();
 
         Topic topic2 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .build();
 
         Topic topic3 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .build();
 
         when(topicService.findAllForNamespace(ns)).thenReturn(List.of(topic1, topic2, topic3));
@@ -510,27 +620,36 @@ class ResourceQuotaServiceTest {
     @Test
     void shouldGetCurrentUsedResourceForCountPartitionsByNamespace() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
 
         Topic topic1 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .spec(Topic.TopicSpec.builder().partitions(6).build())
                 .build();
 
         Topic topic2 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .spec(Topic.TopicSpec.builder().partitions(3).build())
                 .build();
 
         Topic topic3 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .spec(Topic.TopicSpec.builder().partitions(10).build())
                 .build();
 
@@ -543,7 +662,10 @@ class ResourceQuotaServiceTest {
     @Test
     void shouldGetCurrentUsedResourceForCountConnectorsByNamespace() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
@@ -552,10 +674,14 @@ class ResourceQuotaServiceTest {
         when(connectorService.findAllForNamespace(ns))
                 .thenReturn(List.of(
                         Connector.builder()
-                                .metadata(Metadata.builder().name("connect1").build())
+                                .metadata(Resource.Metadata.builder()
+                                        .name("connect1")
+                                        .build())
                                 .build(),
                         Connector.builder()
-                                .metadata(Metadata.builder().name("connect2").build())
+                                .metadata(Resource.Metadata.builder()
+                                        .name("connect2")
+                                        .build())
                                 .build()));
 
         long currentlyUsed = resourceQuotaService.getCurrentCountConnectorsByNamespace(ns);
@@ -565,15 +691,20 @@ class ResourceQuotaServiceTest {
     @Test
     void shouldGetCurrentUsedResourceForDiskTopicsByNamespace() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
 
         Topic topic1 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(6)
                         .configs(Map.of("retention.bytes", "1000"))
@@ -581,8 +712,10 @@ class ResourceQuotaServiceTest {
                 .build();
 
         Topic topic2 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(3)
                         .configs(Map.of("retention.bytes", "50000"))
@@ -590,8 +723,10 @@ class ResourceQuotaServiceTest {
                 .build();
 
         Topic topic3 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(10)
                         .configs(Map.of("retention.bytes", "2500"))
@@ -607,22 +742,30 @@ class ResourceQuotaServiceTest {
     @Test
     void shouldValidateTopicQuota() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(Metadata.builder().cluster("local").name("test").build())
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
                 .spec(Map.of(COUNT_TOPICS.toString(), "4"))
                 .spec(Map.of(COUNT_PARTITIONS.toString(), "25"))
                 .spec(Map.of(DISK_TOPICS.toString(), "2GiB"))
                 .build();
 
         Topic newTopic = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(6)
                         .configs(Map.of(RETENTION_BYTES_CONFIG, "1000"))
@@ -630,8 +773,10 @@ class ResourceQuotaServiceTest {
                 .build();
 
         Topic topic1 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(6)
                         .configs(Map.of(RETENTION_BYTES_CONFIG, "1000"))
@@ -639,8 +784,10 @@ class ResourceQuotaServiceTest {
                 .build();
 
         Topic topic2 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(3)
                         .configs(Map.of(RETENTION_BYTES_CONFIG, "1000"))
@@ -648,8 +795,10 @@ class ResourceQuotaServiceTest {
                 .build();
 
         Topic topic3 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(10)
                         .configs(Map.of(RETENTION_BYTES_CONFIG, "1000"))
@@ -666,15 +815,20 @@ class ResourceQuotaServiceTest {
     @Test
     void shouldValidateTopicQuotaNoQuota() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
 
         Topic newTopic = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .spec(Topic.TopicSpec.builder().partitions(6).build())
                 .build();
 
@@ -687,14 +841,20 @@ class ResourceQuotaServiceTest {
     @Test
     void shouldValidateTopicQuotaExceed() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(Metadata.builder().cluster("local").name("test").build())
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
                 .spec(Map.of(
                         COUNT_TOPICS.toString(),
                         "3",
@@ -705,8 +865,10 @@ class ResourceQuotaServiceTest {
                 .build();
 
         Topic newTopic = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(6)
                         .configs(Map.of(RETENTION_BYTES_CONFIG, "1000"))
@@ -714,8 +876,10 @@ class ResourceQuotaServiceTest {
                 .build();
 
         Topic topic1 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(6)
                         .configs(Map.of(RETENTION_BYTES_CONFIG, "1000"))
@@ -723,8 +887,10 @@ class ResourceQuotaServiceTest {
                 .build();
 
         Topic topic2 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(3)
                         .configs(Map.of(RETENTION_BYTES_CONFIG, "1000"))
@@ -732,8 +898,10 @@ class ResourceQuotaServiceTest {
                 .build();
 
         Topic topic3 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(10)
                         .configs(Map.of(RETENTION_BYTES_CONFIG, "1000"))
@@ -761,14 +929,20 @@ class ResourceQuotaServiceTest {
     @Test
     void shouldValidateUpdateTopicQuotaExceed() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(Metadata.builder().cluster("local").name("test").build())
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
                 .spec(Map.of(
                         COUNT_TOPICS.toString(),
                         "3",
@@ -779,8 +953,10 @@ class ResourceQuotaServiceTest {
                 .build();
 
         Topic newTopic = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(6)
                         .configs(Map.of(RETENTION_BYTES_CONFIG, "1500"))
@@ -788,8 +964,10 @@ class ResourceQuotaServiceTest {
                 .build();
 
         Topic topic1 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(6)
                         .configs(Map.of(RETENTION_BYTES_CONFIG, "1000"))
@@ -797,8 +975,10 @@ class ResourceQuotaServiceTest {
                 .build();
 
         Topic topic2 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(3)
                         .configs(Map.of(RETENTION_BYTES_CONFIG, "1000"))
@@ -806,8 +986,10 @@ class ResourceQuotaServiceTest {
                 .build();
 
         Topic topic3 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(10)
                         .configs(Map.of(RETENTION_BYTES_CONFIG, "1000"))
@@ -828,14 +1010,20 @@ class ResourceQuotaServiceTest {
     @Test
     void shouldValidateConnectorQuota() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(Metadata.builder().cluster("local").name("test").build())
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
                 .spec(Map.of(COUNT_CONNECTORS.toString(), "3"))
                 .build();
 
@@ -843,10 +1031,14 @@ class ResourceQuotaServiceTest {
         when(connectorService.findAllForNamespace(ns))
                 .thenReturn(List.of(
                         Connector.builder()
-                                .metadata(Metadata.builder().name("connect1").build())
+                                .metadata(Resource.Metadata.builder()
+                                        .name("connect1")
+                                        .build())
                                 .build(),
                         Connector.builder()
-                                .metadata(Metadata.builder().name("connect2").build())
+                                .metadata(Resource.Metadata.builder()
+                                        .name("connect2")
+                                        .build())
                                 .build()));
 
         List<String> validationErrors = resourceQuotaService.validateConnectorQuota(ns);
@@ -856,7 +1048,10 @@ class ResourceQuotaServiceTest {
     @Test
     void shouldValidateConnectorQuotaNoQuota() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
@@ -871,14 +1066,20 @@ class ResourceQuotaServiceTest {
     @Test
     void shouldValidateConnectorQuotaExceed() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(Metadata.builder().cluster("local").name("test").build())
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
                 .spec(Map.of(COUNT_CONNECTORS.toString(), "2"))
                 .build();
 
@@ -886,10 +1087,14 @@ class ResourceQuotaServiceTest {
         when(connectorService.findAllForNamespace(ns))
                 .thenReturn(List.of(
                         Connector.builder()
-                                .metadata(Metadata.builder().name("connect1").build())
+                                .metadata(Resource.Metadata.builder()
+                                        .name("connect1")
+                                        .build())
                                 .build(),
                         Connector.builder()
-                                .metadata(Metadata.builder().name("connect2").build())
+                                .metadata(Resource.Metadata.builder()
+                                        .name("connect2")
+                                        .build())
                                 .build()));
 
         List<String> validationErrors = resourceQuotaService.validateConnectorQuota(ns);
@@ -902,14 +1107,20 @@ class ResourceQuotaServiceTest {
     @Test
     void shouldGetUsedResourcesByQuotaByNamespace() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(Metadata.builder().cluster("local").name("test").build())
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
                 .spec(Map.of(
                         COUNT_TOPICS.toString(),
                         "3",
@@ -922,8 +1133,10 @@ class ResourceQuotaServiceTest {
                 .build();
 
         Topic topic1 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(6)
                         .configs(Map.of("retention.bytes", "1000"))
@@ -931,8 +1144,10 @@ class ResourceQuotaServiceTest {
                 .build();
 
         Topic topic2 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(3)
                         .configs(Map.of("retention.bytes", "2000"))
@@ -940,8 +1155,10 @@ class ResourceQuotaServiceTest {
                 .build();
 
         Topic topic3 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(10)
                         .configs(Map.of("retention.bytes", "4000"))
@@ -952,10 +1169,14 @@ class ResourceQuotaServiceTest {
         when(connectorService.findAllForNamespace(ns))
                 .thenReturn(List.of(
                         Connector.builder()
-                                .metadata(Metadata.builder().name("connect1").build())
+                                .metadata(Resource.Metadata.builder()
+                                        .name("connect1")
+                                        .build())
                                 .build(),
                         Connector.builder()
-                                .metadata(Metadata.builder().name("connect2").build())
+                                .metadata(Resource.Metadata.builder()
+                                        .name("connect2")
+                                        .build())
                                 .build()));
 
         ResourceQuotaResponse response =
@@ -970,15 +1191,20 @@ class ResourceQuotaServiceTest {
     @Test
     void shouldGetCurrentResourcesQuotasByNamespaceNoQuota() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
 
         Topic topic1 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(6)
                         .configs(Map.of("retention.bytes", "1000"))
@@ -986,8 +1212,10 @@ class ResourceQuotaServiceTest {
                 .build();
 
         Topic topic2 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(3)
                         .configs(Map.of("retention.bytes", "2000"))
@@ -995,8 +1223,10 @@ class ResourceQuotaServiceTest {
                 .build();
 
         Topic topic3 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(10)
                         .configs(Map.of("retention.bytes", "4000"))
@@ -1007,10 +1237,14 @@ class ResourceQuotaServiceTest {
         when(connectorService.findAllForNamespace(ns))
                 .thenReturn(List.of(
                         Connector.builder()
-                                .metadata(Metadata.builder().name("connect1").build())
+                                .metadata(Resource.Metadata.builder()
+                                        .name("connect1")
+                                        .build())
                                 .build(),
                         Connector.builder()
-                                .metadata(Metadata.builder().name("connect2").build())
+                                .metadata(Resource.Metadata.builder()
+                                        .name("connect2")
+                                        .build())
                                 .build()));
 
         ResourceQuotaResponse response = resourceQuotaService.getUsedResourcesByQuotaByNamespace(ns, Optional.empty());
@@ -1025,35 +1259,50 @@ class ResourceQuotaServiceTest {
     @Test
     void shouldGetUsedQuotaByNamespaces() {
         Namespace ns1 = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
 
         Namespace ns2 = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace2").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace2")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
 
         Namespace ns3 = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace3").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace3")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
 
         Namespace ns4 = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace4").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace4")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(Metadata.builder().cluster("local").name("test").build())
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("test")
+                        .build())
                 .spec(Map.of(
                         COUNT_TOPICS.toString(),
                         "3",
@@ -1066,8 +1315,10 @@ class ResourceQuotaServiceTest {
                 .build();
 
         Topic topic1 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(6)
                         .configs(Map.of("retention.bytes", "1000"))
@@ -1075,8 +1326,10 @@ class ResourceQuotaServiceTest {
                 .build();
 
         Topic topic2 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace2").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace2")
+                        .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(3)
                         .configs(Map.of("retention.bytes", "2000"))
@@ -1084,8 +1337,10 @@ class ResourceQuotaServiceTest {
                 .build();
 
         Topic topic3 = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace3").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace3")
+                        .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(10)
                         .configs(Map.of("retention.bytes", "4000"))
@@ -1099,10 +1354,14 @@ class ResourceQuotaServiceTest {
         when(connectorService.findAllForNamespace(any()))
                 .thenReturn(List.of(
                         Connector.builder()
-                                .metadata(Metadata.builder().name("connect1").build())
+                                .metadata(Resource.Metadata.builder()
+                                        .name("connect1")
+                                        .build())
                                 .build(),
                         Connector.builder()
-                                .metadata(Metadata.builder().name("connect2").build())
+                                .metadata(Resource.Metadata.builder()
+                                        .name("connect2")
+                                        .build())
                                 .build()));
         when(resourceQuotaRepository.findByNamespace(any())).thenReturn(Optional.of(resourceQuota));
 

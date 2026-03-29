@@ -20,8 +20,7 @@ package com.michelin.ns4kafka.model.connect;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.VAULT_RESPONSE;
 
-import com.michelin.ns4kafka.model.Metadata;
-import com.michelin.ns4kafka.model.MetadataResource;
+import com.michelin.ns4kafka.model.Resource;
 import io.micronaut.core.annotation.Introspected;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -33,12 +32,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
-/** Represents the Kafka Connect Cluster Vault Response. */
 @Data
 @Introspected
 @EqualsAndHashCode(callSuper = true)
-public class VaultResponse extends MetadataResource {
-    /** The vault resource spec. */
+public class VaultResponse extends Resource {
     @Valid @NotNull private VaultResponseSpec spec;
 
     /**

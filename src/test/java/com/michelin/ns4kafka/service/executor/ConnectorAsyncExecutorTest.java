@@ -21,7 +21,7 @@ package com.michelin.ns4kafka.service.executor;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.michelin.ns4kafka.model.Metadata;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.connect.Connector;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -40,14 +40,14 @@ class ConnectorAsyncExecutorTest {
     @Test
     void shouldCompareSameConnectors() {
         Connector expectedConnector = Connector.builder()
-                .metadata(Metadata.builder().name(CONNECTOR_NAME).build())
+                .metadata(Resource.Metadata.builder().name(CONNECTOR_NAME).build())
                 .spec(Connector.ConnectorSpec.builder()
                         .config(Map.of("config1", "value1", "config2", "value2"))
                         .build())
                 .build();
 
         Connector actualConnector = Connector.builder()
-                .metadata(Metadata.builder().name(CONNECTOR_NAME).build())
+                .metadata(Resource.Metadata.builder().name(CONNECTOR_NAME).build())
                 .spec(Connector.ConnectorSpec.builder()
                         .config(Map.of("config1", "value1", "config2", "value2"))
                         .build())
@@ -59,14 +59,14 @@ class ConnectorAsyncExecutorTest {
     @Test
     void shouldCompareConnectorsWithDifferentNumberOfConfigs() {
         Connector expectedConnector = Connector.builder()
-                .metadata(Metadata.builder().name(CONNECTOR_NAME).build())
+                .metadata(Resource.Metadata.builder().name(CONNECTOR_NAME).build())
                 .spec(Connector.ConnectorSpec.builder()
                         .config(Map.of("config1", "value1"))
                         .build())
                 .build();
 
         Connector actualConnector = Connector.builder()
-                .metadata(Metadata.builder().name(CONNECTOR_NAME).build())
+                .metadata(Resource.Metadata.builder().name(CONNECTOR_NAME).build())
                 .spec(Connector.ConnectorSpec.builder()
                         .config(Map.of("config1", "value1", "config2", "value2"))
                         .build())
@@ -78,14 +78,14 @@ class ConnectorAsyncExecutorTest {
     @Test
     void shouldCompareConnectorsWithDifferentConfigValues() {
         Connector expectedConnector = Connector.builder()
-                .metadata(Metadata.builder().name(CONNECTOR_NAME).build())
+                .metadata(Resource.Metadata.builder().name(CONNECTOR_NAME).build())
                 .spec(Connector.ConnectorSpec.builder()
                         .config(Map.of("config1", "differentValue1", "config2", "value2"))
                         .build())
                 .build();
 
         Connector actualConnector = Connector.builder()
-                .metadata(Metadata.builder().name(CONNECTOR_NAME).build())
+                .metadata(Resource.Metadata.builder().name(CONNECTOR_NAME).build())
                 .spec(Connector.ConnectorSpec.builder()
                         .config(Map.of("config1", "value1", "config2", "value2"))
                         .build())
@@ -97,14 +97,14 @@ class ConnectorAsyncExecutorTest {
     @Test
     void shouldCompareConnectorsWithDifferentConfigKeys() {
         Connector expectedConnector = Connector.builder()
-                .metadata(Metadata.builder().name(CONNECTOR_NAME).build())
+                .metadata(Resource.Metadata.builder().name(CONNECTOR_NAME).build())
                 .spec(Connector.ConnectorSpec.builder()
                         .config(Map.of("differentConfig1", "value1", "config2", "value2"))
                         .build())
                 .build();
 
         Connector actualConnector = Connector.builder()
-                .metadata(Metadata.builder().name(CONNECTOR_NAME).build())
+                .metadata(Resource.Metadata.builder().name(CONNECTOR_NAME).build())
                 .spec(Connector.ConnectorSpec.builder()
                         .config(Map.of("config1", "value1", "config2", "value2"))
                         .build())
@@ -116,14 +116,14 @@ class ConnectorAsyncExecutorTest {
     @Test
     void shouldCompareConnectorsWithMaskedConfigFromConnect() {
         Connector expectedConnector = Connector.builder()
-                .metadata(Metadata.builder().name(CONNECTOR_NAME).build())
+                .metadata(Resource.Metadata.builder().name(CONNECTOR_NAME).build())
                 .spec(Connector.ConnectorSpec.builder()
                         .config(Map.of("config1", "value1", "config2", "value2"))
                         .build())
                 .build();
 
         Connector actualConnector = Connector.builder()
-                .metadata(Metadata.builder().name(CONNECTOR_NAME).build())
+                .metadata(Resource.Metadata.builder().name(CONNECTOR_NAME).build())
                 .spec(Connector.ConnectorSpec.builder()
                         .config(Map.of("config1", SENSITIVE_FIELD_MASK, "config2", "value2"))
                         .build())

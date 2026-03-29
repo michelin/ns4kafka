@@ -25,8 +25,8 @@ import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidConnectClusterN
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNotFound;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
-import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.connect.ConnectCluster;
 import com.michelin.ns4kafka.model.connect.VaultResponse;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
@@ -113,7 +113,7 @@ public class ConnectClusterService {
                         .flatMap(config -> Flux.fromIterable(
                                         config.getConnects().entrySet())
                                 .map(entry -> ConnectCluster.builder()
-                                        .metadata(Metadata.builder()
+                                        .metadata(Resource.Metadata.builder()
                                                 .name(entry.getKey())
                                                 .cluster(config.getName())
                                                 .build())

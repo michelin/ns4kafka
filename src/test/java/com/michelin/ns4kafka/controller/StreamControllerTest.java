@@ -29,8 +29,8 @@ import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.KafkaStream;
-import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.StreamService;
@@ -68,7 +68,10 @@ class StreamControllerTest {
     @Test
     void shouldListStreamsWhenEmpty() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
@@ -81,15 +84,18 @@ class StreamControllerTest {
     @Test
     void shouldListStreamsWithWildcardParameter() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         KafkaStream stream1 = KafkaStream.builder()
-                .metadata(Metadata.builder().name("test_stream1").build())
+                .metadata(Resource.Metadata.builder().name("test_stream1").build())
                 .build();
 
         KafkaStream stream2 = KafkaStream.builder()
-                .metadata(Metadata.builder().name("test_stream2").build())
+                .metadata(Resource.Metadata.builder().name("test_stream2").build())
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
@@ -104,11 +110,14 @@ class StreamControllerTest {
     @Test
     void shouldListStreamsWithNamedParameter() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         KafkaStream stream1 = KafkaStream.builder()
-                .metadata(Metadata.builder().name("prefix.s1").build())
+                .metadata(Resource.Metadata.builder().name("prefix.s1").build())
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
@@ -123,15 +132,18 @@ class StreamControllerTest {
     @Test
     void shouldListStreamsWithEmptyNameParameter() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         KafkaStream stream1 = KafkaStream.builder()
-                .metadata(Metadata.builder().name("prefix.s1").build())
+                .metadata(Resource.Metadata.builder().name("prefix.s1").build())
                 .build();
 
         KafkaStream stream2 = KafkaStream.builder()
-                .metadata(Metadata.builder().name("prefix.s2").build())
+                .metadata(Resource.Metadata.builder().name("prefix.s2").build())
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
@@ -148,7 +160,10 @@ class StreamControllerTest {
     @SuppressWarnings("deprecation")
     void shouldGetStreamsWhenEmpty() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
@@ -163,11 +178,14 @@ class StreamControllerTest {
     @SuppressWarnings("deprecation")
     void shouldGetStreams() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         KafkaStream stream1 = KafkaStream.builder()
-                .metadata(Metadata.builder().name("test_stream1").build())
+                .metadata(Resource.Metadata.builder().name("test_stream1").build())
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
@@ -182,11 +200,14 @@ class StreamControllerTest {
     @Test
     void shouldCreateStreams() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         KafkaStream stream1 = KafkaStream.builder()
-                .metadata(Metadata.builder().name("test_stream1").build())
+                .metadata(Resource.Metadata.builder().name("test_stream1").build())
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
@@ -209,11 +230,14 @@ class StreamControllerTest {
     @Test
     void shouldCreateStreamsInDryRunMode() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         KafkaStream stream1 = KafkaStream.builder()
-                .metadata(Metadata.builder().name("test_stream1").build())
+                .metadata(Resource.Metadata.builder().name("test_stream1").build())
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
@@ -232,11 +256,14 @@ class StreamControllerTest {
     @Test
     void shouldUpdateStreamsUnchanged() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         KafkaStream stream1 = KafkaStream.builder()
-                .metadata(Metadata.builder().name("test_stream1").build())
+                .metadata(Resource.Metadata.builder().name("test_stream1").build())
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
@@ -255,11 +282,14 @@ class StreamControllerTest {
     @Test
     void shouldNotCreateStreamsWhenValidationErrors() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         KafkaStream stream1 = KafkaStream.builder()
-                .metadata(Metadata.builder().name("test_stream1").build())
+                .metadata(Resource.Metadata.builder().name("test_stream1").build())
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
@@ -274,11 +304,14 @@ class StreamControllerTest {
     @SuppressWarnings("deprecation")
     void shouldDeleteStreams() throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         KafkaStream stream = KafkaStream.builder()
-                .metadata(Metadata.builder().name("test_stream1").build())
+                .metadata(Resource.Metadata.builder().name("test_stream1").build())
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
@@ -299,11 +332,14 @@ class StreamControllerTest {
     @SuppressWarnings("deprecation")
     void shouldDeleteStreamsInDryRunMode() throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         KafkaStream stream1 = KafkaStream.builder()
-                .metadata(Metadata.builder().name("test_stream1").build())
+                .metadata(Resource.Metadata.builder().name("test_stream1").build())
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
@@ -321,7 +357,10 @@ class StreamControllerTest {
     @SuppressWarnings("deprecation")
     void shouldNotDeleteStreamsWhenNotFound() throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
@@ -339,7 +378,10 @@ class StreamControllerTest {
     @SuppressWarnings("deprecation")
     void shouldNotDeleteStreamsWhenNotOwner() throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
@@ -353,15 +395,18 @@ class StreamControllerTest {
     @Test
     void shouldBulkDeleteStreams() throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         KafkaStream stream1 = KafkaStream.builder()
-                .metadata(Metadata.builder().name("test_stream1").build())
+                .metadata(Resource.Metadata.builder().name("test_stream1").build())
                 .build();
 
         KafkaStream stream2 = KafkaStream.builder()
-                .metadata(Metadata.builder().name("test_stream2").build())
+                .metadata(Resource.Metadata.builder().name("test_stream2").build())
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
@@ -384,15 +429,18 @@ class StreamControllerTest {
     @Test
     void shouldNotBulkDeleteStreamsInDryRunMode() throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         KafkaStream stream1 = KafkaStream.builder()
-                .metadata(Metadata.builder().name("test_stream1").build())
+                .metadata(Resource.Metadata.builder().name("test_stream1").build())
                 .build();
 
         KafkaStream stream2 = KafkaStream.builder()
-                .metadata(Metadata.builder().name("test_stream2").build())
+                .metadata(Resource.Metadata.builder().name("test_stream2").build())
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
@@ -411,7 +459,10 @@ class StreamControllerTest {
     @Test
     void shouldNotBulkDeleteStreamsWhenNotFound() throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
@@ -427,15 +478,18 @@ class StreamControllerTest {
     @Test
     void shouldNotBulkDeleteStreamsWhenNotOwner() throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         KafkaStream stream1 = KafkaStream.builder()
-                .metadata(Metadata.builder().name("test_stream1").build())
+                .metadata(Resource.Metadata.builder().name("test_stream1").build())
                 .build();
 
         KafkaStream stream2 = KafkaStream.builder()
-                .metadata(Metadata.builder().name("test_stream2").build())
+                .metadata(Resource.Metadata.builder().name("test_stream2").build())
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));

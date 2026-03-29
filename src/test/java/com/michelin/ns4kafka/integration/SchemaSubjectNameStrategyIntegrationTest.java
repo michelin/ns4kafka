@@ -26,8 +26,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.michelin.ns4kafka.integration.TopicIntegrationTest.BearerAccessRefreshToken;
 import com.michelin.ns4kafka.integration.container.SchemaRegistryIntegrationTest;
 import com.michelin.ns4kafka.model.AccessControlEntry;
-import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.RoleBinding;
 import com.michelin.ns4kafka.model.schema.Schema;
 import com.michelin.ns4kafka.model.schema.SubjectNameStrategy;
@@ -68,7 +68,7 @@ class SchemaSubjectNameStrategyIntegrationTest extends SchemaRegistryIntegration
         schemaRegistryClient = applicationContext.createBean(HttpClient.class, getSchemaRegistryUrl());
 
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1")
                         .cluster("test-cluster-confluent-cloud")
                         .build())
@@ -83,7 +83,10 @@ class SchemaSubjectNameStrategyIntegrationTest extends SchemaRegistryIntegration
                 .build();
 
         RoleBinding roleBinding = RoleBinding.builder()
-                .metadata(Metadata.builder().name("ns1-rb").namespace("ns1").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-rb")
+                        .namespace("ns1")
+                        .build())
                 .spec(RoleBinding.RoleBindingSpec.builder()
                         .role(RoleBinding.Role.builder()
                                 .resourceTypes(List.of("topics", "acls"))
@@ -118,7 +121,10 @@ class SchemaSubjectNameStrategyIntegrationTest extends SchemaRegistryIntegration
                         .body(roleBinding));
 
         AccessControlEntry aclSchema = AccessControlEntry.builder()
-                .metadata(Metadata.builder().name("ns1-acl").namespace("ns1").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-acl")
+                        .namespace("ns1")
+                        .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resource("ns1.")
@@ -140,7 +146,7 @@ class SchemaSubjectNameStrategyIntegrationTest extends SchemaRegistryIntegration
         // Topic record name strategy
         String subject = "ns1.header-subject-com.michelin.kafka.producer.showcase.avro.HeaderAvro";
         Schema schemaHeader = Schema.builder()
-                .metadata(Metadata.builder().name(subject).build())
+                .metadata(Resource.Metadata.builder().name(subject).build())
                 .spec(Schema.SchemaSpec.builder()
                         .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
                                 + "\"name\":\"HeaderAvro\",\"fields\":[{\"name\":\"id\",\"type\":[\"null\",\"string\"],"
@@ -169,7 +175,7 @@ class SchemaSubjectNameStrategyIntegrationTest extends SchemaRegistryIntegration
         // Record name strategy, with wrong matching between schema name and subject
         String personSubject = "ns1.michelin.kafka.avro.PersonAvro";
         Schema schemaWrongName = Schema.builder()
-                .metadata(Metadata.builder().name(personSubject).build())
+                .metadata(Resource.Metadata.builder().name(personSubject).build())
                 .spec(Schema.SchemaSpec.builder()
                         .schema("{\"namespace\":\"ns1.michelin.notmatch.avro\","
                                 + "\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"header\",\"type\":[\"null\","
@@ -201,7 +207,7 @@ class SchemaSubjectNameStrategyIntegrationTest extends SchemaRegistryIntegration
         assertEquals("Resource validation failed", createException.getMessage());
 
         Schema schema = Schema.builder()
-                .metadata(Metadata.builder().name(personSubject).build())
+                .metadata(Resource.Metadata.builder().name(personSubject).build())
                 .spec(Schema.SchemaSpec.builder()
                         .schema("{\"namespace\":\"ns1.michelin.kafka.avro\","
                                 + "\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"header\",\"type\":[\"null\","

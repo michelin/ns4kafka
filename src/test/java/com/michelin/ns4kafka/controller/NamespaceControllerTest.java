@@ -29,8 +29,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.model.AuditLog;
-import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
@@ -64,11 +64,11 @@ class NamespaceControllerTest {
     @Test
     void shouldListNamespaces() {
         Namespace ns1 = Namespace.builder()
-                .metadata(Metadata.builder().name("ns1").build())
+                .metadata(Resource.Metadata.builder().name("ns1").build())
                 .build();
 
         Namespace ns2 = Namespace.builder()
-                .metadata(Metadata.builder().name("ns2").build())
+                .metadata(Resource.Metadata.builder().name("ns2").build())
                 .build();
 
         when(namespaceService.findByWildcardName("*")).thenReturn(List.of(ns1, ns2));
@@ -79,11 +79,11 @@ class NamespaceControllerTest {
     @Test
     void shouldListNamespacesWithWildcardNameParameter() {
         Namespace ns1 = Namespace.builder()
-                .metadata(Metadata.builder().name("ns1").build())
+                .metadata(Resource.Metadata.builder().name("ns1").build())
                 .build();
 
         Namespace ns2 = Namespace.builder()
-                .metadata(Metadata.builder().name("ns2").build())
+                .metadata(Resource.Metadata.builder().name("ns2").build())
                 .build();
 
         when(namespaceService.findByWildcardName("*")).thenReturn(List.of(ns1, ns2));
@@ -94,7 +94,7 @@ class NamespaceControllerTest {
     @Test
     void shouldListNamespacesWithNameParameter() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("ns").build())
+                .metadata(Resource.Metadata.builder().name("ns").build())
                 .build();
 
         when(namespaceService.findByWildcardName("ns")).thenReturn(List.of(ns));
@@ -105,7 +105,7 @@ class NamespaceControllerTest {
     @Test
     void shouldListNamespaceFilteredByTopic() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("ns").build())
+                .metadata(Resource.Metadata.builder().name("ns").build())
                 .build();
 
         when(namespaceService.findByWildcardName("*")).thenReturn(List.of(ns));
@@ -117,7 +117,7 @@ class NamespaceControllerTest {
     @Test
     void shouldListNoNamespaceFilteredByTopic() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("ns").build())
+                .metadata(Resource.Metadata.builder().name("ns").build())
                 .build();
 
         when(namespaceService.findByWildcardName("*")).thenReturn(List.of(ns));
@@ -135,7 +135,7 @@ class NamespaceControllerTest {
     @Test
     void shouldNotCreateNamespaceWhenValidationErrors() {
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("new-namespace")
                         .cluster("local")
                         .build())
@@ -152,7 +152,7 @@ class NamespaceControllerTest {
     @Test
     void shouldCreateNamespace() {
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("new-namespace")
                         .cluster("local")
                         .build())
@@ -175,7 +175,7 @@ class NamespaceControllerTest {
     @Test
     void shouldCreateNamespaceInDryRunMode() {
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("new-namespace")
                         .cluster("local")
                         .build())
@@ -192,12 +192,15 @@ class NamespaceControllerTest {
     @Test
     void shouldNotUpdateNamespaceWhenValidationErrors() {
         Namespace existing = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder().kafkaUser("user").build())
                 .build();
 
         Namespace namespaceToUpdate = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("namespace")
                         .cluster("local-change")
                         .build())
@@ -218,12 +221,15 @@ class NamespaceControllerTest {
     @Test
     void shouldUpdateNamespace() {
         Namespace existing = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder().kafkaUser("user").build())
                 .build();
 
         Namespace namespaceToUpdate = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("namespace")
                         .cluster("local")
                         .labels(Map.of("new", "label"))
@@ -251,7 +257,7 @@ class NamespaceControllerTest {
     @Test
     void shouldNotUpdateNamespaceWhenAlreadyExists() {
         Namespace existing = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("namespace")
                         .namespace("namespace")
                         .cluster("local")
@@ -260,7 +266,10 @@ class NamespaceControllerTest {
                 .build();
 
         Namespace namespaceToUpdate = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder().kafkaUser("user").build())
                 .build();
 
@@ -276,12 +285,15 @@ class NamespaceControllerTest {
     @Test
     void shouldUpdateNamespaceInDryRunMode() {
         Namespace existing = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder().kafkaUser("user").build())
                 .build();
 
         Namespace namespaceToUpdate = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("namespace")
                         .cluster("local")
                         .labels(Map.of("new", "label"))
@@ -299,12 +311,18 @@ class NamespaceControllerTest {
     @Test
     void shouldDeleteNamespaces() {
         Namespace namespace1 = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace1").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace1")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder().kafkaUser("user").build())
                 .build();
 
         Namespace namespace2 = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace2").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace2")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder().kafkaUser("user").build())
                 .build();
 
@@ -322,12 +340,18 @@ class NamespaceControllerTest {
     @Test
     void shouldNotDeleteNamespacesInDryRunMode() {
         Namespace namespace1 = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace1").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace1")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder().kafkaUser("user").build())
                 .build();
 
         Namespace namespace2 = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace2").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace2")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder().kafkaUser("user").build())
                 .build();
 
@@ -343,12 +367,18 @@ class NamespaceControllerTest {
     @Test
     void shouldNoDeleteNamespacesWithResources() {
         Namespace namespace1 = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace1").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace1")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder().kafkaUser("user").build())
                 .build();
 
         Namespace namespace2 = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace2").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace2")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder().kafkaUser("user").build())
                 .build();
 

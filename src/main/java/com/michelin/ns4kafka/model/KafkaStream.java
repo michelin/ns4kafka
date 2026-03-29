@@ -29,7 +29,7 @@ import lombok.EqualsAndHashCode;
 @Data
 @Introspected
 @EqualsAndHashCode(callSuper = true)
-public class KafkaStream extends MetadataResource {
+public class KafkaStream extends Resource {
     /**
      * Constructor.
      *

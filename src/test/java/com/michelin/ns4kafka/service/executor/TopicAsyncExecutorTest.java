@@ -31,7 +31,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.michelin.ns4kafka.model.Metadata;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.property.Ns4KafkaProperties;
@@ -116,7 +116,7 @@ class TopicAsyncExecutorTest {
         when(managedClusterProperties.getConfig()).thenReturn(properties);
 
         List<Topic> ns4kafkaTopics = List.of(Topic.builder()
-                .metadata(Metadata.builder().name(TOPIC_NAME).build())
+                .metadata(Resource.Metadata.builder().name(TOPIC_NAME).build())
                 .spec(Topic.TopicSpec.builder()
                         .tags(List.of(TAG1))
                         .description(DESCRIPTION1)
@@ -126,7 +126,7 @@ class TopicAsyncExecutorTest {
         Map<String, Topic> brokerTopics = Map.of(
                 TOPIC_NAME,
                 Topic.builder()
-                        .metadata(Metadata.builder().name(TOPIC_NAME).build())
+                        .metadata(Resource.Metadata.builder().name(TOPIC_NAME).build())
                         .spec(Topic.TopicSpec.builder()
                                 .tags(List.of(TAG2, TAG3))
                                 .description(DESCRIPTION2)
@@ -147,7 +147,7 @@ class TopicAsyncExecutorTest {
         when(ns4KafkaProperties.getConfluentCloud()).thenReturn(buildConfluentCloudProperties(false));
 
         List<Topic> ns4kafkaTopics = List.of(Topic.builder()
-                .metadata(Metadata.builder().name(TOPIC_NAME).build())
+                .metadata(Resource.Metadata.builder().name(TOPIC_NAME).build())
                 .spec(Topic.TopicSpec.builder()
                         .tags(List.of(TAG1))
                         .description(DESCRIPTION1)
@@ -157,7 +157,7 @@ class TopicAsyncExecutorTest {
         Map<String, Topic> brokerTopics = Map.of(
                 TOPIC_NAME,
                 Topic.builder()
-                        .metadata(Metadata.builder().name(TOPIC_NAME).build())
+                        .metadata(Resource.Metadata.builder().name(TOPIC_NAME).build())
                         .build());
 
         topicAsyncExecutor.alterCatalogInfo(ns4kafkaTopics, brokerTopics);
@@ -174,7 +174,7 @@ class TopicAsyncExecutorTest {
         when(managedClusterProperties.isConfluentCloud()).thenReturn(false);
 
         List<Topic> ns4kafkaTopics = List.of(Topic.builder()
-                .metadata(Metadata.builder().name(TOPIC_NAME).build())
+                .metadata(Resource.Metadata.builder().name(TOPIC_NAME).build())
                 .spec(Topic.TopicSpec.builder()
                         .tags(List.of(TAG1))
                         .description(DESCRIPTION1)
@@ -184,7 +184,7 @@ class TopicAsyncExecutorTest {
         Map<String, Topic> brokerTopics = Map.of(
                 TOPIC_NAME,
                 Topic.builder()
-                        .metadata(Metadata.builder().name(TOPIC_NAME).build())
+                        .metadata(Resource.Metadata.builder().name(TOPIC_NAME).build())
                         .build());
 
         topicAsyncExecutor.alterCatalogInfo(ns4kafkaTopics, brokerTopics);
@@ -206,14 +206,14 @@ class TopicAsyncExecutorTest {
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
 
         List<Topic> ns4kafkaTopics = List.of(Topic.builder()
-                .metadata(Metadata.builder().name(TOPIC_NAME).build())
+                .metadata(Resource.Metadata.builder().name(TOPIC_NAME).build())
                 .spec(Topic.TopicSpec.builder().tags(List.of(TAG1)).build())
                 .build());
 
         Map<String, Topic> brokerTopics = Map.of(
                 TOPIC_NAME,
                 Topic.builder()
-                        .metadata(Metadata.builder().name(TOPIC_NAME).build())
+                        .metadata(Resource.Metadata.builder().name(TOPIC_NAME).build())
                         .spec(Topic.TopicSpec.builder()
                                 .tags(List.of(TAG1, TAG2, TAG3))
                                 .build())
@@ -248,14 +248,14 @@ class TopicAsyncExecutorTest {
         when(schemaRegistryClient.associateTags(any(), any())).thenReturn(Mono.just(tagsToAssociate));
 
         List<Topic> ns4kafkaTopics = List.of(Topic.builder()
-                .metadata(Metadata.builder().name(TOPIC_NAME).build())
+                .metadata(Resource.Metadata.builder().name(TOPIC_NAME).build())
                 .spec(Topic.TopicSpec.builder().tags(List.of(TAG1, TAG3)).build())
                 .build());
 
         Map<String, Topic> brokerTopics = Map.of(
                 TOPIC_NAME,
                 Topic.builder()
-                        .metadata(Metadata.builder().name(TOPIC_NAME).build())
+                        .metadata(Resource.Metadata.builder().name(TOPIC_NAME).build())
                         .spec(Topic.TopicSpec.builder()
                                 .tags(List.of(TAG1, TAG2))
                                 .build())
@@ -276,7 +276,10 @@ class TopicAsyncExecutorTest {
         when(managedClusterProperties.getConfig()).thenReturn(properties);
 
         Topic topic = Topic.builder()
-                .metadata(Metadata.builder().name(TOPIC_NAME).generation(0).build())
+                .metadata(Resource.Metadata.builder()
+                        .name(TOPIC_NAME)
+                        .generation(0)
+                        .build())
                 .spec(Topic.TopicSpec.builder().tags(List.of(TAG1)).build())
                 .build();
 
@@ -305,7 +308,10 @@ class TopicAsyncExecutorTest {
         when(managedClusterProperties.getConfig()).thenReturn(properties);
 
         Topic topic = Topic.builder()
-                .metadata(Metadata.builder().name(TOPIC_NAME).generation(0).build())
+                .metadata(Resource.Metadata.builder()
+                        .name(TOPIC_NAME)
+                        .generation(0)
+                        .build())
                 .spec(Topic.TopicSpec.builder().tags(List.of(TAG1)).build())
                 .build();
 
@@ -336,7 +342,10 @@ class TopicAsyncExecutorTest {
         when(managedClusterProperties.getConfig()).thenReturn(properties);
 
         Topic topic = Topic.builder()
-                .metadata(Metadata.builder().name(TOPIC_NAME).generation(0).build())
+                .metadata(Resource.Metadata.builder()
+                        .name(TOPIC_NAME)
+                        .generation(0)
+                        .build())
                 .spec(Topic.TopicSpec.builder().tags(List.of(TAG1)).build())
                 .build();
 
@@ -381,7 +390,7 @@ class TopicAsyncExecutorTest {
         when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
 
         Topic topic = Topic.builder()
-                .metadata(Metadata.builder().name(TOPIC_NAME).build())
+                .metadata(Resource.Metadata.builder().name(TOPIC_NAME).build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
 
@@ -406,12 +415,12 @@ class TopicAsyncExecutorTest {
         when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
 
         Topic topic1 = Topic.builder()
-                .metadata(Metadata.builder().name("topic1").build())
+                .metadata(Resource.Metadata.builder().name("topic1").build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
 
         Topic topic2 = Topic.builder()
-                .metadata(Metadata.builder().name("topic2").build())
+                .metadata(Resource.Metadata.builder().name("topic2").build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
 
@@ -439,7 +448,7 @@ class TopicAsyncExecutorTest {
         when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
 
         Topic topic = Topic.builder()
-                .metadata(Metadata.builder().name(TOPIC_NAME).build())
+                .metadata(Resource.Metadata.builder().name(TOPIC_NAME).build())
                 .spec(Topic.TopicSpec.builder().tags(List.of(TAG1)).build())
                 .build();
 
@@ -456,7 +465,7 @@ class TopicAsyncExecutorTest {
         when(managedClusterProperties.getConfig()).thenReturn(properties);
 
         Topic topic = Topic.builder()
-                .metadata(Metadata.builder().name(TOPIC_NAME).build())
+                .metadata(Resource.Metadata.builder().name(TOPIC_NAME).build())
                 .spec(Topic.TopicSpec.builder().description(DESCRIPTION1).build())
                 .build();
 
@@ -477,7 +486,7 @@ class TopicAsyncExecutorTest {
         when(schemaRegistryClient.updateDescription(any(), any())).thenReturn(Mono.just(HttpResponse.ok()));
 
         Topic topic = Topic.builder()
-                .metadata(Metadata.builder().name(TOPIC_NAME).build())
+                .metadata(Resource.Metadata.builder().name(TOPIC_NAME).build())
                 .spec(Topic.TopicSpec.builder().description(DESCRIPTION1).build())
                 .build();
 
@@ -486,7 +495,7 @@ class TopicAsyncExecutorTest {
         Map<String, Topic> brokerTopics = Map.of(
                 TOPIC_NAME,
                 Topic.builder()
-                        .metadata(Metadata.builder()
+                        .metadata(Resource.Metadata.builder()
                                 .name(TOPIC_NAME)
                                 .generation(0)
                                 .build())
@@ -506,7 +515,7 @@ class TopicAsyncExecutorTest {
         properties.put(CLUSTER_ID, CLUSTER_ID_TEST);
 
         Topic topic = Topic.builder()
-                .metadata(Metadata.builder().name(TOPIC_NAME).build())
+                .metadata(Resource.Metadata.builder().name(TOPIC_NAME).build())
                 .spec(Topic.TopicSpec.builder().description(DESCRIPTION1).build())
                 .build();
 
@@ -515,7 +524,7 @@ class TopicAsyncExecutorTest {
         Map<String, Topic> brokerTopics = Map.of(
                 TOPIC_NAME,
                 Topic.builder()
-                        .metadata(Metadata.builder()
+                        .metadata(Resource.Metadata.builder()
                                 .name(TOPIC_NAME)
                                 .generation(0)
                                 .build())
@@ -567,7 +576,7 @@ class TopicAsyncExecutorTest {
         Map<String, Topic> brokerTopics = Map.of(
                 TOPIC_NAME,
                 Topic.builder()
-                        .metadata(Metadata.builder().name(TOPIC_NAME).build())
+                        .metadata(Resource.Metadata.builder().name(TOPIC_NAME).build())
                         .spec(Topic.TopicSpec.builder().build())
                         .build());
 
@@ -611,7 +620,7 @@ class TopicAsyncExecutorTest {
         Map<String, Topic> brokerTopics = Map.of(
                 TOPIC_NAME,
                 Topic.builder()
-                        .metadata(Metadata.builder().name(TOPIC_NAME).build())
+                        .metadata(Resource.Metadata.builder().name(TOPIC_NAME).build())
                         .spec(Topic.TopicSpec.builder().build())
                         .build());
 
@@ -636,7 +645,7 @@ class TopicAsyncExecutorTest {
         Map<String, Topic> brokerTopics = Map.of(
                 TOPIC_NAME,
                 Topic.builder()
-                        .metadata(Metadata.builder().name(TOPIC_NAME).build())
+                        .metadata(Resource.Metadata.builder().name(TOPIC_NAME).build())
                         .spec(Topic.TopicSpec.builder().build())
                         .build());
 
@@ -656,7 +665,7 @@ class TopicAsyncExecutorTest {
         Map<String, Topic> brokerTopics = Map.of(
                 TOPIC_NAME,
                 Topic.builder()
-                        .metadata(Metadata.builder().name(TOPIC_NAME).build())
+                        .metadata(Resource.Metadata.builder().name(TOPIC_NAME).build())
                         .spec(Topic.TopicSpec.builder().build())
                         .build());
 
@@ -674,7 +683,7 @@ class TopicAsyncExecutorTest {
         Map<String, Topic> brokerTopics = Map.of(
                 TOPIC_NAME,
                 Topic.builder()
-                        .metadata(Metadata.builder().name(TOPIC_NAME).build())
+                        .metadata(Resource.Metadata.builder().name(TOPIC_NAME).build())
                         .spec(Topic.TopicSpec.builder().build())
                         .build());
 
@@ -728,12 +737,16 @@ class TopicAsyncExecutorTest {
         Map<String, Topic> brokerTopics = Map.of(
                 TOPIC_NAME,
                         Topic.builder()
-                                .metadata(Metadata.builder().name(TOPIC_NAME).build())
+                                .metadata(Resource.Metadata.builder()
+                                        .name(TOPIC_NAME)
+                                        .build())
                                 .spec(Topic.TopicSpec.builder().build())
                                 .build(),
                 TOPIC_NAME2,
                         Topic.builder()
-                                .metadata(Metadata.builder().name(TOPIC_NAME2).build())
+                                .metadata(Resource.Metadata.builder()
+                                        .name(TOPIC_NAME2)
+                                        .build())
                                 .spec(Topic.TopicSpec.builder().build())
                                 .build());
 
@@ -767,12 +780,16 @@ class TopicAsyncExecutorTest {
         Map<String, Topic> brokerTopics = Map.of(
                 TOPIC_NAME,
                         Topic.builder()
-                                .metadata(Metadata.builder().name(TOPIC_NAME).build())
+                                .metadata(Resource.Metadata.builder()
+                                        .name(TOPIC_NAME)
+                                        .build())
                                 .spec(Topic.TopicSpec.builder().build())
                                 .build(),
                 TOPIC_NAME2,
                         Topic.builder()
-                                .metadata(Metadata.builder().name(TOPIC_NAME2).build())
+                                .metadata(Resource.Metadata.builder()
+                                        .name(TOPIC_NAME2)
+                                        .build())
                                 .spec(Topic.TopicSpec.builder().build())
                                 .build());
 
@@ -801,7 +818,7 @@ class TopicAsyncExecutorTest {
         Map<String, Topic> brokerTopics = Map.of(
                 TOPIC_NAME,
                 Topic.builder()
-                        .metadata(Metadata.builder().name(TOPIC_NAME).build())
+                        .metadata(Resource.Metadata.builder().name(TOPIC_NAME).build())
                         .spec(Topic.TopicSpec.builder().build())
                         .build());
 
@@ -830,7 +847,7 @@ class TopicAsyncExecutorTest {
         Map<String, Topic> brokerTopics = Map.of(
                 TOPIC_NAME,
                 Topic.builder()
-                        .metadata(Metadata.builder().name(TOPIC_NAME).build())
+                        .metadata(Resource.Metadata.builder().name(TOPIC_NAME).build())
                         .spec(Topic.TopicSpec.builder().build())
                         .build());
 
@@ -857,7 +874,7 @@ class TopicAsyncExecutorTest {
         Map<String, Topic> brokerTopics = Map.of(
                 TOPIC_NAME,
                 Topic.builder()
-                        .metadata(Metadata.builder().name(TOPIC_NAME).build())
+                        .metadata(Resource.Metadata.builder().name(TOPIC_NAME).build())
                         .spec(Topic.TopicSpec.builder().build())
                         .build());
 
@@ -920,17 +937,23 @@ class TopicAsyncExecutorTest {
         Map<String, Topic> brokerTopics = Map.of(
                 TOPIC_NAME,
                         Topic.builder()
-                                .metadata(Metadata.builder().name(TOPIC_NAME).build())
+                                .metadata(Resource.Metadata.builder()
+                                        .name(TOPIC_NAME)
+                                        .build())
                                 .spec(Topic.TopicSpec.builder().build())
                                 .build(),
                 TOPIC_NAME2,
                         Topic.builder()
-                                .metadata(Metadata.builder().name(TOPIC_NAME2).build())
+                                .metadata(Resource.Metadata.builder()
+                                        .name(TOPIC_NAME2)
+                                        .build())
                                 .spec(Topic.TopicSpec.builder().build())
                                 .build(),
                 TOPIC_NAME3,
                         Topic.builder()
-                                .metadata(Metadata.builder().name(TOPIC_NAME3).build())
+                                .metadata(Resource.Metadata.builder()
+                                        .name(TOPIC_NAME3)
+                                        .build())
                                 .spec(Topic.TopicSpec.builder().build())
                                 .build());
 
@@ -956,12 +979,16 @@ class TopicAsyncExecutorTest {
         Map<String, Topic> brokerTopics = Map.of(
                 TOPIC_NAME,
                         Topic.builder()
-                                .metadata(Metadata.builder().name(TOPIC_NAME).build())
+                                .metadata(Resource.Metadata.builder()
+                                        .name(TOPIC_NAME)
+                                        .build())
                                 .spec(Topic.TopicSpec.builder().build())
                                 .build(),
                 TOPIC_NAME2,
                         Topic.builder()
-                                .metadata(Metadata.builder().name(TOPIC_NAME2).build())
+                                .metadata(Resource.Metadata.builder()
+                                        .name(TOPIC_NAME2)
+                                        .build())
                                 .spec(Topic.TopicSpec.builder().build())
                                 .build());
 

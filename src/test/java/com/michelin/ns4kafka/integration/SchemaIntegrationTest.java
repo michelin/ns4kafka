@@ -27,8 +27,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.michelin.ns4kafka.integration.TopicIntegrationTest.BearerAccessRefreshToken;
 import com.michelin.ns4kafka.integration.container.SchemaRegistryIntegrationTest;
 import com.michelin.ns4kafka.model.AccessControlEntry;
-import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.RoleBinding;
 import com.michelin.ns4kafka.model.schema.Schema;
 import com.michelin.ns4kafka.model.schema.SchemaCompatibilityState;
@@ -74,7 +74,10 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
         schemaRegistryClient = applicationContext.createBean(HttpClient.class, getSchemaRegistryUrl());
 
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder().name("ns1").cluster("test-cluster").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1")
+                        .cluster("test-cluster")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .kafkaUser("user1")
                         .topicValidator(TopicValidator.makeDefaultOneBroker())
@@ -82,7 +85,10 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                 .build();
 
         RoleBinding roleBinding = RoleBinding.builder()
-                .metadata(Metadata.builder().name("ns1-rb").namespace("ns1").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-rb")
+                        .namespace("ns1")
+                        .build())
                 .spec(RoleBinding.RoleBindingSpec.builder()
                         .role(RoleBinding.Role.builder()
                                 .resourceTypes(List.of("topics", "acls"))
@@ -117,7 +123,10 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                         .body(roleBinding));
 
         AccessControlEntry aclSchema = AccessControlEntry.builder()
-                .metadata(Metadata.builder().name("ns1-acl").namespace("ns1").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-acl")
+                        .namespace("ns1")
+                        .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resource("ns1-")
@@ -138,7 +147,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
     void shouldRegisterSchemaRespectingForwardCompatibility() {
         // Register schema, first name is optional
         Schema schema = Schema.builder()
-                .metadata(Metadata.builder().name("ns1-subject0-value").build())
+                .metadata(Resource.Metadata.builder().name("ns1-subject0-value").build())
                 .spec(Schema.SchemaSpec.builder()
                         .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\","
                                 + "\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":"
@@ -185,7 +194,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
 
         // Register compatible schema v2, removing optional "first name" field
         Schema incompatibleSchema = Schema.builder()
-                .metadata(Metadata.builder().name("ns1-subject0-value").build())
+                .metadata(Resource.Metadata.builder().name("ns1-subject0-value").build())
                 .spec(Schema.SchemaSpec.builder()
                         .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\","
                                 + "\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":"
@@ -218,7 +227,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
     void shouldRegisterSchemaBreakingForwardCompatibility() {
         // Register schema, first name is non-optional
         Schema schema = Schema.builder()
-                .metadata(Metadata.builder().name("ns1-subject1-value").build())
+                .metadata(Resource.Metadata.builder().name("ns1-subject1-value").build())
                 .spec(Schema.SchemaSpec.builder()
                         .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
                                 + "\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"string\"],"
@@ -265,7 +274,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
 
         // Register incompatible schema v2, removing non-optional "first name" field
         Schema incompatibleSchema = Schema.builder()
-                .metadata(Metadata.builder().name("ns1-subject1-value").build())
+                .metadata(Resource.Metadata.builder().name("ns1-subject1-value").build())
                 .spec(Schema.SchemaSpec.builder()
                         .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
                                 + "\"name\":\"PersonAvro\",\"fields\":["
@@ -292,7 +301,9 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
     @Test
     void shouldRegisterSchemaWithReferences() {
         Schema schemaHeader = Schema.builder()
-                .metadata(Metadata.builder().name("ns1-header-subject-value").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-header-subject-value")
+                        .build())
                 .spec(Schema.SchemaSpec.builder()
                         .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
                                 + "\"name\":\"HeaderAvro\",\"fields\":[{\"name\":\"id\",\"type\":[\"null\",\"string\"],"
@@ -321,7 +332,9 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
 
         // Person without refs not created
         Schema schemaPersonWithoutRefs = Schema.builder()
-                .metadata(Metadata.builder().name("ns1-person-subject-value").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-person-subject-value")
+                        .build())
                 .spec(Schema.SchemaSpec.builder()
                         .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
                                 + "\"name\":\"PersonAvro\","
@@ -352,7 +365,9 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
 
         // Person with refs created
         Schema schemaPersonWithRefs = Schema.builder()
-                .metadata(Metadata.builder().name("ns1-person-subject-value").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-person-subject-value")
+                        .build())
                 .spec(Schema.SchemaSpec.builder()
                         .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\","
                                 + "\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"header\",\"type\":[\"null\","
@@ -394,7 +409,9 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
     void shouldCheckSchemaStatus() {
         // Create header
         Schema schemaHeader = Schema.builder()
-                .metadata(Metadata.builder().name("ns1-header-subject-value").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-header-subject-value")
+                        .build())
                 .spec(Schema.SchemaSpec.builder()
                         .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
                                 + "\"name\":\"HeaderAvro\",\"fields\":[{\"name\":\"id\",\"type\":[\"null\",\"string\"],"
@@ -412,7 +429,9 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
 
         // Create person
         Schema schemaPersonWithRefs = Schema.builder()
-                .metadata(Metadata.builder().name("ns1-person2-subject-value").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-person2-subject-value")
+                        .build())
                 .spec(Schema.SchemaSpec.builder()
                         .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\","
                                 + "\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"header\",\"type\":[\"null\","
@@ -452,7 +471,9 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
 
         // Create person v2, result should be changed
         Schema newSchemaVersionPersonWithRefs = Schema.builder()
-                .metadata(Metadata.builder().name("ns1-person2-subject-value").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-person2-subject-value")
+                        .build())
                 .spec(Schema.SchemaSpec.builder()
                         .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\","
                                 + "\"type\":\"record\",\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"header\",\"type\":[\"null\","
@@ -502,7 +523,9 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
         assertEquals("unchanged", personCreateV1Response.header("X-Ns4kafka-Result"));
 
         Schema schemaHeaderV2 = Schema.builder()
-                .metadata(Metadata.builder().name("ns1-header-subject-value").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-header-subject-value")
+                        .build())
                 .spec(Schema.SchemaSpec.builder()
                         .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
                                 + "\"name\":\"HeaderAvro\",\"fields\":[{\"name\":\"id\",\"type\":[\"null\",\"string\"],"
@@ -547,7 +570,8 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
     @Test
     void shouldRegisterSchemaWithWrongPrefix() {
         Schema wrongSchema = Schema.builder()
-                .metadata(Metadata.builder().name("wrongprefix-subject").build())
+                .metadata(
+                        Resource.Metadata.builder().name("wrongprefix-subject").build())
                 .spec(Schema.SchemaSpec.builder()
                         .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
                                 + "\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],"
@@ -598,7 +622,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
     @Test
     void shouldRegisterSchema() {
         Schema schema = Schema.builder()
-                .metadata(Metadata.builder().name("ns1-subject2-value").build())
+                .metadata(Resource.Metadata.builder().name("ns1-subject2-value").build())
                 .spec(Schema.SchemaSpec.builder()
                         .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
                                 + "\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],"
@@ -671,7 +695,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
     @Test
     void shouldRegisterSameSchemaTwice() {
         Schema schema = Schema.builder()
-                .metadata(Metadata.builder().name("ns1-subject3-value").build())
+                .metadata(Resource.Metadata.builder().name("ns1-subject3-value").build())
                 .spec(Schema.SchemaSpec.builder()
                         .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
                                 + "\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],"
@@ -709,7 +733,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
 
         // Apply the same schema with swapped fields
         Schema sameSchemaWithSwappedFields = Schema.builder()
-                .metadata(Metadata.builder().name("ns1-subject3-value").build())
+                .metadata(Resource.Metadata.builder().name("ns1-subject3-value").build())
                 .spec(Schema.SchemaSpec.builder()
                         .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
                                 + "\"name\":\"PersonAvro\",\"fields\":[ {\"name\":\"lastName\",\"type\":[\"null\",\"string\"],"
@@ -776,7 +800,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
     @Test
     void shouldDeleteSchemaVersion() {
         Schema schemaV1 = Schema.builder()
-                .metadata(Metadata.builder().name("ns1-subject4-value").build())
+                .metadata(Resource.Metadata.builder().name("ns1-subject4-value").build())
                 .spec(Schema.SchemaSpec.builder()
                         .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
                                 + "\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],"
@@ -798,7 +822,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                         Schema.class);
 
         Schema schemaV2 = Schema.builder()
-                .metadata(Metadata.builder().name("ns1-subject4-value").build())
+                .metadata(Resource.Metadata.builder().name("ns1-subject4-value").build())
                 .spec(Schema.SchemaSpec.builder()
                         .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
                                 + "\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],"
@@ -818,7 +842,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                         Schema.class);
 
         Schema schemaV3 = Schema.builder()
-                .metadata(Metadata.builder().name("ns1-subject4-value").build())
+                .metadata(Resource.Metadata.builder().name("ns1-subject4-value").build())
                 .spec(Schema.SchemaSpec.builder()
                         .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
                                 + "\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],"
@@ -836,7 +860,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                         Schema.class);
 
         Schema schemaV4 = Schema.builder()
-                .metadata(Metadata.builder().name("ns1-subject4-value").build())
+                .metadata(Resource.Metadata.builder().name("ns1-subject4-value").build())
                 .spec(Schema.SchemaSpec.builder()
                         .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
                                 + "\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],"
@@ -921,7 +945,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
     @Test
     void shouldBulkDeleteSchemas() {
         Schema schema1 = Schema.builder()
-                .metadata(Metadata.builder().name("ns1-subject5-value").build())
+                .metadata(Resource.Metadata.builder().name("ns1-subject5-value").build())
                 .spec(Schema.SchemaSpec.builder()
                         .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
                                 + "\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],"
@@ -934,7 +958,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                 .build();
 
         Schema schema2 = Schema.builder()
-                .metadata(Metadata.builder().name("ns1-subject5-key").build())
+                .metadata(Resource.Metadata.builder().name("ns1-subject5-key").build())
                 .spec(Schema.SchemaSpec.builder()
                         .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
                                 + "\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],"
@@ -945,7 +969,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                 .build();
 
         Schema schema3 = Schema.builder()
-                .metadata(Metadata.builder().name("ns1-subject6-value").build())
+                .metadata(Resource.Metadata.builder().name("ns1-subject6-value").build())
                 .spec(Schema.SchemaSpec.builder()
                         .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\",\"type\":\"record\","
                                 + "\"name\":\"PersonAvro\",\"fields\":[{\"name\":\"firstName\",\"type\":[\"null\",\"string\"],"

@@ -21,8 +21,7 @@ package com.michelin.ns4kafka.model.connect;
 import static com.michelin.ns4kafka.util.enumation.Kind.CHANGE_CONNECTOR_STATE;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.michelin.ns4kafka.model.Metadata;
-import com.michelin.ns4kafka.model.MetadataResource;
+import com.michelin.ns4kafka.model.Resource;
 import io.micronaut.core.annotation.Introspected;
 import io.micronaut.http.HttpStatus;
 import jakarta.validation.Valid;
@@ -37,7 +36,7 @@ import lombok.NoArgsConstructor;
 @Data
 @Introspected
 @EqualsAndHashCode(callSuper = true)
-public class ChangeConnectorState extends MetadataResource {
+public class ChangeConnectorState extends Resource {
     @Valid @NotNull private ChangeConnectorStateSpec spec;
 
     private ChangeConnectorStateStatus status;

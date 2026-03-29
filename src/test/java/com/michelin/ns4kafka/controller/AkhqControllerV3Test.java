@@ -24,8 +24,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
-import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.property.Ns4KafkaProperties;
 import com.michelin.ns4kafka.service.AclService;
@@ -81,7 +81,7 @@ class AkhqControllerV3Test {
     @Test
     void shouldGenerateClaim() {
         Namespace ns1Cluster1 = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1")
                         .cluster("cluster1")
                         .labels(Map.of("support-group", "GP-PROJECT1-SUPPORT"))
@@ -89,7 +89,10 @@ class AkhqControllerV3Test {
                 .build();
 
         AccessControlEntry ace1Ns1Cluster1 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().name("acl").cluster("cluster1").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("acl")
+                        .cluster("cluster1")
+                        .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -124,7 +127,7 @@ class AkhqControllerV3Test {
     @Test
     void shouldGrantAllAccessToGroup() {
         Namespace ns1Cluster1 = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1")
                         .cluster("cluster1")
                         .labels(Map.of("support-group", "GP-PROJECT1-SUPPORT"))
@@ -132,7 +135,10 @@ class AkhqControllerV3Test {
                 .build();
 
         AccessControlEntry ace1Ns1Cluster1 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().name("acl1").cluster("cluster1").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("acl1")
+                        .cluster("cluster1")
+                        .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -141,7 +147,10 @@ class AkhqControllerV3Test {
                 .build();
 
         AccessControlEntry ace2Ns1Cluster1 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().name("acl2").cluster("cluster1").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("acl2")
+                        .cluster("cluster1")
+                        .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.GROUP)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -175,7 +184,7 @@ class AkhqControllerV3Test {
     @Test
     void shouldGenerateClaimWithMultipleSupportGroups() {
         Namespace ns1Cluster1 = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1")
                         .cluster("cluster1")
                         .labels(Map.of("support-group", "GP-PROJECT1-DEV,GP-PROJECT1-SUPPORT,GP-PROJECT1-OPS"))
@@ -183,7 +192,10 @@ class AkhqControllerV3Test {
                 .build();
 
         AccessControlEntry ace1Ns1Cluster1 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().name("acl").cluster("cluster1").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("acl")
+                        .cluster("cluster1")
+                        .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -218,7 +230,7 @@ class AkhqControllerV3Test {
     @Test
     void shouldGenerateClaimWithMultipleSupportGroupsAndOverloadedDelimiter() {
         Namespace ns1Cluster1 = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1")
                         .cluster("cluster1")
                         .labels(Map.of("support-group", "GP-PROJECT1-DEV;GP-PROJECT1-SUPPORT;GP-PROJECT1-OPS"))
@@ -226,7 +238,10 @@ class AkhqControllerV3Test {
                 .build();
 
         AccessControlEntry ace1Ns1Cluster1 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().name("acl1").cluster("cluster1").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("acl1")
+                        .cluster("cluster1")
+                        .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -264,7 +279,7 @@ class AkhqControllerV3Test {
     @Test
     void shouldNotGenerateClaim() {
         Namespace ns1Cluster1 = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1")
                         .cluster("cluster1")
                         .labels(Map.of("support-group", "GP-PROJECT1-SUPPORT"))
@@ -288,7 +303,7 @@ class AkhqControllerV3Test {
     @Test
     void shouldNotGenerateClaimWithWrongDelimiter() {
         Namespace ns1Cluster1 = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1")
                         .cluster("cluster1")
                         .labels(Map.of("support-group", "GP-PROJECT1-DEV//GP-PROJECT1-SUPPORT//GP-PROJECT1-OPS"))
@@ -312,7 +327,7 @@ class AkhqControllerV3Test {
     @Test
     void shouldGenerateClaimWithOptimizedClusters() {
         Namespace ns1Cluster1 = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1")
                         .cluster("cluster1")
                         .labels(Map.of("support-group", "GP-PROJECT1-SUPPORT"))
@@ -320,7 +335,7 @@ class AkhqControllerV3Test {
                 .build();
 
         Namespace ns1Cluster2 = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1")
                         .cluster("cluster2")
                         .labels(Map.of("support-group", "GP-PROJECT1-SUPPORT"))
@@ -328,7 +343,10 @@ class AkhqControllerV3Test {
                 .build();
 
         AccessControlEntry ace1Ns1Cluster1 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().name("acl").cluster("cluster1").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("acl")
+                        .cluster("cluster1")
+                        .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -344,7 +362,10 @@ class AkhqControllerV3Test {
         when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Ns1Cluster1));
 
         AccessControlEntry ace1Ns1Cluster2 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().name("acl").cluster("cluster2").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("acl")
+                        .cluster("cluster2")
+                        .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -374,7 +395,7 @@ class AkhqControllerV3Test {
     @Test
     void shouldGenerateClaimWithMultiplePatternsOnSameCluster() {
         Namespace ns1Cluster1 = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1")
                         .cluster("cluster1")
                         .labels(Map.of("support-group", "GP-PROJECT1&2-SUPPORT"))
@@ -382,7 +403,7 @@ class AkhqControllerV3Test {
                 .build();
 
         Namespace ns2Cluster1 = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns2")
                         .cluster("cluster1")
                         .labels(Map.of("support-group", "GP-PROJECT1&2-SUPPORT"))
@@ -390,7 +411,10 @@ class AkhqControllerV3Test {
                 .build();
 
         AccessControlEntry ace1Ns1Cluster1 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().name("acl").cluster("cluster1").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("acl")
+                        .cluster("cluster1")
+                        .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -406,7 +430,10 @@ class AkhqControllerV3Test {
         when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Ns1Cluster1));
 
         AccessControlEntry ace2Ns2Cluster1 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().name("acl").cluster("cluster1").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("acl")
+                        .cluster("cluster1")
+                        .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -438,7 +465,7 @@ class AkhqControllerV3Test {
     @Test
     void shouldGenerateClaimWithMultipleGroups() {
         Namespace ns1Cluster1 = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1")
                         .cluster("cluster1")
                         .labels(Map.of("support-group", "GP-PROJECT1-SUPPORT"))
@@ -446,7 +473,7 @@ class AkhqControllerV3Test {
                 .build();
 
         Namespace ns1Cluster2 = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1")
                         .cluster("cluster2")
                         .labels(Map.of("support-group", "GP-PROJECT1-SUPPORT"))
@@ -454,7 +481,10 @@ class AkhqControllerV3Test {
                 .build();
 
         AccessControlEntry ace1Cluster1 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().name("acl").cluster("cluster1").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("acl")
+                        .cluster("cluster1")
+                        .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -470,7 +500,10 @@ class AkhqControllerV3Test {
         when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Cluster1));
 
         AccessControlEntry ace1Cluster2 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().name("acl").cluster("cluster2").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("acl")
+                        .cluster("cluster2")
+                        .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -500,7 +533,7 @@ class AkhqControllerV3Test {
     @Test
     void shouldGenerateClaimWithPatternOnMultipleClusters() {
         Namespace ns1Cluster1 = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1")
                         .cluster("cluster1")
                         .labels(Map.of("support-group", "GP-PROJECT1&2-SUPPORT"))
@@ -508,7 +541,7 @@ class AkhqControllerV3Test {
                 .build();
 
         Namespace ns2Cluster2 = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns2")
                         .cluster("cluster2")
                         .labels(Map.of("support-group", "GP-PROJECT1&2-SUPPORT"))
@@ -516,7 +549,10 @@ class AkhqControllerV3Test {
                 .build();
 
         AccessControlEntry ace1Ns1Cluster1 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().name("acl").cluster("cluster1").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("acl")
+                        .cluster("cluster1")
+                        .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -532,7 +568,10 @@ class AkhqControllerV3Test {
         when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Ns1Cluster1));
 
         AccessControlEntry ace1Ns2Cluster2 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().name("acl").cluster("cluster2").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("acl")
+                        .cluster("cluster2")
+                        .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -570,7 +609,7 @@ class AkhqControllerV3Test {
     @Test
     void shouldGenerateClaimAndOptimizePatterns() {
         Namespace ns1Cluster1 = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1")
                         .cluster("cluster1")
                         .labels(Map.of("support-group", "GP-PROJECT1&2-SUPPORT"))
@@ -579,7 +618,7 @@ class AkhqControllerV3Test {
 
         List<AccessControlEntry> inputAcls = List.of(
                 AccessControlEntry.builder()
-                        .metadata(Metadata.builder()
+                        .metadata(Resource.Metadata.builder()
                                 .name("acl1")
                                 .cluster("cluster1")
                                 .build())
@@ -590,7 +629,7 @@ class AkhqControllerV3Test {
                                 .build())
                         .build(),
                 AccessControlEntry.builder()
-                        .metadata(Metadata.builder()
+                        .metadata(Resource.Metadata.builder()
                                 .name("acl2")
                                 .cluster("cluster1")
                                 .build())
@@ -601,7 +640,7 @@ class AkhqControllerV3Test {
                                 .build())
                         .build(),
                 AccessControlEntry.builder()
-                        .metadata(Metadata.builder()
+                        .metadata(Resource.Metadata.builder()
                                 .name("acl3")
                                 .cluster("cluster1")
                                 .build())
@@ -612,7 +651,7 @@ class AkhqControllerV3Test {
                                 .build())
                         .build(),
                 AccessControlEntry.builder()
-                        .metadata(Metadata.builder()
+                        .metadata(Resource.Metadata.builder()
                                 .name("acl4")
                                 .cluster("cluster1")
                                 .build())
@@ -623,7 +662,7 @@ class AkhqControllerV3Test {
                                 .build())
                         .build(),
                 AccessControlEntry.builder()
-                        .metadata(Metadata.builder()
+                        .metadata(Resource.Metadata.builder()
                                 .name("acl5")
                                 .cluster("cluster1")
                                 .build())
@@ -634,7 +673,7 @@ class AkhqControllerV3Test {
                                 .build())
                         .build(),
                 AccessControlEntry.builder()
-                        .metadata(Metadata.builder()
+                        .metadata(Resource.Metadata.builder()
                                 .name("acl6")
                                 .cluster("cluster1")
                                 .build())
@@ -645,7 +684,7 @@ class AkhqControllerV3Test {
                                 .build())
                         .build(),
                 AccessControlEntry.builder()
-                        .metadata(Metadata.builder()
+                        .metadata(Resource.Metadata.builder()
                                 .name("acl8")
                                 .cluster("cluster1")
                                 .build())
@@ -656,7 +695,7 @@ class AkhqControllerV3Test {
                                 .build())
                         .build(),
                 AccessControlEntry.builder()
-                        .metadata(Metadata.builder()
+                        .metadata(Resource.Metadata.builder()
                                 .name("acl9")
                                 .cluster("cluster1")
                                 .build())
@@ -667,7 +706,7 @@ class AkhqControllerV3Test {
                                 .build())
                         .build(),
                 AccessControlEntry.builder()
-                        .metadata(Metadata.builder()
+                        .metadata(Resource.Metadata.builder()
                                 .name("acl10")
                                 .cluster("cluster1")
                                 .build())
@@ -678,7 +717,7 @@ class AkhqControllerV3Test {
                                 .build())
                         .build(),
                 AccessControlEntry.builder()
-                        .metadata(Metadata.builder()
+                        .metadata(Resource.Metadata.builder()
                                 .name("acl11")
                                 .cluster("cluster1")
                                 .build())
@@ -731,7 +770,7 @@ class AkhqControllerV3Test {
     @Test
     void shouldGenerateClaimAndOptimizePatternsForDifferentClusters() {
         Namespace ns1Cluster1 = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1")
                         .cluster("cluster1")
                         .labels(Map.of("support-group", "GP-PROJECT1&2-SUPPORT"))
@@ -740,7 +779,7 @@ class AkhqControllerV3Test {
 
         List<AccessControlEntry> inputAcls = List.of(
                 AccessControlEntry.builder()
-                        .metadata(Metadata.builder()
+                        .metadata(Resource.Metadata.builder()
                                 .name("acl1")
                                 .cluster("cluster1")
                                 .build())
@@ -751,7 +790,7 @@ class AkhqControllerV3Test {
                                 .build())
                         .build(),
                 AccessControlEntry.builder()
-                        .metadata(Metadata.builder()
+                        .metadata(Resource.Metadata.builder()
                                 .name("acl2")
                                 .cluster("cluster2")
                                 .build())
@@ -762,7 +801,7 @@ class AkhqControllerV3Test {
                                 .build())
                         .build(),
                 AccessControlEntry.builder()
-                        .metadata(Metadata.builder()
+                        .metadata(Resource.Metadata.builder()
                                 .name("acl3")
                                 .cluster("cluster1")
                                 .build())
@@ -773,7 +812,7 @@ class AkhqControllerV3Test {
                                 .build())
                         .build(),
                 AccessControlEntry.builder()
-                        .metadata(Metadata.builder()
+                        .metadata(Resource.Metadata.builder()
                                 .name("acl4")
                                 .cluster("cluster1")
                                 .build())
@@ -784,7 +823,7 @@ class AkhqControllerV3Test {
                                 .build())
                         .build(),
                 AccessControlEntry.builder()
-                        .metadata(Metadata.builder()
+                        .metadata(Resource.Metadata.builder()
                                 .name("acl5")
                                 .cluster("cluster2")
                                 .build())
@@ -795,7 +834,7 @@ class AkhqControllerV3Test {
                                 .build())
                         .build(),
                 AccessControlEntry.builder()
-                        .metadata(Metadata.builder()
+                        .metadata(Resource.Metadata.builder()
                                 .name("acl6")
                                 .cluster("cluster3")
                                 .build())
@@ -839,7 +878,7 @@ class AkhqControllerV3Test {
     @Test
     void shouldGenerateClaimAndOptimizePatternsForSameResourceAcls() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns")
                         .cluster("cluster")
                         .labels(Map.of("support-group", "GP-PROJECT-SUPPORT"))
@@ -849,7 +888,7 @@ class AkhqControllerV3Test {
         List<AccessControlEntry> inputAcls = List.of(
                 // prefixed & literal ACLs on same resource, with literal ACL first in alphanumerical order
                 AccessControlEntry.builder()
-                        .metadata(Metadata.builder()
+                        .metadata(Resource.Metadata.builder()
                                 .name("acl1")
                                 .cluster("cluster")
                                 .build())
@@ -860,7 +899,7 @@ class AkhqControllerV3Test {
                                 .build())
                         .build(),
                 AccessControlEntry.builder()
-                        .metadata(Metadata.builder()
+                        .metadata(Resource.Metadata.builder()
                                 .name("acl2")
                                 .cluster("cluster")
                                 .build())
@@ -872,7 +911,7 @@ class AkhqControllerV3Test {
                         .build(),
                 // prefixed & literal ACLs on same resource, with prefixed ACL first in alphanumerical order
                 AccessControlEntry.builder()
-                        .metadata(Metadata.builder()
+                        .metadata(Resource.Metadata.builder()
                                 .name("aclA")
                                 .cluster("cluster")
                                 .build())
@@ -883,7 +922,7 @@ class AkhqControllerV3Test {
                                 .build())
                         .build(),
                 AccessControlEntry.builder()
-                        .metadata(Metadata.builder()
+                        .metadata(Resource.Metadata.builder()
                                 .name("aclB")
                                 .cluster("cluster")
                                 .build())
@@ -919,7 +958,7 @@ class AkhqControllerV3Test {
     @Test
     void shouldGenerateClaimWithMultipleNamespacesWithSameGroup() {
         Namespace ns1 = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1")
                         .cluster("cluster")
                         .labels(Map.of("support-group", "GP-PROJECT-SUPPORT"))
@@ -927,7 +966,7 @@ class AkhqControllerV3Test {
                 .build();
 
         Namespace ns2 = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns2")
                         .cluster("cluster")
                         .labels(Map.of("support-group", "GP-PROJECT-SUPPORT"))
@@ -935,7 +974,10 @@ class AkhqControllerV3Test {
                 .build();
 
         List<AccessControlEntry> acls1 = List.of(AccessControlEntry.builder()
-                .metadata(Metadata.builder().name("acl1").cluster("cluster").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("acl1")
+                        .cluster("cluster")
+                        .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -945,7 +987,10 @@ class AkhqControllerV3Test {
                 .build());
 
         List<AccessControlEntry> acls2 = List.of(AccessControlEntry.builder()
-                .metadata(Metadata.builder().name("acl2").cluster("cluster").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("acl2")
+                        .cluster("cluster")
+                        .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)

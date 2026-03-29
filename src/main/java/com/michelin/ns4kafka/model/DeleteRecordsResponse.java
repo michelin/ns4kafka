@@ -35,7 +35,7 @@ import lombok.ToString;
 @Data
 @Introspected
 @EqualsAndHashCode(callSuper = true)
-public class DeleteRecordsResponse extends MetadataResource {
+public class DeleteRecordsResponse extends Resource {
     @Valid @NotNull private DeleteRecordsResponseSpec spec;
 
     /**

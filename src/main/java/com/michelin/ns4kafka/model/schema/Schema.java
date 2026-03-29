@@ -20,8 +20,7 @@ package com.michelin.ns4kafka.model.schema;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.SCHEMA;
 
-import com.michelin.ns4kafka.model.Metadata;
-import com.michelin.ns4kafka.model.MetadataResource;
+import com.michelin.ns4kafka.model.Resource;
 import io.micronaut.core.annotation.Introspected;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -39,7 +38,7 @@ import lombok.Setter;
 @Data
 @Introspected
 @EqualsAndHashCode(callSuper = true)
-public class Schema extends MetadataResource {
+public class Schema extends Resource {
     @Valid private SchemaSpec spec;
 
     /**

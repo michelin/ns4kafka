@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
-import com.michelin.ns4kafka.model.Metadata;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.service.AclService;
 import java.util.Collection;
 import java.util.List;
@@ -43,14 +43,14 @@ class AclNonNamespacedControllerTest {
     @Test
     void shouldListAcls() {
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Metadata.builder().namespace("namespace1").build())
+                .metadata(Resource.Metadata.builder().namespace("namespace1").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .grantedTo("namespace1")
                         .build())
                 .build();
 
         AccessControlEntry accessControlEntry2 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().namespace("namespace2").build())
+                .metadata(Resource.Metadata.builder().namespace("namespace2").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .grantedTo("namespace2")
                         .build())

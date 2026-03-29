@@ -25,8 +25,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.michelin.ns4kafka.integration.container.KafkaIntegrationTest;
 import com.michelin.ns4kafka.model.KafkaUserResetPassword;
-import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.Status;
 import com.michelin.ns4kafka.model.quota.ResourceQuota;
 import com.michelin.ns4kafka.service.executor.UserAsyncExecutor;
@@ -67,7 +67,7 @@ class UserIntegrationTest extends KafkaIntegrationTest {
     @BeforeAll
     void init() {
         Namespace ns1 = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1")
                         .cluster("test-cluster")
                         .labels(Map.of("support-group", "LDAP-GROUP-1"))
@@ -80,7 +80,7 @@ class UserIntegrationTest extends KafkaIntegrationTest {
                 .build();
 
         Namespace ns2 = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns2")
                         .cluster("test-cluster")
                         .labels(Map.of("support-group", "LDAP-GROUP-2"))
@@ -114,7 +114,10 @@ class UserIntegrationTest extends KafkaIntegrationTest {
                         .body(ns2));
 
         ResourceQuota rqNs2 = ResourceQuota.builder()
-                .metadata(Metadata.builder().name("rqNs2").namespace("ns2").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("rqNs2")
+                        .namespace("ns2")
+                        .build())
                 .spec(Map.of(
                         ResourceQuota.ResourceQuotaSpecKey.USER_PRODUCER_BYTE_RATE.getKey(), "204800.0",
                         ResourceQuota.ResourceQuotaSpecKey.USER_CONSUMER_BYTE_RATE.getKey(), "409600.0"))
@@ -127,7 +130,7 @@ class UserIntegrationTest extends KafkaIntegrationTest {
                         .body(rqNs2));
 
         Namespace ns3 = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns3")
                         .cluster("test-cluster")
                         .labels(Map.of("support-group", "LDAP-GROUP-3"))
@@ -192,7 +195,10 @@ class UserIntegrationTest extends KafkaIntegrationTest {
     void shouldCheckUpdateQuotas() throws ExecutionException, InterruptedException {
         // Update the namespace user quotas
         ResourceQuota rq3 = ResourceQuota.builder()
-                .metadata(Metadata.builder().name("rqNs3").namespace("ns3").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("rqNs3")
+                        .namespace("ns3")
+                        .build())
                 .spec(Map.of(
                         ResourceQuota.ResourceQuotaSpecKey.USER_PRODUCER_BYTE_RATE.getKey(), "204800.0",
                         ResourceQuota.ResourceQuotaSpecKey.USER_CONSUMER_BYTE_RATE.getKey(), "409600.0"))

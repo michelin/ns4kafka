@@ -27,8 +27,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.model.AuditLog;
-import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.schema.Schema;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.service.NamespaceService;
@@ -838,15 +838,18 @@ class SchemaControllerTest {
 
     private Namespace buildNamespace() {
         return Namespace.builder()
-                .metadata(
-                        Metadata.builder().name("myNamespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("myNamespace")
+                        .cluster("local")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder().build())
                 .build();
     }
 
     private Schema buildSchema() {
         return Schema.builder()
-                .metadata(Metadata.builder().name("prefix.subject-value").build())
+                .metadata(
+                        Resource.Metadata.builder().name("prefix.subject-value").build())
                 .spec(Schema.SchemaSpec.builder()
                         .id(1)
                         .version(1)
@@ -864,7 +867,8 @@ class SchemaControllerTest {
 
     private Schema buildSchemaV2() {
         return Schema.builder()
-                .metadata(Metadata.builder().name("prefix.subject-value").build())
+                .metadata(
+                        Resource.Metadata.builder().name("prefix.subject-value").build())
                 .spec(Schema.SchemaSpec.builder()
                         .id(1)
                         .version(2)
@@ -883,13 +887,16 @@ class SchemaControllerTest {
 
     private Schema buildSchemaNameOnly() {
         return Schema.builder()
-                .metadata(Metadata.builder().name("prefix.subject-value").build())
+                .metadata(
+                        Resource.Metadata.builder().name("prefix.subject-value").build())
                 .build();
     }
 
     private Schema buildSchemaNameOnly2() {
         return Schema.builder()
-                .metadata(Metadata.builder().name("prefix.subject2-value").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("prefix.subject2-value")
+                        .build())
                 .build();
     }
 }

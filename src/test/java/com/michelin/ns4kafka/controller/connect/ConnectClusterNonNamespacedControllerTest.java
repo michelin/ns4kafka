@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.when;
 
-import com.michelin.ns4kafka.model.Metadata;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.connect.ConnectCluster;
 import com.michelin.ns4kafka.service.ConnectClusterService;
 import java.util.List;
@@ -45,7 +45,7 @@ class ConnectClusterNonNamespacedControllerTest {
     @Test
     void shouldListAll() {
         ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(Metadata.builder().name("connect-cluster").build())
+                .metadata(Resource.Metadata.builder().name("connect-cluster").build())
                 .build();
 
         when(connectClusterService.findAll(anyBoolean(), anyBoolean()))

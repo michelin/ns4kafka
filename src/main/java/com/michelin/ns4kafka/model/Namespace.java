@@ -38,7 +38,7 @@ import lombok.NoArgsConstructor;
 @Data
 @Introspected
 @EqualsAndHashCode(callSuper = true)
-public class Namespace extends MetadataResource {
+public class Namespace extends Resource {
     @Valid @NotNull private NamespaceSpec spec;
 
     /**

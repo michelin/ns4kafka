@@ -28,9 +28,9 @@ import com.michelin.ns4kafka.model.AccessControlEntry.AccessControlEntrySpec;
 import com.michelin.ns4kafka.model.AccessControlEntry.Permission;
 import com.michelin.ns4kafka.model.AccessControlEntry.ResourcePatternType;
 import com.michelin.ns4kafka.model.AccessControlEntry.ResourceType;
-import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Namespace.NamespaceSpec;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.RoleBinding;
 import com.michelin.ns4kafka.model.RoleBinding.Role;
 import com.michelin.ns4kafka.model.RoleBinding.RoleBindingSpec;
@@ -68,7 +68,10 @@ class ConnectClusterIntegrationTest extends KafkaConnectIntegrationTest {
     @BeforeAll
     void init() {
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder().name("ns1").cluster("test-cluster").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1")
+                        .cluster("test-cluster")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .kafkaUser("user1")
                         .connectClusters(List.of("test-connect"))
@@ -82,7 +85,10 @@ class ConnectClusterIntegrationTest extends KafkaConnectIntegrationTest {
                 .build();
 
         RoleBinding roleBinding = RoleBinding.builder()
-                .metadata(Metadata.builder().name("ns1-rb").namespace("ns1").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-rb")
+                        .namespace("ns1")
+                        .build())
                 .spec(RoleBindingSpec.builder()
                         .role(Role.builder()
                                 .resourceTypes(List.of(
@@ -118,7 +124,10 @@ class ConnectClusterIntegrationTest extends KafkaConnectIntegrationTest {
                         .body(roleBinding));
 
         AccessControlEntry aclConnect = AccessControlEntry.builder()
-                .metadata(Metadata.builder().name("ns1-acl").namespace("ns1").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-acl")
+                        .namespace("ns1")
+                        .build())
                 .spec(AccessControlEntrySpec.builder()
                         .resourceType(ResourceType.CONNECT)
                         .resource("ns1-")
@@ -135,7 +144,10 @@ class ConnectClusterIntegrationTest extends KafkaConnectIntegrationTest {
                         .body(aclConnect));
 
         AccessControlEntry aclConnectCluster = AccessControlEntry.builder()
-                .metadata(Metadata.builder().name("ns1-acl-cc").namespace("ns1").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-acl-cc")
+                        .namespace("ns1")
+                        .build())
                 .spec(AccessControlEntrySpec.builder()
                         .resourceType(ResourceType.CONNECT_CLUSTER)
                         .resource("ns1-")
@@ -152,7 +164,7 @@ class ConnectClusterIntegrationTest extends KafkaConnectIntegrationTest {
                         .body(aclConnectCluster));
 
         AccessControlEntry aclTopic = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-acl-topic")
                         .namespace("ns1")
                         .build())
@@ -175,7 +187,7 @@ class ConnectClusterIntegrationTest extends KafkaConnectIntegrationTest {
     @Test
     void shouldCreateConnectCluster() {
         ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-connectCluster")
                         .namespace("ns1")
                         .build())

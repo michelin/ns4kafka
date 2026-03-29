@@ -30,9 +30,9 @@ import com.michelin.ns4kafka.model.AccessControlEntry.AccessControlEntrySpec;
 import com.michelin.ns4kafka.model.AccessControlEntry.Permission;
 import com.michelin.ns4kafka.model.AccessControlEntry.ResourcePatternType;
 import com.michelin.ns4kafka.model.AccessControlEntry.ResourceType;
-import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Namespace.NamespaceSpec;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.RoleBinding;
 import com.michelin.ns4kafka.model.RoleBinding.Role;
 import com.michelin.ns4kafka.model.RoleBinding.RoleBindingSpec;
@@ -96,7 +96,10 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
         connectClient = applicationContext.createBean(HttpClient.class, getConnectUrl());
 
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder().name("ns1").cluster("test-cluster").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1")
+                        .cluster("test-cluster")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .kafkaUser("user1")
                         .connectClusters(List.of("test-connect"))
@@ -110,7 +113,10 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
                 .build();
 
         RoleBinding roleBinding = RoleBinding.builder()
-                .metadata(Metadata.builder().name("ns1-rb").namespace("ns1").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-rb")
+                        .namespace("ns1")
+                        .build())
                 .spec(RoleBindingSpec.builder()
                         .role(Role.builder()
                                 .resourceTypes(List.of("topics", "acls"))
@@ -143,7 +149,10 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
                         .body(roleBinding));
 
         AccessControlEntry aclConnect = AccessControlEntry.builder()
-                .metadata(Metadata.builder().name("ns1-acl").namespace("ns1").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-acl")
+                        .namespace("ns1")
+                        .build())
                 .spec(AccessControlEntrySpec.builder()
                         .resourceType(ResourceType.CONNECT)
                         .resource("ns1-")
@@ -160,7 +169,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
                         .body(aclConnect));
 
         AccessControlEntry aclTopic = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-acl-topic")
                         .namespace("ns1")
                         .build())
@@ -190,7 +199,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
     @Test
     void shouldCreateNamespaceWithoutConnect() {
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns-without-connect")
                         .cluster("test-cluster")
                         .build())
@@ -216,7 +225,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
         connectorSpecs.put("file", null);
 
         Connector connectorWithNullParameter = Connector.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-connector-with-null-parameter")
                         .namespace("ns1")
                         .build())
@@ -227,7 +236,10 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
                 .build();
 
         Topic topic = Topic.builder()
-                .metadata(Metadata.builder().name("ns1-topic1").namespace("ns1").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-topic1")
+                        .namespace("ns1")
+                        .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(3)
                         .replicationFactor(1)
@@ -251,7 +263,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
                         .body(connectorWithNullParameter));
 
         Connector connectorWithEmptyParameter = Connector.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-connector-with-empty-parameter")
                         .namespace("ns1")
                         .build())
@@ -272,7 +284,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
                         .body(connectorWithEmptyParameter));
 
         Connector connectorWithFillParameter = Connector.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-connector-with-fill-parameter")
                         .namespace("ns1")
                         .build())
@@ -366,7 +378,10 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
         assertEquals("test", connectorInfo.getBody().get().config().get("file"));
 
         Topic topic = Topic.builder()
-                .metadata(Metadata.builder().name("ns1-topic2").namespace("ns1").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-topic2")
+                        .namespace("ns1")
+                        .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(3)
                         .replicationFactor(1)
@@ -384,7 +399,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
         topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
 
         Connector updateConnector = Connector.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-connector-update-null-props")
                         .namespace("ns1")
                         .build())
@@ -414,7 +429,10 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
     @Test
     void shouldRestartConnector() throws InterruptedException {
         Topic topic = Topic.builder()
-                .metadata(Metadata.builder().name("ns1-topic3").namespace("ns1").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-topic3")
+                        .namespace("ns1")
+                        .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(3)
                         .replicationFactor(1)
@@ -426,7 +444,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
                 .build();
 
         Connector connector = Connector.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-connector-restart")
                         .namespace("ns1")
                         .build())
@@ -462,7 +480,9 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
         assertEquals("RUNNING", actual.connector().getState());
 
         ChangeConnectorState restartState = ChangeConnectorState.builder()
-                .metadata(Metadata.builder().name("ns1-connector-restart").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-connector-restart")
+                        .build())
                 .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
                         .action(ChangeConnectorState.ConnectorAction.RESTART)
                         .build())
@@ -492,7 +512,10 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
     @Test
     void shouldPauseAndResumeConnector() throws InterruptedException {
         Topic topic = Topic.builder()
-                .metadata(Metadata.builder().name("ns1-topic4").namespace("ns1").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-topic4")
+                        .namespace("ns1")
+                        .build())
                 .spec(Topic.TopicSpec.builder()
                         .partitions(3)
                         .replicationFactor(1)
@@ -502,7 +525,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
                 .build();
 
         Connector connector = Connector.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-connector-pause-resume")
                         .namespace("ns1")
                         .build())
@@ -539,7 +562,9 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
 
         // Pause the connector
         ChangeConnectorState pauseState = ChangeConnectorState.builder()
-                .metadata(Metadata.builder().name("ns1-connector-pause-resume").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-connector-pause-resume")
+                        .build())
                 .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
                         .action(ChangeConnectorState.ConnectorAction.PAUSE)
                         .build())
@@ -565,7 +590,9 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
 
         // Resume the connector
         ChangeConnectorState resumeState = ChangeConnectorState.builder()
-                .metadata(Metadata.builder().name("ns1-connector-pause-resume").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-connector-pause-resume")
+                        .build())
                 .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
                         .action(ChangeConnectorState.ConnectorAction.RESUME)
                         .build())
