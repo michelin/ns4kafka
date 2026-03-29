@@ -826,6 +826,33 @@ class TopicServiceTest {
     }
 
     @Test
+    void shouldDeleteMultipleTopics() throws ExecutionException, InterruptedException, TimeoutException {
+        Topic topic1 = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns-topic1")
+                        .cluster("cluster")
+                        .build())
+                .build();
+
+        Topic topic2 = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns-topic2")
+                        .cluster("cluster")
+                        .build())
+                .build();
+
+        List<Topic> topics = List.of(topic1, topic2);
+
+        when(applicationContext.getBean(eq(TopicAsyncExecutor.class), any())).thenReturn(topicAsyncExecutor);
+
+        topicService.deleteTopics(topics);
+
+        verify(topicAsyncExecutor).deleteTopics(topics);
+        verify(topicRepository).delete(topic1);
+        verify(topicRepository).delete(topic2);
+    }
+
+    @Test
     void shouldListUnsynchronizedTopicNames() throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
