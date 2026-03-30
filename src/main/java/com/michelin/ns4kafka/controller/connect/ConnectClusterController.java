@@ -56,6 +56,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -244,8 +245,13 @@ public class ConnectClusterController extends NamespacedResourceController {
         Namespace ns = getNamespace(namespace);
 
         List<ConnectCluster> connectClusters = connectClusterService.findByWildcardNameWithOwnerPermission(ns, name);
+
+        if (connectClusters.isEmpty()) {
+            return Mono.just(HttpResponse.notFound());
+        }
+
         Map<String, List<Connector>> connectorsByConnectCluster = connectClusters.stream()
-                .collect(java.util.stream.Collectors.toMap(
+                .collect(Collectors.toMap(
                         cc -> cc.getMetadata().getName(),
                         cc -> connectorService.findAllByConnectCluster(ns, cc.getMetadata().getName())));
 
@@ -261,10 +267,6 @@ public class ConnectClusterController extends NamespacedResourceController {
 
         if (!validationErrors.isEmpty()) {
             return Mono.error(new ResourceValidationException(CONNECT_CLUSTER, name, validationErrors));
-        }
-
-        if (connectClusters.isEmpty()) {
-            return Mono.just(HttpResponse.notFound());
         }
 
         if (dryrun) {
