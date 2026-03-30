@@ -54,6 +54,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -243,11 +244,15 @@ public class ConnectClusterController extends NamespacedResourceController {
         Namespace ns = getNamespace(namespace);
 
         List<ConnectCluster> connectClusters = connectClusterService.findByWildcardNameWithOwnerPermission(ns, name);
+        Map<String, List<Connector>> connectorsByConnectCluster = connectClusters.stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        cc -> cc.getMetadata().getName(),
+                        cc -> connectorService.findAllByConnectCluster(ns, cc.getMetadata().getName())));
 
         List<String> validationErrors = new ArrayList<>();
         connectClusters.forEach(cc -> {
-            List<Connector> connectors = connectorService.findAllByConnectCluster(
-                    ns, cc.getMetadata().getName());
+            List<Connector> connectors =
+                    connectorsByConnectCluster.getOrDefault(cc.getMetadata().getName(), List.of());
             if (!connectors.isEmpty() && !force && !cascade) {
                 validationErrors.add(
                         invalidConnectClusterDeleteOperation(cc.getMetadata().getName(), connectors));
@@ -268,33 +273,30 @@ public class ConnectClusterController extends NamespacedResourceController {
 
         return Flux.fromIterable(connectClusters)
                 .flatMap(cc -> {
-                    List<Connector> connectors = connectorService.findAllByConnectCluster(
-                            ns, cc.getMetadata().getName());
+                    List<Connector> connectors =
+                            connectorsByConnectCluster.getOrDefault(cc.getMetadata().getName(), List.of());
 
-                    Mono<Void> deleteConnectorsMono = Mono.empty();
-                    if (cascade && !connectors.isEmpty()) {
-                        deleteConnectorsMono = Flux.fromIterable(connectors)
-                                .flatMap(connector -> connectorService
-                                        .delete(ns, connector, force)
-                                        .doOnSuccess(_ -> sendEventLog(
-                                                connector,
-                                                ApplyStatus.DELETED,
-                                                connector.getSpec(),
-                                                null,
-                                                EMPTY_STRING)))
-                                .onErrorMap(
-                                        error -> new HttpStatusException(
-                                                HttpStatus.BAD_GATEWAY,
-                                                "Failed to delete connectors from Connect cluster [%s]: %s. "
-                                                                .formatted(
-                                                                        cc.getMetadata()
-                                                                                .getName(),
-                                                                        error.getMessage())
-                                                        + "Please use cascade and force option to bypass the error and remove from Ns4kafka"))
-                                .then();
-                    }
-
-                    return deleteConnectorsMono.then(Mono.fromRunnable(() -> {
+                    return (cascade
+                                    ? Flux.fromIterable(connectors)
+                                            .flatMap(connector -> connectorService
+                                                    .delete(ns, connector, force)
+                                                    .doOnSuccess(_ -> sendEventLog(
+                                                            connector,
+                                                            ApplyStatus.DELETED,
+                                                            connector.getSpec(),
+                                                            null,
+                                                            EMPTY_STRING)))
+                                            .onErrorMap(
+                                                    error -> new HttpStatusException(
+                                                            HttpStatus.BAD_GATEWAY,
+                                                            "Failed to delete connectors from Connect cluster [%s]: %s. "
+                                                                            .formatted(
+                                                                                    cc.getMetadata()
+                                                                                            .getName(),
+                                                                                    error.getMessage())
+                                                                    + "Please use cascade and force option to bypass the error and remove from Ns4kafka"))
+                                    : Flux.empty())
+                            .then(Mono.fromRunnable(() -> {
                         sendEventLog(cc, ApplyStatus.DELETED, cc.getSpec(), null, EMPTY_STRING);
                         connectClusterService.delete(cc);
                     }));
