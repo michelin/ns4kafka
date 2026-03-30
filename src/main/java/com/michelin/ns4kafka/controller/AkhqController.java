@@ -286,12 +286,13 @@ public class AkhqController {
                         // Split the namespace groups by the groupDelimiter to support multiple groups and compare with
                         // the user groups
                         && !Collections.disjoint(
-                                groups,
+                                groups.stream().map(String::toLowerCase).toList(),
                                 List.of(namespace
                                         .getMetadata()
                                         .getLabels()
                                         .getOrDefault(
                                                 ns4KafkaProperties.getAkhq().getGroupLabel(), "_")
+                                        .toLowerCase()
                                         .split(ns4KafkaProperties.getAkhq().getGroupDelimiter()))))
                 .flatMap(namespace -> aclService.findAllGrantedToNamespace(namespace).stream())
                 .collect(Collectors.toList());
