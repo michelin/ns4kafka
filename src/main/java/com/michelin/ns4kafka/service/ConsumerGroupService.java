@@ -24,6 +24,7 @@ import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidConsumerGroupOf
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidConsumerGroupOffsetNegative;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidConsumerGroupShiftBy;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidConsumerGroupTopic;
+import static java.util.Comparator.comparing;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Metadata;
@@ -32,6 +33,7 @@ import com.michelin.ns4kafka.model.consumer.group.ConsumerGroup;
 import com.michelin.ns4kafka.model.consumer.group.ConsumerGroupResetOffsets;
 import com.michelin.ns4kafka.model.consumer.group.ConsumerGroupResetOffsets.ResetOffsetsMethod;
 import com.michelin.ns4kafka.service.executor.ConsumerGroupAsyncExecutor;
+import com.michelin.ns4kafka.util.RegexUtils;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
 import jakarta.inject.Singleton;
@@ -43,6 +45,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.ConsumerGroupDescription;
@@ -76,40 +79,34 @@ public class ConsumerGroupService {
      */
     public List<ConsumerGroup> findAllForNamespace(Namespace namespace)
             throws ExecutionException, InterruptedException {
-        ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor = applicationContext.getBean(
-                ConsumerGroupAsyncExecutor.class,
-                Qualifiers.byName(namespace.getMetadata().getCluster()));
+        return findConsumerGroups(namespace, _ -> true);
+    }
 
-        List<String> allGroupIds = consumerGroupAsyncExecutor.listConsumerGroupIds();
+    /**
+     * Find all consumer groups owned by a given namespace, filtered by name parameter.
+     *
+     * @param namespace The namespace
+     * @param name The name filter
+     * @return A list of consumer groups
+     * @throws ExecutionException Any execution exception during consumer groups listing
+     * @throws InterruptedException Any interrupted exception during consumer groups listing
+     */
+    public List<ConsumerGroup> findByWildcardName(Namespace namespace, String name)
+            throws ExecutionException, InterruptedException {
+        List<String> nameFilterPatterns = RegexUtils.convertWildcardStringsToRegex(List.of(name));
+        return findConsumerGroups(
+                namespace, groupId -> RegexUtils.isResourceCoveredByRegex(groupId, nameFilterPatterns));
+    }
 
-        List<String> consumerGroupIds = allGroupIds.stream()
-                .filter(groupId -> isNamespaceOwnerOfConsumerGroup(namespace, groupId))
-                .sorted()
-                .toList();
-
-        if (consumerGroupIds.isEmpty()) {
-            return List.of();
-        }
-
-        Map<String, ConsumerGroupDescription> descriptions =
-                consumerGroupAsyncExecutor.describeConsumerGroups(consumerGroupIds);
-
-        List<ConsumerGroup> consumerGroups = new ArrayList<>();
-        for (String groupId : consumerGroupIds) {
-            Map<TopicPartition, Long> committedOffsets;
-            try {
-                committedOffsets = consumerGroupAsyncExecutor.getCommittedOffsets(groupId);
-            } catch (ExecutionException _) {
-                committedOffsets = Map.of();
-            } catch (InterruptedException _) {
-                Thread.currentThread().interrupt();
-                committedOffsets = Map.of();
-            }
-
-            consumerGroups.add(buildConsumerGroup(namespace, groupId, descriptions.get(groupId), committedOffsets));
-        }
-
-        return consumerGroups;
+    /**
+     * Check if a given namespace is owner of a given group.
+     *
+     * @param namespace The namespace
+     * @param groupId The group
+     * @return true if it is, false otherwise
+     */
+    public boolean isNamespaceOwnerOfConsumerGroup(String namespace, String groupId) {
+        return aclService.isNamespaceOwnerOfResource(namespace, AccessControlEntry.ResourceType.GROUP, groupId);
     }
 
     /**
@@ -351,17 +348,56 @@ public class ConsumerGroupService {
                 .status(ConsumerGroup.ConsumerGroupStatus.builder()
                         .state(description == null ? GroupState.UNKNOWN : description.groupState())
                         .offsets(committedOffsets.entrySet().stream()
-                                .sorted(Map.Entry.<TopicPartition, Long>comparingByKey(
-                                                java.util.Comparator.comparing(TopicPartition::topic)
-                                                        .thenComparingInt(TopicPartition::partition))
-                                        .thenComparing(Map.Entry.comparingByValue()))
                                 .map(entry -> ConsumerGroup.ConsumerGroupOffset.builder()
                                         .topic(entry.getKey().topic())
                                         .partition(entry.getKey().partition())
                                         .currentOffset(entry.getValue())
                                         .build())
+                                .sorted(comparing(ConsumerGroup.ConsumerGroupOffset::getTopic)
+                                        .thenComparingInt(ConsumerGroup.ConsumerGroupOffset::getPartition))
                                 .toList())
                         .build())
                 .build();
+    }
+
+    private List<ConsumerGroup> findConsumerGroups(Namespace namespace, Predicate<String> groupIdFilter)
+            throws ExecutionException, InterruptedException {
+        ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor = applicationContext.getBean(
+                ConsumerGroupAsyncExecutor.class,
+                Qualifiers.byName(namespace.getMetadata().getCluster()));
+
+        List<String> consumerGroupIds = consumerGroupAsyncExecutor.listConsumerGroupIds().stream()
+                .filter(groupId -> isNamespaceOwnerOfConsumerGroup(namespace, groupId))
+                .filter(groupIdFilter)
+                .sorted()
+                .toList();
+
+        if (consumerGroupIds.isEmpty()) {
+            return List.of();
+        }
+
+        Map<String, ConsumerGroupDescription> descriptions =
+                consumerGroupAsyncExecutor.describeConsumerGroups(consumerGroupIds);
+
+        boolean includeOffsets = consumerGroupIds.size() == 1;
+        return consumerGroupIds.stream()
+                .map(groupId -> buildConsumerGroup(
+                        namespace,
+                        groupId,
+                        descriptions.get(groupId),
+                        includeOffsets ? getCommittedOffsetsSafely(consumerGroupAsyncExecutor, groupId) : Map.of()))
+                .toList();
+    }
+
+    private Map<TopicPartition, Long> getCommittedOffsetsSafely(
+            ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor, String groupId) {
+        try {
+            return consumerGroupAsyncExecutor.getCommittedOffsets(groupId);
+        } catch (ExecutionException _) {
+            return Map.of();
+        } catch (InterruptedException _) {
+            Thread.currentThread().interrupt();
+            return Map.of();
+        }
     }
 }

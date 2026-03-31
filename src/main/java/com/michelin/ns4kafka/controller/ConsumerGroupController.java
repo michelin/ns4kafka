@@ -77,16 +77,18 @@ public class ConsumerGroupController extends NamespacedResourceController {
     }
 
     /**
-     * List consumer groups owned by the namespace.
+     * List consumer groups owned by the namespace, filtered by name parameter.
      *
      * @param namespace The namespace
+     * @param name The name parameter
      * @return The list of consumer groups
      * @throws ExecutionException Any execution exception
      * @throws InterruptedException Any interrupted exception
      */
     @Get
-    public List<ConsumerGroup> list(String namespace) throws ExecutionException, InterruptedException {
-        return consumerGroupService.findAllForNamespace(getNamespace(namespace));
+    public List<ConsumerGroup> list(String namespace, @QueryValue(defaultValue = "*") String name)
+            throws ExecutionException, InterruptedException {
+        return consumerGroupService.findByWildcardName(getNamespace(namespace), name);
     }
 
     /**
@@ -109,7 +111,7 @@ public class ConsumerGroupController extends NamespacedResourceController {
 
         List<String> validationErrors = consumerGroupService.validateResetOffsets(consumerGroupResetOffsets);
 
-        if (!consumerGroupService.isNamespaceOwnerOfConsumerGroup(ns, consumerGroup)) {
+        if (!consumerGroupService.isNamespaceOwnerOfConsumerGroup(namespace, consumerGroup)) {
             validationErrors.add(invalidOwner("group", consumerGroup));
         }
 
@@ -192,7 +194,7 @@ public class ConsumerGroupController extends NamespacedResourceController {
             throws ExecutionException, InterruptedException {
         Namespace ns = getNamespace(namespace);
 
-        if (!consumerGroupService.isNamespaceOwnerOfConsumerGroup(ns, consumerGroup)) {
+        if (!consumerGroupService.isNamespaceOwnerOfConsumerGroup(namespace, consumerGroup)) {
             throw new ResourceValidationException(CONSUMER_GROUP, consumerGroup, invalidOwner("group", consumerGroup));
         }
 
