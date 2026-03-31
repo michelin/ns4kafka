@@ -134,6 +134,144 @@ class ConnectorControllerTest {
         assertEquals(List.of(connector), connectorController.list("test", "connect1"));
     }
 
+    void shouldGetConnectorWhenEmpty() {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(connectorService.findByName(ns, "missing")).thenReturn(Optional.empty());
+
+        Optional<Connector> actual = connectorController.get("test", "missing");
+        assertTrue(actual.isEmpty());
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    void shouldGetConnector() {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(connectorService.findByName(ns, "connect1"))
+                .thenReturn(Optional.of(Connector.builder()
+                        .metadata(Resource.Metadata.builder().name("connect1").build())
+                        .build()));
+
+        Optional<Connector> actual = connectorController.get("test", "connect1");
+        assertTrue(actual.isPresent());
+        assertEquals("connect1", actual.get().getMetadata().getName());
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    void shouldNotDeleteConnectorWhenNotOwned() {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1")).thenReturn(false);
+
+        StepVerifier.create(connectorController.delete("test", "connect1", false))
+                .consumeErrorWith(error -> {
+                    assertEquals(ResourceValidationException.class, error.getClass());
+                    assertEquals(
+                            1,
+                            ((ResourceValidationException) error)
+                                    .getValidationErrors()
+                                    .size());
+                    assertEquals(
+                            "Invalid value \"connect1\" for field \"name\": namespace is not owner of the resource.",
+                            ((ResourceValidationException) error)
+                                    .getValidationErrors()
+                                    .getFirst());
+                })
+                .verify();
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    void shouldDeleteConnector() {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Connector connector = Connector.builder()
+                .metadata(Resource.Metadata.builder().name("connect1").build())
+                .build();
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1")).thenReturn(true);
+        when(connectorService.findByName(ns, "connect1")).thenReturn(Optional.of(connector));
+        when(connectorService.delete(ns, connector, false)).thenReturn(Mono.just(HttpResponse.noContent()));
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
+        doNothing().when(applicationEventPublisher).publishEvent(any());
+
+        StepVerifier.create(connectorController.delete("test", "connect1", false))
+                .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
+                .verifyComplete();
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    void shouldDeleteConnectorInDryRunMode() {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Connector connector = Connector.builder()
+                .metadata(Resource.Metadata.builder().name("connect1").build())
+                .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(connectorService.findByName(ns, "connect1")).thenReturn(Optional.of(connector));
+        when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1")).thenReturn(true);
+
+        StepVerifier.create(connectorController.delete("test", "connect1", true))
+                .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
+                .verifyComplete();
+
+        verify(connectorService, never()).delete(any(), any(), anyBoolean());
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    void shouldNotDeleteConnectorWhenNotFound() {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(connectorService.findByName(ns, "connect1")).thenReturn(Optional.empty());
+        when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1")).thenReturn(true);
+
+        StepVerifier.create(connectorController.delete("test", "connect1", true))
+                .consumeNextWith(response -> assertEquals(HttpStatus.NOT_FOUND, response.getStatus()))
+                .verifyComplete();
+
+        verify(connectorService, never()).delete(any(), any(), anyBoolean());
+    }
+
     @Test
     void shouldDeleteConnectors() {
         Namespace ns = Namespace.builder()
@@ -163,6 +301,39 @@ class ConnectorControllerTest {
         StepVerifier.create(connectorController.delete("test", "connect*", false, false))
                 .consumeNextWith(response -> assertEquals(HttpStatus.OK, response.getStatus()))
                 .verifyComplete();
+    }
+
+    @Test
+    void shouldForceDeleteConnectors() {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Connector connector1 = Connector.builder()
+                .metadata(Resource.Metadata.builder().name("connect1").build())
+                .build();
+        Connector connector2 = Connector.builder()
+                .metadata(Resource.Metadata.builder().name("connect2").build())
+                .build();
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1")).thenReturn(true);
+        when(connectorService.isNamespaceOwnerOfConnect(ns, "connect2")).thenReturn(true);
+        when(connectorService.findByWildcardName(ns, "connect*")).thenReturn(List.of(connector1, connector2));
+        when(connectorService.delete(ns, connector1, true)).thenReturn(Mono.just(HttpResponse.noContent()));
+        when(connectorService.delete(ns, connector2, true)).thenReturn(Mono.just(HttpResponse.noContent()));
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
+        doNothing().when(applicationEventPublisher).publishEvent(any());
+
+        StepVerifier.create(connectorController.delete("test", "connect*", false, true))
+                .consumeNextWith(response -> assertEquals(HttpStatus.OK, response.getStatus()))
+                .verifyComplete();
+
+        verify(connectorService).delete(ns, connector1, true);
+        verify(connectorService).delete(ns, connector2, true);
     }
 
     @Test
