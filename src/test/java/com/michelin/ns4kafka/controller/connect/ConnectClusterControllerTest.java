@@ -465,18 +465,18 @@ class ConnectClusterControllerTest {
     @Test
     void shouldCascadeDeleteConnectClustersWithConnectors() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder().name("test").cluster("local").build())
                 .build();
 
         Connector connector = Connector.builder()
-                .metadata(Metadata.builder().name("connect1").build())
+                .metadata(Resource.Metadata.builder().name("connect1").build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("connect-cluster")
                         .build())
                 .build();
 
         ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(Metadata.builder().name("connect-cluster").build())
+                .metadata(Resource.Metadata.builder().name("connect-cluster").build())
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
@@ -500,18 +500,18 @@ class ConnectClusterControllerTest {
     @Test
     void shouldCascadeDeleteFailWhenConnectUnreachable() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder().name("test").cluster("local").build())
                 .build();
 
         Connector connector = Connector.builder()
-                .metadata(Metadata.builder().name("connect1").build())
+                .metadata(Resource.Metadata.builder().name("connect1").build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("connect-cluster")
                         .build())
                 .build();
 
         ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(Metadata.builder().name("connect-cluster").build())
+                .metadata(Resource.Metadata.builder().name("connect-cluster").build())
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
@@ -537,18 +537,18 @@ class ConnectClusterControllerTest {
     @Test
     void shouldCascadeForceDeleteWhenConnectUnreachable() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder().name("test").cluster("local").build())
                 .build();
 
         Connector connector = Connector.builder()
-                .metadata(Metadata.builder().name("connect1").build())
+                .metadata(Resource.Metadata.builder().name("connect1").build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("connect-cluster")
                         .build())
                 .build();
 
         ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(Metadata.builder().name("connect-cluster").build())
+                .metadata(Resource.Metadata.builder().name("connect-cluster").build())
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
