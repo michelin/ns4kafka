@@ -127,15 +127,7 @@ public class ApiResourcesController {
     @Get
     public List<ResourceDefinition> list(@Nullable AuthenticationInfo authentication) {
         List<ResourceDefinition> all = List.of(
-                ACL,
-                CONNECTOR,
-                KSTREAM,
-                ROLE_BINDING,
-                RESOURCE_QUOTA,
-                CONNECT_CLUSTER,
-                TOPIC,
-                NAMESPACE,
-                SCHEMA);
+                ACL, CONNECTOR, KSTREAM, ROLE_BINDING, RESOURCE_QUOTA, CONNECT_CLUSTER, TOPIC, NAMESPACE, SCHEMA);
 
         if (authentication == null) {
             return all; // Backward compatibility for cli <= 1.3.0
