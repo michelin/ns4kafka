@@ -25,7 +25,7 @@ import static com.michelin.ns4kafka.util.config.ConnectorConfig.CONNECTOR_CLASS;
 
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.Nulls;
-import com.michelin.ns4kafka.model.connector.Connector;
+import com.michelin.ns4kafka.model.connect.Connector;
 import io.micronaut.core.util.StringUtils;
 import java.util.ArrayList;
 import java.util.HashMap;

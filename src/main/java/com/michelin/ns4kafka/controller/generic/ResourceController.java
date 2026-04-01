@@ -21,7 +21,7 @@ package com.michelin.ns4kafka.controller.generic;
 import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 
 import com.michelin.ns4kafka.model.AuditLog;
-import com.michelin.ns4kafka.model.MetadataResource;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.util.enumation.ApplyStatus;
 import io.micronaut.context.event.ApplicationEventPublisher;
@@ -68,8 +68,7 @@ public abstract class ResourceController {
      * @param before the resource before the operation
      * @param after the resource after the operation
      */
-    public void sendEventLog(
-            MetadataResource resource, ApplyStatus operation, Object before, Object after, String version) {
+    public void sendEventLog(Resource resource, ApplyStatus operation, Object before, Object after, String version) {
         AuditLog auditLog = new AuditLog(
                 securityService.username().orElse(EMPTY_STRING),
                 securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN),

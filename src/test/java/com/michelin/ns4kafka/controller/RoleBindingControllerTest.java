@@ -26,8 +26,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.model.AuditLog;
-import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.RoleBinding;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.service.NamespaceService;
@@ -65,11 +65,14 @@ class RoleBindingControllerTest {
     @Test
     void shouldCreateRoleBinding() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         RoleBinding rolebinding = RoleBinding.builder()
-                .metadata(Metadata.builder().name("test.rolebinding").build())
+                .metadata(Resource.Metadata.builder().name("test.rolebinding").build())
                 .build();
 
         when(namespaceService.findByName(any())).thenReturn(Optional.of(ns));
@@ -86,11 +89,14 @@ class RoleBindingControllerTest {
     @Test
     void shouldNotCreateRoleBindingWhenAlreadyExists() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         RoleBinding rolebinding = RoleBinding.builder()
-                .metadata(Metadata.builder().name("test.rolebinding").build())
+                .metadata(Resource.Metadata.builder().name("test.rolebinding").build())
                 .build();
 
         when(namespaceService.findByName(any())).thenReturn(Optional.of(ns));
@@ -106,15 +112,18 @@ class RoleBindingControllerTest {
     @Test
     void shouldChangeRoleBinding() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         RoleBinding rolebinding = RoleBinding.builder()
-                .metadata(Metadata.builder().name("test.rolebinding").build())
+                .metadata(Resource.Metadata.builder().name("test.rolebinding").build())
                 .build();
 
         RoleBinding rolebindingOld = RoleBinding.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("test.rolebinding")
                         .labels(Map.of("old", "label"))
                         .build())
@@ -135,11 +144,14 @@ class RoleBindingControllerTest {
     @Test
     void shouldCreateRoleBindingInDryRunMode() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         RoleBinding rolebinding = RoleBinding.builder()
-                .metadata(Metadata.builder().name("test.rolebinding").build())
+                .metadata(Resource.Metadata.builder().name("test.rolebinding").build())
                 .build();
 
         when(namespaceService.findByName(any())).thenReturn(Optional.of(ns));
@@ -152,10 +164,10 @@ class RoleBindingControllerTest {
     @Test
     void shouldDeleteRoleBindings() {
         RoleBinding rolebinding1 = RoleBinding.builder()
-                .metadata(Metadata.builder().name("test.rolebinding1").build())
+                .metadata(Resource.Metadata.builder().name("test.rolebinding1").build())
                 .build();
         RoleBinding rolebinding2 = RoleBinding.builder()
-                .metadata(Metadata.builder().name("test.rolebinding2").build())
+                .metadata(Resource.Metadata.builder().name("test.rolebinding2").build())
                 .build();
 
         when(roleBindingService.findByWildcardName(any(), any())).thenReturn(List.of(rolebinding1, rolebinding2));
@@ -170,11 +182,11 @@ class RoleBindingControllerTest {
     @Test
     void shouldNotDeleteRoleBindingsInDryRunMode() {
         RoleBinding rolebinding1 = RoleBinding.builder()
-                .metadata(Metadata.builder().name("test.rolebinding1").build())
+                .metadata(Resource.Metadata.builder().name("test.rolebinding1").build())
                 .build();
 
         RoleBinding rolebinding2 = RoleBinding.builder()
-                .metadata(Metadata.builder().name("test.rolebinding2").build())
+                .metadata(Resource.Metadata.builder().name("test.rolebinding2").build())
                 .build();
 
         when(roleBindingService.findByWildcardName(any(), any())).thenReturn(List.of(rolebinding1, rolebinding2));
@@ -196,7 +208,7 @@ class RoleBindingControllerTest {
     @Test
     void shouldListRoleBindingsWithNameParameter() {
         RoleBinding rb1 = RoleBinding.builder()
-                .metadata(Metadata.builder().name("namespace-rb1").build())
+                .metadata(Resource.Metadata.builder().name("namespace-rb1").build())
                 .build();
 
         when(roleBindingService.findByWildcardName("test", "namespace-rb1")).thenReturn(List.of(rb1));
@@ -207,11 +219,11 @@ class RoleBindingControllerTest {
     @Test
     void shouldListRoleBindingsWithEmptyNameParameter() {
         RoleBinding rb1 = RoleBinding.builder()
-                .metadata(Metadata.builder().name("namespace-rb1").build())
+                .metadata(Resource.Metadata.builder().name("namespace-rb1").build())
                 .build();
 
         RoleBinding rb2 = RoleBinding.builder()
-                .metadata(Metadata.builder().name("namespace-rb2").build())
+                .metadata(Resource.Metadata.builder().name("namespace-rb2").build())
                 .build();
 
         when(roleBindingService.findByWildcardName("test", "*")).thenReturn(List.of(rb1, rb2));

@@ -127,8 +127,8 @@ public class NamespaceController extends ResourceController {
             throw new ResourceValidationException(namespace, validationErrors);
         }
 
-        namespace.getMetadata().setNamespace(namespace.getMetadata().getName());
         namespace.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
+        namespace.getMetadata().setNamespace(namespace.getMetadata().getName());
 
         if (existingNamespace.isPresent() && existingNamespace.get().equals(namespace)) {
             return formatHttpResponse(existingNamespace.get(), ApplyStatus.UNCHANGED);

@@ -28,7 +28,7 @@ class SchemaTest {
     @Test
     void shouldBeEqual() {
         Schema original = Schema.builder()
-                .metadata(Metadata.builder().name("prefix.schema-one").build())
+                .metadata(Resource.Metadata.builder().name("prefix.schema-one").build())
                 .spec(Schema.SchemaSpec.builder()
                         .compatibility(Schema.Compatibility.BACKWARD)
                         .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\","
@@ -43,7 +43,7 @@ class SchemaTest {
                 .build();
 
         Schema same = Schema.builder()
-                .metadata(Metadata.builder().name("prefix.schema-one").build())
+                .metadata(Resource.Metadata.builder().name("prefix.schema-one").build())
                 .spec(Schema.SchemaSpec.builder()
                         .compatibility(Schema.Compatibility.BACKWARD)
                         .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\","
@@ -60,7 +60,7 @@ class SchemaTest {
         assertEquals(original, same);
 
         Schema different = Schema.builder()
-                .metadata(Metadata.builder().name("prefix.schema-one").build())
+                .metadata(Resource.Metadata.builder().name("prefix.schema-one").build())
                 .spec(Schema.SchemaSpec.builder()
                         .compatibility(Schema.Compatibility.BACKWARD)
                         .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\""
@@ -75,7 +75,7 @@ class SchemaTest {
         assertNotEquals(original, different);
 
         Schema differentByCompat = Schema.builder()
-                .metadata(Metadata.builder().name("prefix.schema-one").build())
+                .metadata(Resource.Metadata.builder().name("prefix.schema-one").build())
                 .spec(Schema.SchemaSpec.builder()
                         .compatibility(Schema.Compatibility.FORWARD)
                         .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\","
@@ -92,7 +92,7 @@ class SchemaTest {
         assertNotEquals(original, differentByCompat);
 
         Schema differentByMetadata = Schema.builder()
-                .metadata(Metadata.builder().name("prefix.schema-two").build())
+                .metadata(Resource.Metadata.builder().name("prefix.schema-two").build())
                 .spec(Schema.SchemaSpec.builder()
                         .compatibility(Schema.Compatibility.FORWARD)
                         .schema("{\"namespace\":\"com.michelin.kafka.producer.showcase.avro\","
@@ -112,15 +112,15 @@ class SchemaTest {
     @Test
     void shouldSchemaBeEqual() {
         Schema original = Schema.builder()
-                .metadata(Metadata.builder().name("prefix.schema-one").build())
+                .metadata(Resource.Metadata.builder().name("prefix.schema-one").build())
                 .build();
 
         Schema same = Schema.builder()
-                .metadata(Metadata.builder().name("prefix.schema-one").build())
+                .metadata(Resource.Metadata.builder().name("prefix.schema-one").build())
                 .build();
 
         Schema different = Schema.builder()
-                .metadata(Metadata.builder().name("prefix.schema-two").build())
+                .metadata(Resource.Metadata.builder().name("prefix.schema-two").build())
                 .build();
 
         assertEquals(original, same);

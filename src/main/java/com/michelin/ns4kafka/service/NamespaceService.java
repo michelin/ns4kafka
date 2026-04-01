@@ -209,7 +209,7 @@ public class NamespaceService {
      * @return The created or updated namespace
      */
     public Namespace createOrUpdate(Namespace namespace) {
-        return namespaceRepository.createNamespace(namespace);
+        return namespaceRepository.create(namespace);
     }
 
     /**

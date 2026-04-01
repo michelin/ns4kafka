@@ -16,32 +16,52 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.michelin.ns4kafka.model;
+package com.michelin.ns4kafka.model.connect;
 
-import com.michelin.ns4kafka.util.enumation.Kind;
+import static com.michelin.ns4kafka.util.enumation.Kind.VAULT_RESPONSE;
+
+import com.michelin.ns4kafka.model.Resource;
+import io.micronaut.core.annotation.Introspected;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
-/** Metadata resource. */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
+@Introspected
 @EqualsAndHashCode(callSuper = true)
-public class MetadataResource extends Resource {
-    @Valid @NotNull private Metadata metadata;
+public class VaultResponse extends Resource {
+    @Valid @NotNull private VaultResponseSpec spec;
 
     /**
      * Constructor.
      *
-     * @param version The version
      * @param metadata The metadata
+     * @param spec The spec
      */
-    public MetadataResource(String version, Kind kind, Metadata metadata) {
-        super(version, kind);
-        this.metadata = metadata;
+    @Builder
+    public VaultResponse(Metadata metadata, VaultResponseSpec spec) {
+        super("v1", VAULT_RESPONSE, metadata);
+        this.spec = spec;
+    }
+
+    /** Represents the vault response specification. */
+    @Getter
+    @Builder
+    @ToString
+    @Introspected
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class VaultResponseSpec {
+        /** The clear text to encrypt. */
+        private String clearText;
+
+        /** The encrypted text. */
+        private String encrypted;
     }
 }

@@ -18,8 +18,6 @@
  */
 package com.michelin.ns4kafka.model;
 
-import static com.michelin.ns4kafka.util.enumation.Kind.STATUS;
-
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.michelin.ns4kafka.util.enumation.Kind;
 import io.micronaut.core.annotation.Introspected;
@@ -28,15 +26,13 @@ import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /** Status. */
 @Data
 @Introspected
-@EqualsAndHashCode(callSuper = true)
-public class Status extends Resource {
+public class Status {
     private StatusPhase status;
     private String message;
     private String reason;
@@ -53,7 +49,6 @@ public class Status extends Resource {
      * @param code the code
      */
     public Status(StatusPhase status, String message, String reason, StatusDetails details, int code) {
-        super("v1", STATUS);
         this.status = status;
         this.message = message;
         this.reason = reason;

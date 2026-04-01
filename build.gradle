@@ -1,10 +1,10 @@
 plugins {
-    id("com.gradleup.shadow") version "9.3.2"
+    id("com.gradleup.shadow") version "9.4.1"
     id("io.micronaut.application") version "4.6.2"
     id("jacoco")
     id("org.sonarqube") version "7.2.3.7755"
     id("pl.allegro.tech.build.axion-release") version "1.21.1"
-    id("com.diffplug.spotless") version "8.3.0"
+    id("com.diffplug.spotless") version "8.4.0"
 }
 
 version = scmVersion.version
@@ -45,10 +45,10 @@ dependencies {
     runtimeOnly("ch.qos.logback:logback-classic")
 
     testImplementation("org.mockito:mockito-core")
-    testImplementation("org.testcontainers:testcontainers-junit-jupiter:2.0.3")
-    testImplementation("org.testcontainers:testcontainers:2.0.3")
-    testImplementation("org.testcontainers:testcontainers-kafka:2.0.3")
-    testImplementation("org.mockito:mockito-junit-jupiter:5.22.0")
+    testImplementation("org.testcontainers:testcontainers-junit-jupiter:2.0.4")
+    testImplementation("org.testcontainers:testcontainers:2.0.4")
+    testImplementation("org.testcontainers:testcontainers-kafka:2.0.4")
+    testImplementation("org.mockito:mockito-junit-jupiter:5.23.0")
     testImplementation("org.junit.jupiter:junit-jupiter-params:6.0.3")
     testImplementation("io.projectreactor:reactor-test")
 

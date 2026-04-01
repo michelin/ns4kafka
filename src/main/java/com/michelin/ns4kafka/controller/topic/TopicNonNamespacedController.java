@@ -29,7 +29,7 @@ import io.micronaut.http.annotation.Get;
 import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
-import java.util.List;
+import java.util.Collection;
 
 /** Non namespaced controller for topics. */
 @Tag(name = "Topics", description = "Manage the topics.")
@@ -59,7 +59,7 @@ public class TopicNonNamespacedController extends ResourceController {
      * @return A list of topics
      */
     @Get
-    public List<Topic> listAll() {
+    public Collection<Topic> listAll() {
         return topicService.findAll();
     }
 }

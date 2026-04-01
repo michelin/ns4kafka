@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.michelin.ns4kafka.controller;
+package com.michelin.ns4kafka.controller.acl;
 
 import static com.michelin.ns4kafka.security.auth.JwtCustomClaimNames.ROLES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -29,11 +29,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.michelin.ns4kafka.controller.acl.AclController;
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.AuditLog;
-import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.service.AclService;
 import com.michelin.ns4kafka.service.NamespaceService;
@@ -73,11 +72,17 @@ class AclControllerTest {
     @Test
     void shouldListAclsWithoutNameParameter() {
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         AccessControlEntry aceTopicPrefixedOwnerAdminToTest = AccessControlEntry.builder()
-                .metadata(Metadata.builder().namespace("admin").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .namespace("admin")
+                        .cluster("local")
+                        .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -88,7 +93,10 @@ class AclControllerTest {
                 .build();
 
         AccessControlEntry aceConnectPrefixedOwnerAdminToTest = AccessControlEntry.builder()
-                .metadata(Metadata.builder().namespace("admin").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .namespace("admin")
+                        .cluster("local")
+                        .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.CONNECT)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -99,7 +107,10 @@ class AclControllerTest {
                 .build();
 
         AccessControlEntry aceTopicPrefixedReadTestToNamespaceOther = AccessControlEntry.builder()
-                .metadata(Metadata.builder().namespace("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .namespace("test")
+                        .cluster("local")
+                        .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -110,7 +121,7 @@ class AclControllerTest {
                 .build();
 
         AccessControlEntry aceTopicPrefixedReadNamespaceOtherToTest = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .namespace("namespace-other")
                         .cluster("local")
                         .build())
@@ -124,7 +135,10 @@ class AclControllerTest {
                 .build();
 
         AccessControlEntry aceTopicPrefixedReadAdminToAll = AccessControlEntry.builder()
-                .metadata(Metadata.builder().namespace("admin").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .namespace("admin")
+                        .cluster("local")
+                        .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -176,11 +190,14 @@ class AclControllerTest {
     @Test
     void shouldListAclsWithNameParameter() {
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         AccessControlEntry ownerAcl = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ownerAcl")
                         .namespace("test")
                         .cluster("local")
@@ -195,7 +212,7 @@ class AclControllerTest {
                 .build();
 
         AccessControlEntry aclGrantedByNamespace = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("aclGrantedByNamespace")
                         .namespace("admin")
                         .cluster("local")
@@ -210,7 +227,7 @@ class AclControllerTest {
                 .build();
 
         AccessControlEntry aclGrantedToNamespace = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("aclGrantedToNamespace")
                         .namespace("test")
                         .cluster("local")
@@ -263,11 +280,14 @@ class AclControllerTest {
     @SuppressWarnings("deprecation")
     void shouldGetAcl() {
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         AccessControlEntry aceTopicPrefixedReadTestToNamespaceOther = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ace3")
                         .namespace("test")
                         .cluster("local")
@@ -282,7 +302,7 @@ class AclControllerTest {
                 .build();
 
         AccessControlEntry aceTopicPrefixedReadNamespaceOtherToTest = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ace5")
                         .namespace("namespace-other")
                         .cluster("local")
@@ -326,11 +346,17 @@ class AclControllerTest {
                 .spec(Namespace.NamespaceSpec.builder()
                         .protectionEnabled(Boolean.FALSE)
                         .build())
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Metadata.builder().namespace("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .namespace("test")
+                        .cluster("local")
+                        .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -359,11 +385,17 @@ class AclControllerTest {
                 .spec(Namespace.NamespaceSpec.builder()
                         .protectionEnabled(Boolean.FALSE)
                         .build())
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Metadata.builder().name("acl-test").namespace("test").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("acl-test")
+                        .namespace("test")
+                        .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -394,11 +426,17 @@ class AclControllerTest {
                 .spec(Namespace.NamespaceSpec.builder()
                         .protectionEnabled(Boolean.FALSE)
                         .build())
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Metadata.builder().namespace("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .namespace("test")
+                        .cluster("local")
+                        .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -425,11 +463,14 @@ class AclControllerTest {
                 .spec(Namespace.NamespaceSpec.builder()
                         .protectionEnabled(Boolean.FALSE)
                         .build())
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Metadata.builder().namespace("test").build())
+                .metadata(Resource.Metadata.builder().namespace("test").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -461,11 +502,17 @@ class AclControllerTest {
                 .spec(Namespace.NamespaceSpec.builder()
                         .protectionEnabled(Boolean.FALSE)
                         .build())
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Metadata.builder().name("ace1").namespace("test").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ace1")
+                        .namespace("test")
+                        .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -495,11 +542,17 @@ class AclControllerTest {
                 .spec(Namespace.NamespaceSpec.builder()
                         .protectionEnabled(Boolean.FALSE)
                         .build())
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Metadata.builder().name("ace1").namespace("test").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ace1")
+                        .namespace("test")
+                        .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -510,7 +563,10 @@ class AclControllerTest {
                 .build();
 
         AccessControlEntry oldAccessControlEntry = AccessControlEntry.builder()
-                .metadata(Metadata.builder().name("ace1").namespace("test").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ace1")
+                        .namespace("test")
+                        .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.CONNECT) // This line was changed
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -541,11 +597,14 @@ class AclControllerTest {
                 .spec(Namespace.NamespaceSpec.builder()
                         .protectionEnabled(Boolean.FALSE)
                         .build())
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ace1")
                         .namespace("test")
                         .labels(Map.of("new-label", "label-value")) // This label is new
@@ -560,7 +619,10 @@ class AclControllerTest {
                 .build();
 
         AccessControlEntry oldAccessControlEntry = AccessControlEntry.builder()
-                .metadata(Metadata.builder().name("ace1").namespace("test").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ace1")
+                        .namespace("test")
+                        .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -591,11 +653,14 @@ class AclControllerTest {
                 .spec(Namespace.NamespaceSpec.builder()
                         .protectionEnabled(Boolean.FALSE)
                         .build())
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ace1")
                         .namespace("test")
                         .labels(Map.of("new-label", "label-value")) // This label is new
@@ -610,7 +675,10 @@ class AclControllerTest {
                 .build();
 
         AccessControlEntry oldAccessControlEntry = AccessControlEntry.builder()
-                .metadata(Metadata.builder().name("ace1").namespace("test").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ace1")
+                        .namespace("test")
+                        .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -638,11 +706,17 @@ class AclControllerTest {
     void shouldNotApplyAclInDryRunModeAsAdmin() {
         Namespace adminNamespace = Namespace.builder()
                 .spec(Namespace.NamespaceSpec.builder().build())
-                .metadata(Metadata.builder().name("admin").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("admin")
+                        .cluster("local")
+                        .build())
                 .build();
 
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Metadata.builder().namespace("admin").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .namespace("admin")
+                        .cluster("local")
+                        .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -671,11 +745,14 @@ class AclControllerTest {
                 .spec(Namespace.NamespaceSpec.builder()
                         .protectionEnabled(Boolean.FALSE)
                         .build())
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Metadata.builder().namespace("test").build())
+                .metadata(Resource.Metadata.builder().namespace("test").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
@@ -716,7 +793,7 @@ class AclControllerTest {
     @SuppressWarnings("deprecation")
     void shouldNotDeleteSelfAssignedAclWhenNotAdmin() {
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ace1")
                         .namespace("test")
                         .cluster("local")
@@ -747,7 +824,7 @@ class AclControllerTest {
     @SuppressWarnings("deprecation")
     void shouldDeleteSelfAssignedAclAsAdmin() {
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ace1")
                         .namespace("test")
                         .cluster("local")
@@ -775,7 +852,7 @@ class AclControllerTest {
     @SuppressWarnings("deprecation")
     void shouldDeleteAcl() {
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ace1")
                         .namespace("test")
                         .cluster("local")
@@ -805,7 +882,7 @@ class AclControllerTest {
     @SuppressWarnings("deprecation")
     void shouldNotDeleteInDryRunMode() {
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ace1")
                         .namespace("test")
                         .cluster("local")
@@ -832,7 +909,10 @@ class AclControllerTest {
     void shouldNotBulkDeleteAclsWhenNotFound() {
         Authentication authentication = Authentication.build("user", Map.of("roles", List.of()));
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(namespace));
@@ -846,10 +926,13 @@ class AclControllerTest {
     @Test
     void shouldNotBulkDeleteSelfAssignedAclsWhenNotAdmin() {
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
         AccessControlEntry acl1 = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ace1")
                         .namespace("test")
                         .cluster("local")
@@ -864,7 +947,7 @@ class AclControllerTest {
                 .build();
 
         AccessControlEntry acl2 = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ace2")
                         .namespace("test")
                         .cluster("local")
@@ -897,10 +980,13 @@ class AclControllerTest {
     @Test
     void shouldBulkDeleteSelfAssignedAclsAsAdmin() {
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ace1")
                         .namespace("test")
                         .cluster("local")
@@ -929,10 +1015,13 @@ class AclControllerTest {
     @Test
     void shouldBulkDeleteAcls() {
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
         AccessControlEntry acl1 = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ace1")
                         .namespace("test")
                         .cluster("local")
@@ -947,7 +1036,7 @@ class AclControllerTest {
                 .build();
 
         AccessControlEntry acl2 = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ace2")
                         .namespace("test")
                         .cluster("local")
@@ -978,10 +1067,13 @@ class AclControllerTest {
     @Test
     void shouldNotBulkDeleteAclsInDryRunMode() {
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ace1")
                         .namespace("test")
                         .cluster("local")

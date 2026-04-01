@@ -20,13 +20,11 @@ package com.michelin.ns4kafka.integration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertLinesMatch;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.michelin.ns4kafka.controller.AkhqClaimProviderController;
 import com.michelin.ns4kafka.integration.container.KafkaIntegrationTest;
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.AccessControlEntry.AccessControlEntrySpec;
@@ -34,9 +32,9 @@ import com.michelin.ns4kafka.model.AccessControlEntry.Permission;
 import com.michelin.ns4kafka.model.AccessControlEntry.ResourcePatternType;
 import com.michelin.ns4kafka.model.AccessControlEntry.ResourceType;
 import com.michelin.ns4kafka.model.DeleteRecordsResponse;
-import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Namespace.NamespaceSpec;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.RoleBinding;
 import com.michelin.ns4kafka.model.RoleBinding.Role;
 import com.michelin.ns4kafka.model.RoleBinding.RoleBindingSpec;
@@ -90,7 +88,7 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
     @BeforeAll
     void init() {
         Namespace ns1 = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1")
                         .cluster("test-cluster")
                         .labels(Map.of("support-group", "LDAP-GROUP-1"))
@@ -103,7 +101,10 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
                 .build();
 
         RoleBinding rb1 = RoleBinding.builder()
-                .metadata(Metadata.builder().name("ns1-rb").namespace("ns1").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-rb")
+                        .namespace("ns1")
+                        .build())
                 .spec(RoleBindingSpec.builder()
                         .role(Role.builder()
                                 .resourceTypes(List.of("topics", "acls"))
@@ -138,7 +139,10 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
                         .body(rb1));
 
         AccessControlEntry ns1acl = AccessControlEntry.builder()
-                .metadata(Metadata.builder().name("ns1-acl").namespace("ns1").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-acl")
+                        .namespace("ns1")
+                        .build())
                 .spec(AccessControlEntrySpec.builder()
                         .resourceType(ResourceType.TOPIC)
                         .resource("ns1-")
@@ -155,7 +159,10 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
                         .body(ns1acl));
 
         Namespace ns2 = Namespace.builder()
-                .metadata(Metadata.builder().name("ns2").cluster("test-cluster").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns2")
+                        .cluster("test-cluster")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .kafkaUser("user2")
                         .connectClusters(List.of("test-connect"))
@@ -170,7 +177,10 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
                         .body(ns2));
 
         RoleBinding rb2 = RoleBinding.builder()
-                .metadata(Metadata.builder().name("ns2-rb").namespace("ns2").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns2-rb")
+                        .namespace("ns2")
+                        .build())
                 .spec(RoleBindingSpec.builder()
                         .role(Role.builder()
                                 .resourceTypes(List.of("topics", "acls"))
@@ -190,7 +200,10 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
                         .body(rb2));
 
         AccessControlEntry ns2acl = AccessControlEntry.builder()
-                .metadata(Metadata.builder().name("ns2-acl").namespace("ns2").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns2-acl")
+                        .namespace("ns2")
+                        .build())
                 .spec(AccessControlEntrySpec.builder()
                         .resourceType(ResourceType.TOPIC)
                         .resource("ns2-")
@@ -208,39 +221,9 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
     }
 
     @Test
-    void shouldValidateAkhqClaims() {
-        AkhqClaimProviderController.AkhqClaimRequest akhqClaimRequest =
-                AkhqClaimProviderController.AkhqClaimRequest.builder()
-                        .username("test")
-                        .groups(List.of("LDAP-GROUP-1"))
-                        .providerName("LDAP")
-                        .build();
-
-        AkhqClaimProviderController.AkhqClaimResponse response = ns4KafkaClient
-                .toBlocking()
-                .retrieve(
-                        HttpRequest.POST("/akhq-claim", akhqClaimRequest),
-                        AkhqClaimProviderController.AkhqClaimResponse.class);
-
-        assertLinesMatch(
-                List.of(
-                        "connect/read",
-                        "connect/state/update",
-                        "group/read",
-                        "registry/read",
-                        "topic/data/read",
-                        "topic/read"),
-                response.getRoles());
-
-        assertEquals(1, response.getAttributes().get("topicsFilterRegexp").size());
-
-        assertLinesMatch(List.of("^\\Qns1-\\E.*$"), response.getAttributes().get("topicsFilterRegexp"));
-    }
-
-    @Test
     void shouldCreateTopic() throws InterruptedException, ExecutionException {
         Topic topicFirstCreate = Topic.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-topicFirstCreate")
                         .namespace("ns1")
                         .build())
@@ -289,7 +272,7 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
     @Test
     void shouldUpdateTopic() throws InterruptedException, ExecutionException {
         Topic topic = Topic.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-topic2Create")
                         .namespace("ns1")
                         .build())
@@ -320,7 +303,7 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
         assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
 
         Topic topicToUpdate = Topic.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-topic2Create")
                         .namespace("ns1")
                         .build())
@@ -373,7 +356,7 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
     @Test
     void shouldInvalidateTopicName() {
         Topic topicFirstCreate = Topic.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-invalid-é")
                         .namespace("ns1")
                         .build())
@@ -410,8 +393,10 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
     @Test
     void shouldUpdateTopicWithNoChange() {
         AccessControlEntry aclns1Tons2 = AccessControlEntry.builder()
-                .metadata(
-                        Metadata.builder().name("ns1-acltons2").namespace("ns1").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-acltons2")
+                        .namespace("ns1")
+                        .build())
                 .spec(AccessControlEntrySpec.builder()
                         .resourceType(ResourceType.TOPIC)
                         .resource("ns1-")
@@ -422,7 +407,7 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
                 .build();
 
         Topic topicToModify = Topic.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-topicToModify")
                         .namespace("ns1")
                         .build())
@@ -489,7 +474,7 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
     @Test
     void shouldDeleteRecords() throws InterruptedException {
         Topic topicToDelete = Topic.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-topicToDelete")
                         .namespace("ns1")
                         .build())
@@ -555,7 +540,7 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
     @Test
     void shouldDeleteRecordsOnCompactTopic() throws InterruptedException {
         Topic topicToDelete = Topic.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-compactTopicToDelete")
                         .namespace("ns1")
                         .build())
@@ -594,7 +579,7 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
     @Test
     void shouldDeleteTopics() throws InterruptedException, ExecutionException {
         Topic deleteTopic = Topic.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-deleteTopic")
                         .namespace("ns1")
                         .build())
@@ -607,7 +592,7 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
                 .build();
 
         Topic compactTopic = Topic.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-compactTopic")
                         .namespace("ns1")
                         .build())
@@ -620,7 +605,10 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
                 .build();
 
         Topic topicNotToDelete = Topic.builder()
-                .metadata(Metadata.builder().name("ns1-test").namespace("ns1").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-test")
+                        .namespace("ns1")
+                        .build())
                 .spec(TopicSpec.builder()
                         .partitions(3)
                         .replicationFactor(1)

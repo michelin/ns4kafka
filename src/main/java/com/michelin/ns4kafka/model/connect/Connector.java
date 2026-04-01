@@ -16,14 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.michelin.ns4kafka.model.connector;
+package com.michelin.ns4kafka.model.connect;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.CONNECTOR;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.michelin.ns4kafka.model.Metadata;
-import com.michelin.ns4kafka.model.MetadataResource;
+import com.michelin.ns4kafka.model.Resource;
 import io.micronaut.core.annotation.Introspected;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -43,7 +42,7 @@ import lombok.Setter;
 @Data
 @Introspected
 @EqualsAndHashCode(callSuper = true)
-public class Connector extends MetadataResource {
+public class Connector extends Resource {
     @Valid @NotNull private ConnectorSpec spec;
 
     @EqualsAndHashCode.Exclude

@@ -62,6 +62,8 @@ public abstract class KafkaIntegrationTest implements TestPropertyProvider {
         return Map.of(
                 "kafka." + BOOTSTRAP_SERVERS_CONFIG, broker.getBootstrapServers(),
                 "ns4kafka.managed-clusters.test-cluster.config." + BOOTSTRAP_SERVERS_CONFIG,
+                        broker.getBootstrapServers(),
+                "ns4kafka.managed-clusters.test-cluster-confluent-cloud.config." + BOOTSTRAP_SERVERS_CONFIG,
                         broker.getBootstrapServers());
     }
 

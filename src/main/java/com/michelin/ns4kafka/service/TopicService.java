@@ -38,6 +38,7 @@ import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
 import jakarta.inject.Singleton;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -79,7 +80,7 @@ public class TopicService {
      *
      * @return The list of topics
      */
-    public List<Topic> findAll() {
+    public Collection<Topic> findAll() {
         return topicRepository.findAll();
     }
 
@@ -257,6 +258,9 @@ public class TopicService {
      * @param topicA The first topic
      * @param topicB The second topic
      * @return true if it does, false otherwise
+     * @see <a
+     *     href="https://github.com/apache/kafka/blob/trunk/clients/src/main/java/org/apache/kafka/common/internals/Topic.java#L108-L110">Topic
+     *     Collision</a>
      */
     private boolean hasCollision(String topicA, String topicB) {
         return topicA.replace('.', '_').equals(topicB.replace('.', '_'));

@@ -36,7 +36,7 @@ public class AuditLog {
     private Date date;
 
     private Kind kind;
-    private Metadata metadata;
+    private Resource.Metadata metadata;
     private ApplyStatus operation;
     private Object before;
     private Object after;

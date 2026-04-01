@@ -27,13 +27,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
-import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Namespace.NamespaceSpec;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.RoleBinding;
 import com.michelin.ns4kafka.model.Topic;
-import com.michelin.ns4kafka.model.connect.cluster.ConnectCluster;
-import com.michelin.ns4kafka.model.connector.Connector;
+import com.michelin.ns4kafka.model.connect.ConnectCluster;
+import com.michelin.ns4kafka.model.connect.Connector;
 import com.michelin.ns4kafka.model.quota.ResourceQuota;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.property.ManagedClusterProperties.ConnectProperties;
@@ -83,7 +83,10 @@ class NamespaceServiceTest {
     @Test
     void shouldNotCreateNamespaceWhenClusterDoesNotExist() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .build())
@@ -98,7 +101,10 @@ class NamespaceServiceTest {
     @Test
     void shouldValidateNamespaceCreation() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .kafkaUser("user")
@@ -116,7 +122,10 @@ class NamespaceServiceTest {
     @Test
     void shouldValidationNamespace() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .kafkaUser("user")
@@ -136,7 +145,10 @@ class NamespaceServiceTest {
     @Test
     void shouldValidateNamespaceWhenNoManagedCluster() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .kafkaUser("user")
@@ -160,7 +172,10 @@ class NamespaceServiceTest {
         when(namespaceRepository.findAllForCluster("local")).thenReturn(List.of());
 
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .kafkaUser("user")
@@ -185,7 +200,10 @@ class NamespaceServiceTest {
         when(namespaceRepository.findAllForCluster("local")).thenReturn(List.of());
 
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .kafkaUser("user")
@@ -216,7 +234,10 @@ class NamespaceServiceTest {
         when(namespaceRepository.findAllForCluster("local")).thenReturn(List.of());
 
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .kafkaUser("user")
@@ -236,7 +257,10 @@ class NamespaceServiceTest {
     @Test
     void shouldNotValidateNamespaceWhenKafkaUserAlreadyExistsInAnotherNamespace() {
         Namespace ns2 = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace2").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace2")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .kafkaUser("user")
@@ -250,7 +274,10 @@ class NamespaceServiceTest {
         when(namespaceRepository.findAllForCluster("local")).thenReturn(List.of(ns2));
 
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .kafkaUser("user")
@@ -268,7 +295,10 @@ class NamespaceServiceTest {
     @Test
     void shouldNotFailWhenKafkaUserAlreadyExistsInSameNamespace() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .kafkaUser("user")
@@ -289,21 +319,27 @@ class NamespaceServiceTest {
     @Test
     void shouldFindAll() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .kafkaUser("user")
                         .build())
                 .build();
         Namespace ns2 = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace2").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace2")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .kafkaUser("user2")
                         .build())
                 .build();
         Namespace ns3 = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("namespace3")
                         .cluster("other-cluster")
                         .build())
@@ -330,11 +366,11 @@ class NamespaceServiceTest {
     @Test
     void shouldListNamespacesWithNameParameter() {
         Namespace ns1 = Namespace.builder()
-                .metadata(Metadata.builder().name("ns1").build())
+                .metadata(Resource.Metadata.builder().name("ns1").build())
                 .build();
 
         Namespace ns2 = Namespace.builder()
-                .metadata(Metadata.builder().name("ns2").build())
+                .metadata(Resource.Metadata.builder().name("ns2").build())
                 .build();
 
         when(managedClusterProperties.stream()).thenReturn(Stream.of(new ManagedClusterProperties("local")));
@@ -346,11 +382,11 @@ class NamespaceServiceTest {
     @Test
     void shouldListNoNamespaceWithNameParameter() {
         Namespace ns1 = Namespace.builder()
-                .metadata(Metadata.builder().name("ns1").build())
+                .metadata(Resource.Metadata.builder().name("ns1").build())
                 .build();
 
         Namespace ns2 = Namespace.builder()
-                .metadata(Metadata.builder().name("ns2").build())
+                .metadata(Resource.Metadata.builder().name("ns2").build())
                 .build();
 
         when(managedClusterProperties.stream()).thenReturn(Stream.of(new ManagedClusterProperties("local")));
@@ -362,23 +398,23 @@ class NamespaceServiceTest {
     @Test
     void shouldListAllNamespacesWithWildcardNameParameter() {
         Namespace ns1 = Namespace.builder()
-                .metadata(Metadata.builder().name("ns1").build())
+                .metadata(Resource.Metadata.builder().name("ns1").build())
                 .build();
 
         Namespace ns2 = Namespace.builder()
-                .metadata(Metadata.builder().name("ns2").build())
+                .metadata(Resource.Metadata.builder().name("ns2").build())
                 .build();
 
         Namespace ns3 = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace1").build())
+                .metadata(Resource.Metadata.builder().name("namespace1").build())
                 .build();
 
         Namespace ns4 = Namespace.builder()
-                .metadata(Metadata.builder().name("ns3").build())
+                .metadata(Resource.Metadata.builder().name("ns3").build())
                 .build();
 
         Namespace ns5 = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace2").build())
+                .metadata(Resource.Metadata.builder().name("namespace2").build())
                 .build();
 
         when(managedClusterProperties.stream()).thenReturn(Stream.of(new ManagedClusterProperties("local")));
@@ -390,23 +426,23 @@ class NamespaceServiceTest {
     @Test
     void shouldListNamespacesWithPrefixWildcardNameParameter() {
         Namespace ns1 = Namespace.builder()
-                .metadata(Metadata.builder().name("ns1").build())
+                .metadata(Resource.Metadata.builder().name("ns1").build())
                 .build();
 
         Namespace ns2 = Namespace.builder()
-                .metadata(Metadata.builder().name("ns2").build())
+                .metadata(Resource.Metadata.builder().name("ns2").build())
                 .build();
 
         Namespace ns3 = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace1").build())
+                .metadata(Resource.Metadata.builder().name("namespace1").build())
                 .build();
 
         Namespace ns4 = Namespace.builder()
-                .metadata(Metadata.builder().name("ns3").build())
+                .metadata(Resource.Metadata.builder().name("ns3").build())
                 .build();
 
         Namespace ns5 = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace2").build())
+                .metadata(Resource.Metadata.builder().name("namespace2").build())
                 .build();
 
         when(managedClusterProperties.stream()).thenReturn(Stream.of(new ManagedClusterProperties("local")));
@@ -418,23 +454,23 @@ class NamespaceServiceTest {
     @Test
     void shouldListNamespacesWithSuffixWildcardNameParameter() {
         Namespace ns1 = Namespace.builder()
-                .metadata(Metadata.builder().name("ns1").build())
+                .metadata(Resource.Metadata.builder().name("ns1").build())
                 .build();
 
         Namespace ns2 = Namespace.builder()
-                .metadata(Metadata.builder().name("ns2").build())
+                .metadata(Resource.Metadata.builder().name("ns2").build())
                 .build();
 
         Namespace ns3 = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace1").build())
+                .metadata(Resource.Metadata.builder().name("namespace1").build())
                 .build();
 
         Namespace ns4 = Namespace.builder()
-                .metadata(Metadata.builder().name("ns3").build())
+                .metadata(Resource.Metadata.builder().name("ns3").build())
                 .build();
 
         Namespace ns5 = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace2").build())
+                .metadata(Resource.Metadata.builder().name("namespace2").build())
                 .build();
 
         when(managedClusterProperties.stream()).thenReturn(Stream.of(new ManagedClusterProperties("local")));
@@ -446,15 +482,15 @@ class NamespaceServiceTest {
     @Test
     void shouldFindNamespaceByTopicName() {
         Namespace ns1 = Namespace.builder()
-                .metadata(Metadata.builder().name("ns1").build())
+                .metadata(Resource.Metadata.builder().name("ns1").build())
                 .build();
 
         Namespace ns2 = Namespace.builder()
-                .metadata(Metadata.builder().name("ns2").build())
+                .metadata(Resource.Metadata.builder().name("ns2").build())
                 .build();
 
         Namespace ns3 = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace1").build())
+                .metadata(Resource.Metadata.builder().name("namespace1").build())
                 .build();
 
         AccessControlEntry acl3 = AccessControlEntry.builder()
@@ -482,7 +518,7 @@ class NamespaceServiceTest {
     @Test
     void shouldFindNoNamespaceByTopicName() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("ns").build())
+                .metadata(Resource.Metadata.builder().name("ns").build())
                 .build();
 
         AccessControlEntry acl = AccessControlEntry.builder()
@@ -505,7 +541,10 @@ class NamespaceServiceTest {
     @Test
     void shouldListAllNamespaceResourcesWhenEmpty() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .kafkaUser("user")
@@ -526,7 +565,10 @@ class NamespaceServiceTest {
     @Test
     void shouldListAllNamespaceResourcesOfTypeTopic() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .kafkaUser("user")
@@ -534,8 +576,10 @@ class NamespaceServiceTest {
                 .build();
 
         Topic topic = Topic.builder()
-                .metadata(
-                        Metadata.builder().name("topic").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("topic")
+                        .namespace("namespace")
+                        .build())
                 .build();
 
         when(topicService.findAllForNamespace(ns)).thenReturn(List.of(topic));
@@ -553,7 +597,10 @@ class NamespaceServiceTest {
     @Test
     void shouldListAllNamespaceResourcesOfTypeConnect() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .kafkaUser("user")
@@ -561,7 +608,7 @@ class NamespaceServiceTest {
                 .build();
 
         Connector connector = Connector.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("connector")
                         .namespace("namespace")
                         .build())
@@ -582,7 +629,10 @@ class NamespaceServiceTest {
     @Test
     void shouldListAllNamespaceResourcesOfTypeRoleBinding() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .kafkaUser("user")
@@ -590,7 +640,7 @@ class NamespaceServiceTest {
                 .build();
 
         RoleBinding rb = RoleBinding.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("rolebinding")
                         .namespace("namespace")
                         .build())
@@ -611,7 +661,10 @@ class NamespaceServiceTest {
     @Test
     void shouldListAllNamespaceResourcesOfTypeAccessControlEntry() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .kafkaUser("user")
@@ -619,7 +672,10 @@ class NamespaceServiceTest {
                 .build();
 
         AccessControlEntry ace = AccessControlEntry.builder()
-                .metadata(Metadata.builder().name("ace").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ace")
+                        .namespace("namespace")
+                        .build())
                 .build();
 
         when(topicService.findAllForNamespace(ns)).thenReturn(List.of());
@@ -637,7 +693,10 @@ class NamespaceServiceTest {
     @Test
     void shouldListAllNamespaceResourcesOfTypeConnectCluster() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .kafkaUser("user")
@@ -645,7 +704,7 @@ class NamespaceServiceTest {
                 .build();
 
         ConnectCluster connectCluster = ConnectCluster.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("connect-cluster")
                         .namespace("namespace")
                         .build())
@@ -666,7 +725,10 @@ class NamespaceServiceTest {
     @Test
     void shouldListAllNamespaceResourcesOfTypeQuota() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .kafkaUser("user")
@@ -674,7 +736,7 @@ class NamespaceServiceTest {
                 .build();
 
         ResourceQuota resourceQuota = ResourceQuota.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("resource-quota")
                         .namespace("namespace")
                         .build())
@@ -695,7 +757,10 @@ class NamespaceServiceTest {
     @Test
     void shouldDeleteGrantedToAclAndNamespace() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .connectClusters(List.of("local-name"))
                         .kafkaUser("user")

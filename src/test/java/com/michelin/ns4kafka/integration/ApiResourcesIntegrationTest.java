@@ -23,8 +23,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.michelin.ns4kafka.controller.ApiResourcesController;
 import com.michelin.ns4kafka.integration.container.KafkaIntegrationTest;
-import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.RoleBinding;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.core.type.Argument;
@@ -81,7 +81,10 @@ class ApiResourcesIntegrationTest extends KafkaIntegrationTest {
     @Test
     void shouldListResourcesAsUser() {
         Namespace ns1 = Namespace.builder()
-                .metadata(Metadata.builder().name("ns1").cluster("test-cluster").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1")
+                        .cluster("test-cluster")
+                        .build())
                 .spec(Namespace.NamespaceSpec.builder()
                         .kafkaUser("user1")
                         .topicValidator(TopicValidator.makeDefaultOneBroker())
@@ -89,7 +92,10 @@ class ApiResourcesIntegrationTest extends KafkaIntegrationTest {
                 .build();
 
         RoleBinding rb1 = RoleBinding.builder()
-                .metadata(Metadata.builder().name("ns1-rb").namespace("ns1").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-rb")
+                        .namespace("ns1")
+                        .build())
                 .spec(RoleBinding.RoleBindingSpec.builder()
                         .role(RoleBinding.Role.builder()
                                 .resourceTypes(List.of("topics", "acls"))

@@ -142,7 +142,7 @@ class TopicValidatorTest {
                 .build();
 
         Topic success = Topic.builder()
-                .metadata(Metadata.builder().name("valid_name").build())
+                .metadata(Resource.Metadata.builder().name("valid_name").build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(3)
                         .partitions(3)
@@ -164,7 +164,7 @@ class TopicValidatorTest {
         List<String> validationErrors;
 
         invalidTopic = Topic.builder()
-                .metadata(Metadata.builder().name("").build())
+                .metadata(Resource.Metadata.builder().name("").build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
 
@@ -177,7 +177,7 @@ class TopicValidatorTest {
                 validationErrors);
 
         invalidTopic = Topic.builder()
-                .metadata(Metadata.builder().name(".").build())
+                .metadata(Resource.Metadata.builder().name(".").build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
 
@@ -185,7 +185,7 @@ class TopicValidatorTest {
         assertEquals(1, validationErrors.size());
 
         invalidTopic = Topic.builder()
-                .metadata(Metadata.builder().name("..").build())
+                .metadata(Resource.Metadata.builder().name("..").build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
 
@@ -193,7 +193,7 @@ class TopicValidatorTest {
         assertEquals(1, validationErrors.size());
 
         invalidTopic = Topic.builder()
-                .metadata(Metadata.builder().name("A".repeat(260)).build())
+                .metadata(Resource.Metadata.builder().name("A".repeat(260)).build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
 
@@ -201,7 +201,7 @@ class TopicValidatorTest {
         assertEquals(1, validationErrors.size());
 
         invalidTopic = Topic.builder()
-                .metadata(Metadata.builder().name("A B").build())
+                .metadata(Resource.Metadata.builder().name("A B").build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
 
@@ -209,7 +209,7 @@ class TopicValidatorTest {
         assertEquals(1, validationErrors.size());
 
         invalidTopic = Topic.builder()
-                .metadata(Metadata.builder().name("topicname<invalid").build())
+                .metadata(Resource.Metadata.builder().name("topicname<invalid").build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
 
@@ -222,7 +222,7 @@ class TopicValidatorTest {
         TopicValidator topicValidator = TopicValidator.builder().build();
 
         Topic topic = Topic.builder()
-                .metadata(Metadata.builder().name("validName").build())
+                .metadata(Resource.Metadata.builder().name("validName").build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(3)
                         .partitions(3)
@@ -240,7 +240,7 @@ class TopicValidatorTest {
         TopicValidator topicValidator = TopicValidator.builder().build();
 
         Topic topic = Topic.builder()
-                .metadata(Metadata.builder().name("validName").build())
+                .metadata(Resource.Metadata.builder().name("validName").build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(3)
                         .partitions(3)
@@ -268,7 +268,7 @@ class TopicValidatorTest {
                 .build();
 
         Topic topic = Topic.builder()
-                .metadata(Metadata.builder().name("validName").build())
+                .metadata(Resource.Metadata.builder().name("validName").build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(3)
                         .partitions(3)
@@ -299,7 +299,7 @@ class TopicValidatorTest {
                 .build();
 
         Topic topic = Topic.builder()
-                .metadata(Metadata.builder().name("validName").build())
+                .metadata(Resource.Metadata.builder().name("validName").build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(3)
                         .partitions(3)

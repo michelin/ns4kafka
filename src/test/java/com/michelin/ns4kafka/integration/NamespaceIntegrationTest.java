@@ -24,8 +24,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.michelin.ns4kafka.integration.container.KafkaIntegrationTest;
 import com.michelin.ns4kafka.model.AccessControlEntry;
-import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.RoleBinding;
 import com.michelin.ns4kafka.model.Status;
 import com.michelin.ns4kafka.model.Topic;
@@ -70,7 +70,7 @@ class NamespaceIntegrationTest extends KafkaIntegrationTest {
     @Test
     void shouldValidateNamespaceNameWithAuthorizedChars() {
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("wrong*namespace")
                         .cluster("test-cluster")
                         .labels(Map.of("support-group", "LDAP-GROUP-1"))
@@ -122,7 +122,7 @@ class NamespaceIntegrationTest extends KafkaIntegrationTest {
         assertEquals(namespace.getSpec(), responseGetNs.getSpec());
 
         RoleBinding roleBinding = RoleBinding.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("accepted.namespace-rb")
                         .namespace("accepted.namespace")
                         .build())
@@ -145,7 +145,7 @@ class NamespaceIntegrationTest extends KafkaIntegrationTest {
                         .body(roleBinding));
 
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("accepted.namespace-acl")
                         .namespace("accepted.namespace")
                         .build())
@@ -165,7 +165,7 @@ class NamespaceIntegrationTest extends KafkaIntegrationTest {
                         .body(accessControlEntry));
 
         Topic topic = Topic.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("accepted.namespace.topic")
                         .namespace("accepted.namespace")
                         .build())
@@ -198,7 +198,7 @@ class NamespaceIntegrationTest extends KafkaIntegrationTest {
     @Test
     void shouldFailWhenRequestedNamespaceIsUnknown() {
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("namespace")
                         .cluster("test-cluster")
                         .labels(Map.of("support-group", "LDAP-GROUP-1"))
@@ -211,8 +211,10 @@ class NamespaceIntegrationTest extends KafkaIntegrationTest {
                 .build();
 
         RoleBinding roleBinding = RoleBinding.builder()
-                .metadata(
-                        Metadata.builder().name("ns1-rb").namespace("namespace").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-rb")
+                        .namespace("namespace")
+                        .build())
                 .spec(RoleBinding.RoleBindingSpec.builder()
                         .role(RoleBinding.Role.builder()
                                 .resourceTypes(List.of("topics", "acls"))
@@ -257,7 +259,7 @@ class NamespaceIntegrationTest extends KafkaIntegrationTest {
     @Test
     void shouldFailWhenRequestedNamespaceIsForbidden() {
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("namespace2")
                         .cluster("test-cluster")
                         .labels(Map.of("support-group", "LDAP-GROUP-1"))
@@ -270,7 +272,7 @@ class NamespaceIntegrationTest extends KafkaIntegrationTest {
                 .build();
 
         RoleBinding roleBinding = RoleBinding.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-rb")
                         .namespace("namespace2")
                         .build())
@@ -299,7 +301,7 @@ class NamespaceIntegrationTest extends KafkaIntegrationTest {
                         .body(roleBinding));
 
         Namespace otherNamespace = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("namespace3")
                         .cluster("test-cluster")
                         .labels(Map.of("support-group", "LDAP-GROUP-1"))
@@ -312,7 +314,7 @@ class NamespaceIntegrationTest extends KafkaIntegrationTest {
                 .build();
 
         RoleBinding otherRb = RoleBinding.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-rb2")
                         .namespace("namespace3")
                         .build())
@@ -368,7 +370,7 @@ class NamespaceIntegrationTest extends KafkaIntegrationTest {
     @Test
     void shouldIgnoreCaseOnGroupsAndAccessNamespace() {
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("namespace4")
                         .cluster("test-cluster")
                         .labels(Map.of("support-group", "LDAP-GROUP-4"))
@@ -381,7 +383,7 @@ class NamespaceIntegrationTest extends KafkaIntegrationTest {
                 .build();
 
         RoleBinding roleBinding = RoleBinding.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns4-rb")
                         .namespace("namespace4")
                         .build())

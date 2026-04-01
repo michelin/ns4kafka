@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import com.michelin.ns4kafka.model.Metadata;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.RoleBinding;
 import com.michelin.ns4kafka.property.Ns4KafkaProperties;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
@@ -93,7 +93,10 @@ class AuthenticationServiceTest {
     @SuppressWarnings("unchecked")
     void shouldReturnAuthenticationSuccessWhenAdminWithGroups() {
         RoleBinding roleBinding = RoleBinding.builder()
-                .metadata(Metadata.builder().name("ns1-rb").namespace("ns1").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-rb")
+                        .namespace("ns1")
+                        .build())
                 .spec(RoleBinding.RoleBindingSpec.builder()
                         .role(RoleBinding.Role.builder()
                                 .resourceTypes(List.of("topics", "acls"))
@@ -141,7 +144,10 @@ class AuthenticationServiceTest {
     @SuppressWarnings("unchecked")
     void shouldReturnAuthenticationSuccessWhenUserWithGroups() {
         RoleBinding roleBinding = RoleBinding.builder()
-                .metadata(Metadata.builder().name("ns1-rb").namespace("ns1").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-rb")
+                        .namespace("ns1")
+                        .build())
                 .spec(RoleBinding.RoleBindingSpec.builder()
                         .role(RoleBinding.Role.builder()
                                 .resourceTypes(List.of("topics", "acls"))
@@ -188,7 +194,10 @@ class AuthenticationServiceTest {
     @SuppressWarnings("unchecked")
     void shouldReturnAuthenticationSuccessWhenMultipleGroupsWithSameVerbsAndResourceTypes() {
         RoleBinding roleBinding1 = RoleBinding.builder()
-                .metadata(Metadata.builder().name("ns1-rb").namespace("ns1").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-rb")
+                        .namespace("ns1")
+                        .build())
                 .spec(RoleBinding.RoleBindingSpec.builder()
                         .role(RoleBinding.Role.builder()
                                 .resourceTypes(List.of("topics", "acls"))
@@ -202,7 +211,10 @@ class AuthenticationServiceTest {
                 .build();
 
         RoleBinding roleBinding2 = RoleBinding.builder()
-                .metadata(Metadata.builder().name("ns2-rb").namespace("ns2").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns2-rb")
+                        .namespace("ns2")
+                        .build())
                 .spec(RoleBinding.RoleBindingSpec.builder()
                         .role(RoleBinding.Role.builder()
                                 .resourceTypes(List.of("topics"))
@@ -216,7 +228,10 @@ class AuthenticationServiceTest {
                 .build();
 
         RoleBinding roleBinding3 = RoleBinding.builder()
-                .metadata(Metadata.builder().name("ns3-rb").namespace("ns3").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns3-rb")
+                        .namespace("ns3")
+                        .build())
                 .spec(RoleBinding.RoleBindingSpec.builder()
                         .role(RoleBinding.Role.builder()
                                 .resourceTypes(List.of("topics", "acls"))

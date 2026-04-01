@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.michelin.ns4kafka.controller;
+package com.michelin.ns4kafka.controller.connect;
 
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidOwner;
 import static com.michelin.ns4kafka.util.enumation.Kind.CONNECTOR;
@@ -25,8 +25,8 @@ import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.Namespace;
-import com.michelin.ns4kafka.model.connector.ChangeConnectorState;
-import com.michelin.ns4kafka.model.connector.Connector;
+import com.michelin.ns4kafka.model.connect.ChangeConnectorState;
+import com.michelin.ns4kafka.model.connect.Connector;
 import com.michelin.ns4kafka.service.ConnectorService;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.ResourceQuotaService;
@@ -315,7 +315,6 @@ public class ConnectorController extends NamespacedResourceController {
                             .code(success.status())
                             .build());
                     state.setMetadata(optionalConnector.get().getMetadata());
-                    state.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
                 })
                 .doOnError(error -> {
                     state.setStatus(ChangeConnectorState.ChangeConnectorStateStatus.builder()
@@ -324,7 +323,6 @@ public class ConnectorController extends NamespacedResourceController {
                             .errorMessage(error.getMessage())
                             .build());
                     state.setMetadata(optionalConnector.get().getMetadata());
-                    state.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
                 })
                 .map(_ -> HttpResponse.ok(state))
                 .onErrorReturn(HttpResponse.ok(state));
@@ -348,6 +346,7 @@ public class ConnectorController extends NamespacedResourceController {
                 .listUnsynchronizedConnectorsByWildcardName(ns, name)
                 .map(unsynchronizedConnector -> {
                     unsynchronizedConnector.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
+                    unsynchronizedConnector.getMetadata().setGeneration(1);
                     unsynchronizedConnector
                             .getMetadata()
                             .setCluster(ns.getMetadata().getCluster());
