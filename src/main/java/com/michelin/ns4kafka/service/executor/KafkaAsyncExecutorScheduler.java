@@ -41,7 +41,6 @@ public class KafkaAsyncExecutorScheduler {
     private final List<ConnectorAsyncExecutor> connectorAsyncExecutors;
     private final List<UserAsyncExecutor> userAsyncExecutors;
     private final Ns4KafkaProperties.SchedulerProperties schedulerProperties;
-
     private Disposable connectorSyncDisposable;
 
     /**
