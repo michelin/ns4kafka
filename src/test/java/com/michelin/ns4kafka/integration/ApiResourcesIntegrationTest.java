@@ -62,7 +62,7 @@ class ApiResourcesIntegrationTest extends KafkaIntegrationTest {
                         HttpRequest.GET("/api-resources").bearerAuth(token),
                         Argument.listOf(ApiResourcesController.ResourceDefinition.class));
 
-        assertEquals(10, resources.size());
+        assertEquals(9, resources.size());
     }
 
     @Test
@@ -75,7 +75,7 @@ class ApiResourcesIntegrationTest extends KafkaIntegrationTest {
                         HttpRequest.GET("/api-resources"),
                         Argument.listOf(ApiResourcesController.ResourceDefinition.class));
 
-        assertEquals(10, resources.size());
+        assertEquals(9, resources.size());
     }
 
     @Test
