@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.michelin.ns4kafka.model.connector.Connector;
+import com.michelin.ns4kafka.model.connect.Connector;
 import com.michelin.ns4kafka.validation.ConnectValidator;
 import com.michelin.ns4kafka.validation.ResourceValidator;
 import java.util.List;
@@ -159,8 +159,9 @@ class ConnectValidatorTest {
     void shouldNotValidateConnectorWithNoName() {
         ConnectValidator validator = ConnectValidator.builder().build();
 
-        Connector connector =
-                Connector.builder().metadata(Metadata.builder().build()).build();
+        Connector connector = Connector.builder()
+                .metadata(Resource.Metadata.builder().build())
+                .build();
 
         List<String> actual = validator.validate(connector, "sink");
         assertEquals(1, actual.size());
@@ -172,7 +173,7 @@ class ConnectValidatorTest {
         ConnectValidator validator = ConnectValidator.builder().build();
 
         Connector connector = Connector.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("$thisNameIsDefinitelyToLooooooooooooooooooooooooooooooooooooooooooo"
                                 + "ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo"
                                 + "ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo"
@@ -227,7 +228,7 @@ class ConnectValidatorTest {
                 .build();
 
         Connector connector = Connector.builder()
-                .metadata(Metadata.builder().name("connect2").build())
+                .metadata(Resource.Metadata.builder().name("connect2").build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("cluster1")
                         .config(Map.of(
@@ -261,7 +262,7 @@ class ConnectValidatorTest {
                 .build();
 
         Connector connector = Connector.builder()
-                .metadata(Metadata.builder().name("connect2").build())
+                .metadata(Resource.Metadata.builder().name("connect2").build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("cluster1")
                         .config(Map.of(
@@ -280,7 +281,7 @@ class ConnectValidatorTest {
         ConnectValidator validator = ConnectValidator.builder().build();
 
         Connector connector = Connector.builder()
-                .metadata(Metadata.builder().name("connect2").build())
+                .metadata(Resource.Metadata.builder().name("connect2").build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("cluster1")
                         .config(Map.of(
@@ -318,7 +319,7 @@ class ConnectValidatorTest {
                 .build();
 
         Connector connector = Connector.builder()
-                .metadata(Metadata.builder().name("connect2").build())
+                .metadata(Resource.Metadata.builder().name("connect2").build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("cluster1")
                         .config(Map.of(
@@ -357,7 +358,7 @@ class ConnectValidatorTest {
                 .build();
 
         Connector connector = Connector.builder()
-                .metadata(Metadata.builder().name("connect2").build())
+                .metadata(Resource.Metadata.builder().name("connect2").build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("cluster1")
                         .config(Map.of(
@@ -398,7 +399,7 @@ class ConnectValidatorTest {
                 .build();
 
         Connector connector = Connector.builder()
-                .metadata(Metadata.builder().name("connect2").build())
+                .metadata(Resource.Metadata.builder().name("connect2").build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("cluster1")
                         .config(Map.of(

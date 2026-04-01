@@ -20,8 +20,7 @@ package com.michelin.ns4kafka.model.consumer.group;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.CONSUMER_GROUP;
 
-import com.michelin.ns4kafka.model.Metadata;
-import com.michelin.ns4kafka.model.MetadataResource;
+import com.michelin.ns4kafka.model.Resource;
 import io.micronaut.core.annotation.Introspected;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
@@ -39,7 +38,7 @@ import org.apache.kafka.common.GroupState;
 @Data
 @Introspected
 @EqualsAndHashCode(callSuper = true)
-public class ConsumerGroup extends MetadataResource {
+public class ConsumerGroup extends Resource {
     @EqualsAndHashCode.Exclude
     @Valid @NotNull private ConsumerGroupStatus status;
 
@@ -50,7 +49,7 @@ public class ConsumerGroup extends MetadataResource {
      * @param status The status
      */
     @Builder
-    public ConsumerGroup(Metadata metadata, ConsumerGroupStatus status) {
+    public ConsumerGroup(Resource.Metadata metadata, ConsumerGroupStatus status) {
         super("v1", CONSUMER_GROUP, metadata);
         this.status = status;
     }

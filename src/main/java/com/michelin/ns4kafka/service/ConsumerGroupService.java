@@ -27,8 +27,8 @@ import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidConsumerGroupTo
 import static java.util.Comparator.comparing;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
-import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.consumer.group.ConsumerGroup;
 import com.michelin.ns4kafka.model.consumer.group.ConsumerGroupResetOffsets;
 import com.michelin.ns4kafka.model.consumer.group.ConsumerGroupResetOffsets.ResetOffsetsMethod;
@@ -340,7 +340,7 @@ public class ConsumerGroupService {
             ConsumerGroupDescription description,
             Map<TopicPartition, Long> committedOffsets) {
         return ConsumerGroup.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name(consumerGroupId)
                         .namespace(namespace.getMetadata().getName())
                         .cluster(namespace.getMetadata().getCluster())

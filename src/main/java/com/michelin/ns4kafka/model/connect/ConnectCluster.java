@@ -16,12 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.michelin.ns4kafka.model.connect.cluster;
+package com.michelin.ns4kafka.model.connect;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.CONNECT_CLUSTER;
 
-import com.michelin.ns4kafka.model.Metadata;
-import com.michelin.ns4kafka.model.MetadataResource;
+import com.michelin.ns4kafka.model.Resource;
 import io.micronaut.core.annotation.Introspected;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -35,7 +34,7 @@ import lombok.NoArgsConstructor;
 @Data
 @Introspected
 @EqualsAndHashCode(callSuper = true)
-public class ConnectCluster extends MetadataResource {
+public class ConnectCluster extends Resource {
     @Valid @NotNull private ConnectClusterSpec spec;
 
     /**

@@ -16,45 +16,44 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.michelin.ns4kafka.controller;
+package com.michelin.ns4kafka.controller.connect;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.when;
 
-import com.michelin.ns4kafka.controller.topic.TopicNonNamespacedController;
-import com.michelin.ns4kafka.model.Metadata;
-import com.michelin.ns4kafka.model.Topic;
-import com.michelin.ns4kafka.service.TopicService;
+import com.michelin.ns4kafka.model.Resource;
+import com.michelin.ns4kafka.model.connect.ConnectCluster;
+import com.michelin.ns4kafka.service.ConnectClusterService;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Flux;
+import reactor.test.StepVerifier;
 
 @ExtendWith(MockitoExtension.class)
-class TopicNonNamespacedControllerTest {
+class ConnectClusterNonNamespacedControllerTest {
     @Mock
-    TopicService topicService;
+    ConnectClusterService connectClusterService;
 
     @InjectMocks
-    TopicNonNamespacedController topicController;
+    ConnectClusterNonNamespacedController connectClusterNonNamespacedController;
 
     @Test
-    void shouldFindAll() {
-        when(topicService.findAll())
-                .thenReturn(List.of(
-                        Topic.builder()
-                                .metadata(Metadata.builder().name("topic1").build())
-                                .build(),
-                        Topic.builder()
-                                .metadata(Metadata.builder().name("topic2").build())
-                                .build()));
+    void shouldListAll() {
+        ConnectCluster connectCluster = ConnectCluster.builder()
+                .metadata(Resource.Metadata.builder().name("connect-cluster").build())
+                .build();
 
-        List<Topic> actual = topicController.listAll();
+        when(connectClusterService.findAll(anyBoolean(), anyBoolean()))
+                .thenReturn(Flux.fromIterable(List.of(connectCluster)));
 
-        assertEquals(2, actual.size());
-        assertEquals("topic1", actual.getFirst().getMetadata().getName());
-        assertEquals("topic2", actual.get(1).getMetadata().getName());
+        StepVerifier.create(connectClusterNonNamespacedController.listAll(false, false))
+                .consumeNextWith(result ->
+                        assertEquals("connect-cluster", result.getMetadata().getName()))
+                .verifyComplete();
     }
 }

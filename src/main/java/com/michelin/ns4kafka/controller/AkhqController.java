@@ -48,10 +48,7 @@ import lombok.Getter;
 @Tag(name = "AKHQ", description = "Manage the AKHQ endpoints.")
 @RolesAllowed(SecurityRule.IS_ANONYMOUS)
 @Controller("/akhq-claim")
-public class AkhqClaimProviderController {
-    private static final String TOPICS_FILTER_REGEX = "topicsFilterRegexp";
-    private static final String CONNECTS_FILTER_REGEX = "connectsFilterRegexp";
-    private static final String CONSUMER_GROUPS_FILTER_REGEX = "consumerGroupsFilterRegexp";
+public class AkhqController {
     private static final List<String> EMPTY_REGEXP = List.of("^none$");
     private static final List<String> ADMIN_REGEXP = List.of(".*");
 
@@ -68,7 +65,7 @@ public class AkhqClaimProviderController {
      * @param namespaceService The namespace service
      * @param managedClusters The managed clusters
      */
-    public AkhqClaimProviderController(
+    public AkhqController(
             Ns4KafkaProperties ns4KafkaProperties,
             AclService aclService,
             NamespaceService namespaceService,
@@ -77,48 +74,6 @@ public class AkhqClaimProviderController {
         this.aclService = aclService;
         this.namespaceService = namespaceService;
         this.managedClusters = managedClusters;
-    }
-
-    /**
-     * List AKHQ claims (v019 and prior).
-     *
-     * @param request The AKHQ request
-     * @return The AKHQ claims
-     */
-    @Post
-    public AkhqClaimResponse generateClaim(@Valid @Body AkhqClaimRequest request) {
-        if (request == null) {
-            return AkhqClaimResponse.ofEmpty(ns4KafkaProperties.getAkhq().getFormerRoles());
-        }
-
-        final List<String> groups = Optional.ofNullable(request.getGroups()).orElse(new ArrayList<>());
-
-        if (groups.contains(ns4KafkaProperties.getAkhq().getAdminGroup())) {
-            return AkhqClaimResponse.ofAdmin(ns4KafkaProperties.getAkhq().getFormerAdminRoles());
-        }
-
-        List<AccessControlEntry> relatedAcl = namespaceService.findAll().stream()
-                .filter(namespace -> namespace.getMetadata().getLabels() != null
-                        && groups.contains(namespace
-                                .getMetadata()
-                                .getLabels()
-                                .getOrDefault(ns4KafkaProperties.getAkhq().getGroupLabel(), "_")))
-                .flatMap(namespace -> aclService.findAllGrantedToNamespace(namespace).stream())
-                .collect(Collectors.toList());
-
-        // Add all public ACLs.
-        relatedAcl.addAll(aclService.findAllPublicGrantedTo());
-
-        return AkhqClaimResponse.builder()
-                .roles(ns4KafkaProperties.getAkhq().getFormerRoles())
-                .attributes(Map.of(
-                        TOPICS_FILTER_REGEX,
-                        computeAllowedRegexListForResourceType(relatedAcl, AccessControlEntry.ResourceType.TOPIC),
-                        CONNECTS_FILTER_REGEX,
-                        computeAllowedRegexListForResourceType(relatedAcl, AccessControlEntry.ResourceType.CONNECT),
-                        CONSUMER_GROUPS_FILTER_REGEX,
-                        ADMIN_REGEXP))
-                .build();
     }
 
     /**
@@ -331,12 +286,13 @@ public class AkhqClaimProviderController {
                         // Split the namespace groups by the groupDelimiter to support multiple groups and compare with
                         // the user groups
                         && !Collections.disjoint(
-                                groups,
+                                groups.stream().map(String::toLowerCase).toList(),
                                 List.of(namespace
                                         .getMetadata()
                                         .getLabels()
                                         .getOrDefault(
                                                 ns4KafkaProperties.getAkhq().getGroupLabel(), "_")
+                                        .toLowerCase()
                                         .split(ns4KafkaProperties.getAkhq().getGroupDelimiter()))))
                 .flatMap(namespace -> aclService.findAllGrantedToNamespace(namespace).stream())
                 .collect(Collectors.toList());
@@ -388,49 +344,6 @@ public class AkhqClaimProviderController {
         String providerName;
         String username;
         List<String> groups;
-    }
-
-    /** AKHQ response. */
-    @Introspected
-    @Builder
-    @Getter
-    public static class AkhqClaimResponse {
-        private List<String> roles;
-        private Map<String, List<String>> attributes;
-
-        /**
-         * Build an empty AKHQ response.
-         *
-         * @param roles the roles
-         * @return the AKHQ response
-         */
-        public static AkhqClaimResponse ofEmpty(List<String> roles) {
-            return AkhqClaimResponse.builder()
-                    .roles(roles)
-                    .attributes(Map.of(
-                            // AKHQ considers empty list as "^.*$" so we must return something
-                            TOPICS_FILTER_REGEX, EMPTY_REGEXP,
-                            CONNECTS_FILTER_REGEX, EMPTY_REGEXP,
-                            CONSUMER_GROUPS_FILTER_REGEX, EMPTY_REGEXP))
-                    .build();
-        }
-
-        /**
-         * Build an AKHQ response for an admin.
-         *
-         * @param roles the roles
-         * @return the AKHQ response
-         */
-        public static AkhqClaimResponse ofAdmin(List<String> roles) {
-            return AkhqClaimResponse.builder()
-                    .roles(roles)
-                    .attributes(Map.of(
-                            // AKHQ considers empty list as "^.*$" so we must return something
-                            TOPICS_FILTER_REGEX, ADMIN_REGEXP,
-                            CONNECTS_FILTER_REGEX, ADMIN_REGEXP,
-                            CONSUMER_GROUPS_FILTER_REGEX, ADMIN_REGEXP))
-                    .build();
-        }
     }
 
     /** AKHQ response (v2). */

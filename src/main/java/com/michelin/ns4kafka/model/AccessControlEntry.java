@@ -34,7 +34,7 @@ import lombok.NoArgsConstructor;
 @Data
 @Introspected
 @EqualsAndHashCode(callSuper = true)
-public class AccessControlEntry extends MetadataResource {
+public class AccessControlEntry extends Resource {
     @Valid @NotNull private AccessControlEntrySpec spec;
 
     /**
@@ -81,12 +81,12 @@ public class AccessControlEntry extends MetadataResource {
     public static class AccessControlEntrySpec {
         @NotNull protected AccessControlEntry.ResourceType resourceType;
 
-        @NotNull @NotBlank protected String resource;
+        @NotBlank protected String resource;
 
         @NotNull protected ResourcePatternType resourcePatternType;
 
         @NotNull protected Permission permission;
 
-        @NotBlank @NotNull protected String grantedTo;
+        @NotBlank protected String grantedTo;
     }
 }

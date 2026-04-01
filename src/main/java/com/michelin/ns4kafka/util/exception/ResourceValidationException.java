@@ -18,7 +18,7 @@
  */
 package com.michelin.ns4kafka.util.exception;
 
-import com.michelin.ns4kafka.model.MetadataResource;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.util.enumation.Kind;
 import java.io.Serial;
 import java.util.List;
@@ -33,9 +33,7 @@ public class ResourceValidationException extends RuntimeException {
     private static final long serialVersionUID = 32400191899153204L;
 
     private final Kind kind;
-
     private final String name;
-
     private final List<String> validationErrors;
 
     /**
@@ -55,7 +53,7 @@ public class ResourceValidationException extends RuntimeException {
      * @param resource The resource
      * @param validationError The validation error
      */
-    public ResourceValidationException(MetadataResource resource, String validationError) {
+    public ResourceValidationException(Resource resource, String validationError) {
         this(resource.getKind(), resource.getMetadata().getName(), List.of(validationError));
     }
 
@@ -65,7 +63,7 @@ public class ResourceValidationException extends RuntimeException {
      * @param resource The resource
      * @param validationErrors The validation errors
      */
-    public ResourceValidationException(MetadataResource resource, List<String> validationErrors) {
+    public ResourceValidationException(Resource resource, List<String> validationErrors) {
         this(resource.getKind(), resource.getMetadata().getName(), validationErrors);
     }
 }

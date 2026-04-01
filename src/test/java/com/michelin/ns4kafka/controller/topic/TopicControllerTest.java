@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.michelin.ns4kafka.controller;
+package com.michelin.ns4kafka.controller.topic;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertLinesMatch;
@@ -32,12 +32,11 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.michelin.ns4kafka.controller.topic.TopicController;
 import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.DeleteRecordsResponse;
-import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Namespace.NamespaceSpec;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.service.NamespaceService;
@@ -87,7 +86,10 @@ class TopicControllerTest {
     @Test
     void shouldListTopicsWhenEmpty() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
@@ -99,15 +101,18 @@ class TopicControllerTest {
     @Test
     void shouldListTopicsWithWildcardParameter() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         Topic topic1 = Topic.builder()
-                .metadata(Metadata.builder().name("topic1").build())
+                .metadata(Resource.Metadata.builder().name("topic1").build())
                 .build();
 
         Topic topic2 = Topic.builder()
-                .metadata(Metadata.builder().name("topic2").build())
+                .metadata(Resource.Metadata.builder().name("topic2").build())
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
@@ -119,11 +124,14 @@ class TopicControllerTest {
     @Test
     void shouldListTopicWithNoWildcardParameter() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         Topic topic1 = Topic.builder()
-                .metadata(Metadata.builder().name("topic1").build())
+                .metadata(Resource.Metadata.builder().name("topic1").build())
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
@@ -144,14 +152,18 @@ class TopicControllerTest {
     @SuppressWarnings("deprecation")
     void shouldGetTopic() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(topicService.findByName(ns, "topic.found"))
                 .thenReturn(Optional.of(Topic.builder()
-                        .metadata(Metadata.builder().name("topic.found").build())
+                        .metadata(
+                                Resource.Metadata.builder().name("topic.found").build())
                         .build()));
 
         Optional<Topic> actual = topicController.get("test", "topic.found");
@@ -163,16 +175,23 @@ class TopicControllerTest {
     @Test
     void shouldBulkDeleteTopics() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         List<Topic> toDelete = List.of(
                 Topic.builder()
-                        .metadata(Metadata.builder().name("prefix1.topic1").build())
+                        .metadata(Resource.Metadata.builder()
+                                .name("prefix1.topic1")
+                                .build())
                         .build(),
                 Topic.builder()
-                        .metadata(Metadata.builder().name("prefix1.topic2").build())
+                        .metadata(Resource.Metadata.builder()
+                                .name("prefix1.topic2")
+                                .build())
                         .build());
         when(topicService.findByWildcardName(ns, "prefix1.*")).thenReturn(toDelete);
         when(securityService.username()).thenReturn(Optional.of("test-user"));
@@ -187,7 +206,10 @@ class TopicControllerTest {
     @Test
     void shouldNotBulkDeleteTopicsWhenNotFound() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
@@ -203,13 +225,16 @@ class TopicControllerTest {
     @Test
     void shouldNotBulkDeleteTopicsInDryRunMode() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
 
         List<Topic> toDelete = List.of(Topic.builder()
-                .metadata(Metadata.builder().name("prefix.topic").build())
+                .metadata(Resource.Metadata.builder().name("prefix.topic").build())
                 .build());
 
         when(topicService.findByWildcardName(ns, "prefix.topic")).thenReturn(toDelete);
@@ -223,12 +248,15 @@ class TopicControllerTest {
     @SuppressWarnings("deprecation")
     void shouldDeleteTopic() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         Optional<Topic> toDelete = Optional.of(Topic.builder()
-                .metadata(Metadata.builder().name("topic.delete").build())
+                .metadata(Resource.Metadata.builder().name("topic.delete").build())
                 .build());
         when(topicService.findByName(ns, "topic.delete")).thenReturn(toDelete);
         when(topicService.isNamespaceOwnerOfTopic("test", "topic.delete")).thenReturn(true);
@@ -246,13 +274,16 @@ class TopicControllerTest {
     @SuppressWarnings("deprecation")
     void shouldNotDeleteTopicInDryRunMode() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
 
         Optional<Topic> toDelete = Optional.of(Topic.builder()
-                .metadata(Metadata.builder().name("topic.delete").build())
+                .metadata(Resource.Metadata.builder().name("topic.delete").build())
                 .build());
 
         when(topicService.findByName(ns, "topic.delete")).thenReturn(toDelete);
@@ -267,7 +298,10 @@ class TopicControllerTest {
     @SuppressWarnings("deprecation")
     void shouldNotDeleteTopicWhenUnauthorized() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
@@ -279,14 +313,17 @@ class TopicControllerTest {
     @Test
     void shouldCreateTopic() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .topicValidator(TopicValidator.makeDefault())
                         .build())
                 .build();
 
         Topic topic = Topic.builder()
-                .metadata(Metadata.builder().name("test.topic").build())
+                .metadata(Resource.Metadata.builder().name("test.topic").build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(3)
                         .partitions(3)
@@ -315,14 +352,17 @@ class TopicControllerTest {
     @Test
     void shouldCreateTopicWithNoConstraint() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .topicValidator(TopicValidator.builder().build())
                         .build())
                 .build();
 
         Topic topic = Topic.builder()
-                .metadata(Metadata.builder().name("test.topic").build())
+                .metadata(Resource.Metadata.builder().name("test.topic").build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(3)
                         .partitions(3)
@@ -351,14 +391,17 @@ class TopicControllerTest {
     @Test
     void shouldUpdateTopic() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .topicValidator(TopicValidator.makeDefault())
                         .build())
                 .build();
 
         Topic existing = Topic.builder()
-                .metadata(Metadata.builder().name("test.topic").build())
+                .metadata(Resource.Metadata.builder().name("test.topic").build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(3)
                         .partitions(3)
@@ -368,7 +411,7 @@ class TopicControllerTest {
                 .build();
 
         Topic topic = Topic.builder()
-                .metadata(Metadata.builder().name("test.topic").build())
+                .metadata(Resource.Metadata.builder().name("test.topic").build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(3)
                         .partitions(3)
@@ -394,14 +437,17 @@ class TopicControllerTest {
     @Test
     void shouldValidateNewTags() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .topicValidator(TopicValidator.makeDefault())
                         .build())
                 .build();
 
         Topic existing = Topic.builder()
-                .metadata(Metadata.builder().name("test.topic").build())
+                .metadata(Resource.Metadata.builder().name("test.topic").build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(3)
                         .partitions(3)
@@ -412,7 +458,7 @@ class TopicControllerTest {
                 .build();
 
         Topic topic = Topic.builder()
-                .metadata(Metadata.builder().name("test.topic").build())
+                .metadata(Resource.Metadata.builder().name("test.topic").build())
                 .spec(Topic.TopicSpec.builder()
                         .tags(Arrays.asList("TAG1", "TAG2"))
                         .replicationFactor(3)
@@ -436,14 +482,17 @@ class TopicControllerTest {
     @Test
     void shouldNotValidateTagsWhenNoNewTag() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .topicValidator(TopicValidator.makeDefault())
                         .build())
                 .build();
 
         Topic existing = Topic.builder()
-                .metadata(Metadata.builder().name("test.topic").build())
+                .metadata(Resource.Metadata.builder().name("test.topic").build())
                 .spec(Topic.TopicSpec.builder()
                         .tags(Arrays.asList("TAG1", "TAG2"))
                         .replicationFactor(3)
@@ -454,7 +503,7 @@ class TopicControllerTest {
                 .build();
 
         Topic topic = Topic.builder()
-                .metadata(Metadata.builder().name("test.topic").build())
+                .metadata(Resource.Metadata.builder().name("test.topic").build())
                 .spec(Topic.TopicSpec.builder()
                         .tags(new ArrayList<>(List.of("TAG1")))
                         .replicationFactor(3)
@@ -483,14 +532,17 @@ class TopicControllerTest {
     @Test
     void shouldNotUpdateTopicWhenValidationErrors() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .topicValidator(TopicValidator.makeDefault())
                         .build())
                 .build();
 
         Topic existing = Topic.builder()
-                .metadata(Metadata.builder().name("test.topic").build())
+                .metadata(Resource.Metadata.builder().name("test.topic").build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(3)
                         .partitions(3)
@@ -500,7 +552,7 @@ class TopicControllerTest {
                 .build();
 
         Topic topic = Topic.builder()
-                .metadata(Metadata.builder().name("test.topic").build())
+                .metadata(Resource.Metadata.builder().name("test.topic").build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(3)
                         .partitions(6)
@@ -526,14 +578,17 @@ class TopicControllerTest {
     @Test
     void shouldNotUpdateTopicWhenUnchanged() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .topicValidator(TopicValidator.makeDefault())
                         .build())
                 .build();
 
         Topic existing = Topic.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("test.topic")
                         .namespace("test")
                         .cluster("local")
@@ -547,7 +602,7 @@ class TopicControllerTest {
                 .build();
 
         Topic topic = Topic.builder()
-                .metadata(Metadata.builder().name("test.topic").build())
+                .metadata(Resource.Metadata.builder().name("test.topic").build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(3)
                         .partitions(3)
@@ -570,14 +625,17 @@ class TopicControllerTest {
     @Test
     void shouldCreateTopicInDryRunMode() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .topicValidator(TopicValidator.makeDefault())
                         .build())
                 .build();
 
         Topic topic = Topic.builder()
-                .metadata(Metadata.builder().name("test.topic").build())
+                .metadata(Resource.Metadata.builder().name("test.topic").build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(3)
                         .partitions(3)
@@ -600,14 +658,17 @@ class TopicControllerTest {
     @Test
     void shouldNotCreateTopicWhenValidationErrors() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .topicValidator(TopicValidator.makeDefault())
                         .build())
                 .build();
 
         Topic topic = Topic.builder()
-                .metadata(Metadata.builder().name("test.topic").build())
+                .metadata(Resource.Metadata.builder().name("test.topic").build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(1)
                         .partitions(3)
@@ -630,12 +691,15 @@ class TopicControllerTest {
     void shouldNotFailWhenCreatingTopicWithNoValidator()
             throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder().topicValidator(null).build())
                 .build();
 
         Topic topic = Topic.builder()
-                .metadata(Metadata.builder().name("test.topic").build())
+                .metadata(Resource.Metadata.builder().name("test.topic").build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(1)
                         .partitions(3)
@@ -657,14 +721,17 @@ class TopicControllerTest {
     void shouldNotFailWhenCreatingTopicWithNoValidationConstraint()
             throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .topicValidator(TopicValidator.builder().build())
                         .build())
                 .build();
 
         Topic topic = Topic.builder()
-                .metadata(Metadata.builder().name("test.topic").build())
+                .metadata(Resource.Metadata.builder().name("test.topic").build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(1)
                         .partitions(3)
@@ -685,14 +752,17 @@ class TopicControllerTest {
     @Test
     void shouldNotCreateTopicWhenQuotaValidationErrors() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .topicValidator(TopicValidator.makeDefault())
                         .build())
                 .build();
 
         Topic topic = Topic.builder()
-                .metadata(Metadata.builder().name("test.topic").build())
+                .metadata(Resource.Metadata.builder().name("test.topic").build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(3)
                         .partitions(3)
@@ -716,14 +786,17 @@ class TopicControllerTest {
     @Test
     void shouldImportTopics() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .topicValidator(TopicValidator.makeDefault())
                         .build())
                 .build();
 
         Topic topic1 = Topic.builder()
-                .metadata(Metadata.builder().name("test.topic1").build())
+                .metadata(Resource.Metadata.builder().name("test.topic1").build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(3)
                         .partitions(3)
@@ -733,7 +806,7 @@ class TopicControllerTest {
                 .build();
 
         Topic topic2 = Topic.builder()
-                .metadata(Metadata.builder().name("test.topic2").build())
+                .metadata(Resource.Metadata.builder().name("test.topic2").build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(3)
                         .partitions(3)
@@ -770,14 +843,17 @@ class TopicControllerTest {
     @Test
     void shouldImportTopicInDryRunMode() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .topicValidator(TopicValidator.makeDefault())
                         .build())
                 .build();
 
         Topic topic1 = Topic.builder()
-                .metadata(Metadata.builder().name("test.topic1").build())
+                .metadata(Resource.Metadata.builder().name("test.topic1").build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(3)
                         .partitions(3)
@@ -787,7 +863,7 @@ class TopicControllerTest {
                 .build();
 
         Topic topic2 = Topic.builder()
-                .metadata(Metadata.builder().name("test.topic2").build())
+                .metadata(Resource.Metadata.builder().name("test.topic2").build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(3)
                         .partitions(3)
@@ -809,14 +885,17 @@ class TopicControllerTest {
     @Test
     void shouldImportTopicWithNameParameter() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .topicValidator(TopicValidator.makeDefault())
                         .build())
                 .build();
 
         Topic topic1 = Topic.builder()
-                .metadata(Metadata.builder().name("test.topic1").build())
+                .metadata(Resource.Metadata.builder().name("test.topic1").build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(3)
                         .partitions(3)
@@ -844,11 +923,14 @@ class TopicControllerTest {
     @Test
     void shouldDeleteRecords() throws ExecutionException, InterruptedException {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         Topic toEmpty = Topic.builder()
-                .metadata(Metadata.builder().name("topic.empty").build())
+                .metadata(Resource.Metadata.builder().name("topic.empty").build())
                 .build();
 
         Map<TopicPartition, Long> partitionsToDelete = Map.of(
@@ -890,11 +972,14 @@ class TopicControllerTest {
     @Test
     void shouldDeleteRecordsInCompactedTopic() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         Topic toEmpty = Topic.builder()
-                .metadata(Metadata.builder().name("topic.empty").build())
+                .metadata(Resource.Metadata.builder().name("topic.empty").build())
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
@@ -916,11 +1001,14 @@ class TopicControllerTest {
     @Test
     void shouldDeleteRecordsInDryRunMode() throws InterruptedException, ExecutionException {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         Topic toEmpty = Topic.builder()
-                .metadata(Metadata.builder().name("topic.empty").build())
+                .metadata(Resource.Metadata.builder().name("topic.empty").build())
                 .build();
 
         Map<TopicPartition, Long> partitionsToDelete = Map.of(
@@ -963,7 +1051,10 @@ class TopicControllerTest {
     @Test
     void shouldNotDeleteRecordsWhenNotOwner() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
@@ -981,7 +1072,10 @@ class TopicControllerTest {
     @Test
     void shouldNotDeleteRecordsWhenTopicNotExist() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
@@ -1001,14 +1095,17 @@ class TopicControllerTest {
     void shouldNotCreateTopicWhenNameCollidesOnSpecialChar()
             throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .spec(NamespaceSpec.builder()
                         .topicValidator(TopicValidator.makeDefault())
                         .build())
                 .build();
 
         Topic topic = Topic.builder()
-                .metadata(Metadata.builder().name("test.topic").build())
+                .metadata(Resource.Metadata.builder().name("test.topic").build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(3)
                         .partitions(3)

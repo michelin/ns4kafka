@@ -23,9 +23,26 @@ import java.util.List;
 
 /** Stream repository. */
 public interface StreamRepository {
+    /**
+     * Find all streams by cluster.
+     *
+     * @param cluster The cluster name
+     * @return The list of streams for the given cluster
+     */
     List<KafkaStream> findAllForCluster(String cluster);
 
+    /**
+     * Create a stream.
+     *
+     * @param stream The stream to create
+     * @return The created stream
+     */
     KafkaStream create(KafkaStream stream);
 
+    /**
+     * Delete a stream.
+     *
+     * @param stream The stream to delete
+     */
     void delete(KafkaStream stream);
 }

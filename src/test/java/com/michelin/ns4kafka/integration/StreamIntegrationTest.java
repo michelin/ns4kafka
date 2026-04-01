@@ -28,9 +28,9 @@ import com.michelin.ns4kafka.model.AccessControlEntry.Permission;
 import com.michelin.ns4kafka.model.AccessControlEntry.ResourcePatternType;
 import com.michelin.ns4kafka.model.AccessControlEntry.ResourceType;
 import com.michelin.ns4kafka.model.KafkaStream;
-import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Namespace.NamespaceSpec;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
 import com.michelin.ns4kafka.service.executor.TopicAsyncExecutor;
@@ -70,7 +70,7 @@ class StreamIntegrationTest extends KafkaIntegrationTest {
     @BeforeAll
     void init() {
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("nskafkastream")
                         .cluster("test-cluster")
                         .build())
@@ -82,7 +82,7 @@ class StreamIntegrationTest extends KafkaIntegrationTest {
                 .build();
 
         AccessControlEntry acl1 = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("nskafkastream-acl-topic")
                         .namespace("nskafkastream")
                         .build())
@@ -117,7 +117,7 @@ class StreamIntegrationTest extends KafkaIntegrationTest {
                         .body(acl1));
 
         AccessControlEntry acl2 = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("nskafkastream-acl-group")
                         .namespace("nskafkastream")
                         .build())
@@ -170,7 +170,7 @@ class StreamIntegrationTest extends KafkaIntegrationTest {
                 .noneMatch(topic -> topic.getMetadata().getName().equals("kstream2-MY_TOPIC-changelog")));
 
         KafkaStream kafkaStream = KafkaStream.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("kstream-appId")
                         .namespace("nskafkastream")
                         .build())

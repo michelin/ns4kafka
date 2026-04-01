@@ -31,8 +31,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
-import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.repository.AccessControlEntryRepository;
 import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
@@ -69,11 +69,14 @@ class AclServiceTest {
     void shouldNotValidateAcl() {
         Namespace namespace = Namespace.builder()
                 .spec(Namespace.NamespaceSpec.builder().build())
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .build();
 
         AccessControlEntry badAcl = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("acl-name")
                         .namespace("namespace")
                         .build())
@@ -106,11 +109,14 @@ class AclServiceTest {
     void shouldNotValidateAclBecauseSelfGranted() {
         Namespace namespace = Namespace.builder()
                 .spec(Namespace.NamespaceSpec.builder().build())
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .build();
 
         AccessControlEntry badAcl = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("acl-name")
                         .namespace("namespace")
                         .build())
@@ -140,16 +146,22 @@ class AclServiceTest {
     void shouldNotValidateAclBecauseNotOwnerOfTopLevelResourceHavingBadPrefix() {
         Namespace ns = Namespace.builder()
                 .spec(Namespace.NamespaceSpec.builder().build())
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .build();
 
         Namespace targetNamespace = Namespace.builder()
                 .spec(Namespace.NamespaceSpec.builder().build())
-                .metadata(Metadata.builder().name("target-ns").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("target-ns")
+                        .cluster("local")
+                        .build())
                 .build();
 
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("acl-name")
                         .namespace("namespace")
                         .build())
@@ -173,7 +185,7 @@ class AclServiceTest {
                                 .resource("main.sub")
                                 .grantedTo("namespace")
                                 .build())
-                        .metadata(Metadata.builder().cluster("local").build())
+                        .metadata(Resource.Metadata.builder().cluster("local").build())
                         .build()));
 
         List<String> actual = aclService.validate(accessControlEntry, ns);
@@ -187,16 +199,22 @@ class AclServiceTest {
     void shouldNotValidateAclBecauseNotOwnerOfTopLevelResourceHavingBadLiteral() {
         Namespace namespace = Namespace.builder()
                 .spec(Namespace.NamespaceSpec.builder().build())
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .build();
 
         Namespace targetNamespace = Namespace.builder()
                 .spec(Namespace.NamespaceSpec.builder().build())
-                .metadata(Metadata.builder().name("target-ns").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("target-ns")
+                        .cluster("local")
+                        .build())
                 .build();
 
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("acl-name")
                         .namespace("namespace")
                         .build())
@@ -220,7 +238,7 @@ class AclServiceTest {
                                 .resource("resource1")
                                 .grantedTo("namespace")
                                 .build())
-                        .metadata(Metadata.builder().cluster("local").build())
+                        .metadata(Resource.Metadata.builder().cluster("local").build())
                         .build()));
 
         List<String> actual = aclService.validate(accessControlEntry, namespace);
@@ -234,16 +252,22 @@ class AclServiceTest {
     void shouldValidateAclBecauseOwnerOfLiteral() {
         Namespace namespace = Namespace.builder()
                 .spec(Namespace.NamespaceSpec.builder().build())
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .build();
 
         Namespace targetNamespace = Namespace.builder()
                 .spec(Namespace.NamespaceSpec.builder().build())
-                .metadata(Metadata.builder().name("target-ns").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("target-ns")
+                        .cluster("local")
+                        .build())
                 .build();
 
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("acl-name")
                         .namespace("namespace")
                         .cluster("local")
@@ -268,7 +292,7 @@ class AclServiceTest {
                                 .resource("resource1")
                                 .grantedTo("namespace")
                                 .build())
-                        .metadata(Metadata.builder().cluster("local").build())
+                        .metadata(Resource.Metadata.builder().cluster("local").build())
                         .build()));
 
         List<String> actual = aclService.validate(accessControlEntry, namespace);
@@ -279,16 +303,19 @@ class AclServiceTest {
     void shouldValidateAclBecauseOwnerOfPrefix() {
         Namespace namespace = Namespace.builder()
                 .spec(Namespace.NamespaceSpec.builder().build())
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .build();
 
         Namespace targetNamespace = Namespace.builder()
                 .spec(Namespace.NamespaceSpec.builder().build())
-                .metadata(Metadata.builder().name("target-ns").build())
+                .metadata(Resource.Metadata.builder().name("target-ns").build())
                 .build();
 
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("acl-name")
                         .namespace("namespace")
                         .cluster("local")
@@ -313,7 +340,7 @@ class AclServiceTest {
                                 .resource("main")
                                 .grantedTo("namespace")
                                 .build())
-                        .metadata(Metadata.builder().cluster("local").build())
+                        .metadata(Resource.Metadata.builder().cluster("local").build())
                         .build()));
 
         List<String> actual = aclService.validate(accessControlEntry, namespace);
@@ -324,11 +351,14 @@ class AclServiceTest {
     void shouldValidateAclWhenGrantedToAll() {
         Namespace namespace = Namespace.builder()
                 .spec(Namespace.NamespaceSpec.builder().build())
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .build();
 
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("acl-name")
                         .namespace("namespace")
                         .cluster("local")
@@ -353,7 +383,7 @@ class AclServiceTest {
                                 .resource("main")
                                 .grantedTo("namespace")
                                 .build())
-                        .metadata(Metadata.builder().cluster("local").build())
+                        .metadata(Resource.Metadata.builder().cluster("local").build())
                         .build()));
 
         List<String> actual = aclService.validate(accessControlEntry, namespace);
@@ -366,11 +396,14 @@ class AclServiceTest {
                 .spec(Namespace.NamespaceSpec.builder()
                         .protectionEnabled(Boolean.TRUE)
                         .build())
-                .metadata(Metadata.builder().name("namespace").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
                 .build();
 
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("acl-name")
                         .namespace("namespace")
                         .cluster("local")
@@ -395,7 +428,7 @@ class AclServiceTest {
                                 .resource("main")
                                 .grantedTo("namespace")
                                 .build())
-                        .metadata(Metadata.builder().cluster("local").build())
+                        .metadata(Resource.Metadata.builder().cluster("local").build())
                         .build()));
 
         List<String> actual = aclService.validate(accessControlEntry, namespace);
@@ -410,19 +443,24 @@ class AclServiceTest {
                 .spec(Namespace.NamespaceSpec.builder()
                         .protectionEnabled(Boolean.TRUE)
                         .build())
-                .metadata(
-                        Metadata.builder().name("protected-ns").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("protected-ns")
+                        .cluster("local")
+                        .build())
                 .build();
 
         Namespace publicNamespace = Namespace.builder()
                 .spec(Namespace.NamespaceSpec.builder()
                         .protectionEnabled(Boolean.FALSE)
                         .build())
-                .metadata(Metadata.builder().name("public-ns").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("public-ns")
+                        .cluster("local")
+                        .build())
                 .build();
 
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("acl-name")
                         .namespace("protected-ns")
                         .cluster("local")
@@ -447,7 +485,7 @@ class AclServiceTest {
                                 .resource("main")
                                 .grantedTo("protected-ns")
                                 .build())
-                        .metadata(Metadata.builder().cluster("local").build())
+                        .metadata(Resource.Metadata.builder().cluster("local").build())
                         .build()));
 
         List<String> actual = aclService.validate(accessControlEntry, protectedNamespace);
@@ -463,7 +501,7 @@ class AclServiceTest {
                 .spec(Namespace.NamespaceSpec.builder()
                         .protectionEnabled(Boolean.TRUE)
                         .build())
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("protected-ns1")
                         .cluster("local")
                         .build())
@@ -473,14 +511,14 @@ class AclServiceTest {
                 .spec(Namespace.NamespaceSpec.builder()
                         .protectionEnabled(Boolean.TRUE)
                         .build())
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("protected-ns2")
                         .cluster("local")
                         .build())
                 .build();
 
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("acl-name")
                         .namespace("protected-ns1")
                         .cluster("local")
@@ -505,7 +543,7 @@ class AclServiceTest {
                                 .resource("main")
                                 .grantedTo("protected-ns1")
                                 .build())
-                        .metadata(Metadata.builder().cluster("local").build())
+                        .metadata(Resource.Metadata.builder().cluster("local").build())
                         .build()));
 
         List<String> actual = aclService.validate(accessControlEntry, protectedNamespace1);
@@ -515,7 +553,7 @@ class AclServiceTest {
     @Test
     void shouldValidateAsAdminUpdatingExistingAcl() {
         AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("acl-name")
                         .namespace("target-ns")
                         .cluster("local")
@@ -530,7 +568,10 @@ class AclServiceTest {
                 .build();
 
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder().name("target-ns").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("target-ns")
+                        .cluster("local")
+                        .build())
                 .build();
 
         when(accessControlEntryRepository.findAll()).thenReturn(List.of(accessControlEntry));
@@ -545,7 +586,7 @@ class AclServiceTest {
     void shouldValidateFailAsAdminWhenAclOverlapAsParent(
             String existingA, String existingB, String toCreateA, String toCreateB) {
         AccessControlEntry aceTopicPrefixedOwnerOtherNsToOtherNs = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("acl-existing1")
                         .namespace("other-ns")
                         .cluster("local")
@@ -560,7 +601,7 @@ class AclServiceTest {
                 .build();
 
         AccessControlEntry aceTopicLiteralOwnerOtherNsToOtherNs = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("acl-existing2")
                         .namespace("other-ns")
                         .cluster("local")
@@ -575,11 +616,14 @@ class AclServiceTest {
                 .build();
 
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder().name("target-ns").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("target-ns")
+                        .cluster("local")
+                        .build())
                 .build();
 
         AccessControlEntry aceTopicPrefixedOwnerTargetNsToTargetNs = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("acl-tocreate")
                         .namespace("target-ns")
                         .cluster("local")
@@ -594,7 +638,7 @@ class AclServiceTest {
                 .build();
 
         AccessControlEntry aceTopicPrefixedOwnerTargetNsToTargetNs2 = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("acl-tocreate")
                         .namespace("target-ns")
                         .cluster("local")
@@ -645,7 +689,7 @@ class AclServiceTest {
         //   namespace2 OWNER:LITERAL:proj                  OK 9
 
         AccessControlEntry aceTopicPrefixedOwnerOtherNsToOtherNs = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("acl-existing1")
                         .namespace("other-ns")
                         .cluster("local")
@@ -660,7 +704,7 @@ class AclServiceTest {
                 .build();
 
         AccessControlEntry aceTopicLiteralOwnerOtherNsToOtherNs = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("acl-existing2")
                         .namespace("other-ns")
                         .cluster("local")
@@ -675,11 +719,14 @@ class AclServiceTest {
                 .build();
 
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder().name("target-ns").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("target-ns")
+                        .cluster("local")
+                        .build())
                 .build();
 
         AccessControlEntry aceTopicPrefixedOwnerTargetNsToTargetNs = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("acl-tocreate")
                         .namespace("target-ns")
                         .cluster("local")
@@ -694,7 +741,7 @@ class AclServiceTest {
                 .build();
 
         AccessControlEntry aceTopicLiteralOwnerTargetNsToTargetNs = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("acl-tocreate")
                         .namespace("target-ns")
                         .cluster("local")
@@ -740,7 +787,7 @@ class AclServiceTest {
         //   namespace2 OWNER:LITERAL:proj                  OK 9   <<<<<<<<
 
         AccessControlEntry aceTopicPrefixedOwnerOtherNsToOtherNs = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("acl-existing1")
                         .namespace("other-ns")
                         .cluster("local")
@@ -755,7 +802,7 @@ class AclServiceTest {
                 .build();
 
         AccessControlEntry aceTopicLiteralOwnerOtherNsToOtherNs = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("acl-existing2")
                         .namespace("other-ns")
                         .cluster("local")
@@ -770,7 +817,7 @@ class AclServiceTest {
                 .build();
 
         AccessControlEntry aceConnectPrefixedOwnerOtherNsToOtherNs = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("acl-existing2")
                         .namespace("other-ns")
                         .cluster("local")
@@ -785,11 +832,14 @@ class AclServiceTest {
                 .build();
 
         Namespace namespace = Namespace.builder()
-                .metadata(Metadata.builder().name("target-ns").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("target-ns")
+                        .cluster("local")
+                        .build())
                 .build();
 
         AccessControlEntry aceTopicPrefixedOwnerTargetNsToTargetNs = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("acl-tocreate")
                         .namespace("target-ns")
                         .cluster("local")
@@ -813,7 +863,7 @@ class AclServiceTest {
         assertTrue(actual.isEmpty());
 
         AccessControlEntry toCreate2 = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("acl-tocreate")
                         .namespace("target-ns")
                         .cluster("local")
@@ -831,7 +881,7 @@ class AclServiceTest {
         assertTrue(actual.isEmpty());
 
         AccessControlEntry aceTopicLiteralOwnerTargetNsToTargetNs = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("acl-tocreate")
                         .namespace("target-ns")
                         .cluster("local")
@@ -852,36 +902,38 @@ class AclServiceTest {
     @Test
     void shouldFindAllAclsGrantedToNamespace() {
         Namespace namespace = Namespace.builder()
-                .metadata(
-                        Metadata.builder().name("namespace1").cluster("cluster").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace1")
+                        .cluster("cluster")
+                        .build())
                 .build();
 
         AccessControlEntry ace1 = AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .grantedTo("namespace1")
                         .build())
-                .metadata(Metadata.builder().cluster("cluster").build())
+                .metadata(Resource.Metadata.builder().cluster("cluster").build())
                 .build();
 
         AccessControlEntry ace2 = AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .grantedTo("namespace1")
                         .build())
-                .metadata(Metadata.builder().cluster("cluster").build())
+                .metadata(Resource.Metadata.builder().cluster("cluster").build())
                 .build();
 
         AccessControlEntry ace3 = AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .grantedTo("namespace2")
                         .build())
-                .metadata(Metadata.builder().cluster("cluster").build())
+                .metadata(Resource.Metadata.builder().cluster("cluster").build())
                 .build();
 
         AccessControlEntry ace4 = AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .grantedTo("*")
                         .build())
-                .metadata(Metadata.builder().cluster("cluster").build())
+                .metadata(Resource.Metadata.builder().cluster("cluster").build())
                 .build();
 
         when(accessControlEntryRepository.findAll()).thenReturn(List.of(ace1, ace2, ace3, ace4));
@@ -925,11 +977,14 @@ class AclServiceTest {
     @Test
     void shouldFindAllAclForNamespace() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace1").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace1")
+                        .cluster("local")
+                        .build())
                 .build();
 
         AccessControlEntry ace1 = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .namespace("namespace1")
                         .cluster("local")
                         .build())
@@ -939,7 +994,7 @@ class AclServiceTest {
                 .build();
 
         AccessControlEntry ace2 = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .namespace("namespace1")
                         .cluster("local")
                         .build())
@@ -949,7 +1004,7 @@ class AclServiceTest {
                 .build();
 
         AccessControlEntry ace3 = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .namespace("namespace2")
                         .cluster("local")
                         .build())
@@ -967,21 +1022,21 @@ class AclServiceTest {
     @Test
     void shouldFindAllAcls() {
         AccessControlEntry ace1 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().namespace("namespace1").build())
+                .metadata(Resource.Metadata.builder().namespace("namespace1").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .grantedTo("namespace1")
                         .build())
                 .build();
 
         AccessControlEntry ace2 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().namespace("namespace2").build())
+                .metadata(Resource.Metadata.builder().namespace("namespace2").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .grantedTo("namespace2")
                         .build())
                 .build();
 
         AccessControlEntry ace3 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().namespace("namespace3").build())
+                .metadata(Resource.Metadata.builder().namespace("namespace3").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .grantedTo("namespace3")
                         .build())
@@ -1075,12 +1130,14 @@ class AclServiceTest {
     @Test
     void shouldFindAclGrantedToNamespaceByWildcardName() {
         Namespace ns = Namespace.builder()
-                .metadata(
-                        Metadata.builder().name("namespace2").cluster("cluster").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace2")
+                        .cluster("cluster")
+                        .build())
                 .build();
 
         AccessControlEntry acl1 = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-acl-topic")
                         .namespace("namespace1")
                         .cluster("cluster")
@@ -1093,7 +1150,7 @@ class AclServiceTest {
                 .build();
 
         AccessControlEntry acl2 = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("acl-ns1-read-to-ns2")
                         .namespace("namespace1")
                         .cluster("cluster")
@@ -1106,7 +1163,7 @@ class AclServiceTest {
                 .build();
 
         AccessControlEntry acl3 = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-connect-write-to-ns2")
                         .namespace("namespace1")
                         .cluster("cluster")
@@ -1119,7 +1176,7 @@ class AclServiceTest {
                 .build();
 
         AccessControlEntry acl4 = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns2-acl-topic")
                         .namespace("namespace2")
                         .cluster("cluster")
@@ -1132,7 +1189,7 @@ class AclServiceTest {
                 .build();
 
         AccessControlEntry acl5 = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns3-read-topic-all")
                         .namespace("namespace3")
                         .cluster("cluster")
@@ -1157,11 +1214,14 @@ class AclServiceTest {
     @Test
     void shouldFindAclGrantedByNamespaceByWildcardName() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace1").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace1")
+                        .cluster("local")
+                        .build())
                 .build();
 
         AccessControlEntry acl1 = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-acl-topic")
                         .namespace("namespace1")
                         .cluster("local")
@@ -1174,7 +1234,7 @@ class AclServiceTest {
                 .build();
 
         AccessControlEntry acl2 = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-read-ns2")
                         .namespace("namespace1")
                         .cluster("local")
@@ -1187,7 +1247,7 @@ class AclServiceTest {
                 .build();
 
         AccessControlEntry acl3 = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-connect-write-to-ns2")
                         .namespace("namespace1")
                         .cluster("local")
@@ -1200,7 +1260,7 @@ class AclServiceTest {
                 .build();
 
         AccessControlEntry acl4 = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns2-acl-topic")
                         .namespace("namespace2")
                         .cluster("local")
@@ -1213,7 +1273,7 @@ class AclServiceTest {
                 .build();
 
         AccessControlEntry acl5 = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns3-read-topic-all")
                         .namespace("namespace3")
                         .cluster("local")
@@ -1238,11 +1298,14 @@ class AclServiceTest {
     @Test
     void shouldFindAclGrantedByNamespaceToOthersByWildcardName() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace1").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace1")
+                        .cluster("local")
+                        .build())
                 .build();
 
         AccessControlEntry acl1 = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-acl-topic")
                         .namespace("namespace1")
                         .cluster("local")
@@ -1255,7 +1318,7 @@ class AclServiceTest {
                 .build();
 
         AccessControlEntry acl2 = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-read-ns2")
                         .namespace("namespace1")
                         .cluster("local")
@@ -1268,7 +1331,7 @@ class AclServiceTest {
                 .build();
 
         AccessControlEntry acl3 = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-connect-write-to-ns2")
                         .namespace("namespace1")
                         .cluster("local")
@@ -1281,7 +1344,7 @@ class AclServiceTest {
                 .build();
 
         AccessControlEntry acl4 = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns2-acl-topic")
                         .namespace("namespace2")
                         .cluster("local")
@@ -1294,7 +1357,7 @@ class AclServiceTest {
                 .build();
 
         AccessControlEntry acl5 = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns3-read-topic-all")
                         .namespace("namespace3")
                         .cluster("local")
@@ -1319,7 +1382,7 @@ class AclServiceTest {
     @Test
     void shouldFindAclRelatedToNamespaceByWildcardName() {
         AccessControlEntry acl1 = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-acl-topic")
                         .namespace("namespace1")
                         .cluster("local")
@@ -1332,7 +1395,7 @@ class AclServiceTest {
                 .build();
 
         AccessControlEntry acl2 = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("acl-ns2-read-to-ns1")
                         .namespace("namespace2")
                         .cluster("local")
@@ -1345,7 +1408,7 @@ class AclServiceTest {
                 .build();
 
         AccessControlEntry acl3 = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns1-acl-connect")
                         .namespace("namespace1")
                         .cluster("local")
@@ -1358,7 +1421,7 @@ class AclServiceTest {
                 .build();
 
         AccessControlEntry acl4 = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns2-acl-topic")
                         .namespace("namespace2")
                         .cluster("local")
@@ -1371,7 +1434,7 @@ class AclServiceTest {
                 .build();
 
         AccessControlEntry acl5 = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns3-read-topic-all")
                         .namespace("namespace3")
                         .cluster("local")
@@ -1384,7 +1447,7 @@ class AclServiceTest {
                 .build();
 
         AccessControlEntry acl6 = AccessControlEntry.builder()
-                .metadata(Metadata.builder()
+                .metadata(Resource.Metadata.builder()
                         .name("ns3-write-acl-ns1")
                         .namespace("namespace3")
                         .cluster("local")
@@ -1399,7 +1462,10 @@ class AclServiceTest {
         when(accessControlEntryRepository.findAll()).thenReturn(List.of(acl1, acl2, acl3, acl4, acl5, acl6));
 
         Namespace ns1 = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace1").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace1")
+                        .cluster("local")
+                        .build())
                 .build();
 
         assertEquals(
@@ -1411,14 +1477,20 @@ class AclServiceTest {
                 .isEmpty());
 
         Namespace ns2 = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace2").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace2")
+                        .cluster("local")
+                        .build())
                 .build();
 
         assertEquals(List.of(acl2, acl4, acl5), aclService.findAllRelatedToNamespaceByWildcardName(ns2, "*"));
         assertEquals(List.of(acl2, acl4), aclService.findAllRelatedToNamespaceByWildcardName(ns2, "*ns2*"));
 
         Namespace ns3 = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace3").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace3")
+                        .cluster("local")
+                        .build())
                 .build();
 
         assertEquals(List.of(acl5, acl6), aclService.findAllRelatedToNamespaceByWildcardName(ns3, "*"));
@@ -1428,10 +1500,13 @@ class AclServiceTest {
     @Test
     void shouldFindResourceWhereGivenNamespaceIsOwnerOf() {
         Namespace ns = Namespace.builder()
-                .metadata(Metadata.builder().name("namespace1").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace1")
+                        .cluster("local")
+                        .build())
                 .build();
         AccessControlEntry acl1 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().cluster("local").build())
+                .metadata(Resource.Metadata.builder().cluster("local").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .permission(AccessControlEntry.Permission.OWNER)
@@ -1440,7 +1515,7 @@ class AclServiceTest {
                 .build();
 
         AccessControlEntry acl2 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().cluster("local").build())
+                .metadata(Resource.Metadata.builder().cluster("local").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .permission(AccessControlEntry.Permission.READ)
@@ -1449,7 +1524,7 @@ class AclServiceTest {
                 .build();
 
         AccessControlEntry acl3 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().cluster("local").build())
+                .metadata(Resource.Metadata.builder().cluster("local").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.CONNECT)
                         .permission(AccessControlEntry.Permission.OWNER)
@@ -1458,7 +1533,7 @@ class AclServiceTest {
                 .build();
 
         AccessControlEntry acl4 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().cluster("local").build())
+                .metadata(Resource.Metadata.builder().cluster("local").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .permission(AccessControlEntry.Permission.OWNER)
@@ -1467,7 +1542,7 @@ class AclServiceTest {
                 .build();
 
         AccessControlEntry acl5 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().cluster("local").build())
+                .metadata(Resource.Metadata.builder().cluster("local").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .permission(AccessControlEntry.Permission.READ)
@@ -1476,7 +1551,7 @@ class AclServiceTest {
                 .build();
 
         AccessControlEntry acl6 = AccessControlEntry.builder()
-                .metadata(Metadata.builder().cluster("local").build())
+                .metadata(Resource.Metadata.builder().cluster("local").build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.GROUP)
                         .permission(AccessControlEntry.Permission.WRITE)
@@ -1562,21 +1637,21 @@ class AclServiceTest {
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .grantedTo("namespace1")
                         .build())
-                .metadata(Metadata.builder().cluster("cluster").build())
+                .metadata(Resource.Metadata.builder().cluster("cluster").build())
                 .build();
 
         AccessControlEntry acl2 = AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .grantedTo("namespace1")
                         .build())
-                .metadata(Metadata.builder().cluster("cluster").build())
+                .metadata(Resource.Metadata.builder().cluster("cluster").build())
                 .build();
 
         AccessControlEntry acl3 = AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .grantedTo("namespace2")
                         .build())
-                .metadata(Metadata.builder().cluster("cluster").build())
+                .metadata(Resource.Metadata.builder().cluster("cluster").build())
                 .build();
 
         when(accessControlEntryRepository.findAll()).thenReturn(List.of(acl1, acl2, acl3));
@@ -1585,8 +1660,10 @@ class AclServiceTest {
         doNothing().when(accessControlEntryRepository).delete(any());
 
         Namespace namespace = Namespace.builder()
-                .metadata(
-                        Metadata.builder().name("namespace1").cluster("cluster").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace1")
+                        .cluster("cluster")
+                        .build())
                 .build();
 
         aclService.deleteAllGrantedToNamespace(namespace);
@@ -1601,21 +1678,21 @@ class AclServiceTest {
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .grantedTo("namespace1")
                         .build())
-                .metadata(Metadata.builder().cluster("cluster").build())
+                .metadata(Resource.Metadata.builder().cluster("cluster").build())
                 .build();
 
         AccessControlEntry acl2 = AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .grantedTo("namespace1")
                         .build())
-                .metadata(Metadata.builder().cluster("cluster").build())
+                .metadata(Resource.Metadata.builder().cluster("cluster").build())
                 .build();
 
         AccessControlEntry publicAcl = AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .grantedTo("*")
                         .build())
-                .metadata(Metadata.builder().cluster("cluster").build())
+                .metadata(Resource.Metadata.builder().cluster("cluster").build())
                 .build();
 
         when(accessControlEntryRepository.findAll()).thenReturn(List.of(acl1, acl2, publicAcl));
@@ -1624,8 +1701,10 @@ class AclServiceTest {
         doNothing().when(accessControlEntryRepository).delete(any());
 
         Namespace namespace = Namespace.builder()
-                .metadata(
-                        Metadata.builder().name("namespace1").cluster("cluster").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace1")
+                        .cluster("cluster")
+                        .build())
                 .build();
 
         aclService.deleteAllGrantedToNamespace(namespace);
@@ -1637,8 +1716,10 @@ class AclServiceTest {
     @Test
     void shouldNotDeleteAllAclsForNamespaceWhenNoAcl() {
         Namespace namespace = Namespace.builder()
-                .metadata(
-                        Metadata.builder().name("namespace1").cluster("cluster").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace1")
+                        .cluster("cluster")
+                        .build())
                 .build();
 
         when(accessControlEntryRepository.findAll()).thenReturn(List.of());

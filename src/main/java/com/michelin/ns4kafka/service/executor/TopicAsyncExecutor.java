@@ -18,8 +18,8 @@
  */
 package com.michelin.ns4kafka.service.executor;
 
-import com.michelin.ns4kafka.model.Metadata;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.property.Ns4KafkaProperties;
@@ -534,7 +534,7 @@ public class TopicAsyncExecutor {
 
                     TopicDescription desc = topicDescriptions.get(name);
                     return Topic.builder()
-                            .metadata(Metadata.builder()
+                            .metadata(Resource.Metadata.builder()
                                     .cluster(managedClusterProperties.getName())
                                     .name(name)
                                     .build())
@@ -572,7 +572,6 @@ public class TopicAsyncExecutor {
 
             try {
                 value.get(managedClusterProperties.getTimeout().getTopic().getAlterConfigs(), TimeUnit.MILLISECONDS);
-                updatedTopic.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
                 updatedTopic
                         .getMetadata()
                         .setGeneration(updatedTopic.getMetadata().getGeneration() + 1);
@@ -632,7 +631,6 @@ public class TopicAsyncExecutor {
 
             try {
                 value.get(managedClusterProperties.getTimeout().getTopic().getCreate(), TimeUnit.MILLISECONDS);
-                createdTopic.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
                 createdTopic.getMetadata().setGeneration(1);
                 createdTopic.setStatus(Topic.TopicStatus.ofSuccess("Topic created"));
                 log.info("Success creating topic {} on cluster {}", key, managedClusterProperties.getName());

@@ -29,7 +29,7 @@ import org.junit.jupiter.api.Test;
 class MetadataTest {
     @Test
     void shouldBeEqual() {
-        Metadata original = Metadata.builder()
+        Resource.Metadata original = Resource.Metadata.builder()
                 .name("name1")
                 .namespace("namespace1")
                 .cluster("local")
@@ -39,7 +39,7 @@ class MetadataTest {
                 .creationTimestamp(Date.from(Instant.now()))
                 .generation(0)
                 .build();
-        Metadata same = Metadata.builder()
+        Resource.Metadata same = Resource.Metadata.builder()
                 .name("name1")
                 .namespace("namespace1")
                 .cluster("local")
@@ -52,7 +52,7 @@ class MetadataTest {
                 // different gen
                 .generation(99)
                 .build();
-        Metadata different = Metadata.builder()
+        Resource.Metadata different = Resource.Metadata.builder()
                 .name("name2")
                 .namespace("namespace1")
                 .cluster("local")
