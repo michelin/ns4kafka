@@ -149,15 +149,24 @@ public class ConnectorController extends NamespacedResourceController {
                     return Mono.error(new ResourceValidationException(connector, remoteValidationErrors));
                 }
 
+                Optional<Connector> existingConnector =
+                        connectorService.findByName(ns, connector.getMetadata().getName());
+
                 connector.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
+                connector
+                        .getMetadata()
+                        .setGeneration(existingConnector
+                                .map(oldConnector -> oldConnector.getMetadata().getGeneration() > 0
+                                        ? oldConnector.getMetadata().getGeneration()
+                                        : 1)
+                                .orElse(0));
                 connector.getMetadata().setCluster(ns.getMetadata().getCluster());
                 connector.getMetadata().setNamespace(ns.getMetadata().getName());
+                connector.getMetadata().setStatus(Resource.Metadata.Status.ofPending());
                 connector.setStatus(Connector.ConnectorStatus.builder()
                         .state(Connector.TaskState.UNASSIGNED)
                         .build());
 
-                Optional<Connector> existingConnector =
-                        connectorService.findByName(ns, connector.getMetadata().getName());
                 if (existingConnector.isPresent() && existingConnector.get().equals(connector)) {
                     return Mono.just(formatHttpResponse(existingConnector.get(), ApplyStatus.UNCHANGED));
                 }
@@ -175,8 +184,6 @@ public class ConnectorController extends NamespacedResourceController {
                 if (dryrun) {
                     return Mono.just(formatHttpResponse(connector, status));
                 }
-
-                connector.getMetadata().setStatus(Resource.Metadata.Status.ofPending());
 
                 sendEventLog(
                         connector,
