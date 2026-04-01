@@ -333,7 +333,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
         HttpResponse<List<Connector>> connectors = ns4KafkaClient
                 .toBlocking()
                 .exchange(
-                        HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/connectors")
+                        HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/connectors?name=ns1-connector-with-*")
                                 .bearerAuth(token),
                         Argument.listOf(Connector.class));
 
@@ -357,7 +357,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
         HttpResponse<List<Connector>> deleteConnectors = ns4KafkaClient
                 .toBlocking()
                 .exchange(
-                        HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/connectors")
+                        HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/connectors?name=ns1-connector-with-*")
                                 .bearerAuth(token),
                         Argument.listOf(Connector.class));
 
