@@ -253,7 +253,8 @@ public class ConnectClusterController extends NamespacedResourceController {
         Map<String, List<Connector>> connectorsByConnectCluster = connectClusters.stream()
                 .collect(Collectors.toMap(
                         cc -> cc.getMetadata().getName(),
-                        cc -> connectorService.findAllByConnectCluster(ns, cc.getMetadata().getName())));
+                        cc -> connectorService.findAllByConnectCluster(
+                                ns, cc.getMetadata().getName())));
 
         List<String> validationErrors = new ArrayList<>();
         connectClusters.forEach(cc -> {
@@ -275,8 +276,8 @@ public class ConnectClusterController extends NamespacedResourceController {
 
         return Flux.fromIterable(connectClusters)
                 .flatMap(cc -> {
-                    List<Connector> connectors =
-                            connectorsByConnectCluster.getOrDefault(cc.getMetadata().getName(), List.of());
+                    List<Connector> connectors = connectorsByConnectCluster.getOrDefault(
+                            cc.getMetadata().getName(), List.of());
 
                     return (cascade
                                     ? Flux.fromIterable(connectors)
@@ -299,9 +300,9 @@ public class ConnectClusterController extends NamespacedResourceController {
                                                                     + "Please use cascade and force option to bypass the error and remove from Ns4kafka"))
                                     : Flux.empty())
                             .then(Mono.fromRunnable(() -> {
-                        sendEventLog(cc, ApplyStatus.DELETED, cc.getSpec(), null, EMPTY_STRING);
-                        connectClusterService.delete(cc);
-                    }));
+                                sendEventLog(cc, ApplyStatus.DELETED, cc.getSpec(), null, EMPTY_STRING);
+                                connectClusterService.delete(cc);
+                            }));
                 })
                 .then(Mono.just(HttpResponse.ok(connectClusters)));
     }
