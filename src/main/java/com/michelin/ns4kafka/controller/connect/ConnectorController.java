@@ -51,6 +51,7 @@ import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -196,7 +197,7 @@ public class ConnectorController extends NamespacedResourceController {
      * @param connector The current connector name to delete
      * @param dryrun Is dry run mode or not?
      * @return A HTTP response
-     * @deprecated use {@link #bulkDelete(String, String, boolean, boolean)} instead.
+     * @deprecated use {@link #delete(String, String, boolean, boolean)} instead.
      */
     @Delete("/{connector}{?dryrun}")
     @Deprecated(since = "1.13.0")
@@ -219,10 +220,11 @@ public class ConnectorController extends NamespacedResourceController {
         }
 
         Connector connectorToDelete = optionalConnector.get();
-
         sendEventLog(connectorToDelete, ApplyStatus.DELETED, connectorToDelete.getSpec(), null, EMPTY_STRING);
+        connectorToDelete.getMetadata().setStatus(Resource.Metadata.Status.ofDeleting(Map.of()));
+        connectorService.createOrUpdate(connectorToDelete);
 
-        return connectorService.delete(ns, optionalConnector.get(), false).map(_ -> HttpResponse.noContent());
+        return Mono.just(HttpResponse.noContent());
     }
 
     /**
@@ -263,9 +265,12 @@ public class ConnectorController extends NamespacedResourceController {
         }
 
         return Flux.fromIterable(connectors)
-                .flatMap(connector -> {
+                .doOnNext(connector -> {
                     sendEventLog(connector, ApplyStatus.DELETED, connector.getSpec(), null, EMPTY_STRING);
-                    return connectorService.delete(ns, connector, force);
+                    connector
+                            .getMetadata()
+                            .setStatus(Resource.Metadata.Status.ofDeleting(Map.of("force", String.valueOf(force))));
+                    connectorService.createOrUpdate(connector);
                 })
                 .then(Mono.just(HttpResponse.ok(connectors)));
     }

@@ -330,11 +330,6 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
         assertTrue(actualConnectorWithFillParameter.config().containsKey("file"));
         assertEquals("test", actualConnectorWithFillParameter.config().get("file"));
 
-        ns4KafkaClient
-                .toBlocking()
-                .exchange(HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/connectors?name=ns1*")
-                        .bearerAuth(token));
-
         HttpResponse<List<Connector>> connectors = ns4KafkaClient
                 .toBlocking()
                 .exchange(
@@ -350,7 +345,24 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
                 .allMatch(connector -> connector.getMetadata().getStatus().getLastUpdateTime() != null));
         assertTrue(connectors.getBody().get().stream()
                 .allMatch(connector -> connector.getMetadata().getGeneration() == 1));
-        assertEquals(0, connectors.getBody().get().size());
+        assertEquals(3, connectors.getBody().get().size());
+
+        ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/connectors?name=ns1*")
+                        .bearerAuth(token));
+
+        forceConnectorSynchronization();
+
+        HttpResponse<List<Connector>> deleteConnectors = ns4KafkaClient
+                .toBlocking()
+                .exchange(
+                        HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/connectors")
+                                .bearerAuth(token),
+                        Argument.listOf(Connector.class));
+
+        assertTrue(deleteConnectors.getBody().isPresent());
+        assertTrue(deleteConnectors.getBody().get().isEmpty());
     }
 
     @Test

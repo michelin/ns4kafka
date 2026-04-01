@@ -232,45 +232,6 @@ public class ConnectorService {
     }
 
     /**
-     * Delete a given connector.
-     *
-     * @param namespace The namespace
-     * @param connector The connector
-     */
-    public Mono<HttpResponse<Void>> delete(Namespace namespace, Connector connector, boolean force) {
-        return kafkaConnectClient
-                .delete(
-                        namespace.getMetadata().getCluster(),
-                        connector.getSpec().getConnectCluster(),
-                        connector.getMetadata().getName())
-                .defaultIfEmpty(HttpResponse.noContent())
-                .onErrorResume(error -> {
-                    if (force) {
-                        log.atInfo()
-                                .addArgument(connector.getMetadata().getName())
-                                .addArgument(namespace.getMetadata().getName())
-                                .addArgument(connector.getSpec().getConnectCluster())
-                                .addArgument(error.getMessage())
-                                .log("Success force deleting Connector [{}] on Namespace [{}] from repository."
-                                        + " Failed to delete from Connect cluster [{}]: [{}]");
-                        return Mono.just(HttpResponse.noContent());
-                    }
-                    return Mono.error(error);
-                })
-                .map(httpResponse -> {
-                    connectorRepository.delete(connector);
-
-                    log.atInfo()
-                            .addArgument(connector.getMetadata().getName())
-                            .addArgument(namespace.getMetadata().getName())
-                            .addArgument(connector.getSpec().getConnectCluster())
-                            .log("Success removing Connector [{}] on Kafka [{}] Connect [{}]");
-
-                    return httpResponse;
-                });
-    }
-
-    /**
      * List all connectors of a given namespace that are not synchronized to Ns4Kafka, filtered by name parameter.
      *
      * @param namespace The namespace

@@ -29,7 +29,9 @@ import com.michelin.ns4kafka.service.client.connect.KafkaConnectClient;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorInfo;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorSpecs;
 import io.micronaut.context.annotation.EachBean;
+import io.micronaut.http.HttpResponse;
 import jakarta.inject.Singleton;
+import java.util.List;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -79,9 +81,16 @@ public class ConnectorAsyncExecutor {
                     .addArgument(managedClusterProperties::getName)
                     .log("Starting connector synchronization for Kafka cluster {}.");
 
-            return Flux.fromIterable(connectorRepository.findAllForCluster(managedClusterProperties.getName()))
-                    .filter(Resource::isPending)
-                    .flatMap(this::deployConnector);
+            List<Connector> allConnectors = connectorRepository.findAllForCluster(managedClusterProperties.getName());
+
+            Flux<ConnectorInfo> deployFlux =
+                    Flux.fromIterable(allConnectors).filter(Resource::isPending).flatMap(this::deployConnector);
+
+            Flux<ConnectorInfo> deleteFlux = Flux.fromIterable(allConnectors)
+                    .filter(Resource::isDeleting)
+                    .flatMap(this::deleteConnector);
+
+            return Flux.merge(deployFlux, deleteFlux);
         }
 
         return Flux.empty();
@@ -102,6 +111,7 @@ public class ConnectorAsyncExecutor {
                                 .config(connector.getSpec().getConfig())
                                 .build())
                 .doOnSuccess(_ -> {
+                    // Do not mark connector as success if it has been marked has pending by another update
                     if (isUnchangedSinceLastApply(connector)) {
                         connector
                                 .getMetadata()
@@ -117,6 +127,7 @@ public class ConnectorAsyncExecutor {
                     }
                 })
                 .doOnError(httpError -> {
+                    // Do not mark connector as failed if it has been marked has pending by another update
                     if (isUnchangedSinceLastApply(connector)) {
                         connector.getMetadata().setStatus(Resource.Metadata.Status.ofFailed(httpError.getMessage()));
                         connectorRepository.create(connector);
@@ -129,6 +140,64 @@ public class ConnectorAsyncExecutor {
                                 httpError.getMessage());
                     }
                 });
+    }
+
+    /**
+     * Delete a given connector from the associated connect cluster.
+     *
+     * @param connector The connector to delete
+     */
+    private Mono<ConnectorInfo> deleteConnector(Connector connector) {
+        boolean force = Boolean.parseBoolean(
+                connector.getMetadata().getStatus().getOptions() != null
+                        ? connector.getMetadata().getStatus().getOptions().getOrDefault("force", "false")
+                        : "false");
+
+        Optional<Namespace> existingNamespace =
+                namespaceService.findByName(connector.getMetadata().getNamespace());
+
+        if (existingNamespace.isEmpty()) {
+            log.error(
+                    "Error deleting connector {}: namespace {} not found.",
+                    connector.getMetadata().getName(),
+                    connector.getMetadata().getNamespace());
+            return Mono.empty();
+        }
+
+        return kafkaConnectClient
+                .delete(
+                        existingNamespace.get().getMetadata().getCluster(),
+                        connector.getSpec().getConnectCluster(),
+                        connector.getMetadata().getName())
+                .defaultIfEmpty(HttpResponse.noContent())
+                .onErrorResume(error -> force ? Mono.just(HttpResponse.noContent()) : Mono.error(error))
+                .doOnNext(_ -> {
+                    // Do not delete connector if it has been marked has pending by another update
+                    if (isUnchangedSinceLastApply(connector)) {
+                        connectorRepository.delete(connector);
+
+                        log.info(
+                                "Success deleting connector {} on Kafka Connect {} of Kafka cluster {}.",
+                                connector.getMetadata().getName(),
+                                connector.getSpec().getConnectCluster(),
+                                managedClusterProperties.getName());
+                    }
+                })
+                .doOnError(httpError -> {
+                    // Do not mark connector as failed if it has been marked has pending by another update
+                    if (isUnchangedSinceLastApply(connector)) {
+                        connector.getMetadata().setStatus(Resource.Metadata.Status.ofFailed(httpError.getMessage()));
+                        connectorRepository.create(connector);
+
+                        log.error(
+                                "Error deleting connector {} on Kafka Connect {} of Kafka cluster {}: {}.",
+                                connector.getMetadata().getName(),
+                                connector.getSpec().getConnectCluster(),
+                                managedClusterProperties.getName(),
+                                httpError.getMessage());
+                    }
+                })
+                .then(Mono.empty());
     }
 
     /**

@@ -24,8 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -50,7 +48,6 @@ import com.michelin.ns4kafka.validation.ConnectValidator;
 import com.michelin.ns4kafka.validation.ResourceValidator;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
-import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -1241,130 +1238,6 @@ class ConnectorServiceTest {
                 .consumeNextWith(connector ->
                         assertEquals("ns-connect2", connector.getMetadata().getName()))
                 .verifyComplete();
-    }
-
-    @Test
-    void shouldDeleteConnector() {
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("namespace")
-                        .cluster("local")
-                        .build())
-                .spec(NamespaceSpec.builder()
-                        .connectClusters(List.of("local-name"))
-                        .build())
-                .build();
-
-        Connector connector = Connector.builder()
-                .metadata(Resource.Metadata.builder().name("ns-connect1").build())
-                .spec(Connector.ConnectorSpec.builder()
-                        .connectCluster("local-name")
-                        .build())
-                .build();
-
-        when(kafkaConnectClient.delete(ns.getMetadata().getCluster(), "local-name", "ns-connect1"))
-                .thenReturn(Mono.just(HttpResponse.ok()));
-
-        doNothing().when(connectorRepository).delete(connector);
-
-        StepVerifier.create(connectorService.delete(ns, connector, false))
-                .consumeNextWith(response -> assertEquals(HttpStatus.OK, response.getStatus()))
-                .verifyComplete();
-
-        verify(kafkaConnectClient).delete(ns.getMetadata().getCluster(), "local-name", "ns-connect1");
-
-        verify(connectorRepository).delete(connector);
-    }
-
-    @Test
-    void shouldNotDeleteConnectorWhenConnectClusterReturnsError() {
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("namespace")
-                        .cluster("local")
-                        .build())
-                .spec(NamespaceSpec.builder()
-                        .connectClusters(List.of("local-name"))
-                        .build())
-                .build();
-
-        Connector connector = Connector.builder()
-                .metadata(Resource.Metadata.builder().name("ns-connect1").build())
-                .spec(Connector.ConnectorSpec.builder()
-                        .connectCluster("local-name")
-                        .build())
-                .build();
-
-        when(kafkaConnectClient.delete(ns.getMetadata().getCluster(), "local-name", "ns-connect1"))
-                .thenReturn(Mono.error(new HttpClientResponseException("Error", HttpResponse.serverError())));
-
-        StepVerifier.create(connectorService.delete(ns, connector, false))
-                .consumeErrorWith(response -> assertEquals(HttpClientResponseException.class, response.getClass()))
-                .verify();
-
-        verify(connectorRepository, never()).delete(connector);
-    }
-
-    @Test
-    void shouldForceDeleteConnector() {
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("namespace")
-                        .cluster("local")
-                        .build())
-                .spec(NamespaceSpec.builder()
-                        .connectClusters(List.of("local-name"))
-                        .build())
-                .build();
-
-        Connector connector = Connector.builder()
-                .metadata(Resource.Metadata.builder().name("ns-connect1").build())
-                .spec(Connector.ConnectorSpec.builder()
-                        .connectCluster("local-name")
-                        .build())
-                .build();
-
-        when(kafkaConnectClient.delete(ns.getMetadata().getCluster(), "local-name", "ns-connect1"))
-                .thenReturn(Mono.just(HttpResponse.noContent()));
-        doNothing().when(connectorRepository).delete(connector);
-
-        StepVerifier.create(connectorService.delete(ns, connector, true))
-                .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
-                .verifyComplete();
-
-        verify(kafkaConnectClient).delete(ns.getMetadata().getCluster(), "local-name", "ns-connect1");
-        verify(connectorRepository).delete(connector);
-    }
-
-    @Test
-    void shouldForceDeleteConnectorWhenConnectUnhealthy() {
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("namespace")
-                        .cluster("local")
-                        .build())
-                .spec(NamespaceSpec.builder()
-                        .connectClusters(List.of("local-name"))
-                        .build())
-                .build();
-
-        Connector connector = Connector.builder()
-                .metadata(Resource.Metadata.builder().name("ns-connect1").build())
-                .spec(Connector.ConnectorSpec.builder()
-                        .connectCluster("local-name")
-                        .build())
-                .build();
-
-        when(kafkaConnectClient.delete(ns.getMetadata().getCluster(), "local-name", "ns-connect1"))
-                .thenReturn(Mono.error(new HttpClientResponseException("Error", HttpResponse.serverError())));
-        doNothing().when(connectorRepository).delete(connector);
-
-        StepVerifier.create(connectorService.delete(ns, connector, true))
-                .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
-                .verifyComplete();
-
-        verify(kafkaConnectClient).delete(ns.getMetadata().getCluster(), "local-name", "ns-connect1");
-        verify(connectorRepository).delete(connector);
     }
 
     @Test

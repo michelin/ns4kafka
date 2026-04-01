@@ -21,6 +21,7 @@ package com.michelin.ns4kafka.model;
 import static com.michelin.ns4kafka.security.ResourceBasedSecurityRule.RESOURCE_PATTERN;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.michelin.ns4kafka.util.enumation.Kind;
 import io.micronaut.core.annotation.Introspected;
@@ -81,6 +82,9 @@ public class Resource {
             @JsonFormat(shape = JsonFormat.Shape.STRING)
             private Date lastUpdateTime;
 
+            @JsonInclude(JsonInclude.Include.NON_NULL)
+            private Map<String, String> options;
+
             public static Status ofSuccess() {
                 return Status.builder()
                         .phase(Phase.SUCCESS)
@@ -102,12 +106,22 @@ public class Resource {
                         .message("Awaiting processing by executor")
                         .build();
             }
+
+            public static Status ofDeleting(Map<String, String> options) {
+                return Status.builder()
+                        .phase(Phase.DELETING)
+                        .message("Awaiting deletion by executor")
+                        .lastUpdateTime(Date.from(Instant.now()))
+                        .options(options)
+                        .build();
+            }
         }
 
         public enum Phase {
             PENDING("Pending"),
             FAIL("Fail"),
-            SUCCESS("Success");
+            SUCCESS("Success"),
+            DELETING("Deleting");
 
             private final String name;
 
@@ -134,5 +148,18 @@ public class Resource {
         }
 
         return metadata.getStatus().getPhase().equals(Metadata.Phase.PENDING);
+    }
+
+    /**
+     * Indicates whether the resource is pending deletion.
+     *
+     * @return {@code true} if it is, {@code false} otherwise
+     */
+    public boolean isDeleting() {
+        if (metadata == null || metadata.getStatus() == null) {
+            return false;
+        }
+
+        return metadata.getStatus().getPhase().equals(Metadata.Phase.DELETING);
     }
 }
