@@ -465,7 +465,10 @@ class ConnectClusterControllerTest {
     @Test
     void shouldCascadeDeleteConnectClustersWithConnectors() {
         Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         Connector connector = Connector.builder()
@@ -500,7 +503,10 @@ class ConnectClusterControllerTest {
     @Test
     void shouldCascadeDeleteFailWhenConnectUnreachable() {
         Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         Connector connector = Connector.builder()
@@ -537,7 +543,10 @@ class ConnectClusterControllerTest {
     @Test
     void shouldCascadeForceDeleteWhenConnectUnreachable() {
         Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         Connector connector = Connector.builder()
