@@ -34,8 +34,8 @@ import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.Namespace;
-import com.michelin.ns4kafka.model.consumer.group.ConsumerGroup;
 import com.michelin.ns4kafka.model.Resource;
+import com.michelin.ns4kafka.model.consumer.group.ConsumerGroup;
 import com.michelin.ns4kafka.model.consumer.group.ConsumerGroupResetOffsets;
 import com.michelin.ns4kafka.model.consumer.group.ConsumerGroupResetOffsets.ConsumerGroupResetOffsetsSpec;
 import com.michelin.ns4kafka.model.consumer.group.ConsumerGroupResetOffsets.ResetOffsetsMethod;
@@ -82,7 +82,10 @@ class ConsumerGroupControllerTest {
     @Test
     void shouldListConsumerGroups() throws InterruptedException, ExecutionException {
         Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
         List<ConsumerGroup> expected = List.of(ConsumerGroup.builder()
                 .metadata(Resource.Metadata.builder()
@@ -256,7 +259,10 @@ class ConsumerGroupControllerTest {
     @Test
     void shouldNotResetConsumerGroupWhenNotOwner() {
         Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         ConsumerGroupResetOffsets resetOffset = ConsumerGroupResetOffsets.builder()
@@ -287,7 +293,10 @@ class ConsumerGroupControllerTest {
     @Test
     void shouldNotResetConsumerGroupWhenValidationErrors() {
         Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         ConsumerGroupResetOffsets resetOffset = ConsumerGroupResetOffsets.builder()
@@ -394,7 +403,10 @@ class ConsumerGroupControllerTest {
     @Test
     void shouldNotDeleteConsumerGroupWhenNotOwner() {
         Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder().name("test").cluster("local").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
