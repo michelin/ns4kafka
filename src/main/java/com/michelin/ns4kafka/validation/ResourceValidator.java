@@ -18,13 +18,7 @@
  */
 package com.michelin.ns4kafka.validation;
 
-import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationAtLeast;
-import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationAtMost;
-import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationContains;
-import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationEmpty;
-import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationNull;
-import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationNumber;
-import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationOneOf;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.*;
 import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 
 import com.fasterxml.jackson.annotation.JsonSetter;
@@ -57,6 +51,7 @@ public abstract class ResourceValidator {
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "validation-type")
     @JsonSubTypes({
         @JsonSubTypes.Type(value = Range.class, name = "Range"),
+        @JsonSubTypes.Type(value = RegexPattern.class, name = "RegexPattern"),
         @JsonSubTypes.Type(value = ValidList.class, name = "ValidList"),
         @JsonSubTypes.Type(value = ContainsList.class, name = "ContainsList"),
         @JsonSubTypes.Type(value = ValidString.class, name = "ValidString"),
@@ -335,6 +330,30 @@ public abstract class ResourceValidator {
                         invalidFieldValidationContains(name, value.toString(), String.join(",", mandatoryStrings)));
             }
         }
+    }
+
+    /** Validation logic for a given regex pattern on a string. */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class RegexPattern implements Validator {
+        private String regex;
+
+        public static RegexPattern matches(String regex) {
+            return new RegexPattern(regex);
+        }
+
+        @Override
+        public void ensureValid(String name, Object value) {
+            if (value == null) {
+                throw new FieldValidationException(invalidFieldValidationNull(name));
+            }
+            String s = (String) value;
+            if (!s.matches(regex)) {
+                throw new FieldValidationException(invalidFieldValidationRegex(name, value.toString(), regex));
+            }
+        }
+
     }
 
     /** Validation logic for a composite validator. */
