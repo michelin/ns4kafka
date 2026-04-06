@@ -20,6 +20,9 @@ package com.michelin.ns4kafka.controller;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.TOPIC;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.http.HttpMethod;
@@ -28,6 +31,8 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.authentication.AuthenticationException;
 import io.micronaut.security.authentication.AuthorizationException;
+import io.micronaut.web.router.Router;
+import io.micronaut.web.router.UriRouteMatch;
 import jakarta.validation.ConstraintViolationException;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +40,8 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class ExceptionHandlerControllerTest {
-    ExceptionHandlerController exceptionHandlerController = new ExceptionHandlerController();
+    Router router = mock(Router.class);
+    ExceptionHandlerController exceptionHandlerController = new ExceptionHandlerController(router);
 
     @Test
     void shouldHandleResourceValidationException() {
@@ -75,6 +81,8 @@ class ExceptionHandlerControllerTest {
 
     @Test
     void shouldHandleAuthorizationExceptionAndConvertToForbidden() {
+        when(router.findAny(any(HttpRequest.class))).thenReturn(List.of(mock(UriRouteMatch.class)));
+
         var response = exceptionHandlerController.error(
                 HttpRequest.create(HttpMethod.POST, "local"),
                 new AuthorizationException(Authentication.build("user", Map.of())));
@@ -82,6 +90,19 @@ class ExceptionHandlerControllerTest {
 
         assertEquals(HttpStatus.FORBIDDEN, response.getStatus());
         assertEquals(HttpStatus.FORBIDDEN.getCode(), status.getCode());
+    }
+
+    @Test
+    void shouldHandleAuthorizationExceptionAndConvertToNotFoundWhenNoRouteMatches() {
+        when(router.findAny(any(HttpRequest.class))).thenReturn(List.of());
+
+        var response = exceptionHandlerController.error(
+                HttpRequest.create(HttpMethod.GET, "/api/not-found-endpoint"),
+                new AuthorizationException(Authentication.build("user", Map.of())));
+        var status = response.body();
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatus());
+        assertEquals(HttpStatus.NOT_FOUND.getCode(), status.getCode());
     }
 
     @Test

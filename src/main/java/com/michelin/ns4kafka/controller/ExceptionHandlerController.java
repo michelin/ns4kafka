@@ -32,6 +32,7 @@ import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Error;
 import io.micronaut.security.authentication.AuthenticationException;
 import io.micronaut.security.authentication.AuthorizationException;
+import io.micronaut.web.router.Router;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.ElementKind;
@@ -44,6 +45,12 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Controller("/errors")
 public class ExceptionHandlerController {
+    private final Router router;
+
+    public ExceptionHandlerController(Router router) {
+        this.router = router;
+    }
+
     /**
      * Handle resource validation exception.
      *
@@ -135,6 +142,16 @@ public class ExceptionHandlerController {
     @Error(global = true)
     public HttpResponse<Status> error(HttpRequest<?> request, AuthorizationException exception) {
         if (exception.isForbidden()) {
+            if (router.findAny(request).isEmpty()) {
+                var status = Status.builder()
+                        .status(FAILED)
+                        .message("Not Found")
+                        .httpStatus(HttpStatus.NOT_FOUND)
+                        .build();
+
+                return HttpResponse.notFound().body(status);
+            }
+
             var status = Status.builder()
                     .status(FAILED)
                     .message("Resource forbidden")
