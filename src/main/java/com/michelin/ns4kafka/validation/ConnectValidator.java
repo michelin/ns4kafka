@@ -88,15 +88,19 @@ public class ConnectValidator extends ResourceValidator {
     /**
      * Validate a given connector.
      *
+     * <p>Hard failures (soft=false) are returned as errors; lenient-mode regex mismatches (soft=true) are returned as
+     * warnings so the resource can still be created while the caller is notified.
+     *
      * @param connector The connector
      * @param connectorType The connector type
-     * @return A list of validation errors
+     * @return A {@link ValidationResult} containing errors and warnings
      */
-    public List<String> validate(Connector connector, String connectorType) {
+    public ValidationResult validate(Connector connector, String connectorType) {
         List<String> validationErrors = new ArrayList<>();
+        List<String> validationWarnings = new ArrayList<>();
 
         if (!StringUtils.hasText(connector.getMetadata().getName())) {
-            return List.of(invalidNameEmpty());
+            return ValidationResult.ofErrors(List.of(invalidNameEmpty()));
         }
 
         if (connector.getMetadata().getName().length() > 249) {
@@ -111,7 +115,11 @@ public class ConnectValidator extends ResourceValidator {
             try {
                 value.ensureValid(key, connector.getSpec().getConfig().get(key));
             } catch (FieldValidationException e) {
-                validationErrors.add(e.getMessage());
+                if (e.soft) {
+                    validationWarnings.add(e.getMessage());
+                } else {
+                    validationErrors.add(e.getMessage());
+                }
             }
         });
 
@@ -120,7 +128,11 @@ public class ConnectValidator extends ResourceValidator {
                 try {
                     value.ensureValid(key, connector.getSpec().getConfig().get(key));
                 } catch (FieldValidationException e) {
-                    validationErrors.add(e.getMessage());
+                    if (e.soft) {
+                        validationWarnings.add(e.getMessage());
+                    } else {
+                        validationErrors.add(e.getMessage());
+                    }
                 }
             });
         }
@@ -130,7 +142,11 @@ public class ConnectValidator extends ResourceValidator {
                 try {
                     value.ensureValid(key, connector.getSpec().getConfig().get(key));
                 } catch (FieldValidationException e) {
-                    validationErrors.add(e.getMessage());
+                    if (e.soft) {
+                        validationWarnings.add(e.getMessage());
+                    } else {
+                        validationErrors.add(e.getMessage());
+                    }
                 }
             });
         }
@@ -144,10 +160,15 @@ public class ConnectValidator extends ResourceValidator {
                             value.ensureValid(
                                     key, connector.getSpec().getConfig().get(key));
                         } catch (FieldValidationException e) {
-                            validationErrors.add(e.getMessage());
+                            if (e.soft) {
+                                validationWarnings.add(e.getMessage());
+                            } else {
+                                validationErrors.add(e.getMessage());
+                            }
                         }
                     });
         }
-        return validationErrors;
+
+        return new ValidationResult(validationErrors, validationWarnings);
     }
 }

@@ -39,13 +39,11 @@ public class FieldValidationException extends RuntimeException {
      * Constructor.
      *
      * @param error The error message
-     *  @param soft {@code true} if this exception is informational and should be
-     *              surfaced to the user as a warning rather than a hard failure;
-     *              {@code false} if it represents a critical validation error.
+     * @param soft {@code true} if this exception is informational and should be surfaced to the user as a warning
+     *     rather than a hard failure; {@code false} if it represents a critical validation error.
      */
     public FieldValidationException(String error, boolean soft) {
         super(error);
         this.soft = soft;
-
     }
 }

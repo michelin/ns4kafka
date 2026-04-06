@@ -48,6 +48,7 @@ import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -138,10 +139,12 @@ public class ConnectorController extends NamespacedResourceController {
         connector.getSpec().getConfig().put("name", connector.getMetadata().getName());
 
         // Validate locally
-        return connectorService.validateLocally(ns, connector).flatMap(validationErrors -> {
-            if (!validationErrors.isEmpty()) {
-                return Mono.error(new ResourceValidationException(connector, validationErrors));
+        return connectorService.validateLocally(ns, connector).flatMap(localResult -> {
+            if (localResult.hasErrors()) {
+                return Mono.error(new ResourceValidationException(connector, localResult.errors()));
             }
+
+            List<String> warnings = new ArrayList<>(localResult.warnings());
 
             // Validate against connect rest API /validate
             return connectorService.validateRemotely(ns, connector).flatMap(remoteValidationErrors -> {
@@ -160,7 +163,7 @@ public class ConnectorController extends NamespacedResourceController {
                 Optional<Connector> existingConnector =
                         connectorService.findByName(ns, connector.getMetadata().getName());
                 if (existingConnector.isPresent() && existingConnector.get().equals(connector)) {
-                    return Mono.just(formatHttpResponse(existingConnector.get(), ApplyStatus.UNCHANGED));
+                    return Mono.just(formatHttpResponse(existingConnector.get(), ApplyStatus.UNCHANGED, warnings));
                 }
 
                 ApplyStatus status = existingConnector.isPresent() ? ApplyStatus.CHANGED : ApplyStatus.CREATED;
@@ -174,7 +177,7 @@ public class ConnectorController extends NamespacedResourceController {
                 }
 
                 if (dryrun) {
-                    return Mono.just(formatHttpResponse(connector, status));
+                    return Mono.just(formatHttpResponse(connector, status, warnings));
                 }
 
                 // Set a toDeploy flag
@@ -188,7 +191,7 @@ public class ConnectorController extends NamespacedResourceController {
                         connector.getSpec(),
                         EMPTY_STRING);
 
-                return Mono.just(formatHttpResponse(connectorService.createOrUpdate(connector), status));
+                return Mono.just(formatHttpResponse(connectorService.createOrUpdate(connector), status, warnings));
             });
         });
     }

@@ -39,6 +39,7 @@ import com.michelin.ns4kafka.service.ConnectorService;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.ResourceQuotaService;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
+import com.michelin.ns4kafka.validation.ValidationResult;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -475,7 +476,7 @@ class ConnectorControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1")).thenReturn(true);
         when(connectorService.validateLocally(ns, connector))
-                .thenReturn(Mono.just(List.of("Local Validation Error 1")));
+                .thenReturn(Mono.just(new ValidationResult(List.of("Local Validation Error 1"), List.of())));
 
         StepVerifier.create(connectorController.apply("test", connector, false))
                 .consumeErrorWith(error -> {
@@ -510,7 +511,7 @@ class ConnectorControllerTest {
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1")).thenReturn(true);
-        when(connectorService.validateLocally(ns, connector)).thenReturn(Mono.just(List.of()));
+        when(connectorService.validateLocally(ns, connector)).thenReturn(Mono.just(ValidationResult.empty()));
         when(connectorService.validateRemotely(ns, connector))
                 .thenReturn(Mono.just(List.of("Remote Validation Error 1")));
 
@@ -557,7 +558,7 @@ class ConnectorControllerTest {
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1")).thenReturn(true);
-        when(connectorService.validateLocally(ns, connector)).thenReturn(Mono.just(List.of()));
+        when(connectorService.validateLocally(ns, connector)).thenReturn(Mono.just(ValidationResult.empty()));
         when(connectorService.validateRemotely(ns, connector)).thenReturn(Mono.just(List.of()));
         when(resourceQuotaService.validateConnectorQuota(any())).thenReturn(List.of());
         when(securityService.username()).thenReturn(Optional.of("test-user"));
@@ -592,7 +593,7 @@ class ConnectorControllerTest {
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1")).thenReturn(true);
-        when(connectorService.validateLocally(ns, connector)).thenReturn(Mono.just(List.of()));
+        when(connectorService.validateLocally(ns, connector)).thenReturn(Mono.just(ValidationResult.empty()));
         when(connectorService.validateRemotely(ns, connector)).thenReturn(Mono.just(List.of()));
         when(resourceQuotaService.validateConnectorQuota(ns)).thenReturn(List.of("Quota error"));
 
@@ -643,7 +644,7 @@ class ConnectorControllerTest {
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1")).thenReturn(true);
-        when(connectorService.validateLocally(ns, connector)).thenReturn(Mono.just(List.of()));
+        when(connectorService.validateLocally(ns, connector)).thenReturn(Mono.just(ValidationResult.empty()));
         when(connectorService.validateRemotely(ns, connector)).thenReturn(Mono.just(List.of()));
         when(connectorService.findByName(ns, "connect1")).thenReturn(Optional.of(connector));
 
@@ -696,7 +697,7 @@ class ConnectorControllerTest {
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1")).thenReturn(true);
-        when(connectorService.validateLocally(ns, connector)).thenReturn(Mono.just(List.of()));
+        when(connectorService.validateLocally(ns, connector)).thenReturn(Mono.just(ValidationResult.empty()));
         when(connectorService.validateRemotely(ns, connector)).thenReturn(Mono.just(List.of()));
         when(connectorService.findByName(ns, "connect1")).thenReturn(Optional.of(connectorOld));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
@@ -731,7 +732,7 @@ class ConnectorControllerTest {
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1")).thenReturn(true);
-        when(connectorService.validateLocally(ns, connector)).thenReturn(Mono.just(List.of()));
+        when(connectorService.validateLocally(ns, connector)).thenReturn(Mono.just(ValidationResult.empty()));
         when(connectorService.validateRemotely(ns, connector)).thenReturn(Mono.just(List.of()));
 
         StepVerifier.create(connectorController.apply("test", connector, true))

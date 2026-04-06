@@ -31,7 +31,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -354,17 +353,18 @@ public abstract class ResourceValidator {
                 return;
             }
             if (mode == null || !(VALID_MODES.contains(mode))) {
-                throw new FieldValidationException(invalidFieldValidationContains("mode", mode, String.join(",", VALID_MODES)));
+                throw new FieldValidationException(
+                        invalidFieldValidationContains("mode", mode, String.join(",", VALID_MODES)));
             }
             if (value == null) {
                 throw new FieldValidationException(invalidFieldValidationNull(name));
             }
             String s = (String) value;
             if (!s.matches(regex)) {
-                throw new FieldValidationException(invalidFieldValidationRegex(name, value.toString(), regex), "lenient".equals(mode));
+                throw new FieldValidationException(
+                        invalidFieldValidationRegex(name, value.toString(), regex), "lenient".equals(mode));
             }
         }
-
     }
 
     /** Validation logic for a composite validator. */

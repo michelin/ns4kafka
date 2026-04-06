@@ -99,14 +99,18 @@ public class TopicValidator extends ResourceValidator {
     /**
      * Validate a given topic.
      *
+     * <p>Hard failures (soft=false) are returned as errors; lenient-mode regex mismatches (soft=true) are returned as
+     * warnings so the resource can still be created while the caller is notified.
+     *
      * @param topic The topic
-     * @return A list of validation errors
+     * @return A {@link ValidationResult} containing errors and warnings
      * @see <a href=
      *     "https://github.com/apache/kafka/blob/trunk/clients/src/main/java/org/apache/kafka/common/internals/Topic.java#L36">
      *     GitHub</a>
      */
-    public List<String> validate(Topic topic) {
+    public ValidationResult validate(Topic topic) {
         List<String> validationErrors = new ArrayList<>();
+        List<String> validationWarnings = new ArrayList<>();
 
         if (!StringUtils.hasText(topic.getMetadata().getName())) {
             validationErrors.add(invalidNameEmpty());
@@ -149,10 +153,14 @@ public class TopicValidator extends ResourceValidator {
                     }
                 }
             } catch (FieldValidationException e) {
-                validationErrors.add(e.getMessage());
+                if (e.soft) {
+                    validationWarnings.add(e.getMessage());
+                } else {
+                    validationErrors.add(e.getMessage());
+                }
             }
         });
 
-        return validationErrors;
+        return new ValidationResult(validationErrors, validationWarnings);
     }
 }

@@ -18,10 +18,7 @@
  */
 package com.michelin.ns4kafka.model;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 import com.michelin.ns4kafka.validation.FieldValidationException;
 import com.michelin.ns4kafka.validation.ResourceValidator;
@@ -200,6 +197,7 @@ class ResourceValidatorTest {
         assertDoesNotThrow(() -> original.ensureValid("k", "d,a,b,c"));
         assertDoesNotThrow(() -> original.ensureValid("k", "a,d,b,c"));
     }
+
     @Test
     void shouldValidateRegexPattern() {
         ResourceValidator.Validator strict = ResourceValidator.RegexPattern.matches("[a-z]+", "strict");
@@ -232,11 +230,15 @@ class ResourceValidatorTest {
         // Lenient mode — null value still throws
         assertThrows(FieldValidationException.class, () -> lenient.ensureValid("k", null));
 
-        // Lenient mode — non-matching value does NOT throw
-        assertDoesNotThrow(() -> lenient.ensureValid("k", "ABC"));
-        assertDoesNotThrow(() -> lenient.ensureValid("k", "123"));
+        // Lenient mode — non-matching value throws a SOFT exception (warning, not a hard failure)
+        FieldValidationException e1 =
+                assertThrows(FieldValidationException.class, () -> lenient.ensureValid("k", "ABC"));
+        assertTrue(e1.soft);
+        FieldValidationException e2 =
+                assertThrows(FieldValidationException.class, () -> lenient.ensureValid("k", "123"));
+        assertTrue(e2.soft);
 
-        // Lenient mode — matching value passes
+        // Lenient mode — matching value passes without exception
         assertDoesNotThrow(() -> lenient.ensureValid("k", "abc"));
     }
 

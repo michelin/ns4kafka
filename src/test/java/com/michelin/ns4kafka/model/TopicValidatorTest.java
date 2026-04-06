@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.michelin.ns4kafka.validation.ResourceValidator;
 import com.michelin.ns4kafka.validation.TopicValidator;
+import com.michelin.ns4kafka.validation.ValidationResult;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -151,8 +152,8 @@ class TopicValidatorTest {
                         .build())
                 .build();
 
-        List<String> actual = topicValidator.validate(success);
-        assertTrue(actual.isEmpty());
+        ValidationResult actual = topicValidator.validate(success);
+        assertTrue(actual.errors().isEmpty());
     }
 
     @Test
@@ -161,7 +162,7 @@ class TopicValidatorTest {
                 TopicValidator.builder().validationConstraints(Map.of()).build();
 
         Topic invalidTopic;
-        List<String> validationErrors;
+        ValidationResult validationErrors;
 
         invalidTopic = Topic.builder()
                 .metadata(Resource.Metadata.builder().name("").build())
@@ -169,12 +170,12 @@ class TopicValidatorTest {
                 .build();
 
         validationErrors = nameValidator.validate(invalidTopic);
-        assertEquals(2, validationErrors.size());
+        assertEquals(2, validationErrors.errors().size());
         assertLinesMatch(
                 List.of(
                         "Invalid empty value for field \"name\": value must not be empty.",
                         "Invalid value \"\" for field \"name\": value must only contain ASCII alphanumerics, '.', '_' or '-'."),
-                validationErrors);
+                validationErrors.errors());
 
         invalidTopic = Topic.builder()
                 .metadata(Resource.Metadata.builder().name(".").build())
@@ -182,7 +183,7 @@ class TopicValidatorTest {
                 .build();
 
         validationErrors = nameValidator.validate(invalidTopic);
-        assertEquals(1, validationErrors.size());
+        assertEquals(1, validationErrors.errors().size());
 
         invalidTopic = Topic.builder()
                 .metadata(Resource.Metadata.builder().name("..").build())
@@ -190,7 +191,7 @@ class TopicValidatorTest {
                 .build();
 
         validationErrors = nameValidator.validate(invalidTopic);
-        assertEquals(1, validationErrors.size());
+        assertEquals(1, validationErrors.errors().size());
 
         invalidTopic = Topic.builder()
                 .metadata(Resource.Metadata.builder().name("A".repeat(260)).build())
@@ -198,7 +199,7 @@ class TopicValidatorTest {
                 .build();
 
         validationErrors = nameValidator.validate(invalidTopic);
-        assertEquals(1, validationErrors.size());
+        assertEquals(1, validationErrors.errors().size());
 
         invalidTopic = Topic.builder()
                 .metadata(Resource.Metadata.builder().name("A B").build())
@@ -206,7 +207,7 @@ class TopicValidatorTest {
                 .build();
 
         validationErrors = nameValidator.validate(invalidTopic);
-        assertEquals(1, validationErrors.size());
+        assertEquals(1, validationErrors.errors().size());
 
         invalidTopic = Topic.builder()
                 .metadata(Resource.Metadata.builder().name("topicname<invalid").build())
@@ -214,7 +215,7 @@ class TopicValidatorTest {
                 .build();
 
         validationErrors = nameValidator.validate(invalidTopic);
-        assertEquals(1, validationErrors.size());
+        assertEquals(1, validationErrors.errors().size());
     }
 
     @Test
@@ -231,8 +232,8 @@ class TopicValidatorTest {
                         .build())
                 .build();
 
-        List<String> actual = topicValidator.validate(topic);
-        assertTrue(actual.isEmpty());
+        ValidationResult actual = topicValidator.validate(topic);
+        assertTrue(actual.errors().isEmpty());
     }
 
     @Test
@@ -247,8 +248,8 @@ class TopicValidatorTest {
                         .build())
                 .build();
 
-        List<String> actual = topicValidator.validate(topic);
-        assertTrue(actual.isEmpty());
+        ValidationResult actual = topicValidator.validate(topic);
+        assertTrue(actual.errors().isEmpty());
     }
 
     @Test
@@ -275,11 +276,13 @@ class TopicValidatorTest {
                         .build())
                 .build();
 
-        List<String> actual = topicValidator.validate(topic);
-        assertEquals(3, actual.size());
-        assertTrue(actual.contains("Invalid empty value for field \"min.insync.replicas\": value must not be null."));
-        assertTrue(actual.contains("Invalid empty value for field \"retention.ms\": value must not be null."));
-        assertTrue(actual.contains("Invalid empty value for field \"cleanup.policy\": value must not be null."));
+        ValidationResult actual = topicValidator.validate(topic);
+        assertEquals(3, actual.errors().size());
+        assertTrue(actual.errors()
+                .contains("Invalid empty value for field \"min.insync.replicas\": value must not be null."));
+        assertTrue(actual.errors().contains("Invalid empty value for field \"retention.ms\": value must not be null."));
+        assertTrue(
+                actual.errors().contains("Invalid empty value for field \"cleanup.policy\": value must not be null."));
     }
 
     @Test
@@ -315,10 +318,10 @@ class TopicValidatorTest {
                         .build())
                 .build();
 
-        List<String> actual = topicValidator.validate(topic);
-        assertEquals(1, actual.size());
+        ValidationResult actual = topicValidator.validate(topic);
+        assertEquals(1, actual.errors().size());
         assertEquals(
                 "Invalid value \"50\" for field \"retention.bytes\": configuration is not allowed on your namespace.",
-                actual.getFirst());
+                actual.errors().getFirst());
     }
 }
