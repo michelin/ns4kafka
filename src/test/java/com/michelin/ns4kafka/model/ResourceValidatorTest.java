@@ -200,4 +200,54 @@ class ResourceValidatorTest {
         assertDoesNotThrow(() -> original.ensureValid("k", "d,a,b,c"));
         assertDoesNotThrow(() -> original.ensureValid("k", "a,d,b,c"));
     }
+    @Test
+    void shouldValidateRegexPattern() {
+        ResourceValidator.Validator strict = ResourceValidator.RegexPattern.matches("[a-z]+", "strict");
+        ResourceValidator.Validator lenient = ResourceValidator.RegexPattern.matches("[a-z]+", "lenient");
+        ResourceValidator.Validator same = ResourceValidator.RegexPattern.matches("[a-z]+", "strict");
+        ResourceValidator.Validator different = ResourceValidator.RegexPattern.matches("[0-9]+", "strict");
+
+        // Test Equals
+        assertEquals(strict, same);
+        assertNotEquals(strict, different);
+
+        // Invalid mode
+        ResourceValidator.Validator invalidMode = ResourceValidator.RegexPattern.matches("[a-z]+", "invalid");
+        assertThrows(FieldValidationException.class, () -> invalidMode.ensureValid("k", "abc"));
+
+        // Null mode
+        ResourceValidator.Validator nullMode = ResourceValidator.RegexPattern.matches("[a-z]+", null);
+        assertThrows(FieldValidationException.class, () -> nullMode.ensureValid("k", "abc"));
+
+        // Strict mode — null value
+        assertThrows(FieldValidationException.class, () -> strict.ensureValid("k", null));
+
+        // Strict mode — non-matching value throws
+        assertThrows(FieldValidationException.class, () -> strict.ensureValid("k", "ABC"));
+        assertThrows(FieldValidationException.class, () -> strict.ensureValid("k", "123"));
+
+        // Strict mode — matching value passes
+        assertDoesNotThrow(() -> strict.ensureValid("k", "abc"));
+
+        // Lenient mode — null value still throws
+        assertThrows(FieldValidationException.class, () -> lenient.ensureValid("k", null));
+
+        // Lenient mode — non-matching value does NOT throw
+        assertDoesNotThrow(() -> lenient.ensureValid("k", "ABC"));
+        assertDoesNotThrow(() -> lenient.ensureValid("k", "123"));
+
+        // Lenient mode — matching value passes
+        assertDoesNotThrow(() -> lenient.ensureValid("k", "abc"));
+    }
+
+    @Test
+    void shouldSkipValidationWhenRegexNotSet() {
+        ResourceValidator.Validator noRegex = new ResourceValidator.RegexPattern();
+        assertDoesNotThrow(() -> noRegex.ensureValid("k", null));
+        assertDoesNotThrow(() -> noRegex.ensureValid("k", "anything"));
+
+        ResourceValidator.Validator emptyRegex = ResourceValidator.RegexPattern.matches("", "strict");
+        assertDoesNotThrow(() -> emptyRegex.ensureValid("k", null));
+        assertDoesNotThrow(() -> emptyRegex.ensureValid("k", "anything"));
+    }
 }

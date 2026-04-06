@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -337,20 +338,30 @@ public abstract class ResourceValidator {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class RegexPattern implements Validator {
+        public static final List<String> VALID_MODES = List.of("lenient", "strict");
         private String regex;
+        private String mode;
 
-        public static RegexPattern matches(String regex) {
-            return new RegexPattern(regex);
+        public static RegexPattern matches(String regex, String mode) {
+            return new RegexPattern(regex, mode);
         }
 
         @Override
         public void ensureValid(String name, Object value) {
+
+            if (regex == null || regex.isEmpty()) {
+                // If for some reason the regex pattern is invoked but fields are not set, return.
+                return;
+            }
+            if (mode == null || !(VALID_MODES.contains(mode))) {
+                throw new FieldValidationException(invalidFieldValidationContains("mode", mode, String.join(",", VALID_MODES)));
+            }
             if (value == null) {
                 throw new FieldValidationException(invalidFieldValidationNull(name));
             }
             String s = (String) value;
             if (!s.matches(regex)) {
-                throw new FieldValidationException(invalidFieldValidationRegex(name, value.toString(), regex));
+                throw new FieldValidationException(invalidFieldValidationRegex(name, value.toString(), regex), "lenient".equals(mode));
             }
         }
 
