@@ -84,6 +84,7 @@ micronaut:
   security:
     authentication: "bearer"
     enabled: true
+    reject-not-found: false
     endpoints:
       introspection:
         enabled: true

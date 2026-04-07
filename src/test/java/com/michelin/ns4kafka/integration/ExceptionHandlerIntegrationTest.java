@@ -57,6 +57,8 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 @MicronautTest
 class ExceptionHandlerIntegrationTest extends KafkaIntegrationTest {
@@ -320,6 +322,20 @@ class ExceptionHandlerIntegrationTest extends KafkaIntegrationTest {
     void shouldNotFoundTopic() {
         HttpRequest<?> request = HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/topics/ns1-not-found-topic")
                 .bearerAuth(token);
+
+        BlockingHttpClient blockingClient = ns4KafkaClient.toBlocking();
+
+        HttpClientResponseException exception =
+                assertThrows(HttpClientResponseException.class, () -> blockingClient.exchange(request));
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+        assertEquals("Not Found", exception.getMessage());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"/api/non-existing-endpoint", "/non-existing-endpoint"})
+    void shouldReturnNotFoundForNonExistingNonNamespacedPath(String path) {
+        HttpRequest<?> request = HttpRequest.create(HttpMethod.GET, path).bearerAuth(token);
 
         BlockingHttpClient blockingClient = ns4KafkaClient.toBlocking();
 
