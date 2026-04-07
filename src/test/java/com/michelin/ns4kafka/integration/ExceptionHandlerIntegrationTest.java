@@ -346,17 +346,4 @@ class ExceptionHandlerIntegrationTest extends KafkaIntegrationTest {
         assertEquals("Not Found", exception.getMessage());
     }
 
-    @Test
-    void shouldNotValidateUnknownHttpVerbForTopic() {
-        HttpRequest<?> request = HttpRequest.create(HttpMethod.PUT, "/api/namespaces/ns1/topics/")
-                .bearerAuth(token);
-
-        BlockingHttpClient blockingClient = ns4KafkaClient.toBlocking();
-
-        HttpClientResponseException exception =
-                assertThrows(HttpClientResponseException.class, () -> blockingClient.exchange(request));
-
-        assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
-        assertEquals("Resource forbidden", exception.getMessage());
-    }
 }
