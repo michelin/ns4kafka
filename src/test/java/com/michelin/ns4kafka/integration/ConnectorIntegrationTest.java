@@ -21,6 +21,7 @@ package com.michelin.ns4kafka.integration;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.michelin.ns4kafka.integration.TopicIntegrationTest.BearerAccessRefreshToken;
@@ -39,6 +40,7 @@ import com.michelin.ns4kafka.model.RoleBinding.RoleBindingSpec;
 import com.michelin.ns4kafka.model.RoleBinding.Subject;
 import com.michelin.ns4kafka.model.RoleBinding.SubjectType;
 import com.michelin.ns4kafka.model.RoleBinding.Verb;
+import com.michelin.ns4kafka.model.Status;
 import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.model.connect.ChangeConnectorState;
 import com.michelin.ns4kafka.model.connect.Connector;
@@ -49,6 +51,7 @@ import com.michelin.ns4kafka.service.client.connect.entities.ServerInfo;
 import com.michelin.ns4kafka.service.executor.ConnectorAsyncExecutor;
 import com.michelin.ns4kafka.service.executor.TopicAsyncExecutor;
 import com.michelin.ns4kafka.validation.ConnectValidator;
+import com.michelin.ns4kafka.validation.ResourceValidator;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.core.type.Argument;
@@ -616,6 +619,156 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
                 .retrieve(HttpRequest.GET("/connectors/ns1-connector-pause-resume/status"), ConnectorStateInfo.class);
 
         assertEquals("RUNNING", actual.connector().getState());
+    }
+
+    @Test
+    void shouldNotCreateConnectorWhenStrictRegexPatternDoesNotMatchName() {
+        Namespace namespace = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns-strict-regex")
+                        .cluster("test-cluster")
+                        .build())
+                .spec(NamespaceSpec.builder()
+                        .kafkaUser("user-strict-regex")
+                        .connectClusters(List.of("test-connect"))
+                        .topicValidator(TopicValidator.makeDefaultOneBroker())
+                        .connectValidator(ConnectValidator.builder()
+                                .validationConstraints(Map.of(
+                                        "name",
+                                        ResourceValidator.RegexPattern.matches("ns-strict-regex-allowed-.*", true)))
+                                .sinkValidationConstraints(Map.of())
+                                .classValidationConstraints(Map.of())
+                                .build())
+                        .build())
+                .build();
+
+        ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces")
+                        .bearerAuth(token)
+                        .body(namespace));
+
+        AccessControlEntry aclConnect = AccessControlEntry.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns-strict-regex-acl")
+                        .namespace("ns-strict-regex")
+                        .build())
+                .spec(AccessControlEntrySpec.builder()
+                        .resourceType(ResourceType.CONNECT)
+                        .resource("ns-strict-regex-")
+                        .resourcePatternType(ResourcePatternType.PREFIXED)
+                        .permission(Permission.OWNER)
+                        .grantedTo("ns-strict-regex")
+                        .build())
+                .build();
+
+        ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns-strict-regex/acls")
+                        .bearerAuth(token)
+                        .body(aclConnect));
+
+        // Connector name matches the ACL prefix but NOT the strict regex → must be rejected
+        Connector connector = Connector.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns-strict-regex-not-allowed")
+                        .namespace("ns-strict-regex")
+                        .build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("test-connect")
+                        .config(Map.of(
+                                "connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
+                                "tasks.max", "1",
+                                "topics", "ns-strict-regex-topic"))
+                        .build())
+                .build();
+
+        HttpClientResponseException exception = assertThrows(HttpClientResponseException.class, () -> ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns-strict-regex/connectors")
+                        .bearerAuth(token)
+                        .body(connector)));
+
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
+        assertTrue(exception.getResponse().getBody(Status.class).isPresent());
+        assertTrue(exception.getResponse().getBody(Status.class).get().getDetails().getCauses().stream()
+                .anyMatch(cause -> cause.contains("ns-strict-regex-not-allowed")));
+    }
+
+    @Test
+    void shouldCreateConnectorWithWarningWhenNonStrictRegexPatternDoesNotMatchName() {
+        Namespace namespace = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns-lenient-regex")
+                        .cluster("test-cluster")
+                        .build())
+                .spec(NamespaceSpec.builder()
+                        .kafkaUser("user-lenient-regex")
+                        .connectClusters(List.of("test-connect"))
+                        .topicValidator(TopicValidator.makeDefaultOneBroker())
+                        .connectValidator(ConnectValidator.builder()
+                                .validationConstraints(Map.of(
+                                        "name",
+                                        ResourceValidator.RegexPattern.matches("ns-lenient-regex-allowed-.*", false)))
+                                .sinkValidationConstraints(Map.of())
+                                .classValidationConstraints(Map.of())
+                                .build())
+                        .build())
+                .build();
+
+        ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces")
+                        .bearerAuth(token)
+                        .body(namespace));
+
+        AccessControlEntry aclConnect = AccessControlEntry.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns-lenient-regex-acl")
+                        .namespace("ns-lenient-regex")
+                        .build())
+                .spec(AccessControlEntrySpec.builder()
+                        .resourceType(ResourceType.CONNECT)
+                        .resource("ns-lenient-regex-")
+                        .resourcePatternType(ResourcePatternType.PREFIXED)
+                        .permission(Permission.OWNER)
+                        .grantedTo("ns-lenient-regex")
+                        .build())
+                .build();
+
+        ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns-lenient-regex/acls")
+                        .bearerAuth(token)
+                        .body(aclConnect));
+
+        // Connector name matches the ACL prefix but NOT the non-strict regex → should be created with a warning
+        Connector connector = Connector.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns-lenient-regex-not-allowed")
+                        .namespace("ns-lenient-regex")
+                        .build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("test-connect")
+                        .config(Map.of(
+                                "connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
+                                "tasks.max", "1",
+                                "topics", "ns-lenient-regex-topic"))
+                        .build())
+                .build();
+
+        HttpResponse<Connector> response = ns4KafkaClient
+                .toBlocking()
+                .exchange(
+                        HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns-lenient-regex/connectors")
+                                .bearerAuth(token)
+                                .body(connector),
+                        Connector.class);
+
+        assertEquals(HttpStatus.OK, response.status());
+        assertTrue(response.getHeaders().contains("X-Ns4kafka-Warnings"));
+        assertTrue(response.getHeaders().get("X-Ns4kafka-Warnings").contains("ns-lenient-regex-not-allowed"));
+        assertTrue(response.getHeaders().get("X-Ns4kafka-Warnings").contains("ns-lenient-regex-allowed-.*"));
     }
 
     /** Force synchronization of all connectors synchronously. */
