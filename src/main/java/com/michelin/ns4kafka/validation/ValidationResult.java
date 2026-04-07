@@ -48,6 +48,16 @@ public record ValidationResult(List<String> errors, List<String> warnings) {
     }
 
     /**
+     * Convenience factory for a result carrying only soft warnings and no hard errors.
+     *
+     * @param warnings the list of warnings
+     * @return a ValidationResult with the given warnings and an empty errors list
+     */
+    public static ValidationResult ofWarnings(List<String> warnings) {
+        return new ValidationResult(List.of(), warnings);
+    }
+
+    /**
      * Merge this result with another, concatenating both error and warning lists.
      *
      * @param other the other ValidationResult to merge

@@ -200,22 +200,14 @@ class ResourceValidatorTest {
 
     @Test
     void shouldValidateRegexPattern() {
-        ResourceValidator.Validator strict = ResourceValidator.RegexPattern.matches("[a-z]+", "strict");
-        ResourceValidator.Validator lenient = ResourceValidator.RegexPattern.matches("[a-z]+", "lenient");
-        ResourceValidator.Validator same = ResourceValidator.RegexPattern.matches("[a-z]+", "strict");
-        ResourceValidator.Validator different = ResourceValidator.RegexPattern.matches("[0-9]+", "strict");
+        ResourceValidator.Validator strict = ResourceValidator.RegexPattern.matches("[a-z]+", true);
+        ResourceValidator.Validator lenient = ResourceValidator.RegexPattern.matches("[a-z]+", false);
+        ResourceValidator.Validator same = ResourceValidator.RegexPattern.matches("[a-z]+", true);
+        ResourceValidator.Validator different = ResourceValidator.RegexPattern.matches("[0-9]+", true);
 
         // Test Equals
         assertEquals(strict, same);
         assertNotEquals(strict, different);
-
-        // Invalid mode
-        ResourceValidator.Validator invalidMode = ResourceValidator.RegexPattern.matches("[a-z]+", "invalid");
-        assertThrows(FieldValidationException.class, () -> invalidMode.ensureValid("k", "abc"));
-
-        // Null mode
-        ResourceValidator.Validator nullMode = ResourceValidator.RegexPattern.matches("[a-z]+", null);
-        assertThrows(FieldValidationException.class, () -> nullMode.ensureValid("k", "abc"));
 
         // Strict mode — null value
         assertThrows(FieldValidationException.class, () -> strict.ensureValid("k", null));
@@ -248,7 +240,7 @@ class ResourceValidatorTest {
         assertDoesNotThrow(() -> noRegex.ensureValid("k", null));
         assertDoesNotThrow(() -> noRegex.ensureValid("k", "anything"));
 
-        ResourceValidator.Validator emptyRegex = ResourceValidator.RegexPattern.matches("", "strict");
+        ResourceValidator.Validator emptyRegex = ResourceValidator.RegexPattern.matches("", true);
         assertDoesNotThrow(() -> emptyRegex.ensureValid("k", null));
         assertDoesNotThrow(() -> emptyRegex.ensureValid("k", "anything"));
     }

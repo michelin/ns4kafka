@@ -29,13 +29,14 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MutableHttpResponse;
 import io.micronaut.security.utils.SecurityService;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
 /** Resource controller. */
 public abstract class ResourceController {
     private static final String STATUS_HEADER = "X-Ns4kafka-Result";
-    static final String WARNING_HEADER = "X-Ns4kafka-Warnings";
+    private static final String WARNING_HEADER = "X-Ns4kafka-Warnings";
     protected final SecurityService securityService;
     protected final ApplicationEventPublisher<AuditLog> applicationEventPublisher;
 
@@ -60,7 +61,7 @@ public abstract class ResourceController {
      * @param <T> The type of the response body
      */
     public <T> HttpResponse<T> formatHttpResponse(T body, ApplyStatus status) {
-        return HttpResponse.ok(body).header(STATUS_HEADER, status.toString());
+        return formatHttpResponse(body, status, Collections.emptyList());
     }
 
     /**
@@ -72,7 +73,7 @@ public abstract class ResourceController {
      *
      * @param body The response body
      * @param status The operation status
-     * @param warnings The list of soft-validation warnings (may be empty)
+     * @param warnings The list of soft-validation warnings (maybe empty)
      * @return The formatted HTTP response
      * @param <T> The type of the response body
      */

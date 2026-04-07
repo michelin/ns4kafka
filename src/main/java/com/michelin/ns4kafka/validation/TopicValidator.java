@@ -32,7 +32,6 @@ import io.micronaut.core.util.StringUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -96,71 +95,130 @@ public class TopicValidator extends ResourceValidator {
                 .build();
     }
 
-    /**
-     * Validate a given topic.
-     *
-     * <p>Hard failures (soft=false) are returned as errors; lenient-mode regex mismatches (soft=true) are returned as
-     * warnings so the resource can still be created while the caller is notified.
-     *
-     * @param topic The topic
-     * @return A {@link ValidationResult} containing errors and warnings
-     * @see <a href=
-     *     "https://github.com/apache/kafka/blob/trunk/clients/src/main/java/org/apache/kafka/common/internals/Topic.java#L36">
-     *     GitHub</a>
-     */
     public ValidationResult validate(Topic topic) {
         List<String> validationErrors = new ArrayList<>();
         List<String> validationWarnings = new ArrayList<>();
 
-        if (!StringUtils.hasText(topic.getMetadata().getName())) {
-            validationErrors.add(invalidNameEmpty());
+        ValidationResult nameResult = validateName(topic.getMetadata().getName());
+        validationErrors.addAll(nameResult.errors());
+        validationWarnings.addAll(nameResult.warnings());
+
+        ValidationResult unknownConfigsResult = validateUnknownConfigs(topic);
+        validationErrors.addAll(unknownConfigsResult.errors());
+
+        ValidationResult constraintsResult = applyConstraints(validationConstraints, topic);
+        validationErrors.addAll(constraintsResult.errors());
+        validationWarnings.addAll(constraintsResult.warnings());
+
+        return new ValidationResult(validationErrors, validationWarnings);
+    }
+
+    /**
+     * Validates the name field of a topic's metadata.
+     *
+     * <p>Unlike connector name validation, all structural checks are independent and accumulate — the caller sees every
+     * problem at once. The blank check is the only short-circuit: if the name is empty or null, further checks would be
+     * meaningless and are skipped.
+     *
+     * <p>Checks applied :
+     *
+     * <ol>
+     *   <li>Name must not be {@code "."} or {@code ".."}
+     *   <li>Name must not exceed 249 characters
+     *   <li>Name must only contain {@code [a-zA-Z0-9._-]}
+     * </ol>
+     *
+     * @param name The topic name from {@code topic.getMetadata().getName()}
+     * @return A {@link ValidationResult} containing any name-level errors, empty if the name is valid
+     */
+    private ValidationResult validateName(String name) {
+        List<String> errors = new ArrayList<>();
+
+        if (!StringUtils.hasText(name)) {
+            errors.add(invalidNameEmpty());
+        }
+        if (List.of(".", "..").contains(name)) {
+            errors.add(invalidTopicName(name));
+        }
+        if (name != null && name.length() > 249) {
+            errors.add(invalidNameLength(name));
+        }
+        if (name != null && !name.matches("[a-zA-Z0-9._-]+")) {
+            errors.add(invalidNameSpecChars(name));
         }
 
-        if (List.of(".", "..").contains(topic.getMetadata().getName())) {
-            validationErrors.add(invalidTopicName(topic.getMetadata().getName()));
+        return ValidationResult.ofErrors(errors);
+    }
+
+    /**
+     * Checks that every key in the topic's config is covered by a known validation constraint.
+     *
+     * <p>Any config entry whose key is not present in {@link #validationConstraints} is considered an
+     * unknown/unsupported field and produces a hard error. The check is skipped entirely when
+     * {@link #validationConstraints} is empty or the topic's config map is {@code null}.
+     *
+     * @param topic The topic whose config is being inspected
+     * @return A {@link ValidationResult} containing any unknown-config errors
+     */
+    private ValidationResult validateUnknownConfigs(Topic topic) {
+        if (validationConstraints.isEmpty() || topic.getSpec().getConfigs() == null) {
+            return ValidationResult.empty();
         }
 
-        if (topic.getMetadata().getName().length() > 249) {
-            validationErrors.add(invalidNameLength(topic.getMetadata().getName()));
-        }
+        List<String> errors = topic.getSpec().getConfigs().entrySet().stream()
+                .filter(entry -> !validationConstraints.containsKey(entry.getKey()))
+                .map(entry -> invalidTopicSpec(entry.getKey(), entry.getValue()))
+                .toList();
 
-        if (!topic.getMetadata().getName().matches("[a-zA-Z0-9._-]+")) {
-            validationErrors.add(invalidNameSpecChars(topic.getMetadata().getName()));
-        }
+        return ValidationResult.ofErrors(errors);
+    }
 
-        if (!validationConstraints.isEmpty() && topic.getSpec().getConfigs() != null) {
-            Map<String, String> configsWithoutConstraints = topic.getSpec().getConfigs().entrySet().stream()
-                    .filter(entry -> !validationConstraints.containsKey(entry.getKey()))
-                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    /**
+     * Applies a set of validation constraints against a topic's spec, routing each outcome to the appropriate list.
+     *
+     * <p>The value passed to {@link Validator#ensureValid(String, Object)} depends on the key:
+     *
+     * <ul>
+     *   <li>{@link com.michelin.ns4kafka.util.config.TopicConfig#PARTITIONS PARTITIONS} →
+     *       {@code topic.getSpec().getPartitions()}
+     *   <li>{@link com.michelin.ns4kafka.util.config.TopicConfig#REPLICATION_FACTOR REPLICATION_FACTOR} →
+     *       {@code topic.getSpec().getReplicationFactor()}
+     *   <li>Any other key → the matching entry in {@code topic.getSpec().getConfigs()}; if the config map is
+     *       {@code null}, a hard error is added directly and {@code ensureValid} is not called.
+     * </ul>
+     *
+     * <p>Any {@link FieldValidationException} is routed to warnings if {@link FieldValidationException#soft soft} is
+     * {@code true}, or to errors otherwise.
+     *
+     * @param constraints The map of config key to {@link Validator} to apply
+     * @param topic The topic whose spec values are being validated
+     * @return A {@link ValidationResult} containing any constraint errors and warnings
+     */
+    private ValidationResult applyConstraints(Map<String, Validator> constraints, Topic topic) {
+        List<String> errors = new ArrayList<>();
+        List<String> warnings = new ArrayList<>();
 
-            if (!configsWithoutConstraints.isEmpty()) {
-                configsWithoutConstraints.forEach((key, value) -> validationErrors.add(invalidTopicSpec(key, value)));
-            }
-        }
-
-        validationConstraints.forEach((key, value) -> {
+        constraints.forEach((key, validator) -> {
             try {
                 switch (key) {
-                    case PARTITIONS -> value.ensureValid(key, topic.getSpec().getPartitions());
+                    case PARTITIONS ->
+                        validator.ensureValid(key, topic.getSpec().getPartitions());
                     case REPLICATION_FACTOR ->
-                        value.ensureValid(key, topic.getSpec().getReplicationFactor());
+                        validator.ensureValid(key, topic.getSpec().getReplicationFactor());
                     default -> {
-                        if (topic.getSpec().getConfigs() != null) {
-                            value.ensureValid(key, topic.getSpec().getConfigs().get(key));
+                        if (topic.getSpec().getConfigs() == null) {
+                            errors.add(invalidFieldValidationNull(key));
                         } else {
-                            validationErrors.add(invalidFieldValidationNull(key));
+                            validator.ensureValid(
+                                    key, topic.getSpec().getConfigs().get(key));
                         }
                     }
                 }
             } catch (FieldValidationException e) {
-                if (e.soft) {
-                    validationWarnings.add(e.getMessage());
-                } else {
-                    validationErrors.add(e.getMessage());
-                }
+                (e.soft ? warnings : errors).add(e.getMessage());
             }
         });
 
-        return new ValidationResult(validationErrors, validationWarnings);
+        return new ValidationResult(errors, warnings);
     }
 }

@@ -337,12 +337,11 @@ public abstract class ResourceValidator {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class RegexPattern implements Validator {
-        public static final List<String> VALID_MODES = List.of("lenient", "strict");
         private String regex;
-        private String mode;
+        private boolean strict = false;
 
-        public static RegexPattern matches(String regex, String mode) {
-            return new RegexPattern(regex, mode);
+        public static RegexPattern matches(String regex, boolean strict) {
+            return new RegexPattern(regex, strict);
         }
 
         @Override
@@ -352,17 +351,13 @@ public abstract class ResourceValidator {
                 // If for some reason the regex pattern is invoked but fields are not set, return.
                 return;
             }
-            if (mode == null || !(VALID_MODES.contains(mode))) {
-                throw new FieldValidationException(
-                        invalidFieldValidationContains("mode", mode, String.join(",", VALID_MODES)));
-            }
+
             if (value == null) {
                 throw new FieldValidationException(invalidFieldValidationNull(name));
             }
             String s = (String) value;
             if (!s.matches(regex)) {
-                throw new FieldValidationException(
-                        invalidFieldValidationRegex(name, value.toString(), regex), "lenient".equals(mode));
+                throw new FieldValidationException(invalidFieldValidationRegex(name, value.toString(), regex), !strict);
             }
         }
     }
