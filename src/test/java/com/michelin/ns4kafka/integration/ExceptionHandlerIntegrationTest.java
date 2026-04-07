@@ -345,5 +345,4 @@ class ExceptionHandlerIntegrationTest extends KafkaIntegrationTest {
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
         assertEquals("Not Found", exception.getMessage());
     }
-
 }
