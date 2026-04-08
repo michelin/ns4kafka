@@ -18,11 +18,11 @@
  */
 package com.michelin.ns4kafka.model;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 import com.michelin.ns4kafka.validation.FieldValidationException;
 import com.michelin.ns4kafka.validation.ResourceValidator;

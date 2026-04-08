@@ -18,15 +18,16 @@
  */
 package com.michelin.ns4kafka.validation;
 
-import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationNull;
-import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationNumber;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationAtLeast;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationAtMost;
-import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationOneOf;
-import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationEmpty;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationContains;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationEmpty;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationNull;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationNumber;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationOneOf;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationRegex;
 import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
+
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
