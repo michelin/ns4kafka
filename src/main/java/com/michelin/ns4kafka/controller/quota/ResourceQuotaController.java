@@ -87,25 +87,6 @@ public class ResourceQuotaController extends NamespacedResourceController {
     }
 
     /**
-     * Get a quota by namespace and name.
-     *
-     * @param namespace The name
-     * @param quota The quota name
-     * @return A quota
-     * @deprecated use {@link #list(String, String)} instead.
-     */
-    @Get("/{quota}")
-    @Deprecated(since = "1.12.0")
-    public Optional<ResourceQuotaResponse> get(String namespace, String quota) {
-        Optional<ResourceQuota> resourceQuota = resourceQuotaService.findByName(namespace, quota);
-        if (resourceQuota.isEmpty()) {
-            return Optional.empty();
-        }
-        return Optional.of(
-                resourceQuotaService.getUsedResourcesByQuotaByNamespace(getNamespace(namespace), resourceQuota));
-    }
-
-    /**
      * Create a quota.
      *
      * @param namespace The namespace

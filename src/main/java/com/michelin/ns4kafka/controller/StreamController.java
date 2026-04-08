@@ -84,20 +84,6 @@ public class StreamController extends NamespacedResourceController {
     }
 
     /**
-     * Get a Kafka Streams by namespace and name.
-     *
-     * @param namespace The name
-     * @param stream The Kafka Streams name
-     * @return The Kafka Streams
-     * @deprecated Use {@link #list(String, String)}
-     */
-    @Get("/{stream}")
-    @Deprecated(since = "1.12.0")
-    Optional<KafkaStream> get(String namespace, String stream) {
-        return streamService.findByName(getNamespace(namespace), stream);
-    }
-
-    /**
      * Create a Kafka Streams.
      *
      * @param namespace The namespace
@@ -146,48 +132,12 @@ public class StreamController extends NamespacedResourceController {
      * Delete a Kafka Streams.
      *
      * @param namespace The namespace
-     * @param stream The Kafka Streams
-     * @param dryrun Is dry run mode or not?
-     * @return An HTTP response
-     * @deprecated use {@link #bulkDelete(String, String, boolean)} instead.
-     */
-    @Delete("/{stream}{?dryrun}")
-    @Deprecated(since = "1.13.0")
-    HttpResponse<Void> delete(String namespace, String stream, @QueryValue(defaultValue = "false") boolean dryrun)
-            throws ExecutionException, InterruptedException, TimeoutException {
-        Namespace ns = getNamespace(namespace);
-        if (!streamService.isNamespaceOwnerOfKafkaStream(ns, stream)) {
-            throw new ResourceValidationException(KAFKA_STREAM, stream, invalidOwner(stream));
-        }
-
-        Optional<KafkaStream> optionalStream = streamService.findByName(ns, stream);
-
-        if (optionalStream.isEmpty()) {
-            return HttpResponse.notFound();
-        }
-
-        if (dryrun) {
-            return HttpResponse.noContent();
-        }
-
-        var streamToDelete = optionalStream.get();
-
-        sendEventLog(streamToDelete, ApplyStatus.DELETED, streamToDelete.getMetadata(), null, EMPTY_STRING);
-
-        streamService.delete(ns, optionalStream.get());
-        return HttpResponse.noContent();
-    }
-
-    /**
-     * Delete a Kafka Streams.
-     *
-     * @param namespace The namespace
      * @param name The name parameter
      * @param dryrun Is dry run mode or not?
      * @return An HTTP response
      */
     @Delete
-    HttpResponse<List<KafkaStream>> bulkDelete(
+    HttpResponse<List<KafkaStream>> delete(
             String namespace,
             @QueryValue(defaultValue = "*") String name,
             @QueryValue(defaultValue = "false") boolean dryrun)

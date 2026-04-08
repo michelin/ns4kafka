@@ -843,23 +843,6 @@ class TopicServiceTest {
     }
 
     @Test
-    void shouldDeleteTopic() throws ExecutionException, InterruptedException, TimeoutException {
-        Topic topic = Topic.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("ns-topic1")
-                        .cluster("cluster")
-                        .build())
-                .build();
-
-        when(applicationContext.getBean(eq(TopicAsyncExecutor.class), any())).thenReturn(topicAsyncExecutor);
-
-        topicService.delete(topic);
-
-        verify(topicRepository).delete(topic);
-        verify(topicAsyncExecutor).deleteTopics(List.of(topic));
-    }
-
-    @Test
     void shouldDeleteMultipleTopics() throws ExecutionException, InterruptedException, TimeoutException {
         Topic topic1 = Topic.builder()
                 .metadata(Resource.Metadata.builder()

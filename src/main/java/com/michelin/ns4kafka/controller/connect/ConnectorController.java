@@ -95,20 +95,6 @@ public class ConnectorController extends NamespacedResourceController {
     }
 
     /**
-     * Get a connector by namespace and name.
-     *
-     * @param namespace The namespace
-     * @param connector The name
-     * @return A connector
-     * @deprecated use {@link #list(String, String)} instead.
-     */
-    @Get("/{connector}")
-    @Deprecated(since = "1.12.0")
-    public Optional<Connector> get(String namespace, String connector) {
-        return connectorService.findByName(getNamespace(namespace), connector);
-    }
-
-    /**
      * Create a connector.
      *
      * @param namespace The namespace
@@ -194,42 +180,6 @@ public class ConnectorController extends NamespacedResourceController {
     }
 
     /**
-     * Delete a connector.
-     *
-     * @param namespace The current namespace
-     * @param connector The current connector name to delete
-     * @param dryrun Is dry run mode or not?
-     * @return A HTTP response
-     * @deprecated use {@link #bulkDelete(String, String, boolean, boolean)} instead.
-     */
-    @Delete("/{connector}{?dryrun}")
-    @Deprecated(since = "1.13.0")
-    public Mono<HttpResponse<Void>> delete(
-            String namespace, String connector, @QueryValue(defaultValue = "false") boolean dryrun) {
-        Namespace ns = getNamespace(namespace);
-
-        // Validate ownership
-        if (!connectorService.isNamespaceOwnerOfConnect(ns, connector)) {
-            return Mono.error(new ResourceValidationException(CONNECTOR, connector, invalidOwner(connector)));
-        }
-
-        Optional<Connector> optionalConnector = connectorService.findByName(ns, connector);
-        if (optionalConnector.isEmpty()) {
-            return Mono.just(HttpResponse.notFound());
-        }
-
-        if (dryrun) {
-            return Mono.just(HttpResponse.noContent());
-        }
-
-        Connector connectorToDelete = optionalConnector.get();
-
-        sendEventLog(connectorToDelete, ApplyStatus.DELETED, connectorToDelete.getSpec(), null, EMPTY_STRING);
-
-        return connectorService.delete(ns, optionalConnector.get(), false).map(_ -> HttpResponse.noContent());
-    }
-
-    /**
      * Delete connectors.
      *
      * @param namespace The current namespace
@@ -239,7 +189,7 @@ public class ConnectorController extends NamespacedResourceController {
      * @return A HTTP response
      */
     @Delete
-    public Mono<HttpResponse<List<Connector>>> bulkDelete(
+    public Mono<HttpResponse<List<Connector>>> delete(
             String namespace,
             @QueryValue(defaultValue = "*") String name,
             @QueryValue(defaultValue = "false") boolean dryrun,

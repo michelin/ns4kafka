@@ -96,20 +96,6 @@ public class ConnectClusterController extends NamespacedResourceController {
     }
 
     /**
-     * Get a Kafka Connect clusters by namespace and name.
-     *
-     * @param namespace The namespace
-     * @param connectCluster The name
-     * @return A Kafka Connect cluster
-     * @deprecated use list(String, String name) instead.
-     */
-    @Get("/{connectCluster}")
-    @Deprecated(since = "1.12.0")
-    public Optional<ConnectCluster> get(String namespace, String connectCluster) {
-        return connectClusterService.findByNameWithOwnerPermission(getNamespace(namespace), connectCluster);
-    }
-
-    /**
      * Create a Kafka Connect cluster.
      *
      * @param namespace The namespace
@@ -169,58 +155,6 @@ public class ConnectClusterController extends NamespacedResourceController {
     }
 
     /**
-     * Delete a Kafka Connect cluster.
-     *
-     * @param namespace The current namespace
-     * @param connectCluster The current connect cluster name to delete
-     * @param dryrun Run in dry mode or not
-     * @return A HTTP response
-     * @deprecated use {@link #bulkDelete(String, String, boolean, boolean)} instead.
-     */
-    @Delete("/{connectCluster}{?dryrun}")
-    @Deprecated(since = "1.13.0")
-    public HttpResponse<Void> delete(
-            String namespace, String connectCluster, @QueryValue(defaultValue = "false") boolean dryrun) {
-        Namespace ns = getNamespace(namespace);
-
-        List<String> validationErrors = new ArrayList<>();
-        if (!connectClusterService.isNamespaceOwnerOfConnectCluster(ns, connectCluster)) {
-            validationErrors.add(invalidOwner(connectCluster));
-        }
-
-        List<Connector> connectors = connectorService.findAllByConnectCluster(ns, connectCluster);
-        if (!connectors.isEmpty()) {
-            validationErrors.add(invalidConnectClusterDeleteOperation(connectCluster, connectors));
-        }
-
-        if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(CONNECT_CLUSTER, connectCluster, validationErrors);
-        }
-
-        Optional<ConnectCluster> optionalConnectCluster =
-                connectClusterService.findByNameWithOwnerPermission(ns, connectCluster);
-
-        if (optionalConnectCluster.isEmpty()) {
-            return HttpResponse.notFound();
-        }
-
-        if (dryrun) {
-            return HttpResponse.noContent();
-        }
-
-        sendEventLog(
-                optionalConnectCluster.get(),
-                ApplyStatus.DELETED,
-                optionalConnectCluster.get().getSpec(),
-                null,
-                EMPTY_STRING);
-
-        connectClusterService.delete(optionalConnectCluster.get());
-
-        return HttpResponse.noContent();
-    }
-
-    /**
      * Delete Kafka Connect clusters.
      *
      * @param namespace The current namespace
@@ -230,7 +164,7 @@ public class ConnectClusterController extends NamespacedResourceController {
      * @return A HTTP response
      */
     @Delete
-    public HttpResponse<List<ConnectCluster>> bulkDelete(
+    public HttpResponse<List<ConnectCluster>> delete(
             String namespace,
             @QueryValue(defaultValue = "*") String name,
             @QueryValue(defaultValue = "false") boolean dryrun,

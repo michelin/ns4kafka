@@ -662,11 +662,11 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
         var deleteResponse = ns4KafkaClient
                 .toBlocking()
                 .exchange(
-                        HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/schemas/ns1-subject2-value")
+                        HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/schemas?name=ns1-subject2-value")
                                 .bearerAuth(token),
                         Schema.class);
 
-        assertEquals(HttpStatus.NO_CONTENT, deleteResponse.getStatus());
+        assertEquals(HttpStatus.OK, deleteResponse.getStatus());
 
         // Get all schemas
         var getResponseEmpty = ns4KafkaClient

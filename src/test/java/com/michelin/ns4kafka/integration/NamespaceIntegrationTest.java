@@ -188,7 +188,7 @@ class NamespaceIntegrationTest extends KafkaIntegrationTest {
                 .retrieve(
                         HttpRequest.create(
                                         HttpMethod.GET,
-                                        "/api/namespaces/accepted.namespace/topics/accepted.namespace.topic")
+                                        "/api/namespaces/accepted.namespace/topics?name=accepted.namespace.topic")
                                 .bearerAuth(token),
                         Topic.class);
 
