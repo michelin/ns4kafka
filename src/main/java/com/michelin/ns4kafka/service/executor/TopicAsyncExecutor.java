@@ -641,6 +641,7 @@ public class TopicAsyncExecutor {
                 createdTopic.setStatus(Topic.TopicStatus.ofFailed("Error while creating topic: " + e.getMessage()));
                 log.error("Error while creating topic {} on cluster {}", key, managedClusterProperties.getName(), e);
             }
+
             topicRepository.create(createdTopic);
         });
     }

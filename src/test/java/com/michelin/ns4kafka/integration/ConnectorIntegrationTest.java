@@ -330,20 +330,39 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
         assertTrue(actualConnectorWithFillParameter.config().containsKey("file"));
         assertEquals("test", actualConnectorWithFillParameter.config().get("file"));
 
+        HttpResponse<List<Connector>> connectors = ns4KafkaClient
+                .toBlocking()
+                .exchange(
+                        HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/connectors?name=ns1-connector-with-*")
+                                .bearerAuth(token),
+                        Argument.listOf(Connector.class));
+
+        assertTrue(connectors.getBody().isPresent());
+        assertTrue(connectors.getBody().get().stream()
+                .allMatch(connector -> Resource.Metadata.Phase.SUCCESS.equals(
+                        connector.getMetadata().getStatus().getPhase())));
+        assertTrue(connectors.getBody().get().stream()
+                .allMatch(connector -> connector.getMetadata().getStatus().getLastUpdateTime() != null));
+        assertTrue(connectors.getBody().get().stream()
+                .allMatch(connector -> connector.getMetadata().getGeneration() == 1));
+        assertEquals(3, connectors.getBody().get().size());
+
         ns4KafkaClient
                 .toBlocking()
                 .exchange(HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/connectors?name=ns1*")
                         .bearerAuth(token));
 
-        HttpResponse<List<Connector>> connectors = ns4KafkaClient
+        forceConnectorSynchronization();
+
+        HttpResponse<List<Connector>> deleteConnectors = ns4KafkaClient
                 .toBlocking()
                 .exchange(
-                        HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/connectors")
+                        HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/connectors?name=ns1-connector-with-*")
                                 .bearerAuth(token),
                         Argument.listOf(Connector.class));
 
-        assertTrue(connectors.getBody().isPresent());
-        assertEquals(0, connectors.getBody().get().size());
+        assertTrue(deleteConnectors.getBody().isPresent());
+        assertTrue(deleteConnectors.getBody().get().isEmpty());
     }
 
     @Test
@@ -620,10 +639,6 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
 
     /** Force synchronization of all connectors synchronously. */
     private void forceConnectorSynchronization() throws InterruptedException {
-        Flux.fromIterable(connectorAsyncExecutorList)
-                .flatMap(ConnectorAsyncExecutor::runHealthCheck)
-                .blockLast();
-
         Flux.fromIterable(connectorAsyncExecutorList)
                 .flatMap(ConnectorAsyncExecutor::run)
                 .blockLast();

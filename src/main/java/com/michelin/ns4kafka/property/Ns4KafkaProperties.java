@@ -92,20 +92,12 @@ public class Ns4KafkaProperties {
     @ConfigurationProperties("scheduler")
     public static class SchedulerProperties {
         private ConnectorProperties connector = new ConnectorProperties();
-        private ConnectProperties connect = new ConnectProperties();
 
         @Getter
         @Setter
         @ConfigurationProperties("connector")
         public static class ConnectorProperties {
             private int intervalMs = 30000;
-        }
-
-        @Getter
-        @Setter
-        @ConfigurationProperties("connect")
-        public static class ConnectProperties {
-            private int intervalMs = 60000;
         }
     }
 

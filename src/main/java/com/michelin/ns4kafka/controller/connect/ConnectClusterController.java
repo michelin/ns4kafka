@@ -53,6 +53,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /** Controller to manage Kafka Connect clusters. */
@@ -91,8 +92,8 @@ public class ConnectClusterController extends NamespacedResourceController {
      * @return A list of Kafka Connect clusters
      */
     @Get
-    public List<ConnectCluster> list(String namespace, @QueryValue(defaultValue = "*") String name) {
-        return connectClusterService.findByWildcardNameWithOwnerPermission(getNamespace(namespace), name);
+    public Flux<ConnectCluster> list(String namespace, @QueryValue(defaultValue = "*") String name) {
+        return connectClusterService.findByWildcardNameWithOwnerPermissionAndStatus(getNamespace(namespace), name);
     }
 
     /**

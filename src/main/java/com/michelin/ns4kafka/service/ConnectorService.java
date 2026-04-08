@@ -25,17 +25,15 @@ import static com.michelin.ns4kafka.util.config.ConnectorConfig.CONNECTOR_CLASS;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.connect.Connector;
 import com.michelin.ns4kafka.repository.ConnectorRepository;
 import com.michelin.ns4kafka.service.client.connect.KafkaConnectClient;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorSpecs;
-import com.michelin.ns4kafka.service.executor.ConnectorAsyncExecutor;
 import com.michelin.ns4kafka.util.FormatErrorUtils;
 import com.michelin.ns4kafka.util.RegexUtils;
-import io.micronaut.context.ApplicationContext;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpResponse;
-import io.micronaut.inject.qualifiers.Qualifiers;
 import jakarta.inject.Singleton;
 import java.util.Collections;
 import java.util.List;
@@ -55,7 +53,6 @@ public class ConnectorService {
     private final ConnectClusterService connectClusterService;
     private final ConnectorRepository connectorRepository;
     private final KafkaConnectClient kafkaConnectClient;
-    private final ApplicationContext applicationContext;
 
     /**
      * Constructor.
@@ -64,19 +61,16 @@ public class ConnectorService {
      * @param connectClusterService The Connect Cluster service
      * @param connectorRepository The connector repository
      * @param kafkaConnectClient The Kafka Connect client
-     * @param applicationContext The application context
      */
     public ConnectorService(
             AclService aclService,
             ConnectClusterService connectClusterService,
             ConnectorRepository connectorRepository,
-            KafkaConnectClient kafkaConnectClient,
-            ApplicationContext applicationContext) {
+            KafkaConnectClient kafkaConnectClient) {
         this.aclService = aclService;
         this.connectClusterService = connectClusterService;
         this.kafkaConnectClient = kafkaConnectClient;
         this.connectorRepository = connectorRepository;
-        this.applicationContext = applicationContext;
     }
 
     /**
@@ -238,45 +232,6 @@ public class ConnectorService {
     }
 
     /**
-     * Delete a given connector.
-     *
-     * @param namespace The namespace
-     * @param connector The connector
-     */
-    public Mono<HttpResponse<Void>> delete(Namespace namespace, Connector connector, boolean force) {
-        return kafkaConnectClient
-                .delete(
-                        namespace.getMetadata().getCluster(),
-                        connector.getSpec().getConnectCluster(),
-                        connector.getMetadata().getName())
-                .defaultIfEmpty(HttpResponse.noContent())
-                .onErrorResume(error -> {
-                    if (force) {
-                        log.atInfo()
-                                .addArgument(connector.getMetadata().getName())
-                                .addArgument(namespace.getMetadata().getName())
-                                .addArgument(connector.getSpec().getConnectCluster())
-                                .addArgument(error.getMessage())
-                                .log("Success force deleting Connector [{}] on Namespace [{}] from repository."
-                                        + " Failed to delete from Connect cluster [{}]: [{}]");
-                        return Mono.just(HttpResponse.noContent());
-                    }
-                    return Mono.error(error);
-                })
-                .map(httpResponse -> {
-                    connectorRepository.delete(connector);
-
-                    log.atInfo()
-                            .addArgument(connector.getMetadata().getName())
-                            .addArgument(namespace.getMetadata().getName())
-                            .addArgument(connector.getSpec().getConnectCluster())
-                            .log("Success removing Connector [{}] on Kafka [{}] Connect [{}]");
-
-                    return httpResponse;
-                });
-    }
-
-    /**
      * List all connectors of a given namespace that are not synchronized to Ns4Kafka, filtered by name parameter.
      *
      * @param namespace The namespace
@@ -284,10 +239,6 @@ public class ConnectorService {
      * @return The list of connectors
      */
     public Flux<Connector> listUnsynchronizedConnectorsByWildcardName(Namespace namespace, String name) {
-        ConnectorAsyncExecutor connectorAsyncExecutor = applicationContext.getBean(
-                ConnectorAsyncExecutor.class,
-                Qualifiers.byName(namespace.getMetadata().getCluster()));
-
         List<String> nameFilterPatterns = RegexUtils.convertWildcardStringsToRegex(List.of(name));
 
         // Get all connectors from all connect clusters
@@ -296,8 +247,18 @@ public class ConnectorService {
                 connectClusterService.findAllForNamespaceWithWritePermission(namespace).stream()
                         .map(connectCluster -> connectCluster.getMetadata().getName()));
 
-        return Flux.fromStream(connectClusters).flatMap(connectClusterName -> connectorAsyncExecutor
-                .collectBrokerConnectors(connectClusterName)
+        return Flux.fromStream(connectClusters).flatMap(connectClusterName -> kafkaConnectClient
+                .listAll(namespace.getMetadata().getCluster(), connectClusterName)
+                .flatMapMany(
+                        connectors -> Flux.fromIterable(connectors.values()).map(connectorStatus -> Connector.builder()
+                                .metadata(Resource.Metadata.builder()
+                                        .name(connectorStatus.info().name())
+                                        .build())
+                                .spec(Connector.ConnectorSpec.builder()
+                                        .connectCluster(connectClusterName)
+                                        .config(connectorStatus.info().config())
+                                        .build())
+                                .build()))
                 .filter(connector ->
                         // ...that belongs to this namespace
                         isNamespaceOwnerOfConnect(
@@ -330,7 +291,7 @@ public class ConnectorService {
                                 connector.getMetadata().getName(),
                                 task.getId()))
                         .doOnNext(_ -> log.info(
-                                "Success restarting connector [{}] on namespace [{}] connect [{}]",
+                                "Success restarting connector {} on namespace {} Kafka Connect {}.",
                                 connector.getMetadata().getName(),
                                 namespace.getMetadata().getName(),
                                 connector.getSpec().getConnectCluster()))
@@ -352,7 +313,7 @@ public class ConnectorService {
                         connector.getMetadata().getName())
                 .map(_ -> {
                     log.info(
-                            "Success pausing Connector [{}] on Namespace [{}] Connect [{}]",
+                            "Success pausing connector {} on namespace {} and Kafka Connect {}.",
                             connector.getMetadata().getName(),
                             namespace.getMetadata().getName(),
                             connector.getSpec().getConnectCluster());
@@ -376,7 +337,7 @@ public class ConnectorService {
                         connector.getMetadata().getName())
                 .map(_ -> {
                     log.info(
-                            "Success resuming Connector [{}] on Namespace [{}] Connect [{}]",
+                            "Success resuming connector {} on namespace {} and Kafka Connect {}.",
                             connector.getMetadata().getName(),
                             namespace.getMetadata().getName(),
                             connector.getSpec().getConnectCluster());
