@@ -25,10 +25,12 @@ import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpStatus;
+import io.micronaut.http.server.exceptions.NotAllowedException;
 import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.authentication.AuthenticationException;
 import io.micronaut.security.authentication.AuthorizationException;
 import jakarta.validation.ConstraintViolationException;
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -75,13 +77,24 @@ class ExceptionHandlerControllerTest {
 
     @Test
     void shouldHandleAuthorizationExceptionAndConvertToForbidden() {
-        var response = exceptionHandlerController.error(
-                HttpRequest.create(HttpMethod.POST, "local"),
-                new AuthorizationException(Authentication.build("user", Map.of())));
+        AuthorizationException exception = new AuthorizationException(Authentication.build("user", Map.of()));
+        var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"), exception);
         var status = response.body();
 
         assertEquals(HttpStatus.FORBIDDEN, response.getStatus());
         assertEquals(HttpStatus.FORBIDDEN.getCode(), status.getCode());
+        assertEquals(HttpStatus.FORBIDDEN.getReason(), status.getMessage());
+    }
+
+    @Test
+    void shouldHandleNotAllowedException() {
+        var response = exceptionHandlerController.error(
+                HttpRequest.create(HttpMethod.PUT, "/api/namespaces/ns1/topics"),
+                new NotAllowedException("PUT", URI.create("/api/namespaces/ns1/topics"), Set.of("GET")));
+        var status = response.body();
+
+        assertEquals(HttpStatus.METHOD_NOT_ALLOWED, response.getStatus());
+        assertEquals(HttpStatus.METHOD_NOT_ALLOWED.getCode(), status.getCode());
     }
 
     @Test
@@ -96,10 +109,12 @@ class ExceptionHandlerControllerTest {
 
     @Test
     void shouldHandleAnyException() {
-        var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"), new Exception());
+        var response = exceptionHandlerController.error(
+                HttpRequest.create(HttpMethod.POST, "local"), new Exception("Unexpected error"));
         var status = response.body();
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR.getCode(), status.getCode());
+        assertEquals("Unexpected error", status.getMessage());
     }
 }
