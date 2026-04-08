@@ -18,7 +18,9 @@
  */
 package com.michelin.ns4kafka.validation;
 
-import static com.michelin.ns4kafka.util.FormatErrorUtils.*;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNameEmpty;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNameLength;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNameSpecChars;
 import static com.michelin.ns4kafka.util.config.ConnectorConfig.CONNECTOR_CLASS;
 
 import com.fasterxml.jackson.annotation.JsonSetter;

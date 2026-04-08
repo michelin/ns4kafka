@@ -147,6 +147,17 @@ public class TopicValidator extends ResourceValidator {
             errors.add(invalidNameSpecChars(name));
         }
 
+        if (validationConstraints.containsKey("name")) {
+            try {
+                validationConstraints.get("name").ensureValid("name", name);
+            } catch (FieldValidationException e) {
+                if (e.soft) {
+                    return ValidationResult.ofWarnings(List.of(e.getMessage()));
+                }
+                return ValidationResult.ofErrors(List.of(e.getMessage()));
+            }
+        }
+
         return ValidationResult.ofErrors(errors);
     }
 
