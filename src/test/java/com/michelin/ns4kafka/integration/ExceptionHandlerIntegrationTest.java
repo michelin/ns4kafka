@@ -345,4 +345,17 @@ class ExceptionHandlerIntegrationTest extends KafkaIntegrationTest {
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
         assertEquals("Not Found", exception.getMessage());
     }
+
+    @Test
+    void shouldReturnMethodNotAllowedForUnknownHttpVerb() {
+        HttpRequest<?> request =
+                HttpRequest.create(HttpMethod.PUT, "/api/namespaces/ns1/topics").bearerAuth(token);
+
+        BlockingHttpClient blockingClient = ns4KafkaClient.toBlocking();
+
+        HttpClientResponseException exception =
+                assertThrows(HttpClientResponseException.class, () -> blockingClient.exchange(request));
+
+        assertEquals(HttpStatus.METHOD_NOT_ALLOWED, exception.getStatus());
+    }
 }

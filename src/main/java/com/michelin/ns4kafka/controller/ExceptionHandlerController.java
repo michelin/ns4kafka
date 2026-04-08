@@ -30,6 +30,7 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Error;
+import io.micronaut.http.server.exceptions.NotAllowedException;
 import io.micronaut.security.authentication.AuthenticationException;
 import io.micronaut.security.authentication.AuthorizationException;
 import jakarta.validation.ConstraintViolation;
@@ -38,6 +39,7 @@ import jakarta.validation.ElementKind;
 import jakarta.validation.Path;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
 /** Exception handler controller. */
@@ -105,6 +107,27 @@ public class ExceptionHandlerController {
                 .build();
 
         return HttpResponse.notFound().body(status);
+    }
+
+    /**
+     * Handle method not allowed exception.
+     *
+     * @param request the request
+     * @param exception the exception
+     * @return the http response
+     */
+    @Error(global = true)
+    public HttpResponse<Status> error(HttpRequest<?> request, NotAllowedException exception) {
+        var status = Status.builder()
+                .status(FAILED)
+                .message(exception.getMessage())
+                .httpStatus(HttpStatus.METHOD_NOT_ALLOWED)
+                .build();
+
+        return HttpResponse.notAllowed(exception.getAllowedMethods().stream()
+                        .map(io.micronaut.http.HttpMethod::parse)
+                        .collect(Collectors.toSet()))
+                .body(status);
     }
 
     /**
