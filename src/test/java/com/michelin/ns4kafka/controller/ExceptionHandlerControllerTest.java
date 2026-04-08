@@ -77,13 +77,13 @@ class ExceptionHandlerControllerTest {
 
     @Test
     void shouldHandleAuthorizationExceptionAndConvertToForbidden() {
-        var response = exceptionHandlerController.error(
-                HttpRequest.create(HttpMethod.POST, "local"),
-                new AuthorizationException(Authentication.build("user", Map.of())));
+        AuthorizationException exception = new AuthorizationException(Authentication.build("user", Map.of()));
+        var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"), exception);
         var status = response.body();
 
         assertEquals(HttpStatus.FORBIDDEN, response.getStatus());
         assertEquals(HttpStatus.FORBIDDEN.getCode(), status.getCode());
+        assertEquals(HttpStatus.FORBIDDEN.getReason(), status.getMessage());
     }
 
     @Test
@@ -109,10 +109,12 @@ class ExceptionHandlerControllerTest {
 
     @Test
     void shouldHandleAnyException() {
-        var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"), new Exception());
+        var response = exceptionHandlerController.error(
+                HttpRequest.create(HttpMethod.POST, "local"), new Exception("Unexpected error"));
         var status = response.body();
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR.getCode(), status.getCode());
+        assertEquals("Unexpected error", status.getMessage());
     }
 }

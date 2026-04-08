@@ -160,7 +160,7 @@ public class ExceptionHandlerController {
         if (exception.isForbidden()) {
             var status = Status.builder()
                     .status(FAILED)
-                    .message("Resource forbidden")
+                    .message(exception.getMessage() != null ? exception.getMessage() : HttpStatus.FORBIDDEN.getReason())
                     .httpStatus(HttpStatus.FORBIDDEN)
                     .build();
 
@@ -230,7 +230,7 @@ public class ExceptionHandlerController {
 
         Status status = Status.builder()
                 .status(FAILED)
-                .message("Internal server error")
+                .message(exception.getMessage() != null ? exception.getMessage() : "Internal server error")
                 .httpStatus(HttpStatus.INTERNAL_SERVER_ERROR)
                 .details(StatusDetails.builder()
                         .causes(List.of(exception.getMessage() != null ? exception.getMessage() : exception.toString()))

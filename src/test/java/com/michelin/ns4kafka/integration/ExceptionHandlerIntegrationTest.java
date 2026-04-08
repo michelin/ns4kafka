@@ -315,7 +315,6 @@ class ExceptionHandlerIntegrationTest extends KafkaIntegrationTest {
                 assertThrows(HttpClientResponseException.class, () -> blockingClient.exchange(request));
 
         assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
-        assertEquals("Resource forbidden", exception.getMessage());
     }
 
     @Test
