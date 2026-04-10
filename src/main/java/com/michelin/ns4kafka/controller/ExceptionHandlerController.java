@@ -31,6 +31,7 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Error;
 import io.micronaut.http.exceptions.HttpStatusException;
+import io.micronaut.http.server.exceptions.NotAllowedException;
 import io.micronaut.security.authentication.AuthenticationException;
 import io.micronaut.security.authentication.AuthorizationException;
 import jakarta.validation.ConstraintViolation;
@@ -39,6 +40,7 @@ import jakarta.validation.ElementKind;
 import jakarta.validation.Path;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
 /** Exception handler controller. */
@@ -109,6 +111,27 @@ public class ExceptionHandlerController {
     }
 
     /**
+     * Handle method not allowed exception.
+     *
+     * @param request the request
+     * @param exception the exception
+     * @return the http response
+     */
+    @Error(global = true)
+    public HttpResponse<Status> error(HttpRequest<?> request, NotAllowedException exception) {
+        var status = Status.builder()
+                .status(FAILED)
+                .message(exception.getMessage())
+                .httpStatus(HttpStatus.METHOD_NOT_ALLOWED)
+                .build();
+
+        return HttpResponse.notAllowed(exception.getAllowedMethods().stream()
+                        .map(io.micronaut.http.HttpMethod::parse)
+                        .collect(Collectors.toSet()))
+                .body(status);
+    }
+
+    /**
      * Handle authentication exception.
      *
      * @param request the request
@@ -138,7 +161,7 @@ public class ExceptionHandlerController {
         if (exception.isForbidden()) {
             var status = Status.builder()
                     .status(FAILED)
-                    .message("Resource forbidden")
+                    .message(exception.getMessage() != null ? exception.getMessage() : HttpStatus.FORBIDDEN.getReason())
                     .httpStatus(HttpStatus.FORBIDDEN)
                     .build();
 
@@ -229,7 +252,7 @@ public class ExceptionHandlerController {
 
         Status status = Status.builder()
                 .status(FAILED)
-                .message("Internal server error")
+                .message(exception.getMessage() != null ? exception.getMessage() : "Internal server error")
                 .httpStatus(HttpStatus.INTERNAL_SERVER_ERROR)
                 .details(StatusDetails.builder()
                         .causes(List.of(exception.getMessage() != null ? exception.getMessage() : exception.toString()))

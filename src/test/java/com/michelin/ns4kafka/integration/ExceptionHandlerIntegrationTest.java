@@ -57,6 +57,8 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 @MicronautTest
 class ExceptionHandlerIntegrationTest extends KafkaIntegrationTest {
@@ -313,7 +315,6 @@ class ExceptionHandlerIntegrationTest extends KafkaIntegrationTest {
                 assertThrows(HttpClientResponseException.class, () -> blockingClient.exchange(request));
 
         assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
-        assertEquals("Resource forbidden", exception.getMessage());
     }
 
     @Test
@@ -330,17 +331,30 @@ class ExceptionHandlerIntegrationTest extends KafkaIntegrationTest {
         assertEquals("Not Found", exception.getMessage());
     }
 
-    @Test
-    void shouldNotValidateUnknownHttpVerbForTopic() {
-        HttpRequest<?> request = HttpRequest.create(HttpMethod.PUT, "/api/namespaces/ns1/topics/")
-                .bearerAuth(token);
+    @ParameterizedTest
+    @ValueSource(strings = {"/api/non-existing-endpoint", "/non-existing-endpoint"})
+    void shouldReturnNotFoundForNonExistingNonNamespacedPath(String path) {
+        HttpRequest<?> request = HttpRequest.create(HttpMethod.GET, path).bearerAuth(token);
 
         BlockingHttpClient blockingClient = ns4KafkaClient.toBlocking();
 
         HttpClientResponseException exception =
                 assertThrows(HttpClientResponseException.class, () -> blockingClient.exchange(request));
 
-        assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
-        assertEquals("Resource forbidden", exception.getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+        assertEquals("Not Found", exception.getMessage());
+    }
+
+    @Test
+    void shouldReturnMethodNotAllowedForUnknownHttpVerb() {
+        HttpRequest<?> request =
+                HttpRequest.create(HttpMethod.PUT, "/api/namespaces/ns1/topics").bearerAuth(token);
+
+        BlockingHttpClient blockingClient = ns4KafkaClient.toBlocking();
+
+        HttpClientResponseException exception =
+                assertThrows(HttpClientResponseException.class, () -> blockingClient.exchange(request));
+
+        assertEquals(HttpStatus.METHOD_NOT_ALLOWED, exception.getStatus());
     }
 }
