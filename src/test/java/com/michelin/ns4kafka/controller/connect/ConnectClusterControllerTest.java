@@ -501,7 +501,7 @@ class ConnectClusterControllerTest {
     }
 
     @Test
-    void shouldCascadeDeleteFailWhenConnectUnreachable() {
+    void shouldNotCascadeDeleteConnectWhenConnectorDeletionFails() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test")
@@ -541,7 +541,7 @@ class ConnectClusterControllerTest {
     }
 
     @Test
-    void shouldCascadeForceDeleteWhenConnectUnreachable() {
+    void shouldCascadeForceDeleteConnectCluster() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test")

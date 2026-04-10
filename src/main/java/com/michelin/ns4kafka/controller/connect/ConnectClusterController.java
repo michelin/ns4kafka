@@ -180,7 +180,7 @@ public class ConnectClusterController extends NamespacedResourceController {
      * @param connectCluster The current connect cluster name to delete
      * @param dryrun Run in dry mode or not
      * @return A HTTP response
-     * @deprecated use {@link #bulkDelete(String, String, boolean, boolean)} instead.
+     * @deprecated use {@link #bulkDelete(String, String, boolean, boolean, boolean)} instead.
      */
     @Delete("/{connectCluster}{?dryrun}")
     @Deprecated(since = "1.13.0")
@@ -233,7 +233,7 @@ public class ConnectClusterController extends NamespacedResourceController {
      * @param dryrun Run in dry mode or not
      * @param force Force delete or not?
      * @param cascade Cascade delete connectors or not?
-     * @return A HTTP response
+     * @return A reactive HTTP response
      */
     @Delete
     public Mono<HttpResponse<List<ConnectCluster>>> bulkDelete(
@@ -299,10 +299,10 @@ public class ConnectClusterController extends NamespacedResourceController {
                                                                                     error.getMessage())
                                                                     + "Please use cascade and force option to bypass the error and remove from Ns4kafka"))
                                     : Flux.empty())
-                            .then(Mono.fromRunnable(() -> {
+                            .doOnComplete(() -> {
                                 sendEventLog(cc, ApplyStatus.DELETED, cc.getSpec(), null, EMPTY_STRING);
                                 connectClusterService.delete(cc);
-                            }));
+                            });
                 })
                 .then(Mono.just(HttpResponse.ok(connectClusters)));
     }
