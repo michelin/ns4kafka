@@ -42,6 +42,7 @@ import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
+import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.security.utils.SecurityService;
 import java.util.List;
 import java.util.Optional;
@@ -331,8 +332,9 @@ class ConnectClusterControllerTest {
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        var actual = connectClusterController.bulkDelete("test", "connect-cluster*", false, false);
-        assertEquals(HttpStatus.OK, actual.getStatus());
+        StepVerifier.create(connectClusterController.bulkDelete("test", "connect-cluster*", false, false, false))
+                .consumeNextWith(response -> assertEquals(HttpStatus.OK, response.getStatus()))
+                .verifyComplete();
     }
 
     @Test
@@ -353,8 +355,9 @@ class ConnectClusterControllerTest {
         when(connectClusterService.findByWildcardNameWithOwnerPermission(ns, "connect-cluster*"))
                 .thenReturn(List.of(connectCluster));
 
-        var actual = connectClusterController.bulkDelete("test", "connect-cluster*", true, false);
-        assertEquals(HttpStatus.OK, actual.getStatus());
+        StepVerifier.create(connectClusterController.bulkDelete("test", "connect-cluster*", true, false, false))
+                .consumeNextWith(response -> assertEquals(HttpStatus.OK, response.getStatus()))
+                .verifyComplete();
 
         verify(connectClusterService, never()).delete(any());
     }
@@ -372,8 +375,9 @@ class ConnectClusterControllerTest {
         when(connectClusterService.findByWildcardNameWithOwnerPermission(ns, "connect-cluster*"))
                 .thenReturn(List.of());
 
-        var actual = connectClusterController.bulkDelete("test", "connect-cluster*", false, false);
-        assertEquals(HttpStatus.NOT_FOUND, actual.getStatus());
+        StepVerifier.create(connectClusterController.bulkDelete("test", "connect-cluster*", false, false, false))
+                .consumeNextWith(response -> assertEquals(HttpStatus.NOT_FOUND, response.getStatus()))
+                .verifyComplete();
     }
 
     @Test
@@ -405,15 +409,17 @@ class ConnectClusterControllerTest {
 
         when(connectorService.findAllByConnectCluster(ns, "connect-cluster2")).thenReturn(List.of(connector));
 
-        ResourceValidationException result = assertThrows(
-                ResourceValidationException.class,
-                () -> connectClusterController.bulkDelete("test", "connect-cluster*", false, false));
-
-        assertEquals(1, result.getValidationErrors().size());
-        assertEquals(
-                "Invalid \"delete\" operation: The Kafka Connect \"connect-cluster2\" has 1 deployed connector(s): "
-                        + "connect1. Please remove the associated connector(s) before deleting it.",
-                result.getValidationErrors().getFirst());
+        StepVerifier.create(connectClusterController.bulkDelete("test", "connect-cluster*", false, false, false))
+                .consumeErrorWith(error -> {
+                    assertEquals(ResourceValidationException.class, error.getClass());
+                    ResourceValidationException result = (ResourceValidationException) error;
+                    assertEquals(1, result.getValidationErrors().size());
+                    assertEquals(
+                            "Invalid \"delete\" operation: The Kafka Connect \"connect-cluster2\" has 1 deployed connector(s): "
+                                    + "connect1. Please remove the associated connector(s) before deleting it.",
+                            result.getValidationErrors().getFirst());
+                })
+                .verify();
     }
 
     @Test
@@ -448,11 +454,128 @@ class ConnectClusterControllerTest {
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        var actual = connectClusterController.bulkDelete("test", "connect-cluster*", false, true);
-        assertEquals(HttpStatus.OK, actual.getStatus());
+        StepVerifier.create(connectClusterController.bulkDelete("test", "connect-cluster*", false, true, false))
+                .consumeNextWith(response -> assertEquals(HttpStatus.OK, response.getStatus()))
+                .verifyComplete();
 
         verify(connectClusterService).delete(connectCluster1);
         verify(connectClusterService).delete(connectCluster2);
+    }
+
+    @Test
+    void shouldCascadeDeleteConnectClustersWithConnectors() {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Connector connector = Connector.builder()
+                .metadata(Resource.Metadata.builder().name("connect1").build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("connect-cluster")
+                        .build())
+                .build();
+
+        ConnectCluster connectCluster = ConnectCluster.builder()
+                .metadata(Resource.Metadata.builder().name("connect-cluster").build())
+                .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(connectorService.findAllByConnectCluster(ns, "connect-cluster")).thenReturn(List.of(connector));
+        when(connectClusterService.findByWildcardNameWithOwnerPermission(ns, "connect-cluster"))
+                .thenReturn(List.of(connectCluster));
+        when(connectorService.delete(ns, connector, false)).thenReturn(Mono.just(HttpResponse.noContent()));
+        doNothing().when(connectClusterService).delete(connectCluster);
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
+        doNothing().when(applicationEventPublisher).publishEvent(any());
+
+        StepVerifier.create(connectClusterController.bulkDelete("test", "connect-cluster", false, false, true))
+                .consumeNextWith(response -> assertEquals(HttpStatus.OK, response.getStatus()))
+                .verifyComplete();
+
+        verify(connectorService).delete(ns, connector, false);
+        verify(connectClusterService).delete(connectCluster);
+    }
+
+    @Test
+    void shouldNotCascadeDeleteConnectWhenConnectorDeletionFails() {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Connector connector = Connector.builder()
+                .metadata(Resource.Metadata.builder().name("connect1").build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("connect-cluster")
+                        .build())
+                .build();
+
+        ConnectCluster connectCluster = ConnectCluster.builder()
+                .metadata(Resource.Metadata.builder().name("connect-cluster").build())
+                .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(connectorService.findAllByConnectCluster(ns, "connect-cluster")).thenReturn(List.of(connector));
+        when(connectClusterService.findByWildcardNameWithOwnerPermission(ns, "connect-cluster"))
+                .thenReturn(List.of(connectCluster));
+        when(connectorService.delete(ns, connector, false))
+                .thenReturn(Mono.error(new RuntimeException("Host is DOWN")));
+
+        StepVerifier.create(connectClusterController.bulkDelete("test", "connect-cluster", false, false, true))
+                .consumeErrorWith(error -> {
+                    assertEquals(HttpStatusException.class, error.getClass());
+                    assertEquals(HttpStatus.BAD_GATEWAY, ((HttpStatusException) error).getStatus());
+                    assertEquals(
+                            "Failed to delete connectors from Connect cluster [connect-cluster]: Host is DOWN. Please use cascade and force option to bypass the error and remove from Ns4kafka",
+                            error.getMessage());
+                })
+                .verify();
+
+        verify(connectClusterService, never()).delete(any());
+    }
+
+    @Test
+    void shouldCascadeForceDeleteConnectCluster() {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Connector connector = Connector.builder()
+                .metadata(Resource.Metadata.builder().name("connect1").build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("connect-cluster")
+                        .build())
+                .build();
+
+        ConnectCluster connectCluster = ConnectCluster.builder()
+                .metadata(Resource.Metadata.builder().name("connect-cluster").build())
+                .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(connectorService.findAllByConnectCluster(ns, "connect-cluster")).thenReturn(List.of(connector));
+        when(connectClusterService.findByWildcardNameWithOwnerPermission(ns, "connect-cluster"))
+                .thenReturn(List.of(connectCluster));
+        when(connectorService.delete(ns, connector, true)).thenReturn(Mono.just(HttpResponse.noContent()));
+        doNothing().when(connectClusterService).delete(connectCluster);
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
+        doNothing().when(applicationEventPublisher).publishEvent(any());
+
+        StepVerifier.create(connectClusterController.bulkDelete("test", "connect-cluster", false, true, true))
+                .consumeNextWith(response -> assertEquals(HttpStatus.OK, response.getStatus()))
+                .verifyComplete();
+
+        verify(connectorService).delete(ns, connector, true);
+        verify(connectClusterService).delete(connectCluster);
     }
 
     @Test
