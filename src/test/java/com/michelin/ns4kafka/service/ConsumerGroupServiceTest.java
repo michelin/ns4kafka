@@ -63,7 +63,7 @@ class ConsumerGroupServiceTest {
     ConsumerGroupService consumerGroupService;
 
     @Test
-    void shouldFindConsumerGroupsOwnedByNamespace() throws InterruptedException, ExecutionException {
+    void shouldFindConsumerGroupsOwnedByNamespaceWhenListingAll() throws InterruptedException, ExecutionException {
         Namespace namespace = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("namespace")
@@ -99,7 +99,7 @@ class ConsumerGroupServiceTest {
         when(consumerGroupAsyncExecutor.describeConsumerGroups(List.of("namespace-group1", "namespace-group2")))
                 .thenReturn(Map.of("namespace-group1", stableDescription));
 
-        List<ConsumerGroup> result = consumerGroupService.findAllForNamespace(namespace);
+        List<ConsumerGroup> result = consumerGroupService.findByWildcardName(namespace, "*");
 
         assertEquals(2, result.size());
 
@@ -157,7 +157,7 @@ class ConsumerGroupServiceTest {
         when(consumerGroupAsyncExecutor.getCommittedOffsets("namespace-group1"))
                 .thenReturn(Map.of(thirdPartition, 2L, secondPartition, 7L, firstPartition, 5L));
 
-        List<ConsumerGroup> result = consumerGroupService.findAllForNamespace(namespace);
+        List<ConsumerGroup> result = consumerGroupService.findByWildcardName(namespace, "*");
 
         assertEquals(1, result.size());
         assertEquals(3, result.getFirst().getStatus().getOffsets().size());
@@ -244,33 +244,7 @@ class ConsumerGroupServiceTest {
                 .thenReturn(acls);
         when(aclService.isResourceCoveredByAcls(acls, "other-group")).thenReturn(false);
 
-        assertEquals(List.of(), consumerGroupService.findAllForNamespace(namespace));
-    }
-
-    @Test
-    void shouldCheckNamespaceOwnershipFromAclCoverage() {
-        Namespace namespace = Namespace.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("namespace")
-                        .cluster("test")
-                        .build())
-                .build();
-
-        List<AccessControlEntry> acls = List.of(AccessControlEntry.builder()
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.GROUP)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .grantedTo("namespace")
-                        .resource("namespace-group1")
-                        .build())
-                .build());
-
-        when(aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.GROUP))
-                .thenReturn(acls);
-        when(aclService.isResourceCoveredByAcls(acls, "namespace-group1")).thenReturn(true);
-
-        assertTrue(consumerGroupService.isNamespaceOwnerOfConsumerGroup(namespace, "namespace-group1"));
+        assertEquals(List.of(), consumerGroupService.findByWildcardName(namespace, "*"));
     }
 
     @ParameterizedTest

@@ -80,7 +80,7 @@ class ConsumerGroupControllerTest {
     ConsumerGroupController consumerGroupController;
 
     @Test
-    void shouldListConsumerGroups() throws InterruptedException, ExecutionException {
+    void shouldListConsumerGroup() throws InterruptedException, ExecutionException {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test")
