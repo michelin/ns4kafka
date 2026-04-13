@@ -705,13 +705,19 @@ class TopicServiceTest {
                 "compact;delete;CONFLUENT_CLOUD",
                 "delete;compact;CONFLUENT_CLOUD",
                 "compact;delete,compact;CONFLUENT_CLOUD",
+                "compact;delete, compact;CONFLUENT_CLOUD",
                 "delete,compact;compact;CONFLUENT_CLOUD",
+                "delete, compact;compact;CONFLUENT_CLOUD",
                 "delete,compact;delete;CONFLUENT_CLOUD",
+                "delete, compact;delete;CONFLUENT_CLOUD",
                 "compact;delete;SELF_MANAGED",
                 "delete;compact;SELF_MANAGED",
                 "compact;delete,compact;SELF_MANAGED",
+                "compact;delete, compact;SELF_MANAGED",
                 "delete;delete,compact;SELF_MANAGED",
+                "delete;delete, compact;SELF_MANAGED",
                 "delete,compact;compact;SELF_MANAGED",
+                "delete, compact;compact;SELF_MANAGED",
                 "delete,compact;delete;SELF_MANAGED"
             },
             delimiterString = ";")
@@ -763,7 +769,12 @@ class TopicServiceTest {
 
     @ParameterizedTest
     @CsvSource(
-            value = {"delete;delete,compact;CONFLUENT_CLOUD", "delete;compact,delete;CONFLUENT_CLOUD"},
+            value = {
+                "delete;delete,compact;CONFLUENT_CLOUD",
+                "delete;delete, compact;CONFLUENT_CLOUD",
+                "delete;compact,delete;CONFLUENT_CLOUD",
+                "delete;compact, delete;CONFLUENT_CLOUD"
+            },
             delimiterString = ";")
     void shouldNotValidateUpdateTopicCleanUpPolicy(String oldCleanUpPolicy, String newCleanUpPolicy) {
         Namespace ns = Namespace.builder()
