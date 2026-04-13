@@ -80,8 +80,6 @@ public class TopicConfigUtils {
      */
     public static boolean hasDeleteAndCompactCleanupPolicy(String cleanupPolicy) {
         return areEquivalent(
-                CLEANUP_POLICY_CONFIG,
-                cleanupPolicy,
-                CLEANUP_POLICY_DELETE + "," + CLEANUP_POLICY_COMPACT);
+                CLEANUP_POLICY_CONFIG, cleanupPolicy, CLEANUP_POLICY_DELETE + "," + CLEANUP_POLICY_COMPACT);
     }
 }
