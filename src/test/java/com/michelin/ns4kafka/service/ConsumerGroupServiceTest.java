@@ -63,7 +63,7 @@ class ConsumerGroupServiceTest {
     ConsumerGroupService consumerGroupService;
 
     @Test
-    void shouldFindConsumerGroupsOwnedByNamespaceWhenListingAll() throws InterruptedException, ExecutionException {
+    void shouldListConsumerGroupsOwnedByNamespace() throws InterruptedException, ExecutionException {
         Namespace namespace = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("namespace")
@@ -118,7 +118,7 @@ class ConsumerGroupServiceTest {
     }
 
     @Test
-    void shouldPopulateOffsetsWhenOnlyOneConsumerGroupMatches() throws InterruptedException, ExecutionException {
+    void shouldListConsumerGroupsOwnedByNamespaceWithOffsets() throws InterruptedException, ExecutionException {
         Namespace namespace = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("namespace")
@@ -173,7 +173,7 @@ class ConsumerGroupServiceTest {
     }
 
     @Test
-    void shouldFindConsumerGroupsByWildcardName() throws InterruptedException, ExecutionException {
+    void shouldListConsumerGroupsOwnedByNamespaceWithWildcardName() throws InterruptedException, ExecutionException {
         Namespace namespace = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("namespace")
@@ -216,7 +216,7 @@ class ConsumerGroupServiceTest {
     }
 
     @Test
-    void shouldReturnEmptyConsumerGroupListWhenNamespaceOwnsNone() throws InterruptedException, ExecutionException {
+    void shouldListConsumerGroupsWhenEmpty() throws InterruptedException, ExecutionException {
         Namespace namespace = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("namespace")
