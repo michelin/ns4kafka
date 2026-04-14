@@ -35,6 +35,7 @@ import static org.mockito.Mockito.when;
 import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Resource;
+import com.michelin.ns4kafka.model.consumer.group.ConsumerGroup;
 import com.michelin.ns4kafka.model.consumer.group.ConsumerGroupResetOffsets;
 import com.michelin.ns4kafka.model.consumer.group.ConsumerGroupResetOffsets.ConsumerGroupResetOffsetsSpec;
 import com.michelin.ns4kafka.model.consumer.group.ConsumerGroupResetOffsets.ResetOffsetsMethod;
@@ -77,6 +78,31 @@ class ConsumerGroupControllerTest {
 
     @InjectMocks
     ConsumerGroupController consumerGroupController;
+
+    @Test
+    void shouldListConsumerGroup() throws InterruptedException, ExecutionException {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+        List<ConsumerGroup> expected = List.of(ConsumerGroup.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("groupID")
+                        .namespace("test")
+                        .cluster("local")
+                        .build())
+                .status(ConsumerGroup.ConsumerGroupStatus.builder()
+                        .state(GroupState.STABLE)
+                        .build())
+                .build());
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(consumerGroupService.findByWildcardName(ns, "group*")).thenReturn(expected);
+
+        assertEquals(expected, consumerGroupController.list("test", "group*"));
+    }
 
     @Test
     void shouldResetConsumerGroup() throws InterruptedException, ExecutionException {
@@ -232,6 +258,13 @@ class ConsumerGroupControllerTest {
 
     @Test
     void shouldNotResetConsumerGroupWhenNotOwner() {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
         ConsumerGroupResetOffsets resetOffset = ConsumerGroupResetOffsets.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("groupID")
@@ -243,6 +276,7 @@ class ConsumerGroupControllerTest {
                         .build())
                 .build();
 
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(consumerGroupService.validateResetOffsets(resetOffset)).thenReturn(new ArrayList<>());
         when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
                 .thenReturn(false);
@@ -258,6 +292,13 @@ class ConsumerGroupControllerTest {
 
     @Test
     void shouldNotResetConsumerGroupWhenValidationErrors() {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
         ConsumerGroupResetOffsets resetOffset = ConsumerGroupResetOffsets.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("groupID")
@@ -269,6 +310,7 @@ class ConsumerGroupControllerTest {
                         .build())
                 .build();
 
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(consumerGroupService.validateResetOffsets(resetOffset)).thenReturn(List.of("Validation Error"));
         when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
                 .thenReturn(true);
@@ -360,6 +402,14 @@ class ConsumerGroupControllerTest {
 
     @Test
     void shouldNotDeleteConsumerGroupWhenNotOwner() {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
                 .thenReturn(false);
 

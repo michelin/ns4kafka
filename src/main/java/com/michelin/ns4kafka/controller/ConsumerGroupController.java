@@ -28,6 +28,7 @@ import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.consumer.group.ConsumerGroup;
 import com.michelin.ns4kafka.model.consumer.group.ConsumerGroupResetOffsets;
 import com.michelin.ns4kafka.model.consumer.group.ConsumerGroupResetOffsetsResponse;
 import com.michelin.ns4kafka.service.ConsumerGroupService;
@@ -39,6 +40,7 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Delete;
+import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
 import io.micronaut.security.utils.SecurityService;
@@ -75,6 +77,21 @@ public class ConsumerGroupController extends NamespacedResourceController {
     }
 
     /**
+     * List consumer groups owned by the namespace, filtered by name parameter.
+     *
+     * @param namespace The namespace
+     * @param name The name parameter
+     * @return The list of consumer groups
+     * @throws ExecutionException Any execution exception
+     * @throws InterruptedException Any interrupted exception
+     */
+    @Get
+    public List<ConsumerGroup> list(String namespace, @QueryValue(defaultValue = "*") String name)
+            throws ExecutionException, InterruptedException {
+        return consumerGroupService.findByWildcardName(getNamespace(namespace), name);
+    }
+
+    /**
      * Reset offsets by topic and consumer group.
      *
      * @param namespace The namespace
@@ -90,6 +107,7 @@ public class ConsumerGroupController extends NamespacedResourceController {
             @Valid @Body ConsumerGroupResetOffsets consumerGroupResetOffsets,
             @QueryValue(defaultValue = "false") boolean dryrun)
             throws ExecutionException {
+        Namespace ns = getNamespace(namespace);
 
         List<String> validationErrors = consumerGroupService.validateResetOffsets(consumerGroupResetOffsets);
 
@@ -101,7 +119,6 @@ public class ConsumerGroupController extends NamespacedResourceController {
             throw new ResourceValidationException(CONSUMER_GROUP_RESET_OFFSET, consumerGroup, validationErrors);
         }
 
-        Namespace ns = getNamespace(namespace);
         consumerGroupResetOffsets.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
         consumerGroupResetOffsets.getMetadata().setNamespace(ns.getMetadata().getName());
         consumerGroupResetOffsets.getMetadata().setCluster(ns.getMetadata().getCluster());
@@ -175,11 +192,11 @@ public class ConsumerGroupController extends NamespacedResourceController {
     public HttpResponse<Void> deleteConsumerGroup(
             String namespace, String consumerGroup, @QueryValue(defaultValue = "false") boolean dryrun)
             throws ExecutionException, InterruptedException {
+        Namespace ns = getNamespace(namespace);
+
         if (!consumerGroupService.isNamespaceOwnerOfConsumerGroup(namespace, consumerGroup)) {
             throw new ResourceValidationException(CONSUMER_GROUP, consumerGroup, invalidOwner("group", consumerGroup));
         }
-
-        Namespace ns = getNamespace(namespace);
 
         GroupState currentState = consumerGroupService.getConsumerGroupStatus(ns, consumerGroup);
 

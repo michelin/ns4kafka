@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.ConsumerGroupDescription;
+import org.apache.kafka.clients.admin.GroupListing;
 import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
@@ -58,6 +59,19 @@ public class ConsumerGroupAsyncExecutor {
      */
     private Admin getAdminClient() {
         return managedClusterProperties.getAdminClient();
+    }
+
+    /**
+     * List all consumer group IDs.
+     *
+     * @return The list of consumer group IDs
+     * @throws ExecutionException Any execution exception during consumer groups listing
+     * @throws InterruptedException Any interrupted exception during consumer groups listing
+     */
+    public List<String> listConsumerGroupIds() throws ExecutionException, InterruptedException {
+        return getAdminClient().listGroups().all().get().stream()
+                .map(GroupListing::groupId)
+                .toList();
     }
 
     /**
