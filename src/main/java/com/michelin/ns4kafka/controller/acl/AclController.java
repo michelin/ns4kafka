@@ -29,6 +29,7 @@ import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.service.AclService;
 import com.michelin.ns4kafka.service.NamespaceService;
@@ -167,6 +168,7 @@ public class AclController extends NamespacedResourceController {
         accessControlEntry.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
         accessControlEntry.getMetadata().setCluster(ns.getMetadata().getCluster());
         accessControlEntry.getMetadata().setNamespace(ns.getMetadata().getName());
+        accessControlEntry.getMetadata().setStatus(Resource.Metadata.Status.ofPending());
 
         if (existingAcl.isPresent() && existingAcl.get().equals(accessControlEntry)) {
             return formatHttpResponse(existingAcl.get(), ApplyStatus.UNCHANGED);
