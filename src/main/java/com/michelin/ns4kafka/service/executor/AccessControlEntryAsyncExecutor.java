@@ -21,21 +21,30 @@ package com.michelin.ns4kafka.service.executor;
 import static com.michelin.ns4kafka.model.AccessControlEntry.ResourceType.CONNECT;
 import static com.michelin.ns4kafka.model.AccessControlEntry.ResourceType.GROUP;
 import static com.michelin.ns4kafka.model.AccessControlEntry.ResourceType.TOPIC;
+import static com.michelin.ns4kafka.model.AccessControlEntry.ResourceType.TRANSACTIONAL_ID;
 import static com.michelin.ns4kafka.service.AclService.PUBLIC_GRANTED_TO;
+import static com.michelin.ns4kafka.util.enumation.ConfluentRole.DEVELOPER_MANAGE;
+import static com.michelin.ns4kafka.util.enumation.ConfluentRole.DEVELOPER_READ;
+import static com.michelin.ns4kafka.util.enumation.ConfluentRole.DEVELOPER_WRITE;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.KafkaStream;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.NamespaceRepository;
 import com.michelin.ns4kafka.repository.kafka.KafkaStoreException;
+import com.michelin.ns4kafka.repository.kafka.KafkaStreamRepository;
 import com.michelin.ns4kafka.service.AclService;
 import com.michelin.ns4kafka.service.StreamService;
+import com.michelin.ns4kafka.service.client.confluent.ConfluentCloudClient;
+import com.michelin.ns4kafka.service.client.confluent.entities.RoleBinding;
 import io.micronaut.context.annotation.EachBean;
 import jakarta.inject.Singleton;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -74,7 +83,9 @@ public class AccessControlEntryAsyncExecutor {
     private final AclService aclService;
     private final StreamService streamService;
     private final NamespaceRepository namespaceRepository;
+    private final KafkaStreamRepository kafkaStreamRepository;
     private final AclBindingFilter aclBindingFilter;
+    private final ConfluentCloudClient confluentCloudClient;
 
     /**
      * Constructor.
@@ -88,11 +99,15 @@ public class AccessControlEntryAsyncExecutor {
             ManagedClusterProperties managedClusterProperties,
             AclService aclService,
             StreamService streamService,
-            NamespaceRepository namespaceRepository) {
+            NamespaceRepository namespaceRepository,
+            KafkaStreamRepository kafkaStreamRepository,
+            ConfluentCloudClient confluentCloudClient) {
         this.managedClusterProperties = managedClusterProperties;
         this.aclService = aclService;
         this.streamService = streamService;
+        this.kafkaStreamRepository = kafkaStreamRepository;
         this.namespaceRepository = namespaceRepository;
+        this.confluentCloudClient = confluentCloudClient;
 
         AccessControlEntryFilter accessControlEntryFilter = new AccessControlEntryFilter(
                 managedClusterProperties.getProvider().equals(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD)
@@ -108,7 +123,12 @@ public class AccessControlEntryAsyncExecutor {
     /** Run the ACLs synchronization. */
     public void run() {
         if (this.managedClusterProperties.isManageAcls()) {
-            synchronizeAcls();
+            if (this.managedClusterProperties.isConfluentCloud()
+                    && (this.managedClusterProperties.isSyncConfluentRbac())) {
+                synchronizeConfluentRbac();
+            } else {
+                synchronizeAcls();
+            }
         }
     }
 
@@ -303,16 +323,12 @@ public class AccessControlEntryAsyncExecutor {
                 // Kafka Stream needs to create & delete changelog/repartition topics with the application id as prefix
                 new AclBinding(
                         new ResourcePattern(
-                                org.apache.kafka.common.resource.ResourceType.TOPIC,
-                                stream.getMetadata().getName(),
-                                PatternType.PREFIXED),
+                                ResourceType.TOPIC, stream.getMetadata().getName(), PatternType.PREFIXED),
                         new org.apache.kafka.common.acl.AccessControlEntry(
                                 principal, "*", AclOperation.CREATE, AclPermissionType.ALLOW)),
                 new AclBinding(
                         new ResourcePattern(
-                                org.apache.kafka.common.resource.ResourceType.TOPIC,
-                                stream.getMetadata().getName(),
-                                PatternType.PREFIXED),
+                                ResourceType.TOPIC, stream.getMetadata().getName(), PatternType.PREFIXED),
                         new org.apache.kafka.common.acl.AccessControlEntry(
                                 principal, "*", AclOperation.DELETE, AclPermissionType.ALLOW)));
     }
@@ -330,18 +346,12 @@ public class AccessControlEntryAsyncExecutor {
     private void addKafkaStreamAclBindings(List<AclBinding> results, AccessControlEntry acl, String principal) {
         // PREFIXED ACLs to cover all Kafka Streams & EOS connectors.
         results.add(new AclBinding(
-                new ResourcePattern(
-                        org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID,
-                        acl.getSpec().getResource(),
-                        PatternType.PREFIXED),
+                new ResourcePattern(ResourceType.TRANSACTIONAL_ID, acl.getSpec().getResource(), PatternType.PREFIXED),
                 new org.apache.kafka.common.acl.AccessControlEntry(
                         principal, "*", AclOperation.WRITE, AclPermissionType.ALLOW)));
 
         results.add(new AclBinding(
-                new ResourcePattern(
-                        org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID,
-                        acl.getSpec().getResource(),
-                        PatternType.PREFIXED),
+                new ResourcePattern(ResourceType.TRANSACTIONAL_ID, acl.getSpec().getResource(), PatternType.PREFIXED),
                 new org.apache.kafka.common.acl.AccessControlEntry(
                         principal, "*", AclOperation.DESCRIBE, AclPermissionType.ALLOW)));
     }
@@ -394,9 +404,7 @@ public class AccessControlEntryAsyncExecutor {
                 PatternType.fromString(acl.getSpec().getResourcePatternType().toString());
 
         ResourcePattern resourcePattern = new ResourcePattern(
-                org.apache.kafka.common.resource.ResourceType.GROUP,
-                "connect-" + acl.getSpec().getResource(),
-                patternType);
+                ResourceType.GROUP, "connect-" + acl.getSpec().getResource(), patternType);
 
         String kafkaUser = namespaceRepository
                 .findByName(acl.getSpec().getGrantedTo())
@@ -453,22 +461,34 @@ public class AccessControlEntryAsyncExecutor {
     /**
      * Delete a given Ns4Kafka ACL. Convert Ns4Kafka ACL into Kafka ACLs before deletion.
      *
-     * @param accessControlEntry The ACL
+     * @param acl The ACL
      */
-    public void deleteAcl(AccessControlEntry accessControlEntry) {
+    public void deleteAcl(AccessControlEntry acl) {
         if (managedClusterProperties.isManageAcls()) {
             List<AclBinding> results = new ArrayList<>();
 
-            if (TOPIC_GROUP_RESOURCE_TYPES.contains(accessControlEntry.getSpec().getResourceType())) {
-                results.addAll(convertAclToAclBindings(accessControlEntry));
-            }
+            if (this.managedClusterProperties.isConfluentCloud()
+                    && (this.managedClusterProperties.isSyncConfluentRbac())) {
+                // Public ACLs are handled by Kafka ACLs
+                if (PUBLIC_GRANTED_TO.equals(acl.getSpec().getGrantedTo())) {
 
-            if (accessControlEntry.getSpec().getResourceType() == CONNECT
-                    && accessControlEntry.getSpec().getPermission() == AccessControlEntry.Permission.OWNER) {
-                results.add(convertConnectorAclToAclBinding(accessControlEntry));
-            }
+                    deleteAcls(List.of(convertPublicAcl(acl)));
+                } else {
+                    deleteRbac(convertAclToRbac(acl));
+                }
+            } else {
 
-            deleteAcls(results);
+                if (TOPIC_GROUP_RESOURCE_TYPES.contains(acl.getSpec().getResourceType())) {
+                    results.addAll(convertAclToAclBindings(acl));
+                }
+
+                if (acl.getSpec().getResourceType() == CONNECT
+                        && acl.getSpec().getPermission() == AccessControlEntry.Permission.OWNER) {
+                    results.add(convertConnectorAclToAclBinding(acl));
+                }
+
+                deleteAcls(results);
+            }
         }
     }
 
@@ -491,6 +511,279 @@ public class AccessControlEntryAsyncExecutor {
         });
     }
 
+    /** Start the Confluent RBAC synchronization. */
+    private void synchronizeConfluentRbac() {
+        log.debug("Starting Role Bindings collection for cluster {}", managedClusterProperties.getName());
+
+        try {
+            Map<Boolean, List<AccessControlEntry>> partitions =
+                    aclService.findAllToDeployForCluster(managedClusterProperties.getName()).stream()
+                            .collect(Collectors.partitioningBy(acl ->
+                                    PUBLIC_GRANTED_TO.equals(acl.getSpec().getGrantedTo())));
+            List<AccessControlEntry> publicAclsToCreate = partitions.get(true);
+            List<AccessControlEntry> aclsToCreate = partitions.get(false);
+            List<KafkaStream> streamsToCreate =
+                    streamService.findAlToDeployForCluster(managedClusterProperties.getName());
+
+            // Create Kafka ACL only for public ACLs because not possible with Confluent Role Bindings
+            createAcls(convertPublicAcls(publicAclsToCreate));
+            createRbacFromAcls(aclsToCreate);
+            createRbacFromKafkaStreams(streamsToCreate);
+
+        } catch (KafkaStoreException e) {
+            log.error("An error occurred collecting ACLs from Ns4kafka during Role Bindings synchronization", e);
+        }
+    }
+
+    /**
+     * Convert public ACL into Kafka ACL Binding.
+     *
+     * @param acl The Ns4Kafka ACL
+     */
+    private AclBinding convertPublicAcl(AccessControlEntry acl) {
+        ResourceType resourceType =
+                ResourceType.fromString(acl.getSpec().getResourceType().toString());
+
+        PatternType patternType =
+                PatternType.fromString(acl.getSpec().getResourcePatternType().toString());
+
+        ResourcePattern resourcePattern =
+                new ResourcePattern(resourceType, acl.getSpec().getResource(), patternType);
+
+        AclOperation aclOperation =
+                AclOperation.fromString(acl.getSpec().getPermission().toString());
+
+        return new AclBinding(
+                resourcePattern,
+                new org.apache.kafka.common.acl.AccessControlEntry(
+                        AccessControlEntryAsyncExecutor.USER_PRINCIPAL_PUBLIC,
+                        "*",
+                        aclOperation,
+                        AclPermissionType.ALLOW));
+    }
+
+    /**
+     * Convert a list of public ACLs into Kafka ACL Bindings.
+     *
+     * @param acls The Ns4Kafka ACLs
+     */
+    private List<AclBinding> convertPublicAcls(List<AccessControlEntry> acls) {
+        return acls.stream().map(this::convertPublicAcl).toList();
+    }
+
+    /**
+     * Convert Ns4Kafka topic ACL into Role Binding.
+     *
+     * @param acl The Ns4Kafka ACL
+     * @return A list of Role Bindings
+     */
+    private List<RoleBinding> convertTopicAclToRbac(AccessControlEntry acl) {
+        Namespace namespace =
+                namespaceRepository.findByName(acl.getSpec().getGrantedTo()).orElseThrow();
+        String principal = USER_PRINCIPAL + namespace.getSpec().getKafkaUser();
+        String resource = acl.getSpec().getResource()
+                + (acl.getSpec().getResourcePatternType().equals(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        ? "*"
+                        : "");
+
+        return (switch (acl.getSpec().getPermission()) {
+            case OWNER ->
+                List.of(
+                        new RoleBinding(
+                                USER_PRINCIPAL + principal,
+                                DEVELOPER_READ,
+                                AccessControlEntry.ResourceType.TOPIC,
+                                resource),
+                        new RoleBinding(
+                                USER_PRINCIPAL + principal,
+                                DEVELOPER_WRITE,
+                                AccessControlEntry.ResourceType.TOPIC,
+                                resource));
+            case READ ->
+                List.of(new RoleBinding(
+                        USER_PRINCIPAL + principal, DEVELOPER_READ, AccessControlEntry.ResourceType.TOPIC, resource));
+            case WRITE ->
+                List.of(new RoleBinding(
+                        USER_PRINCIPAL + principal, DEVELOPER_WRITE, AccessControlEntry.ResourceType.TOPIC, resource));
+        });
+    }
+
+    /**
+     * Convert Ns4Kafka group ACL into Role Binding.
+     *
+     * @param acl The Ns4Kafka ACL
+     * @return A list of Role Bindings
+     */
+    private List<RoleBinding> convertGroupAclToRbac(AccessControlEntry acl) {
+        Namespace namespace =
+                namespaceRepository.findByName(acl.getSpec().getGrantedTo()).orElseThrow();
+        String principal = USER_PRINCIPAL + namespace.getSpec().getKafkaUser();
+        String resource = acl.getSpec().getResource()
+                + (acl.getSpec().getResourcePatternType().equals(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        ? "*"
+                        : "");
+
+        List<RoleBinding> results = new ArrayList<>();
+
+        switch (acl.getSpec().getPermission()) {
+            case OWNER, READ:
+                results.add(new RoleBinding(
+                        USER_PRINCIPAL + principal, DEVELOPER_READ, AccessControlEntry.ResourceType.GROUP, resource));
+                break;
+            default:
+                throw new IllegalArgumentException(
+                        "Not implemented for GROUP ACL: " + acl.getSpec().getPermission());
+        }
+
+        if (namespace.getSpec().isTransactionsEnabled()) {
+            // EOS connectors need "write" on "connect-cluster-${groupId}".
+            results.add(
+                    new RoleBinding(principal, DEVELOPER_WRITE, TRANSACTIONAL_ID, "connect-cluster-" + resource + "*"));
+
+            // EOS connectors need "write" on "${groupId}-${connector}-${taskId}".
+            // PREFIXED ACLs to cover all Kafka Streams & EOS connectors.
+            results.add(new RoleBinding(principal, DEVELOPER_WRITE, TRANSACTIONAL_ID, resource + "*"));
+        } else if (streamService.hasKafkaStream(namespace)) {
+            results.add(new RoleBinding(
+                    principal, DEVELOPER_WRITE, AccessControlEntry.ResourceType.TRANSACTIONAL_ID, resource + "*"));
+        }
+
+        return results;
+    }
+
+    /**
+     * Convert Ns4Kafka connect ACL into Role Binding.
+     *
+     * @param acl The Ns4Kafka ACL
+     * @return A list of Role Bindings
+     */
+    private List<RoleBinding> convertConnectAclToRbac(AccessControlEntry acl) {
+        Namespace namespace =
+                namespaceRepository.findByName(acl.getSpec().getGrantedTo()).orElseThrow();
+        String principal = USER_PRINCIPAL + namespace.getSpec().getKafkaUser();
+        String resource = "connect-" + acl.getSpec().getResource()
+                + (acl.getSpec().getResourcePatternType().equals(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        ? "*"
+                        : "");
+
+        return (switch (acl.getSpec().getPermission()) {
+            case OWNER ->
+                List.of(new RoleBinding(
+                        USER_PRINCIPAL + principal, DEVELOPER_READ, AccessControlEntry.ResourceType.TOPIC, resource));
+            default -> List.of();
+        });
+    }
+
+    /**
+     * Convert Ns4Kafka ACL into Role Binding.
+     *
+     * @param acl The Ns4Kafka ACL
+     * @return A list of Role Bindings
+     */
+    private List<RoleBinding> convertAclToRbac(AccessControlEntry acl) {
+        return switch (acl.getSpec().getResourceType()) {
+            case TOPIC -> convertTopicAclToRbac(acl);
+            case GROUP -> convertGroupAclToRbac(acl);
+            case CONNECT -> convertConnectAclToRbac(acl);
+            default -> List.of();
+        };
+    }
+
+    /**
+     * Convert Kafka Stream into Role Binding.
+     *
+     * @param principal The Kafka principal
+     * @param stream The Kafka Stream resource
+     * @return A Role Binding
+     */
+    private RoleBinding convertKafkaStreamToRbac(String principal, KafkaStream stream) {
+        return new RoleBinding(
+                principal, DEVELOPER_MANAGE, TOPIC, stream.getMetadata().getName() + "*");
+    }
+
+    /**
+     * Create RBACs from a list of ACLs.
+     *
+     * @param toCreate The list of ACLs to create as RBAC
+     */
+    private void createRbacFromAcls(List<AccessControlEntry> toCreate) {
+        // Currently no possible to batch create Confluent RBAC
+        toCreate.forEach(acl -> {
+            List<RoleBinding> roleBindings = convertAclToRbac(acl);
+
+            roleBindings.forEach(roleBinding -> {
+                try {
+                    confluentCloudClient.createRoleBinding(managedClusterProperties.getName(), roleBinding);
+                    acl.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
+                    // accessControlRepository.create(connector);
+                    log.info(
+                            "Success creating ACL RoleBinding {} on {}",
+                            acl.getMetadata().getName(),
+                            managedClusterProperties.getName());
+                } catch (Exception e) {
+                    log.error(
+                            "Error while creating ACL RoleBinding {} on {}",
+                            acl.getMetadata().getName(),
+                            managedClusterProperties.getName(),
+                            e);
+                }
+            });
+        });
+    }
+
+    /**
+     * Create RBACs from a list of KafkaStreams.
+     *
+     * @param toCreate The list of KafkaStreams to create as RBAC
+     */
+    private void createRbacFromKafkaStreams(List<KafkaStream> toCreate) {
+        // Currently no possible to batch create Confluent RBAC
+        toCreate.forEach(ks -> {
+            Namespace namespace = namespaceRepository
+                    .findByName(ks.getMetadata().getNamespace())
+                    .orElseThrow();
+            String principal = USER_PRINCIPAL + namespace.getSpec().getKafkaUser();
+            RoleBinding roleBinding = convertKafkaStreamToRbac(principal, ks);
+
+            try {
+                confluentCloudClient.createRoleBinding(managedClusterProperties.getName(), roleBinding);
+                ks.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
+                // kafkaStreamRepository.create(ks);
+                log.info(
+                        "Success creating KafkaStream RoleBinding {} on {}",
+                        ks.getMetadata().getName(),
+                        managedClusterProperties.getName());
+            } catch (Exception e) {
+                log.error(
+                        "Error while creating KafkaStream RoleBinding {} on {}",
+                        ks.getMetadata().getName(),
+                        managedClusterProperties.getName(),
+                        e);
+            }
+        });
+    }
+
+    /**
+     * Delete a given list of RBACs.
+     *
+     * @param toDelete The list of RBACs to create
+     */
+    private void deleteRbac(List<RoleBinding> toDelete) {
+        // Currently no possible to batch delete Confluent RBAC
+        toDelete.forEach(roleBinding -> {
+            try {
+                confluentCloudClient.deleteRoleBinding(managedClusterProperties.getName(), roleBinding);
+                log.info("Success deleting RBAC {} on {}", roleBinding, managedClusterProperties.getName());
+            } catch (Exception e) {
+                log.error(
+                        "Error while deleting RBAC {} on {}",
+                        roleBinding.toString(),
+                        managedClusterProperties.getName(),
+                        e);
+            }
+        });
+    }
+
     /**
      * Delete a given Kafka Streams.
      *
@@ -499,9 +792,27 @@ public class AccessControlEntryAsyncExecutor {
     public void deleteKafkaStreams(Namespace namespace, KafkaStream kafkaStream) {
         if (managedClusterProperties.isManageAcls()) {
             String principal = USER_PRINCIPAL + namespace.getSpec().getKafkaUser();
-            List<AclBinding> results =
-                    buildAclBindingsFromKafkaStream(kafkaStream, principal).toList();
-            deleteAcls(results);
+
+            if (this.managedClusterProperties.isConfluentCloud()
+                    && (this.managedClusterProperties.isSyncConfluentRbac())) {
+                String organizationId =
+                        managedClusterProperties.getConfluentCloud().getOrganizationId();
+                String environmentId =
+                        managedClusterProperties.getConfluentCloud().getEnvironmentId();
+                String clusterId = managedClusterProperties.getConfluentCloud().getClusterId();
+                RoleBinding roleBindingToDelete = convertKafkaStreamToRbac(principal, kafkaStream);
+
+                confluentCloudClient
+                        .listRoleBindings(
+                                managedClusterProperties.getName(),
+                                roleBindingToDelete.getCrnPattern(organizationId, environmentId, clusterId))
+                        .flatMap(response -> confluentCloudClient.deleteRoleBinding(
+                                managedClusterProperties.getName(), response.id()));
+            } else {
+                List<AclBinding> results =
+                        buildAclBindingsFromKafkaStream(kafkaStream, principal).toList();
+                deleteAcls(results);
+            }
         }
     }
 
