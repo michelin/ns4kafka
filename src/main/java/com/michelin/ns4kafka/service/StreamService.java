@@ -25,6 +25,7 @@ import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.repository.StreamRepository;
 import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
+import com.michelin.ns4kafka.service.executor.ConfluentRoleBindingAsyncExecutor;
 import com.michelin.ns4kafka.util.RegexUtils;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
@@ -83,7 +84,7 @@ public class StreamService {
      * @param cluster The cluster
      * @return A list of Kafka Streams
      */
-    public List<KafkaStream> findAlToDeployForCluster(String cluster) {
+    public List<KafkaStream> findAllToDeployForCluster(String cluster) {
         return streamRepository.findAllForCluster(cluster).stream()
                 .filter(Resource::isPending)
                 .toList();
@@ -186,7 +187,11 @@ public class StreamService {
         AccessControlEntryAsyncExecutor accessControlEntryAsyncExecutor = applicationContext.getBean(
                 AccessControlEntryAsyncExecutor.class,
                 Qualifiers.byName(stream.getMetadata().getCluster()));
+        ConfluentRoleBindingAsyncExecutor confluentRoleBindingAsyncExecutor = applicationContext.getBean(
+                ConfluentRoleBindingAsyncExecutor.class,
+                Qualifiers.byName(stream.getMetadata().getCluster()));
         accessControlEntryAsyncExecutor.deleteKafkaStreams(namespace, stream);
+        confluentRoleBindingAsyncExecutor.deleteKafkaStreams(namespace, stream);
 
         List<KafkaStream> overlapKafkaStreams = findAllForNamespace(namespace).stream()
                 .filter(kafkaStream -> kafkaStream
@@ -213,6 +218,7 @@ public class StreamService {
             topicService.deleteTopics(kafkaStreamsTopics);
         }
 
+        stream.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
         streamRepository.delete(stream);
     }
 }

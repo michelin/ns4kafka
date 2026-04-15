@@ -232,6 +232,7 @@ public class AclController extends NamespacedResourceController {
         }
 
         acls.forEach(acl -> {
+            acl.getMetadata().setStatus(Resource.Metadata.Status.ofDeleting());
             sendEventLog(acl, ApplyStatus.DELETED, acl.getSpec(), null, EMPTY_STRING);
             aclService.delete(acl);
         });

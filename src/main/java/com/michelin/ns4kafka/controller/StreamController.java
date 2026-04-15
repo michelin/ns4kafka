@@ -216,6 +216,7 @@ public class StreamController extends NamespacedResourceController {
         }
 
         for (KafkaStream kafkaStream : kafkaStreams) {
+            kafkaStream.getMetadata().setStatus(Resource.Metadata.Status.ofDeleting());
             sendEventLog(kafkaStream, ApplyStatus.DELETED, kafkaStream.getMetadata(), null, EMPTY_STRING);
             streamService.delete(ns, kafkaStream);
         }

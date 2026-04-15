@@ -33,6 +33,7 @@ import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.repository.AccessControlEntryRepository;
 import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
+import com.michelin.ns4kafka.service.executor.ConfluentRoleBindingAsyncExecutor;
 import com.michelin.ns4kafka.util.RegexUtils;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
@@ -325,7 +326,11 @@ public class AclService {
         AccessControlEntryAsyncExecutor accessControlEntryAsyncExecutor = applicationContext.getBean(
                 AccessControlEntryAsyncExecutor.class,
                 Qualifiers.byName(accessControlEntry.getMetadata().getCluster()));
+        ConfluentRoleBindingAsyncExecutor confluentRoleBindingAsyncExecutor = applicationContext.getBean(
+                ConfluentRoleBindingAsyncExecutor.class,
+                Qualifiers.byName(accessControlEntry.getMetadata().getCluster()));
         accessControlEntryAsyncExecutor.deleteAcl(accessControlEntry);
+        confluentRoleBindingAsyncExecutor.deleteRbac(accessControlEntry);
 
         accessControlEntryRepository.delete(accessControlEntry);
     }
