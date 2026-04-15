@@ -34,10 +34,4 @@ public record RoleBinding(
         return "crn://confluent.cloud/organization=" + organizationId + " /environment=" + environmentId
                 + "/cloud-cluster=" + clusterId + "/kafka=" + clusterId + "/" + resource_type + "=" + resource;
     }
-
-    @Override
-    @NotNull public String toString() {
-        return "(principal=" + principal + ", role=" + role_name + ", resource_type=" + resource_type + ", resource="
-                + resource + ")";
-    }
 }

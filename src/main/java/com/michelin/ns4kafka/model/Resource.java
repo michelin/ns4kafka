@@ -115,6 +115,10 @@ public class Resource {
                         .options(options)
                         .build();
             }
+
+            public static Status ofDeleting() {
+                return ofDeleting(Map.of());
+            }
         }
 
         public enum Phase {
