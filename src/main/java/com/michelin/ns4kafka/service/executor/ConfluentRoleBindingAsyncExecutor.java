@@ -87,12 +87,12 @@ public class ConfluentRoleBindingAsyncExecutor {
     /** Run the ACLs synchronization. */
     public void run() {
         if (this.managedClusterProperties.isConfluentCloud() && this.managedClusterProperties.isManageRbac()) {
-            synchronizeConfluentRbac();
+            synchronizeConfluentRoleBindings();
         }
     }
 
-    /** Start the Confluent RBAC synchronization. */
-    private void synchronizeConfluentRbac() {
+    /** Start the Confluent Role Bindings synchronization. */
+    private void synchronizeConfluentRoleBindings() {
         log.debug("Starting Role Bindings collection for cluster {}", managedClusterProperties.getName());
 
         try {
@@ -105,8 +105,8 @@ public class ConfluentRoleBindingAsyncExecutor {
             List<KafkaStream> streamsToCreate =
                     streamService.findAllToDeployForCluster(managedClusterProperties.getName());
 
-            createRbacFromAcls(aclsToCreate);
-            createRbacFromKafkaStreams(streamsToCreate);
+            createRoleBindingsFromAcls(aclsToCreate);
+            createRoleBindingFromKafkaStreams(streamsToCreate);
 
         } catch (KafkaStoreException e) {
             log.error("An error occurred collecting ACLs from Ns4kafka during Role Bindings synchronization", e);
@@ -119,7 +119,7 @@ public class ConfluentRoleBindingAsyncExecutor {
      * @param acl The Ns4Kafka ACL
      * @return A list of Role Bindings
      */
-    private List<RoleBinding> convertTopicAclToRbac(AccessControlEntry acl) {
+    private List<RoleBinding> convertTopicAclToRoleBinding(AccessControlEntry acl) {
         Namespace namespace =
                 namespaceRepository.findByName(acl.getSpec().getGrantedTo()).orElseThrow();
         String principal = USER_PRINCIPAL + namespace.getSpec().getKafkaUser();
@@ -156,7 +156,7 @@ public class ConfluentRoleBindingAsyncExecutor {
      * @param acl The Ns4Kafka ACL
      * @return A list of Role Bindings
      */
-    private List<RoleBinding> convertGroupAclToRbac(AccessControlEntry acl) {
+    private List<RoleBinding> convertGroupAclToRoleBinding(AccessControlEntry acl) {
         Namespace namespace =
                 namespaceRepository.findByName(acl.getSpec().getGrantedTo()).orElseThrow();
         String principal = USER_PRINCIPAL + namespace.getSpec().getKafkaUser();
@@ -199,7 +199,7 @@ public class ConfluentRoleBindingAsyncExecutor {
      * @param acl The Ns4Kafka ACL
      * @return A list of Role Bindings
      */
-    private List<RoleBinding> convertConnectAclToRbac(AccessControlEntry acl) {
+    private List<RoleBinding> convertConnectAclToRoleBinding(AccessControlEntry acl) {
         Namespace namespace =
                 namespaceRepository.findByName(acl.getSpec().getGrantedTo()).orElseThrow();
         String principal = USER_PRINCIPAL + namespace.getSpec().getKafkaUser();
@@ -222,11 +222,11 @@ public class ConfluentRoleBindingAsyncExecutor {
      * @param acl The Ns4Kafka ACL
      * @return A list of Role Bindings
      */
-    private List<RoleBinding> convertAclToRbac(AccessControlEntry acl) {
+    private List<RoleBinding> convertAclToRoleBinding(AccessControlEntry acl) {
         return switch (acl.getSpec().getResourceType()) {
-            case TOPIC -> convertTopicAclToRbac(acl);
-            case GROUP -> convertGroupAclToRbac(acl);
-            case CONNECT -> convertConnectAclToRbac(acl);
+            case TOPIC -> convertTopicAclToRoleBinding(acl);
+            case GROUP -> convertGroupAclToRoleBinding(acl);
+            case CONNECT -> convertConnectAclToRoleBinding(acl);
             default -> List.of();
         };
     }
@@ -238,20 +238,20 @@ public class ConfluentRoleBindingAsyncExecutor {
      * @param stream The Kafka Stream resource
      * @return A Role Binding
      */
-    private RoleBinding convertKafkaStreamToRbac(String principal, KafkaStream stream) {
+    private RoleBinding convertKafkaStreamToRoleBinding(String principal, KafkaStream stream) {
         return new RoleBinding(
                 principal, DEVELOPER_MANAGE, TOPIC, stream.getMetadata().getName() + "*");
     }
 
     /**
-     * Create RBACs from a list of ACLs.
+     * Create Role Bindings from ACLs.
      *
-     * @param toCreate The list of ACLs to create as RBAC
+     * @param toCreate The list of ACLs
      */
-    private void createRbacFromAcls(List<AccessControlEntry> toCreate) {
-        // Currently no possible to batch create Confluent RBAC
+    private void createRoleBindingsFromAcls(List<AccessControlEntry> toCreate) {
+        // Currently no possible to batch create Confluent Role Bindings
         toCreate.forEach(acl -> {
-            List<RoleBinding> roleBindings = convertAclToRbac(acl);
+            List<RoleBinding> roleBindings = convertAclToRoleBinding(acl);
 
             roleBindings.forEach(roleBinding -> {
                 try {
@@ -275,18 +275,18 @@ public class ConfluentRoleBindingAsyncExecutor {
     }
 
     /**
-     * Create RBACs from a list of KafkaStreams.
+     * Create Role Bindings from KafkaStreams.
      *
-     * @param toCreate The list of KafkaStreams to create as RBAC
+     * @param toCreate The list of KafkaStreams
      */
-    private void createRbacFromKafkaStreams(List<KafkaStream> toCreate) {
-        // Currently no possible to batch create Confluent RBAC
+    private void createRoleBindingFromKafkaStreams(List<KafkaStream> toCreate) {
+        // Currently no possible to batch create Confluent Role Bindings
         toCreate.forEach(ks -> {
             Namespace namespace = namespaceRepository
                     .findByName(ks.getMetadata().getNamespace())
                     .orElseThrow();
             String principal = USER_PRINCIPAL + namespace.getSpec().getKafkaUser();
-            RoleBinding roleBinding = convertKafkaStreamToRbac(principal, ks);
+            RoleBinding roleBinding = convertKafkaStreamToRoleBinding(principal, ks);
 
             try {
                 confluentCloudClient.createRoleBinding(managedClusterProperties.getName(), roleBinding);
@@ -307,22 +307,22 @@ public class ConfluentRoleBindingAsyncExecutor {
     }
 
     /**
-     * Delete a RBAC.
+     * Delete Role Bindings associated to a Ns4Kafka ACL.
      *
-     * @param acl The Ns4Kafka ACL to delete
+     * @param acl The Ns4Kafka ACL
      */
-    public void deleteRbac(AccessControlEntry acl) {
-        // Currently no possible to batch delete Confluent RBAC
-        convertAclToRbac(acl).forEach(roleBinding -> {
+    public void deleteRoleBindingFromACL(AccessControlEntry acl) {
+        // Currently no possible to batch delete Confluent Role Bindings
+        convertAclToRoleBinding(acl).forEach(roleBinding -> {
             try {
                 confluentCloudClient.deleteRoleBinding(managedClusterProperties.getName(), roleBinding);
                 log.info(
-                        "Success deleting RBAC {} on {}",
+                        "Success deleting ACL RoleBinding {} on {}",
                         acl.getMetadata().getName(),
                         managedClusterProperties.getName());
             } catch (Exception e) {
                 log.error(
-                        "Error while deleting RBAC {} on {}",
+                        "Error while deleting ACL RoleBinding {} on {}",
                         acl.getMetadata().getName(),
                         managedClusterProperties.getName(),
                         e);
@@ -331,14 +331,14 @@ public class ConfluentRoleBindingAsyncExecutor {
     }
 
     /**
-     * Delete a given Kafka Streams.
+     * Delete Role Bindings associated to a Ns4Kafka Kafka Stream.
      *
      * @param kafkaStream The Kafka Streams
      */
-    public void deleteKafkaStreams(Namespace namespace, KafkaStream kafkaStream) {
+    public void deleteRoleBindingFromKafkaStream(Namespace namespace, KafkaStream kafkaStream) {
         if (managedClusterProperties.isManageRbac()) {
             String principal = USER_PRINCIPAL + namespace.getSpec().getKafkaUser();
-            RoleBinding roleBindingToDelete = convertKafkaStreamToRbac(principal, kafkaStream);
+            RoleBinding roleBindingToDelete = convertKafkaStreamToRoleBinding(principal, kafkaStream);
             confluentCloudClient.deleteRoleBinding(managedClusterProperties.getName(), roleBindingToDelete);
         }
     }
