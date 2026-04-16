@@ -330,7 +330,7 @@ public class AclService {
                 ConfluentRoleBindingAsyncExecutor.class,
                 Qualifiers.byName(accessControlEntry.getMetadata().getCluster()));
         accessControlEntryAsyncExecutor.deleteAcl(accessControlEntry);
-        confluentRoleBindingAsyncExecutor.deleteRbac(accessControlEntry);
+        confluentRoleBindingAsyncExecutor.deleteRoleBindingFromACL(accessControlEntry);
 
         accessControlEntryRepository.delete(accessControlEntry);
     }

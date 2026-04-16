@@ -35,6 +35,7 @@ import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.repository.AccessControlEntryRepository;
 import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
+import com.michelin.ns4kafka.service.executor.ConfluentRoleBindingAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
 import java.util.Collection;
@@ -55,6 +56,9 @@ class AclServiceTest {
 
     @Mock
     AccessControlEntryAsyncExecutor accessControlEntryAsyncExecutor;
+
+    @Mock
+    ConfluentRoleBindingAsyncExecutor rbAsyncExecutor;
 
     @Mock
     ApplicationContext applicationContext;
@@ -1657,6 +1661,8 @@ class AclServiceTest {
         when(accessControlEntryRepository.findAll()).thenReturn(List.of(acl1, acl2, acl3));
         when(applicationContext.getBean(AccessControlEntryAsyncExecutor.class, Qualifiers.byName("cluster")))
                 .thenReturn(accessControlEntryAsyncExecutor);
+        when(applicationContext.getBean(ConfluentRoleBindingAsyncExecutor.class, Qualifiers.byName("cluster")))
+                .thenReturn(rbAsyncExecutor);
         doNothing().when(accessControlEntryRepository).delete(any());
 
         Namespace namespace = Namespace.builder()
@@ -1698,6 +1704,8 @@ class AclServiceTest {
         when(accessControlEntryRepository.findAll()).thenReturn(List.of(acl1, acl2, publicAcl));
         when(applicationContext.getBean(AccessControlEntryAsyncExecutor.class, Qualifiers.byName("cluster")))
                 .thenReturn(accessControlEntryAsyncExecutor);
+        when(applicationContext.getBean(ConfluentRoleBindingAsyncExecutor.class, Qualifiers.byName("cluster")))
+                .thenReturn(rbAsyncExecutor);
         doNothing().when(accessControlEntryRepository).delete(any());
 
         Namespace namespace = Namespace.builder()
