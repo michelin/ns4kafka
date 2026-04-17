@@ -176,7 +176,7 @@ public class ConfluentRoleBindingAsyncExecutor {
      *
      * @param acl The Ns4Kafka ACL
      */
-    public void deleteRoleBindingsFromACL(AccessControlEntry acl) {
+    public void deleteRoleBindingsFromAcl(AccessControlEntry acl) {
         if (managedClusterProperties.isManageRbac()) {
             // Currently no possible to batch delete Confluent Role Bindings
             convertAclToRoleBinding(acl).forEach(roleBinding -> {
@@ -205,7 +205,19 @@ public class ConfluentRoleBindingAsyncExecutor {
     public void deleteRoleBindingFromKafkaStream(KafkaStream kafkaStream) {
         if (managedClusterProperties.isManageRbac()) {
             RoleBinding roleBindingToDelete = convertKafkaStreamToRoleBinding(kafkaStream);
-            confluentCloudClient.deleteRoleBinding(managedClusterProperties.getName(), roleBindingToDelete);
+            try {
+                confluentCloudClient.deleteRoleBinding(managedClusterProperties.getName(), roleBindingToDelete);
+                log.info(
+                        "Success deleting KafkaStream RoleBinding {} on {}",
+                        kafkaStream.getMetadata().getName(),
+                        managedClusterProperties.getName());
+            } catch (Exception e) {
+                log.error(
+                        "Error while deleting KafkaStream RoleBinding {} on {}",
+                        kafkaStream.getMetadata().getName(),
+                        managedClusterProperties.getName(),
+                        e);
+            }
         }
     }
 

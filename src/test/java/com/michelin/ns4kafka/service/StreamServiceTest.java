@@ -295,6 +295,39 @@ class StreamServiceTest {
     }
 
     @Test
+    void shouldFindAllToDeployForCluster() {
+        KafkaStream stream1 = KafkaStream.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test_stream1")
+                        .namespace("test")
+                        .cluster("local")
+                        .build())
+                .build();
+        KafkaStream stream2 = KafkaStream.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test_stream2")
+                        .namespace("test")
+                        .cluster("local")
+                        .status(Resource.Metadata.Status.ofPending())
+                        .build())
+                .build();
+        KafkaStream stream3 = KafkaStream.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test_stream3")
+                        .namespace("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        when(streamRepository.findAllForCluster("local")).thenReturn(List.of(stream1, stream2, stream3));
+
+        var actual = streamService.findAllToDeployForCluster("local");
+
+        assertEquals(1, actual.size());
+        assertTrue(actual.contains(stream2));
+    }
+
+    @Test
     void shouldNamespaceBeOwnerOfStreams() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()

@@ -1024,6 +1024,46 @@ class AclServiceTest {
     }
 
     @Test
+    void shouldFindAllAclToDeployForCluster() {
+        AccessControlEntry ace1 = AccessControlEntry.builder()
+                .metadata(Resource.Metadata.builder()
+                        .namespace("namespace1")
+                        .cluster("local")
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .grantedTo("namespace1")
+                        .build())
+                .build();
+
+        AccessControlEntry ace2 = AccessControlEntry.builder()
+                .metadata(Resource.Metadata.builder()
+                        .namespace("namespace1")
+                        .cluster("local")
+                        .status(Resource.Metadata.Status.ofPending())
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .grantedTo("namespace2")
+                        .build())
+                .build();
+
+        AccessControlEntry ace3 = AccessControlEntry.builder()
+                .metadata(Resource.Metadata.builder()
+                        .namespace("namespace2")
+                        .cluster("local")
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .grantedTo("namespace2")
+                        .build())
+                .build();
+
+        when(accessControlEntryRepository.findAll()).thenReturn(List.of(ace1, ace2, ace3));
+
+        List<AccessControlEntry> actual = aclService.findAllToDeployForCluster("local");
+        assertEquals(1, actual.size());
+        assertTrue(actual.contains(ace2));
+    }
+
+    @Test
     void shouldFindAllAcls() {
         AccessControlEntry ace1 = AccessControlEntry.builder()
                 .metadata(Resource.Metadata.builder().namespace("namespace1").build())

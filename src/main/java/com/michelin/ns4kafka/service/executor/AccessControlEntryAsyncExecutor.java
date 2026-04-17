@@ -96,9 +96,7 @@ public class AccessControlEntryAsyncExecutor {
         this.namespaceRepository = namespaceRepository;
 
         AccessControlEntryFilter accessControlEntryFilter = new AccessControlEntryFilter(
-                managedClusterProperties.getProvider().equals(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD)
-                        ? USER_PRINCIPAL_PUBLIC_V2
-                        : null,
+                managedClusterProperties.isConfluentCloud() ? USER_PRINCIPAL_PUBLIC_V2 : null,
                 null,
                 AclOperation.ANY,
                 AclPermissionType.ANY);
@@ -415,7 +413,7 @@ public class AccessControlEntryAsyncExecutor {
      *
      * @param acl The Ns4Kafka ACL
      */
-    private AclBinding convertPublicAcl(AccessControlEntry acl) {
+    AclBinding convertPublicAcl(AccessControlEntry acl) {
         PatternType patternType =
                 PatternType.fromString(acl.getSpec().getResourcePatternType().toString());
 
@@ -448,30 +446,11 @@ public class AccessControlEntryAsyncExecutor {
     }
 
     /**
-     * Create a given list of ACLs.
-     *
-     * @param toCreate The list of ACLs to create
-     */
-    private void createAcls(List<AclBinding> toCreate) {
-        getAdminClient().createAcls(toCreate).values().forEach((key, value) -> {
-            try {
-                value.get(managedClusterProperties.getTimeout().getAcl().getCreate(), TimeUnit.MILLISECONDS);
-                log.info("Success creating ACL {} on {}", key, managedClusterProperties.getName());
-            } catch (InterruptedException e) {
-                log.error("Error", e);
-                Thread.currentThread().interrupt();
-            } catch (Exception e) {
-                log.error("Error while creating ACL {} on {}", key, managedClusterProperties.getName(), e);
-            }
-        });
-    }
-
-    /**
      * Delete a given list of ACLs.
      *
      * @param toDelete The list of ACLs to delete
      */
-    private void deleteAcls(List<AclBinding> toDelete) {
+    void deleteAcls(List<AclBinding> toDelete) {
         getAdminClient()
                 .deleteAcls(toDelete.stream().map(AclBinding::toFilter).toList())
                 .values()
@@ -516,6 +495,25 @@ public class AccessControlEntryAsyncExecutor {
                 deleteAcls(List.of(convertPublicAcl(acl)));
             }
         }
+    }
+
+    /**
+     * Create a given list of ACLs.
+     *
+     * @param toCreate The list of ACLs to create
+     */
+    private void createAcls(List<AclBinding> toCreate) {
+        getAdminClient().createAcls(toCreate).values().forEach((key, value) -> {
+            try {
+                value.get(managedClusterProperties.getTimeout().getAcl().getCreate(), TimeUnit.MILLISECONDS);
+                log.info("Success creating ACL {} on {}", key, managedClusterProperties.getName());
+            } catch (InterruptedException e) {
+                log.error("Error", e);
+                Thread.currentThread().interrupt();
+            } catch (Exception e) {
+                log.error("Error while creating ACL {} on {}", key, managedClusterProperties.getName(), e);
+            }
+        });
     }
 
     /**
