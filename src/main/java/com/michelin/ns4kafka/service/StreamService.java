@@ -181,7 +181,7 @@ public class StreamService {
                 ConfluentRoleBindingAsyncExecutor.class,
                 Qualifiers.byName(stream.getMetadata().getCluster()));
         accessControlEntryAsyncExecutor.deleteKafkaStreams(namespace, stream);
-        confluentRoleBindingAsyncExecutor.deleteRoleBindingFromKafkaStream(namespace, stream);
+        confluentRoleBindingAsyncExecutor.deleteRoleBindingFromKafkaStream(stream);
 
         List<KafkaStream> overlapKafkaStreams = findAllForNamespace(namespace).stream()
                 .filter(kafkaStream -> kafkaStream

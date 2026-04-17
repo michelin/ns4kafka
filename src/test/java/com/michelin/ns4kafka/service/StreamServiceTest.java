@@ -496,7 +496,7 @@ class StreamServiceTest {
 
         streamService.delete(namespace, stream);
         verify(aceAsyncExecutor).deleteKafkaStreams(namespace, stream);
-        verify(rbAsyncExecutor).deleteRoleBindingFromKafkaStream(namespace, stream);
+        verify(rbAsyncExecutor).deleteRoleBindingFromKafkaStream(stream);
         verify(topicService)
                 .deleteTopics(argThat(topics -> topics.stream().anyMatch(topic -> topic.getMetadata()
                                 .getName()
@@ -582,7 +582,7 @@ class StreamServiceTest {
 
         streamService.delete(namespace, stream);
         verify(aceAsyncExecutor).deleteKafkaStreams(namespace, stream);
-        verify(rbAsyncExecutor).deleteRoleBindingFromKafkaStream(namespace, stream);
+        verify(rbAsyncExecutor).deleteRoleBindingFromKafkaStream(stream);
         verify(topicService)
                 .deleteTopics(argThat(topics -> topics.stream().anyMatch(topic -> topic.getMetadata()
                                 .getName()

@@ -269,7 +269,7 @@ public class AccessControlEntryAsyncExecutor {
                     AclOperation.fromString(acl.getSpec().getPermission().toString()));
         }
 
-        if (acl.getSpec().getGrantedTo().equals(PUBLIC_GRANTED_TO)) {
+        if (aclService.isPublicAcl(acl)) {
             return aclOperations.stream()
                     .map(aclOperation -> new AclBinding(
                             resourcePattern,
@@ -512,7 +512,7 @@ public class AccessControlEntryAsyncExecutor {
 
             deleteAcls(results);
         } else {
-            if (PUBLIC_GRANTED_TO.equals(acl.getSpec().getGrantedTo()) && managedClusterProperties.isManageRbac()) {
+            if (aclService.isPublicAcl(acl) && managedClusterProperties.isManageRbac()) {
                 deleteAcls(List.of(convertPublicAcl(acl)));
             }
         }
