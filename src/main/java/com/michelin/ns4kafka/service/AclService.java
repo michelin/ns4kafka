@@ -517,15 +517,16 @@ public class AclService {
     }
 
     /**
-     * Find all ACLs to deploy for a cluster.
+     * Find all non-public ACLs to deploy for a cluster.
      *
      * @param cluster The cluster
      * @return A list of ACLs to deploy
      */
-    public List<AccessControlEntry> findAllToDeployForCluster(String cluster) {
+    public List<AccessControlEntry> findNonPublicToDeployForCluster(String cluster) {
         return accessControlEntryRepository.findAll().stream()
                 .filter(acl -> acl.getMetadata().getCluster().equals(cluster))
                 .filter(Resource::isPending)
+                .filter(acl -> !isPublicAcl(acl))
                 .toList();
     }
 

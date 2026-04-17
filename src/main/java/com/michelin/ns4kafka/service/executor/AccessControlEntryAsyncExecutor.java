@@ -474,25 +474,25 @@ public class AccessControlEntryAsyncExecutor {
     /**
      * Delete a given Ns4Kafka ACL. Convert Ns4Kafka ACL into Kafka ACLs before deletion.
      *
-     * @param acl The ACL
+     * @param accessControlEntry The ACL
      */
-    public void deleteAcl(AccessControlEntry acl) {
+    public void deleteAcl(AccessControlEntry accessControlEntry) {
         if (managedClusterProperties.isManageAcls()) {
             List<AclBinding> results = new ArrayList<>();
 
-            if (TOPIC_GROUP_RESOURCE_TYPES.contains(acl.getSpec().getResourceType())) {
-                results.addAll(convertAclToAclBindings(acl));
+            if (TOPIC_GROUP_RESOURCE_TYPES.contains(accessControlEntry.getSpec().getResourceType())) {
+                results.addAll(convertAclToAclBindings(accessControlEntry));
             }
 
-            if (acl.getSpec().getResourceType() == CONNECT
-                    && acl.getSpec().getPermission() == AccessControlEntry.Permission.OWNER) {
-                results.add(convertConnectorAclToAclBinding(acl));
+            if (accessControlEntry.getSpec().getResourceType() == CONNECT
+                    && accessControlEntry.getSpec().getPermission() == AccessControlEntry.Permission.OWNER) {
+                results.add(convertConnectorAclToAclBinding(accessControlEntry));
             }
 
             deleteAcls(results);
         } else {
-            if (aclService.isPublicAcl(acl) && managedClusterProperties.isManageRbac()) {
-                deleteAcls(List.of(convertPublicAcl(acl)));
+            if (aclService.isPublicAcl(accessControlEntry) && managedClusterProperties.isManageRbac()) {
+                deleteAcls(List.of(convertPublicAcl(accessControlEntry)));
             }
         }
     }

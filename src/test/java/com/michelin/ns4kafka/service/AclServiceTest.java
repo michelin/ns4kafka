@@ -1024,7 +1024,7 @@ class AclServiceTest {
     }
 
     @Test
-    void shouldFindAllAclToDeployForCluster() {
+    void shouldFindNonPublicAclToDeployForCluster() {
         AccessControlEntry ace1 = AccessControlEntry.builder()
                 .metadata(Resource.Metadata.builder()
                         .namespace("namespace1")
@@ -1050,15 +1050,27 @@ class AclServiceTest {
                 .metadata(Resource.Metadata.builder()
                         .namespace("namespace2")
                         .cluster("local")
+                        .status(Resource.Metadata.Status.ofPending())
                         .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .grantedTo("namespace2")
+                        .grantedTo("*")
                         .build())
                 .build();
 
-        when(accessControlEntryRepository.findAll()).thenReturn(List.of(ace1, ace2, ace3));
+        AccessControlEntry ace4 = AccessControlEntry.builder()
+                .metadata(Resource.Metadata.builder()
+                        .namespace("namespace1")
+                        .cluster("local")
+                        .status(Resource.Metadata.Status.ofPending())
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .grantedTo("*")
+                        .build())
+                .build();
 
-        List<AccessControlEntry> actual = aclService.findAllToDeployForCluster("local");
+        when(accessControlEntryRepository.findAll()).thenReturn(List.of(ace1, ace2, ace3, ace4));
+
+        List<AccessControlEntry> actual = aclService.findNonPublicToDeployForCluster("local");
         assertEquals(1, actual.size());
         assertTrue(actual.contains(ace2));
     }

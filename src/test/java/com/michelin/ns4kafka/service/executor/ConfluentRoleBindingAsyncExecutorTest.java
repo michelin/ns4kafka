@@ -39,6 +39,7 @@ import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.AccessControlEntryRepository;
 import com.michelin.ns4kafka.repository.NamespaceRepository;
 import com.michelin.ns4kafka.repository.kafka.KafkaStreamRepository;
+import com.michelin.ns4kafka.service.AclService;
 import com.michelin.ns4kafka.service.StreamService;
 import com.michelin.ns4kafka.service.client.confluent.ConfluentCloudClient;
 import com.michelin.ns4kafka.service.client.confluent.entities.RoleBinding;
@@ -70,6 +71,9 @@ class ConfluentRoleBindingAsyncExecutorTest {
 
     @Mock
     AccessControlEntryRepository aclRepository;
+
+    @Mock
+    AclService aclService;
 
     @Mock
     StreamService streamService;
@@ -646,5 +650,41 @@ class ConfluentRoleBindingAsyncExecutorTest {
         rbAsyncExecutor.deleteRoleBindingFromKafkaStream(kafkaStream);
 
         verify(confluentCloudClient).deleteRoleBinding("cluster", manageTopicRoleBinding);
+    }
+
+    @Test
+    void shouldSynchronizeRoleBindings() {
+        AccessControlEntry acl = AccessControlEntry.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-write")
+                        .namespace("ns1")
+                        .cluster("cluster")
+                        .status(Resource.Metadata.Status.ofPending())
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resource("ns1-")
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.WRITE)
+                        .grantedTo("ns1")
+                        .build())
+                .build();
+
+        when(managedClusterProperties.getName()).thenReturn("cluster");
+        when(aclService.findNonPublicToDeployForCluster("cluster")).thenReturn(List.of(acl));
+        when(streamService.findAllToDeployForCluster("cluster")).thenReturn(List.of());
+        when(namespaceRepository.findByName("ns1"))
+                .thenReturn(Optional.of(Namespace.builder()
+                        .spec(Namespace.NamespaceSpec.builder()
+                                .kafkaUser("user1")
+                                .build())
+                        .build()));
+        doNothing().when(confluentCloudClient).createRoleBinding(any(), any());
+        when(aclRepository.create(acl)).thenReturn(acl);
+
+        rbAsyncExecutor.synchronizeConfluentRoleBindings();
+
+        verify(confluentCloudClient).createRoleBinding(any(), any());
+        verify(aclRepository).create(acl);
     }
 }
