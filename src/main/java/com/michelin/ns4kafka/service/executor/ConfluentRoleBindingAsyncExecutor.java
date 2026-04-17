@@ -92,15 +92,13 @@ public class ConfluentRoleBindingAsyncExecutor {
     }
 
     /** Start the Confluent Role Bindings synchronization. */
-    private void synchronizeConfluentRoleBindings() {
+    void synchronizeConfluentRoleBindings() {
         log.debug("Starting Role Bindings collection for cluster {}", managedClusterProperties.getName());
 
         try {
             // Public ACLs are handled by the ACL executor as Confluent Role Binding cannot manage "*"
             List<AccessControlEntry> aclsToCreate =
-                    aclService.findAllToDeployForCluster(managedClusterProperties.getName()).stream()
-                            .filter(acl -> !aclService.isPublicAcl(acl))
-                            .toList();
+                    aclService.findNonPublicToDeployForCluster(managedClusterProperties.getName());
             List<KafkaStream> streamsToCreate =
                     streamService.findAllToDeployForCluster(managedClusterProperties.getName());
 
