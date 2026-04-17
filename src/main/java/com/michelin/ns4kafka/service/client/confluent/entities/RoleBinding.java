@@ -18,6 +18,7 @@
  */
 package com.michelin.ns4kafka.service.client.confluent.entities;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.michelin.ns4kafka.model.AccessControlEntry.ResourceType;
 import com.michelin.ns4kafka.util.enumation.ConfluentRole;
 import jakarta.validation.constraints.NotNull;
@@ -26,12 +27,22 @@ import lombok.Builder;
 @Builder
 public record RoleBinding(
         @NotNull String principal,
-        @NotNull ConfluentRole role_name,
-        @NotNull ResourceType resource_type,
+        @JsonProperty("role_name") @NotNull ConfluentRole roleName,
+        @JsonProperty("resource_type") @NotNull ResourceType resourceType,
         @NotNull String resource) {
 
     public String getCrnPattern(String organizationId, String environmentId, String clusterId) {
         return "crn://confluent.cloud/organization=" + organizationId + " /environment=" + environmentId
-                + "/cloud-cluster=" + clusterId + "/kafka=" + clusterId + "/" + resource_type + "=" + resource;
+                + "/cloud-cluster=" + clusterId + "/kafka=" + clusterId + "/" + getConfluentResourceType() + "="
+                + resource;
+    }
+
+    private String getConfluentResourceType() {
+        return switch (resourceType) {
+            case TOPIC -> "topic";
+            case TRANSACTIONAL_ID -> "transactional-id";
+            case GROUP -> "group";
+            default -> throw new IllegalArgumentException("Not implemented yet: " + resourceType);
+        };
     }
 }

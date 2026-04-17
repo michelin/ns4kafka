@@ -59,10 +59,10 @@ public class ConfluentCloudClient {
     }
 
     /**
-     * List the RBAC.
+     * List the Role Bindings.
      *
      * @param kafkaCluster The Kafka cluster
-     * @return The RBAC list
+     * @return The Role Bindings list
      */
     @Retryable(
             delay = "${ns4kafka.retry.delay}",
