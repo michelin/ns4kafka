@@ -21,11 +21,11 @@ package com.michelin.ns4kafka.service.client.confluent;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.service.client.confluent.entities.RoleBinding;
 import com.michelin.ns4kafka.service.client.confluent.entities.RoleBindingListResponse;
+import com.michelin.ns4kafka.service.client.confluent.entities.RoleBindingRequest;
 import com.michelin.ns4kafka.service.client.confluent.entities.RoleBindingResponse;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpRequest;
-import io.micronaut.http.HttpResponse;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.ReadTimeoutException;
@@ -59,7 +59,7 @@ public class ConfluentCloudClient {
     }
 
     /**
-     * List the Role Bindings.
+     * List the Role Bindings from crn pattern.
      *
      * @param kafkaCluster The Kafka cluster
      * @return The Role Bindings list
@@ -84,43 +84,45 @@ public class ConfluentCloudClient {
      * Create the Confluent Role Binding.
      *
      * @param kafkaCluster The Kafka cluster
-     * @param roleBinding The role binding to create
+     * @param roleBinding The Role Binding to create
+     * @return The created Role Binding
      */
     @Retryable(
             delay = "${ns4kafka.retry.delay}",
             attempts = "${ns4kafka.retry.attempt}",
             multiplier = "${ns4kafka.retry.multiplier}",
             includes = ReadTimeoutException.class)
-    public void createRoleBinding(String kafkaCluster, RoleBinding roleBinding) {
+    public Mono<RoleBindingResponse> createRoleBinding(String kafkaCluster, RoleBinding roleBinding) {
         ManagedClusterProperties.ConfluentCloudProperties config = getConfluentCloud(kafkaCluster);
+        RoleBindingRequest body = new RoleBindingRequest(roleBinding, config);
 
         HttpRequest<?> request = HttpRequest.POST(
-                        URI.create(StringUtils.prependUri(config.getUrl(), "/iam/v2/role-bindings")), roleBinding)
+                        URI.create(StringUtils.prependUri(config.getUrl(), "/iam/v2/role-bindings")), body)
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
 
-        Mono.from(httpClient.exchange(request, Void.class));
+        return Mono.from(httpClient.retrieve(request, RoleBindingResponse.class));
     }
 
     /**
      * Delete the Confluent Role Binding.
      *
      * @param kafkaCluster The Kafka cluster
-     * @param roleBindingId The role binding id to delete
-     * @return The deleted Confluent Role Binding
+     * @param roleBindingId The Role Binding id to delete
+     * @return The deleted Role Binding
      */
     @Retryable(
             delay = "${ns4kafka.retry.delay}",
             attempts = "${ns4kafka.retry.attempt}",
             multiplier = "${ns4kafka.retry.multiplier}",
             includes = ReadTimeoutException.class)
-    public Mono<HttpResponse<Void>> deleteRoleBinding(String kafkaCluster, String roleBindingId) {
+    public Mono<RoleBindingResponse> deleteRoleBinding(String kafkaCluster, String roleBindingId) {
         ManagedClusterProperties.ConfluentCloudProperties config = getConfluentCloud(kafkaCluster);
 
         HttpRequest<?> request = HttpRequest.DELETE(
                         URI.create(StringUtils.prependUri(config.getUrl(), "/iam/v2/role-bindings/" + roleBindingId)))
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
 
-        return Mono.from(httpClient.exchange(request, Void.class));
+        return Mono.from(httpClient.retrieve(request, RoleBindingResponse.class));
     }
 
     /**
@@ -128,14 +130,15 @@ public class ConfluentCloudClient {
      *
      * @param kafkaCluster The Kafka cluster
      * @param roleBinding The role binding to delete
+     * @return The deleted Role Binding
      */
-    public void deleteRoleBinding(String kafkaCluster, RoleBinding roleBinding) {
+    public Mono<RoleBindingResponse> deleteRoleBinding(String kafkaCluster, RoleBinding roleBinding) {
         ManagedClusterProperties.ConfluentCloudProperties config = getConfluentCloud(kafkaCluster);
-        String organizationId = config.getOrganizationId();
-        String environmentId = config.getEnvironmentId();
-        String clusterId = config.getClusterId();
+        RoleBindingRequest rbRequest = new RoleBindingRequest(roleBinding, config);
 
-        listRoleBindings(kafkaCluster, roleBinding.getCrnPattern(organizationId, environmentId, clusterId))
+        return listRoleBindings(kafkaCluster, rbRequest.crnPattern())
+                .filter(response -> response.crnPattern().equals(rbRequest.crnPattern()))
+                .next()
                 .flatMap(response -> deleteRoleBinding(kafkaCluster, response.id()));
     }
 
