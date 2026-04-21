@@ -315,6 +315,7 @@ ns4kafka:
     clusterNameOne:
       manage-users: true
       manage-acls: true
+      manage-rbac: false
       manage-topics: true
       manage-connectors: true
       drop-unsync-acls: true
@@ -350,6 +351,13 @@ ns4kafka:
           alter-client-quotas: 30000
           alter-scram-credentials: 30000
           describe-quotas: 10000
+        confluent-cloud:
+          organization-id: "xxx"
+          environment-id: "env-xxx"
+          cluster-id: "lkc-xxx"
+          url: "https://api.confluent.cloud"
+          basic-auth-username: "username"
+          basic-auth-password: "password"
 ```
 
 The name for each managed cluster has to be unique. This is this name you have to set in the field **metadata.cluster**
@@ -359,6 +367,7 @@ of your namespace descriptors.
 |--------------------------------------|---------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | manage-acls                          | boolean | No       | Does the cluster manages access control entries (Default: false)                                                                                                                                               |
 | manage-connectors                    | boolean | No       | Does the cluster manages connects (Default: false)                                                                                                                                                             |
+| manage-rbac                          | boolean | No       | Does the cluster manages Confluent role bindings (Default: false). The provider must be Confluent Cloud.                                                                                                       |
 | manage-topics                        | boolean | No       | Does the cluster manages topics (Default: false)                                                                                                                                                               |
 | manage-users                         | boolean | No       | Does the cluster manages users (Default: false)                                                                                                                                                                |
 | drop-unsync-acls                     | boolean | No       | Should unsynchronized acls be dropped (Default: true)                                                                                                                                                          |
@@ -383,6 +392,12 @@ of your namespace descriptors.
 | connects.<name>.url                  | string  | No       | The location of the kafka connect                                                                                                                                                                              |
 | connects.<name>.basicAuthUsername    | string  | No       | Basic authentication username to the Kafka Connect                                                                                                                                                             |
 | connects.<name>.basicAuthPassword    | string  | No       | Basic authentication password to the Kafka Connect                                                                                                                                                             |
+| confluent-cloud.organization-id      | string  | No       | Confluent Cloud Organization ID. Required to use [Confluent Cloud Role Binding](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html).                                         |
+| confluent-cloud.environment-id       | string  | No       | Confluent Cloud environment ID. Required to use [Confluent Cloud Role Binding](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html).                                          |
+| confluent-cloud.cluster-id           | string  | No       | Confluent Cloud cluster ID. Required to use [Confluent Cloud Role Binding](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html).                                              |
+| confluent-cloud.url                  | string  | No       | Confluent Cloud API hostname. Required to use [Confluent Cloud Role Binding](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html).                                            |
+| confluent-cloud.basic-auth-username  | string  | No       | Basic authentication password to the Confluent Cloud API. Required to use [Confluent Cloud Role Binding](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html).                |
+| confluent-cloud.basic-auth-password  | string  | No       | Basic authentication password to the Confluent Cloud API. Required to use [Confluent Cloud Role Binding](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html).                |
 
 The configuration will depend on the authentication method selected for your broker, schema registry and Kafka Connect.
 
@@ -405,6 +420,30 @@ ns4kafka:
 The page size is used for the Stream Catalog REST API and is capped at 500 as described in the [Confluent Cloud documentation](https://docs.confluent.io/cloud/current/stream-governance/stream-catalog-rest-apis.html#limits-on-topic-listings).
 
 Reminder that the `config.cluster.id` parameter from [managed Kafka cluster properties](#managed-kafka-clusters) must be set to use Confluent Cloud.
+
+#### Confluent Role Bindings
+
+For Confluent Cloud only, Confluent Role Bindings can be synchronized with Ns4Kafka.
+
+The synchronization is done with the [Confluent Cloud API](https://docs.confluent.io/cloud/current/api.html#tag/Role-Bindings-(iamv2)).
+
+You can configure the synchronization using the following properties:
+
+```yaml
+ns4kafka:
+  managed-clusters:
+    clusterNameOne:
+      manage-rbac: true
+      confluent-cloud:
+        organization-id: "xxx"
+        environment-id: "env-xxx"
+        cluster-id: "lkc-xxx"
+        url: "https://api.confluent.cloud"
+        basic-auth-username: "username"
+        basic-auth-password: "password"
+```
+
+Ns4Kafka ACLs will be converted to the corresponding Role Bindings when synchronized.
 
 #### AKHQ
 
