@@ -28,21 +28,5 @@ import lombok.Builder;
 public record RoleBinding(
         @NotNull String principal,
         @JsonProperty("role_name") @NotNull ConfluentRole roleName,
-        @JsonProperty("resource_type") @NotNull ResourceType resourceType,
-        @NotNull String resource) {
-
-    public String getCrnPattern(String organizationId, String environmentId, String clusterId) {
-        return "crn://confluent.cloud/organization=" + organizationId + " /environment=" + environmentId
-                + "/cloud-cluster=" + clusterId + "/kafka=" + clusterId + "/" + getConfluentResourceType() + "="
-                + resource;
-    }
-
-    private String getConfluentResourceType() {
-        return switch (resourceType) {
-            case TOPIC -> "topic";
-            case TRANSACTIONAL_ID -> "transactional-id";
-            case GROUP -> "group";
-            default -> throw new IllegalArgumentException("Not implemented yet: " + resourceType);
-        };
-    }
-}
+        @NotNull ResourceType resourceType,
+        @NotNull String resource) {}

@@ -120,24 +120,22 @@ public class ConfluentRoleBindingAsyncExecutor {
         toCreate.forEach(acl -> {
             List<RoleBinding> roleBindings = convertAclToRoleBinding(acl);
 
-            roleBindings.forEach(roleBinding -> {
-                try {
-                    confluentCloudClient.createRoleBinding(managedClusterProperties.getName(), roleBinding);
-                    acl.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
-                    aclRepository.create(acl);
-
-                    log.info(
-                            "Success creating ACL RoleBinding {} on {}",
-                            acl.getMetadata().getName(),
-                            managedClusterProperties.getName());
-                } catch (Exception e) {
-                    log.error(
-                            "Error while creating ACL RoleBinding {} on {}",
-                            acl.getMetadata().getName(),
-                            managedClusterProperties.getName(),
-                            e);
-                }
-            });
+            roleBindings.forEach(roleBinding -> confluentCloudClient
+                    .createRoleBinding(managedClusterProperties.getName(), roleBinding)
+                    .subscribe(
+                            _ -> {
+                                log.info(
+                                        "Success creating ACL RoleBinding {} on {}",
+                                        acl.getMetadata().getName(),
+                                        managedClusterProperties.getName());
+                                acl.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
+                                aclRepository.create(acl);
+                            },
+                            e -> log.error(
+                                    "Error while creating ACL RoleBinding {} on {}",
+                                    acl.getMetadata().getName(),
+                                    managedClusterProperties.getName(),
+                                    e)));
         });
     }
 
@@ -150,22 +148,22 @@ public class ConfluentRoleBindingAsyncExecutor {
         // Currently no possible to batch create Confluent Role Bindings
         toCreate.forEach(ks -> {
             RoleBinding roleBinding = convertKafkaStreamToRoleBinding(ks);
-
-            try {
-                confluentCloudClient.createRoleBinding(managedClusterProperties.getName(), roleBinding);
-                ks.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
-                kafkaStreamRepository.create(ks);
-                log.info(
-                        "Success creating KafkaStream RoleBinding {} on {}",
-                        ks.getMetadata().getName(),
-                        managedClusterProperties.getName());
-            } catch (Exception e) {
-                log.error(
-                        "Error while creating KafkaStream RoleBinding {} on {}",
-                        ks.getMetadata().getName(),
-                        managedClusterProperties.getName(),
-                        e);
-            }
+            confluentCloudClient
+                    .createRoleBinding(managedClusterProperties.getName(), roleBinding)
+                    .subscribe(
+                            _ -> {
+                                log.info(
+                                        "Success creating KafkaStream RoleBinding {} on {}",
+                                        ks.getMetadata().getName(),
+                                        managedClusterProperties.getName());
+                                ks.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
+                                kafkaStreamRepository.create(ks);
+                            },
+                            e -> log.error(
+                                    "Error while creating KafkaStream RoleBinding {} on {}",
+                                    ks.getMetadata().getName(),
+                                    managedClusterProperties.getName(),
+                                    e));
         });
     }
 
@@ -177,21 +175,18 @@ public class ConfluentRoleBindingAsyncExecutor {
     public void deleteRoleBindingsFromAcl(AccessControlEntry acl) {
         if (managedClusterProperties.isManageRbac()) {
             // Currently no possible to batch delete Confluent Role Bindings
-            convertAclToRoleBinding(acl).forEach(roleBinding -> {
-                try {
-                    confluentCloudClient.deleteRoleBinding(managedClusterProperties.getName(), roleBinding);
-                    log.info(
-                            "Success deleting ACL RoleBinding {} on {}",
-                            acl.getMetadata().getName(),
-                            managedClusterProperties.getName());
-                } catch (Exception e) {
-                    log.error(
-                            "Error while deleting ACL RoleBinding {} on {}",
-                            acl.getMetadata().getName(),
-                            managedClusterProperties.getName(),
-                            e);
-                }
-            });
+            convertAclToRoleBinding(acl).forEach(roleBinding -> confluentCloudClient
+                    .deleteRoleBinding(managedClusterProperties.getName(), roleBinding)
+                    .subscribe(
+                            _ -> log.info(
+                                    "Success deleting ACL RoleBinding {} on {}",
+                                    acl.getMetadata().getName(),
+                                    managedClusterProperties.getName()),
+                            e -> log.error(
+                                    "Error while deleting ACL RoleBinding {} on {}",
+                                    acl.getMetadata().getName(),
+                                    managedClusterProperties.getName(),
+                                    e)));
         }
     }
 
@@ -203,19 +198,18 @@ public class ConfluentRoleBindingAsyncExecutor {
     public void deleteRoleBindingFromKafkaStream(KafkaStream kafkaStream) {
         if (managedClusterProperties.isManageRbac()) {
             RoleBinding roleBindingToDelete = convertKafkaStreamToRoleBinding(kafkaStream);
-            try {
-                confluentCloudClient.deleteRoleBinding(managedClusterProperties.getName(), roleBindingToDelete);
-                log.info(
-                        "Success deleting KafkaStream RoleBinding {} on {}",
-                        kafkaStream.getMetadata().getName(),
-                        managedClusterProperties.getName());
-            } catch (Exception e) {
-                log.error(
-                        "Error while deleting KafkaStream RoleBinding {} on {}",
-                        kafkaStream.getMetadata().getName(),
-                        managedClusterProperties.getName(),
-                        e);
-            }
+            confluentCloudClient
+                    .deleteRoleBinding(managedClusterProperties.getName(), roleBindingToDelete)
+                    .subscribe(
+                            _ -> log.info(
+                                    "Success deleting KafkaStream RoleBinding {} on {}",
+                                    kafkaStream.getMetadata().getName(),
+                                    managedClusterProperties.getName()),
+                            e -> log.error(
+                                    "Error while deleting KafkaStream RoleBinding {} on {}",
+                                    kafkaStream.getMetadata().getName(),
+                                    managedClusterProperties.getName(),
+                                    e));
         }
     }
 

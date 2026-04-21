@@ -18,6 +18,7 @@
  */
 package com.michelin.ns4kafka.util.enumation;
 
+import com.fasterxml.jackson.annotation.JsonValue;
 import lombok.AllArgsConstructor;
 
 /** Confluent roles. */
@@ -30,6 +31,7 @@ public enum ConfluentRole {
     private final String name;
 
     @Override
+    @JsonValue
     public String toString() {
         return name;
     }

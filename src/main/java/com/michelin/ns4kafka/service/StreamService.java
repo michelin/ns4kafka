@@ -190,6 +190,7 @@ public class StreamService {
         ConfluentRoleBindingAsyncExecutor confluentRoleBindingAsyncExecutor = applicationContext.getBean(
                 ConfluentRoleBindingAsyncExecutor.class,
                 Qualifiers.byName(stream.getMetadata().getCluster()));
+        stream.getMetadata().setStatus(Resource.Metadata.Status.ofDeleting());
         accessControlEntryAsyncExecutor.deleteKafkaStreams(namespace, stream);
         confluentRoleBindingAsyncExecutor.deleteRoleBindingFromKafkaStream(stream);
 
@@ -218,7 +219,6 @@ public class StreamService {
             topicService.deleteTopics(kafkaStreamsTopics);
         }
 
-        stream.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
         streamRepository.delete(stream);
     }
 }
