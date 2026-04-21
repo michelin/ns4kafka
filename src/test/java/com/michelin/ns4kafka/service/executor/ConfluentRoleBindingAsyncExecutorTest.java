@@ -18,6 +18,9 @@
  */
 package com.michelin.ns4kafka.service.executor;
 
+import static com.michelin.ns4kafka.model.AccessControlEntry.ResourceType.GROUP;
+import static com.michelin.ns4kafka.model.AccessControlEntry.ResourceType.TOPIC;
+import static com.michelin.ns4kafka.model.AccessControlEntry.ResourceType.TRANSACTIONAL_ID;
 import static com.michelin.ns4kafka.util.enumation.ConfluentRole.DEVELOPER_MANAGE;
 import static com.michelin.ns4kafka.util.enumation.ConfluentRole.DEVELOPER_READ;
 import static com.michelin.ns4kafka.util.enumation.ConfluentRole.DEVELOPER_WRITE;
@@ -43,6 +46,7 @@ import com.michelin.ns4kafka.service.AclService;
 import com.michelin.ns4kafka.service.StreamService;
 import com.michelin.ns4kafka.service.client.confluent.ConfluentCloudClient;
 import com.michelin.ns4kafka.service.client.confluent.entities.RoleBinding;
+import com.michelin.ns4kafka.service.client.confluent.entities.RoleBindingRequest;
 import com.michelin.ns4kafka.service.client.confluent.entities.RoleBindingResponse;
 import java.util.List;
 import java.util.Optional;
@@ -164,8 +168,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .build())
                 .build();
 
-        RoleBinding readGroupRoleBinding =
-                new RoleBinding("User:user1", DEVELOPER_READ, AccessControlEntry.ResourceType.GROUP, "connect-ns1-*");
+        RoleBinding readGroupRoleBinding = new RoleBinding("User:user1", DEVELOPER_READ, GROUP, "connect-ns1-*");
 
         when(namespaceRepository.findByName("ns1"))
                 .thenReturn(Optional.of(Namespace.builder()
@@ -229,7 +232,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .namespace("ns1")
                         .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.GROUP)
+                        .resourceType(GROUP)
                         .resource("ns1-group")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
                         .permission(AccessControlEntry.Permission.OWNER)
@@ -237,8 +240,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .build())
                 .build();
 
-        RoleBinding readGroupRoleBinding =
-                new RoleBinding("User:user1", DEVELOPER_READ, AccessControlEntry.ResourceType.GROUP, "ns1-group");
+        RoleBinding readGroupRoleBinding = new RoleBinding("User:user1", DEVELOPER_READ, GROUP, "ns1-group");
 
         Namespace ns = Namespace.builder()
                 .spec(Namespace.NamespaceSpec.builder().kafkaUser("user1").build())
@@ -261,7 +263,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .namespace("ns1")
                         .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.GROUP)
+                        .resourceType(GROUP)
                         .resource("ns1-group")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
                         .permission(AccessControlEntry.Permission.OWNER)
@@ -269,8 +271,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .build())
                 .build();
 
-        RoleBinding readGroupRoleBinding =
-                new RoleBinding("User:user1", DEVELOPER_READ, AccessControlEntry.ResourceType.GROUP, "ns1-group");
+        RoleBinding readGroupRoleBinding = new RoleBinding("User:user1", DEVELOPER_READ, GROUP, "ns1-group");
 
         RoleBinding writeTransRoleBinding = new RoleBinding(
                 "User:user1", DEVELOPER_WRITE, AccessControlEntry.ResourceType.TRANSACTIONAL_ID, "ns1-group*");
@@ -305,7 +306,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .namespace("ns1")
                         .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.GROUP)
+                        .resourceType(GROUP)
                         .resource("ns1-")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                         .permission(AccessControlEntry.Permission.OWNER)
@@ -313,8 +314,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .build())
                 .build();
 
-        RoleBinding readGroupRoleBinding =
-                new RoleBinding("User:user1", DEVELOPER_READ, AccessControlEntry.ResourceType.GROUP, "ns1-*");
+        RoleBinding readGroupRoleBinding = new RoleBinding("User:user1", DEVELOPER_READ, GROUP, "ns1-*");
 
         RoleBinding writeTransRoleBinding = new RoleBinding(
                 "User:user1", DEVELOPER_WRITE, AccessControlEntry.ResourceType.TRANSACTIONAL_ID, "ns1-*");
@@ -340,7 +340,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .namespace("ns1")
                         .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.GROUP)
+                        .resourceType(GROUP)
                         .resource("ns1-")
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                         .permission(AccessControlEntry.Permission.WRITE)
@@ -481,7 +481,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
     }
 
     @Test
-    void shouldDeleteRoleBindingsFromAcls() {
+    void shouldDeleteRoleBindingsFromAcl() {
         AccessControlEntry acl = AccessControlEntry.builder()
                 .metadata(Resource.Metadata.builder()
                         .cluster("cluster")
@@ -499,6 +499,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                 .build();
         RoleBinding readRoleBinding =
                 new RoleBinding("User:user1", DEVELOPER_READ, AccessControlEntry.ResourceType.TOPIC, "ns1-*");
+        RoleBindingResponse response = RoleBindingResponse.builder().build();
 
         when(managedClusterProperties.isManageRbac()).thenReturn(true);
         when(managedClusterProperties.getName()).thenReturn("cluster");
@@ -509,7 +510,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                                 .build())
                         .build()));
 
-        when(confluentCloudClient.deleteRoleBinding("cluster", readRoleBinding)).thenReturn(Mono.empty());
+        when(confluentCloudClient.deleteRoleBinding("cluster", readRoleBinding)).thenReturn(Mono.just(response));
 
         rbAsyncExecutor.deleteRoleBindingsFromAcl(acl);
 
@@ -615,6 +616,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                 .build();
         RoleBinding manageTopicRoleBinding =
                 new RoleBinding("User:user1", DEVELOPER_MANAGE, AccessControlEntry.ResourceType.TOPIC, "ns1-stream*");
+        RoleBindingResponse response = RoleBindingResponse.builder().build();
 
         when(managedClusterProperties.getName()).thenReturn("cluster");
         when(managedClusterProperties.isManageRbac()).thenReturn(true);
@@ -625,7 +627,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                                 .build())
                         .build()));
         when(confluentCloudClient.deleteRoleBinding("cluster", manageTopicRoleBinding))
-                .thenReturn(Mono.empty());
+                .thenReturn(Mono.just(response));
 
         rbAsyncExecutor.deleteRoleBindingFromKafkaStream(kafkaStream);
 
@@ -723,5 +725,33 @@ class ConfluentRoleBindingAsyncExecutorTest {
         rbAsyncExecutor.synchronizeConfluentRoleBindings();
 
         verify(aclService, never()).create(acl);
+    }
+
+    @Test
+    void shouldCreateCrnPattern() {
+        ManagedClusterProperties.ConfluentCloudProperties properties =
+                new ManagedClusterProperties.ConfluentCloudProperties();
+        properties.setOrganizationId("orgId");
+        properties.setEnvironmentId("envId");
+        properties.setClusterId("clusterId");
+
+        RoleBinding topicRoleBinding = new RoleBinding("User:user", DEVELOPER_READ, TOPIC, "myTopic");
+        RoleBindingRequest topicRbRequest = new RoleBindingRequest(topicRoleBinding, properties);
+        String topicCrnPattern =
+                "crn://confluent.cloud/organization=orgId/environment=envId/cloud-cluster=clusterId/kafka=clusterId/topic=myTopic";
+
+        RoleBinding groupRoleBinding = new RoleBinding("User:user", DEVELOPER_READ, GROUP, "myGroup");
+        RoleBindingRequest groupRbRequest = new RoleBindingRequest(groupRoleBinding, properties);
+        String groupCrnPattern =
+                "crn://confluent.cloud/organization=orgId/environment=envId/cloud-cluster=clusterId/kafka=clusterId/group=myGroup";
+
+        RoleBinding transIdRoleBinding = new RoleBinding("User:user", DEVELOPER_READ, TRANSACTIONAL_ID, "myTransId");
+        RoleBindingRequest transIdRbRequest = new RoleBindingRequest(transIdRoleBinding, properties);
+        String transIdCrnPattern =
+                "crn://confluent.cloud/organization=orgId/environment=envId/cloud-cluster=clusterId/kafka=clusterId/transactional-id=myTransId";
+
+        assertEquals(topicCrnPattern, topicRbRequest.crnPattern());
+        assertEquals(groupCrnPattern, groupRbRequest.crnPattern());
+        assertEquals(transIdCrnPattern, transIdRbRequest.crnPattern());
     }
 }
