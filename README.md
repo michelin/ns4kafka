@@ -42,6 +42,7 @@ Ns4Kafka brings a namespace-based deployment model for Kafka resources, inspired
       * [Kafka Broker](#kafka-broker)
       * [Managed Kafka Clusters](#managed-kafka-clusters)
       * [Stream Catalog](#stream-catalog)
+      * [Confluent Role Bindings](#confluent-role-bindings)
       * [AKHQ](#akhq)
     * [Technical](#technical)
       * [Security](#security)
