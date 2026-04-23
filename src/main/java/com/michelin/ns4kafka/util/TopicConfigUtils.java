@@ -39,7 +39,7 @@ public class TopicConfigUtils {
      * @return The normalized config value
      */
     public static String normalizeValue(String key, String value) {
-        if (value == null || !CLEANUP_POLICY_CONFIG.equals(key)) {
+        if (value == null || !CLEANUP_POLICY_CONFIG.equals(key) || !value.contains(",")) {
             return value;
         }
 
@@ -60,16 +60,6 @@ public class TopicConfigUtils {
      */
     public static boolean areEquivalent(String key, String left, String right) {
         return Objects.equals(normalizeValue(key, left), normalizeValue(key, right));
-    }
-
-    /**
-     * Check whether the cleanup policy only contains delete.
-     *
-     * @param cleanupPolicy The cleanup policy
-     * @return true when the cleanup policy is delete
-     */
-    public static boolean isDeleteCleanupPolicy(String cleanupPolicy) {
-        return areEquivalent(CLEANUP_POLICY_CONFIG, cleanupPolicy, CLEANUP_POLICY_DELETE);
     }
 
     /**

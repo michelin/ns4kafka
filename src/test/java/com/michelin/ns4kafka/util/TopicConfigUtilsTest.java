@@ -18,6 +18,7 @@
  */
 package com.michelin.ns4kafka.util;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -36,15 +37,15 @@ class TopicConfigUtilsTest {
     }
 
     @Test
-    void shouldNotNormalizeOtherConfigs() {
-        assertTrue(TopicConfigUtils.areEquivalent("retention.ms", "60000", "60000"));
-        assertFalse(TopicConfigUtils.areEquivalent("retention.ms", "60000", "70000"));
+    void shouldNotNormalizeSingleCleanupPolicyValues() {
+        assertEquals("delete", TopicConfigUtils.normalizeValue("cleanup.policy", "delete"));
+        assertEquals("compact", TopicConfigUtils.normalizeValue("cleanup.policy", "compact"));
     }
 
     @Test
-    void shouldIdentifyDeleteCleanupPolicy() {
-        assertTrue(TopicConfigUtils.isDeleteCleanupPolicy("delete"));
-        assertFalse(TopicConfigUtils.isDeleteCleanupPolicy("delete, compact"));
+    void shouldNotNormalizeOtherConfigs() {
+        assertTrue(TopicConfigUtils.areEquivalent("retention.ms", "60000", "60000"));
+        assertFalse(TopicConfigUtils.areEquivalent("retention.ms", "60000", "70000"));
     }
 
     @Test

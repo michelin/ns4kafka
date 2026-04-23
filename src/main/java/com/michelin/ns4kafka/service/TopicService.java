@@ -244,7 +244,7 @@ public class TopicService {
                 .orElse(CLEANUP_POLICY_DELETE);
 
         if (isConfluentCloud
-                && TopicConfigUtils.isDeleteCleanupPolicy(existingCleanUpPolicy)
+                && existingCleanUpPolicy.equals(CLEANUP_POLICY_DELETE)
                 && TopicConfigUtils.hasDeleteAndCompactCleanupPolicy(newCleanUpPolicy)) {
             validationErrors.add(invalidTopicCleanUpPolicy(newCleanUpPolicy));
         }
