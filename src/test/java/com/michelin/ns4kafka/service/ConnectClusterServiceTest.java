@@ -529,7 +529,7 @@ class ConnectClusterServiceTest {
                         .build())
                 .build();
 
-        connectClusterService.setHealthyConnectClusters(Set.of("prefix.connect-cluster"));
+        connectClusterService.setHealthyConnectClusters(Map.of("local", Set.of("prefix.connect-cluster")));
 
         when(connectClusterRepository.findAllForCluster("local")).thenReturn(List.of(connectCluster));
 
@@ -576,7 +576,7 @@ class ConnectClusterServiceTest {
                         .build())
                 .build();
 
-        connectClusterService.setHealthyConnectClusters(Set.of());
+        connectClusterService.setHealthyConnectClusters(Map.of("local", Set.of()));
 
         when(connectClusterRepository.findAllForCluster("local")).thenReturn(List.of(connectCluster));
 

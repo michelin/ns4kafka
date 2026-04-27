@@ -40,8 +40,9 @@ import io.micronaut.core.util.StringUtils;
 import jakarta.inject.Singleton;
 import java.util.ArrayList;
 import java.util.EnumSet;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -72,7 +73,7 @@ public class ConnectClusterService {
 
     @Getter
     @Setter
-    private Set<String> healthyConnectClusters = new HashSet<>();
+    private Map<String, Set<String>> healthyConnectClusters = new HashMap<>();
 
     /**
      * Constructor.
@@ -430,8 +431,10 @@ public class ConnectClusterService {
                         ns4KafkaProperties.getSecurity().getAes256EncryptionKey()))
                 .aes256Format(connectCluster.getSpec().getAes256Format())
                 .status(
-                        healthyConnectClusters.contains(
-                                        connectCluster.getMetadata().getName())
+                        healthyConnectClusters
+                                        .getOrDefault(
+                                                connectCluster.getMetadata().getCluster(), Set.of())
+                                        .contains(connectCluster.getMetadata().getName())
                                 ? ConnectCluster.Status.HEALTHY
                                 : ConnectCluster.Status.IDLE);
 
