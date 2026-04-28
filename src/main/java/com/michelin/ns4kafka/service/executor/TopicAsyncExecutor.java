@@ -34,6 +34,7 @@ import com.michelin.ns4kafka.service.client.schema.entities.TopicDescriptionUpda
 import com.michelin.ns4kafka.service.client.schema.entities.TopicDescriptionUpdateBody;
 import com.michelin.ns4kafka.service.client.schema.entities.TopicDescriptionUpdateEntity;
 import com.michelin.ns4kafka.service.client.schema.entities.TopicListResponse;
+import com.michelin.ns4kafka.util.TopicConfigUtils;
 import io.micronaut.context.annotation.EachBean;
 import jakarta.annotation.PreDestroy;
 import jakarta.inject.Singleton;
@@ -759,7 +760,7 @@ public class TopicAsyncExecutor {
         List<AlterConfigOp> changes = new ArrayList<>();
 
         expected.forEach((key, value) -> {
-            if (!actual.containsKey(key) || !value.equals(actual.get(key))) {
+            if (!actual.containsKey(key) || !TopicConfigUtils.areEquivalent(key, value, actual.get(key))) {
                 changes.add(new AlterConfigOp(new ConfigEntry(key, value), AlterConfigOp.OpType.SET));
             }
         });

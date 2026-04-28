@@ -34,6 +34,7 @@ import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.TopicRepository;
 import com.michelin.ns4kafka.service.executor.TopicAsyncExecutor;
 import com.michelin.ns4kafka.util.RegexUtils;
+import com.michelin.ns4kafka.util.TopicConfigUtils;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
 import jakarta.inject.Singleton;
@@ -244,8 +245,7 @@ public class TopicService {
 
         if (isConfluentCloud
                 && existingCleanUpPolicy.equals(CLEANUP_POLICY_DELETE)
-                && (newCleanUpPolicy.equals(CLEANUP_POLICY_DELETE + "," + CLEANUP_POLICY_COMPACT)
-                        || newCleanUpPolicy.equals(CLEANUP_POLICY_COMPACT + "," + CLEANUP_POLICY_DELETE))) {
+                && TopicConfigUtils.hasDeleteAndCompactCleanupPolicy(newCleanUpPolicy)) {
             validationErrors.add(invalidTopicCleanUpPolicy(newCleanUpPolicy));
         }
 
