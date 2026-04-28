@@ -20,6 +20,7 @@ package com.michelin.ns4kafka.service;
 
 import static com.michelin.ns4kafka.service.client.connect.entities.ConnectorType.SOURCE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -497,10 +498,10 @@ class ConnectorServiceTest {
 
         StepVerifier.create(connectorService.validateLocally(ns, connector))
                 .consumeNextWith(response -> {
-                    assertEquals(1, response.size());
+                    assertEquals(1, response.errors().size());
                     assertEquals(
                             "Invalid value \"wrong\" for field \"connectCluster\": value must be one of \"local-name\".",
-                            response.getFirst());
+                            response.errors().getFirst());
                 })
                 .verifyComplete();
     }
@@ -527,10 +528,10 @@ class ConnectorServiceTest {
 
         StepVerifier.create(connectorService.validateLocally(ns, connector))
                 .consumeNextWith(response -> {
-                    assertEquals(1, response.size());
+                    assertEquals(1, response.errors().size());
                     assertEquals(
                             "Invalid empty value for field \"connector.class\": value must not be null.",
-                            response.getFirst());
+                            response.errors().getFirst());
                 })
                 .verifyComplete();
     }
@@ -559,12 +560,12 @@ class ConnectorServiceTest {
 
         StepVerifier.create(connectorService.validateLocally(ns, connector))
                 .consumeNextWith(response -> {
-                    assertEquals(1, response.size());
+                    assertEquals(1, response.errors().size());
                     assertEquals(
                             "Invalid value \"org.apache.kafka.connect.file.FileStreamSinkConnector\" "
                                     + "for field \"connector.class\": failed to find any class that implements connector and "
                                     + "which name matches org.apache.kafka.connect.file.FileStreamSinkConnector.",
-                            response.getFirst());
+                            response.errors().getFirst());
                 })
                 .verifyComplete();
     }
@@ -601,10 +602,10 @@ class ConnectorServiceTest {
 
         StepVerifier.create(connectorService.validateLocally(ns, connector))
                 .consumeNextWith(response -> {
-                    assertEquals(1, response.size());
+                    assertEquals(1, response.errors().size());
                     assertEquals(
                             "Invalid empty value for field \"missing.field\": value must not be null.",
-                            response.getFirst());
+                            response.errors().getFirst());
                 })
                 .verifyComplete();
     }
@@ -640,7 +641,7 @@ class ConnectorServiceTest {
                         "org.apache.kafka.connect.file.FileStreamSinkConnector", ConnectorType.SINK, "v1"))));
 
         StepVerifier.create(connectorService.validateLocally(ns, connector))
-                .consumeNextWith(response -> assertTrue(response.isEmpty()))
+                .consumeNextWith(response -> assertFalse(response.hasErrors()))
                 .verifyComplete();
     }
 
@@ -669,7 +670,7 @@ class ConnectorServiceTest {
                         "org.apache.kafka.connect.file.FileStreamSinkConnector", ConnectorType.SINK, "v1"))));
 
         StepVerifier.create(connectorService.validateLocally(ns, connector))
-                .consumeNextWith(response -> assertTrue(response.isEmpty()))
+                .consumeNextWith(response -> assertFalse(response.hasErrors()))
                 .verifyComplete();
     }
 
@@ -703,7 +704,7 @@ class ConnectorServiceTest {
                         "org.apache.kafka.connect.file.FileStreamSinkConnector", ConnectorType.SINK, "v1"))));
 
         StepVerifier.create(connectorService.validateLocally(ns, connector))
-                .consumeNextWith(response -> assertTrue(response.isEmpty()))
+                .consumeNextWith(response -> assertFalse(response.hasErrors()))
                 .verifyComplete();
     }
 
@@ -737,7 +738,7 @@ class ConnectorServiceTest {
                         "org.apache.kafka.connect.file.FileStreamSinkConnector", ConnectorType.SINK, "v1"))));
 
         StepVerifier.create(connectorService.validateLocally(ns, connector))
-                .consumeNextWith(response -> assertTrue(response.isEmpty()))
+                .consumeNextWith(response -> assertFalse(response.hasErrors()))
                 .verifyComplete();
     }
 
@@ -777,7 +778,7 @@ class ConnectorServiceTest {
                         "org.apache.kafka.connect.file.FileStreamSinkConnector", ConnectorType.SINK, "v1"))));
 
         StepVerifier.create(connectorService.validateLocally(ns, connector))
-                .consumeNextWith(response -> assertTrue(response.isEmpty()))
+                .consumeNextWith(response -> assertFalse(response.hasErrors()))
                 .verifyComplete();
     }
 

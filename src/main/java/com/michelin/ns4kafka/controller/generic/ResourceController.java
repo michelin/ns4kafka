@@ -26,13 +26,17 @@ import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.util.enumation.ApplyStatus;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.MutableHttpResponse;
 import io.micronaut.security.utils.SecurityService;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 
 /** Resource controller. */
 public abstract class ResourceController {
     private static final String STATUS_HEADER = "X-Ns4kafka-Result";
+    private static final String WARNING_HEADER = "X-Ns4kafka-Warnings";
     protected final SecurityService securityService;
     protected final ApplicationEventPublisher<AuditLog> applicationEventPublisher;
 
@@ -57,7 +61,28 @@ public abstract class ResourceController {
      * @param <T> The type of the response body
      */
     public <T> HttpResponse<T> formatHttpResponse(T body, ApplyStatus status) {
-        return HttpResponse.ok(body).header(STATUS_HEADER, status.toString());
+        return formatHttpResponse(body, status, Collections.emptyList());
+    }
+
+    /**
+     * Format an HTTP response with the operation status and optional validation warnings.
+     *
+     * <p>When {@code warnings} is non-empty each warning message is joined with {@code ", "} and emitted in the
+     * {@value WARNING_HEADER} response header so clients (e.g. Kafkactl) can surface them without blocking the
+     * operation.
+     *
+     * @param body The response body
+     * @param status The operation status
+     * @param warnings The list of soft-validation warnings (maybe empty)
+     * @return The formatted HTTP response
+     * @param <T> The type of the response body
+     */
+    public <T> HttpResponse<T> formatHttpResponse(T body, ApplyStatus status, List<String> warnings) {
+        MutableHttpResponse<T> response = HttpResponse.ok(body).header(STATUS_HEADER, status.toString());
+        if (warnings != null && !warnings.isEmpty()) {
+            response.header(WARNING_HEADER, String.join(", ", warnings));
+        }
+        return response;
     }
 
     /**

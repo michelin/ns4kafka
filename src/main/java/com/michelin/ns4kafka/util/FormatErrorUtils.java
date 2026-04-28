@@ -447,6 +447,19 @@ public class FormatErrorUtils {
     }
 
     /**
+     * Invalid field must be matched by regex.
+     *
+     * @param invalidFieldName the invalid field name
+     * @param invalidFieldValue the invalid field value
+     * @param regex the expected regular expression
+     * @return the error message
+     */
+    public static String invalidFieldValidationRegex(String invalidFieldName, String invalidFieldValue, String regex) {
+        return INVALID_FIELD.formatted(
+                invalidFieldValue, invalidFieldName, "value must match regex \"%s\"".formatted(regex));
+    }
+
+    /**
      * Invalid field is immutable.
      *
      * @param invalidFieldName the invalid field name
