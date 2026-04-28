@@ -36,6 +36,7 @@ import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.repository.StreamRepository;
 import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
+import com.michelin.ns4kafka.service.executor.ConfluentRoleBindingAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
 import java.util.Collections;
 import java.util.List;
@@ -64,6 +65,9 @@ class StreamServiceTest {
 
     @Mock
     AccessControlEntryAsyncExecutor aceAsyncExecutor;
+
+    @Mock
+    ConfluentRoleBindingAsyncExecutor rbAsyncExecutor;
 
     @Test
     void shouldFindAllForClusterWhenEmpty() {
@@ -291,6 +295,39 @@ class StreamServiceTest {
     }
 
     @Test
+    void shouldFindAllToDeployForCluster() {
+        KafkaStream stream1 = KafkaStream.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test_stream1")
+                        .namespace("test")
+                        .cluster("local")
+                        .build())
+                .build();
+        KafkaStream stream2 = KafkaStream.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test_stream2")
+                        .namespace("test")
+                        .cluster("local")
+                        .status(Resource.Metadata.Status.ofPending())
+                        .build())
+                .build();
+        KafkaStream stream3 = KafkaStream.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test_stream3")
+                        .namespace("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        when(streamRepository.findAllForCluster("local")).thenReturn(List.of(stream1, stream2, stream3));
+
+        var actual = streamService.findAllToDeployForCluster("local");
+
+        assertEquals(1, actual.size());
+        assertTrue(actual.contains(stream2));
+    }
+
+    @Test
     void shouldNamespaceBeOwnerOfStreams() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
@@ -482,6 +519,8 @@ class StreamServiceTest {
 
         when(applicationContext.getBean(eq(AccessControlEntryAsyncExecutor.class), any()))
                 .thenReturn(aceAsyncExecutor);
+        when(applicationContext.getBean(eq(ConfluentRoleBindingAsyncExecutor.class), any()))
+                .thenReturn(rbAsyncExecutor);
         List<KafkaStream> kafkaStreams = List.of(kafkaStream);
         when(streamRepository.findAllForCluster(any())).thenReturn(kafkaStreams);
 
@@ -490,6 +529,7 @@ class StreamServiceTest {
 
         streamService.delete(namespace, stream);
         verify(aceAsyncExecutor).deleteKafkaStreams(namespace, stream);
+        verify(rbAsyncExecutor).deleteRoleBindingFromKafkaStream(stream);
         verify(topicService)
                 .deleteTopics(argThat(topics -> topics.stream().anyMatch(topic -> topic.getMetadata()
                                 .getName()
@@ -566,6 +606,8 @@ class StreamServiceTest {
 
         when(applicationContext.getBean(eq(AccessControlEntryAsyncExecutor.class), any()))
                 .thenReturn(aceAsyncExecutor);
+        when(applicationContext.getBean(eq(ConfluentRoleBindingAsyncExecutor.class), any()))
+                .thenReturn(rbAsyncExecutor);
         when(streamRepository.findAllForCluster(any())).thenReturn(Collections.emptyList());
 
         List<Topic> allTopics = List.of(topic1, topic2, topic3, topic4, topic5, topic6);
@@ -573,6 +615,7 @@ class StreamServiceTest {
 
         streamService.delete(namespace, stream);
         verify(aceAsyncExecutor).deleteKafkaStreams(namespace, stream);
+        verify(rbAsyncExecutor).deleteRoleBindingFromKafkaStream(stream);
         verify(topicService)
                 .deleteTopics(argThat(topics -> topics.stream().anyMatch(topic -> topic.getMetadata()
                                 .getName()
@@ -613,6 +656,8 @@ class StreamServiceTest {
 
         when(applicationContext.getBean(eq(AccessControlEntryAsyncExecutor.class), any()))
                 .thenReturn(aceAsyncExecutor);
+        when(applicationContext.getBean(eq(ConfluentRoleBindingAsyncExecutor.class), any()))
+                .thenReturn(rbAsyncExecutor);
         when(topicService.findByWildcardName(eq(ns), anyString())).thenReturn(List.of()); // No topics
 
         streamService.delete(ns, stream);

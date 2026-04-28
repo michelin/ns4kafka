@@ -38,6 +38,7 @@ public class ManagedClusterProperties {
     private boolean manageConnectors;
     private boolean manageTopics;
     private boolean manageUsers;
+    private boolean manageRbac = false;
     private boolean dropUnsyncAcls = true;
     private boolean syncKstreamTopics;
     private TimeoutProperties timeout = new TimeoutProperties();
@@ -45,6 +46,7 @@ public class ManagedClusterProperties {
     private Properties config;
     private Map<String, ConnectProperties> connects;
     private SchemaRegistryProperties schemaRegistry;
+    private ConfluentCloudProperties confluentCloud;
     private Admin adminClient = null;
 
     /**
@@ -101,6 +103,19 @@ public class ManagedClusterProperties {
     @Setter
     @ConfigurationProperties("schema-registry")
     public static class SchemaRegistryProperties {
+        private String url;
+        private String basicAuthUsername;
+        private String basicAuthPassword;
+    }
+
+    /** Confluent Cloud properties. */
+    @Getter
+    @Setter
+    @ConfigurationProperties("confluent-cloud")
+    public static class ConfluentCloudProperties {
+        private String organizationId;
+        private String environmentId;
+        private String clusterId;
         private String url;
         private String basicAuthUsername;
         private String basicAuthPassword;

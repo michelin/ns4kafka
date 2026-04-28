@@ -30,8 +30,10 @@ import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidProtectedNamesp
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.repository.AccessControlEntryRepository;
 import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
+import com.michelin.ns4kafka.service.executor.ConfluentRoleBindingAsyncExecutor;
 import com.michelin.ns4kafka.util.RegexUtils;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
@@ -324,7 +326,11 @@ public class AclService {
         AccessControlEntryAsyncExecutor accessControlEntryAsyncExecutor = applicationContext.getBean(
                 AccessControlEntryAsyncExecutor.class,
                 Qualifiers.byName(accessControlEntry.getMetadata().getCluster()));
+        ConfluentRoleBindingAsyncExecutor confluentRoleBindingAsyncExecutor = applicationContext.getBean(
+                ConfluentRoleBindingAsyncExecutor.class,
+                Qualifiers.byName(accessControlEntry.getMetadata().getCluster()));
         accessControlEntryAsyncExecutor.deleteAcl(accessControlEntry);
+        confluentRoleBindingAsyncExecutor.deleteRoleBindingsFromAcl(accessControlEntry);
 
         accessControlEntryRepository.delete(accessControlEntry);
     }
@@ -498,7 +504,7 @@ public class AclService {
     }
 
     /**
-     * Find all ACLs of given cluster.
+     * Find all ACLs for a cluster.
      *
      * @param cluster The cluster
      * @return A list of ACLs
@@ -507,6 +513,20 @@ public class AclService {
         return accessControlEntryRepository.findAll().stream()
                 .filter(accessControlEntry ->
                         accessControlEntry.getMetadata().getCluster().equals(cluster))
+                .toList();
+    }
+
+    /**
+     * Find all non-public ACLs to deploy for a cluster.
+     *
+     * @param cluster The cluster
+     * @return A list of ACLs to deploy
+     */
+    public List<AccessControlEntry> findNonPublicToDeployForCluster(String cluster) {
+        return accessControlEntryRepository.findAll().stream()
+                .filter(acl -> acl.getMetadata().getCluster().equals(cluster))
+                .filter(Resource::isPending)
+                .filter(acl -> !isPublicAcl(acl))
                 .toList();
     }
 
