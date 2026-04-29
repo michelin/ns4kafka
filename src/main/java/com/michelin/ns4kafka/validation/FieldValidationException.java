@@ -26,6 +26,7 @@ public class FieldValidationException extends RuntimeException {
     private static final long serialVersionUID = 6223587833587267232L;
 
     public boolean soft = false;
+
     /**
      * Constructor.
      *

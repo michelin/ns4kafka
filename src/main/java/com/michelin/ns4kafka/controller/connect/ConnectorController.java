@@ -138,7 +138,6 @@ public class ConnectorController extends NamespacedResourceController {
         // - It doesn't impact the code as much (single line vs 10+ lines)
         connector.getSpec().getConfig().put("name", connector.getMetadata().getName());
 
-        // Validate locally
         return connectorService.validateLocally(ns, connector).flatMap(localResult -> {
             if (localResult.hasErrors()) {
                 return Mono.error(new ResourceValidationException(connector, localResult.errors()));
