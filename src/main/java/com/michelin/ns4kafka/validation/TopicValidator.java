@@ -111,7 +111,7 @@ public class TopicValidator extends ResourceValidator {
         List<String> validationWarnings = new ArrayList<>();
 
         if (!StringUtils.hasText(topic.getMetadata().getName())) {
-            validationErrors.add(invalidNameEmpty());
+            return ValidationResult.ofErrors(List.of(invalidNameEmpty()));
         }
 
         if (List.of(".", "..").contains(topic.getMetadata().getName())) {

@@ -165,17 +165,14 @@ class TopicValidatorTest {
         ValidationResult validationErrors;
 
         invalidTopic = Topic.builder()
-                .metadata(Resource.Metadata.builder().name("").build())
+                .metadata(Resource.Metadata.builder().build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
 
         validationErrors = nameValidator.validate(invalidTopic);
-        assertEquals(2, validationErrors.errors().size());
+        assertEquals(1, validationErrors.errors().size());
         assertLinesMatch(
-                List.of(
-                        "Invalid empty value for field \"name\": value must not be empty.",
-                        "Invalid value \"\" for field \"name\": value must only contain ASCII alphanumerics, '.', '_' or '-'."),
-                validationErrors.errors());
+                List.of("Invalid empty value for field \"name\": value must not be empty."), validationErrors.errors());
 
         invalidTopic = Topic.builder()
                 .metadata(Resource.Metadata.builder().name(".").build())

@@ -97,7 +97,7 @@ public class ConnectValidator extends ResourceValidator {
         List<String> validationWarnings = new ArrayList<>();
 
         if (!StringUtils.hasText(connector.getMetadata().getName())) {
-            validationErrors.add(invalidNameEmpty());
+            return ValidationResult.ofErrors(List.of(invalidNameEmpty()));
         }
 
         if (connector.getMetadata().getName().length() > 249) {
