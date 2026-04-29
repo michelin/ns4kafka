@@ -25,6 +25,7 @@ import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidation
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationNull;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationNumber;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationOneOf;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationRegex;
 import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 
 import com.fasterxml.jackson.annotation.JsonSetter;
@@ -57,6 +58,7 @@ public abstract class ResourceValidator {
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "validation-type")
     @JsonSubTypes({
         @JsonSubTypes.Type(value = Range.class, name = "Range"),
+        @JsonSubTypes.Type(value = RegexPattern.class, name = "RegexPattern"),
         @JsonSubTypes.Type(value = ValidList.class, name = "ValidList"),
         @JsonSubTypes.Type(value = ContainsList.class, name = "ContainsList"),
         @JsonSubTypes.Type(value = ValidString.class, name = "ValidString"),
@@ -333,6 +335,36 @@ public abstract class ResourceValidator {
             if (!new HashSet<>(values).containsAll(mandatoryStrings)) {
                 throw new FieldValidationException(
                         invalidFieldValidationContains(name, value.toString(), String.join(",", mandatoryStrings)));
+            }
+        }
+    }
+
+    /** Validation logic for a given regex pattern on a string. */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class RegexPattern implements Validator {
+        private String regex;
+        private boolean strict = false;
+
+        public static RegexPattern matches(String regex, boolean strict) {
+            return new RegexPattern(regex, strict);
+        }
+
+        @Override
+        public void ensureValid(String name, Object value) {
+
+            if (regex == null || regex.isEmpty()) {
+                // If for some reason the regex pattern is invoked but fields are not set, return.
+                return;
+            }
+
+            if (value == null) {
+                throw new FieldValidationException(invalidFieldValidationNull(name));
+            }
+            String s = (String) value;
+            if (!s.matches(regex)) {
+                throw new FieldValidationException(invalidFieldValidationRegex(name, value.toString(), regex), !strict);
             }
         }
     }

@@ -32,12 +32,12 @@ import com.michelin.ns4kafka.service.client.connect.entities.ConnectorSpecs;
 import com.michelin.ns4kafka.service.executor.ConnectorAsyncExecutor;
 import com.michelin.ns4kafka.util.FormatErrorUtils;
 import com.michelin.ns4kafka.util.RegexUtils;
+import com.michelin.ns4kafka.validation.ValidationResult;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.inject.qualifiers.Qualifiers;
 import jakarta.inject.Singleton;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -140,9 +140,9 @@ public class ConnectorService {
      *
      * @param namespace The namespace
      * @param connector The connector to validate
-     * @return A list of errors
+     * @return A {@link ValidationResult} with hard errors and soft warnings
      */
-    public Mono<List<String>> validateLocally(Namespace namespace, Connector connector) {
+    public Mono<ValidationResult> validateLocally(Namespace namespace, Connector connector) {
         // Check whether target Connect Cluster is allowed for this namespace
         List<String> selfDeployedConnectClusters =
                 connectClusterService.findAllForNamespaceWithWritePermission(namespace).stream()
@@ -157,13 +157,13 @@ public class ConnectorService {
             String allowedConnectClusters = Stream.concat(
                             namespace.getSpec().getConnectClusters().stream(), selfDeployedConnectClusters.stream())
                     .collect(Collectors.joining(", "));
-            return Mono.just(List.of(
-                    invalidConnectorConnectCluster(connector.getSpec().getConnectCluster(), allowedConnectClusters)));
+            return Mono.just(ValidationResult.ofErrors(List.of(
+                    invalidConnectorConnectCluster(connector.getSpec().getConnectCluster(), allowedConnectClusters))));
         }
 
         // If class does not exist, no need to go further
         if (StringUtils.isEmpty(connector.getSpec().getConfig().get(CONNECTOR_CLASS))) {
-            return Mono.just(List.of(invalidConnectorEmptyConnectorClass()));
+            return Mono.just(ValidationResult.ofErrors(List.of(invalidConnectorEmptyConnectorClass())));
         }
 
         // Connector type exists on this target connect cluster
@@ -181,13 +181,13 @@ public class ConnectorService {
                             .findFirst();
 
                     if (connectorType.isEmpty()) {
-                        return List.of(invalidConnectorNoPlugin(
-                                connector.getSpec().getConfig().get(CONNECTOR_CLASS)));
+                        return ValidationResult.ofErrors(List.of(invalidConnectorNoPlugin(
+                                connector.getSpec().getConfig().get(CONNECTOR_CLASS))));
                     }
 
                     return namespace.getSpec().getConnectValidator() != null
                             ? namespace.getSpec().getConnectValidator().validate(connector, connectorType.get())
-                            : Collections.emptyList();
+                            : ValidationResult.empty();
                 });
     }
 

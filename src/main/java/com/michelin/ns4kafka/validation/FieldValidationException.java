@@ -25,6 +25,7 @@ public class FieldValidationException extends RuntimeException {
     @Serial
     private static final long serialVersionUID = 6223587833587267232L;
 
+    public boolean soft = false;
     /**
      * Constructor.
      *
@@ -32,5 +33,17 @@ public class FieldValidationException extends RuntimeException {
      */
     public FieldValidationException(String error) {
         super(error);
+    }
+
+    /**
+     * Constructor.
+     *
+     * @param error The error message
+     * @param soft {@code true} if this exception is informational and should be surfaced to the user as a warning
+     *     rather than a hard failure; {@code false} if it represents a critical validation error.
+     */
+    public FieldValidationException(String error, boolean soft) {
+        super(error);
+        this.soft = soft;
     }
 }

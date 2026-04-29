@@ -34,6 +34,7 @@ import com.michelin.ns4kafka.service.ResourceQuotaService;
 import com.michelin.ns4kafka.service.TopicService;
 import com.michelin.ns4kafka.util.enumation.ApplyStatus;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
+import com.michelin.ns4kafka.validation.ValidationResult;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.Body;
@@ -128,12 +129,16 @@ public class TopicController extends NamespacedResourceController {
         Namespace ns = getNamespace(namespace);
 
         List<String> validationErrors = new ArrayList<>();
+        List<String> validationWarnings = new ArrayList<>();
+
         if (!topicService.isNamespaceOwnerOfTopic(namespace, topic.getMetadata().getName())) {
             validationErrors.add(invalidOwner(topic.getMetadata().getName()));
         }
 
         if (ns.getSpec().getTopicValidator() != null) {
-            validationErrors.addAll(ns.getSpec().getTopicValidator().validate(topic));
+            ValidationResult validationResult = ns.getSpec().getTopicValidator().validate(topic);
+            validationErrors.addAll(validationResult.errors());
+            validationWarnings.addAll(validationResult.warnings());
         }
 
         Optional<Topic> existingTopic =
@@ -170,7 +175,7 @@ public class TopicController extends NamespacedResourceController {
         topic.setStatus(Topic.TopicStatus.ofPending());
 
         if (existingTopic.isPresent() && existingTopic.get().equals(topic)) {
-            return formatHttpResponse(existingTopic.get(), ApplyStatus.UNCHANGED);
+            return formatHttpResponse(existingTopic.get(), ApplyStatus.UNCHANGED, validationWarnings);
         }
 
         validationErrors.addAll(resourceQuotaService.validateTopicQuota(ns, existingTopic, topic));
@@ -180,13 +185,13 @@ public class TopicController extends NamespacedResourceController {
 
         ApplyStatus status = existingTopic.isPresent() ? ApplyStatus.CHANGED : ApplyStatus.CREATED;
         if (dryrun) {
-            return formatHttpResponse(topic, status);
+            return formatHttpResponse(topic, status, validationWarnings);
         }
 
         sendEventLog(
                 topic, status, existingTopic.<Object>map(Topic::getSpec).orElse(null), topic.getSpec(), EMPTY_STRING);
 
-        return formatHttpResponse(topicService.create(topic), status);
+        return formatHttpResponse(topicService.create(topic), status, validationWarnings);
     }
 
     /**

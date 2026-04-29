@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.michelin.ns4kafka.validation.FieldValidationException;
 import com.michelin.ns4kafka.validation.ResourceValidator;
@@ -199,5 +200,52 @@ class ResourceValidatorTest {
         assertDoesNotThrow(() -> original.ensureValid("k", "a,b,c,d"));
         assertDoesNotThrow(() -> original.ensureValid("k", "d,a,b,c"));
         assertDoesNotThrow(() -> original.ensureValid("k", "a,d,b,c"));
+    }
+
+    @Test
+    void shouldValidateRegexPattern() {
+        ResourceValidator.Validator strict = ResourceValidator.RegexPattern.matches("[a-z]+", true);
+        ResourceValidator.Validator lenient = ResourceValidator.RegexPattern.matches("[a-z]+", false);
+        ResourceValidator.Validator same = ResourceValidator.RegexPattern.matches("[a-z]+", true);
+        ResourceValidator.Validator different = ResourceValidator.RegexPattern.matches("[0-9]+", true);
+
+        // Test Equals
+        assertEquals(strict, same);
+        assertNotEquals(strict, different);
+
+        // Strict mode — null value
+        assertThrows(FieldValidationException.class, () -> strict.ensureValid("k", null));
+
+        // Strict mode — non-matching value throws
+        assertThrows(FieldValidationException.class, () -> strict.ensureValid("k", "ABC"));
+        assertThrows(FieldValidationException.class, () -> strict.ensureValid("k", "123"));
+
+        // Strict mode — matching value passes
+        assertDoesNotThrow(() -> strict.ensureValid("k", "abc"));
+
+        // Lenient mode — null value still throws
+        assertThrows(FieldValidationException.class, () -> lenient.ensureValid("k", null));
+
+        // Lenient mode — non-matching value throws a SOFT exception (warning, not a hard failure)
+        FieldValidationException e1 =
+                assertThrows(FieldValidationException.class, () -> lenient.ensureValid("k", "ABC"));
+        assertTrue(e1.soft);
+        FieldValidationException e2 =
+                assertThrows(FieldValidationException.class, () -> lenient.ensureValid("k", "123"));
+        assertTrue(e2.soft);
+
+        // Lenient mode — matching value passes without exception
+        assertDoesNotThrow(() -> lenient.ensureValid("k", "abc"));
+    }
+
+    @Test
+    void shouldSkipValidationWhenRegexNotSet() {
+        ResourceValidator.Validator noRegex = new ResourceValidator.RegexPattern();
+        assertDoesNotThrow(() -> noRegex.ensureValid("k", null));
+        assertDoesNotThrow(() -> noRegex.ensureValid("k", "anything"));
+
+        ResourceValidator.Validator emptyRegex = ResourceValidator.RegexPattern.matches("", true);
+        assertDoesNotThrow(() -> emptyRegex.ensureValid("k", null));
+        assertDoesNotThrow(() -> emptyRegex.ensureValid("k", "anything"));
     }
 }
