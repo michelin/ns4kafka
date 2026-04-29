@@ -335,6 +335,7 @@ class ConnectValidatorTest {
     void shouldNotValidateSourceConnector() {
         ConnectValidator validator = ConnectValidator.builder()
                 .validationConstraints(Map.of(
+                        "name", ResourceValidator.RegexPattern.matches("^[A-Z0-9._-]+$", true),
                         "key.converter", new ResourceValidator.NonEmptyString(),
                         "value.converter", new ResourceValidator.NonEmptyString(),
                         "connector.class",
@@ -355,7 +356,7 @@ class ConnectValidatorTest {
                 .build();
 
         Connector connector = Connector.builder()
-                .metadata(Resource.Metadata.builder().name("connect2").build())
+                .metadata(Resource.Metadata.builder().name("lowercase").build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("cluster1")
                         .config(Map.of(
@@ -366,16 +367,21 @@ class ConnectValidatorTest {
                 .build();
 
         ValidationResult actual = validator.validate(connector, "source");
-        assertEquals(1, actual.errors().size());
-        assertEquals(
-                "Invalid empty value for field \"producer.override.sasl.jaas.config\": value must not be null.",
-                actual.errors().getFirst());
+        assertEquals(2, actual.errors().size());
+        assertTrue(actual.errors()
+                .contains(
+                        "Invalid value \"lowercase\" for field \"name\": value must match regex \"^[A-Z0-9._-]+$\"."));
+        assertTrue(
+                actual.errors()
+                        .contains(
+                                "Invalid empty value for field \"producer.override.sasl.jaas.config\": value must not be null."));
     }
 
     @Test
     void shouldNotValidateSinkConnector() {
         ConnectValidator validator = ConnectValidator.builder()
                 .validationConstraints(Map.of(
+                        "name", ResourceValidator.RegexPattern.matches("^[A-Z0-9._-]+$", true),
                         "key.converter", new ResourceValidator.NonEmptyString(),
                         "value.converter", new ResourceValidator.NonEmptyString(),
                         "connector.class",
@@ -396,7 +402,7 @@ class ConnectValidatorTest {
                 .build();
 
         Connector connector = Connector.builder()
-                .metadata(Resource.Metadata.builder().name("connect2").build())
+                .metadata(Resource.Metadata.builder().name("lowercase").build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("cluster1")
                         .config(Map.of(
@@ -407,7 +413,10 @@ class ConnectValidatorTest {
                 .build();
 
         ValidationResult actual = validator.validate(connector, "sink");
-        assertEquals(2, actual.errors().size());
+        assertEquals(3, actual.errors().size());
+        assertTrue(actual.errors()
+                .contains(
+                        "Invalid value \"lowercase\" for field \"name\": value must match regex \"^[A-Z0-9._-]+$\"."));
         assertTrue(
                 actual.errors()
                         .contains(

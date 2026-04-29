@@ -22,6 +22,7 @@ import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNameEmpty;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNameLength;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNameSpecChars;
 import static com.michelin.ns4kafka.util.config.ConnectorConfig.CONNECTOR_CLASS;
+import static com.michelin.ns4kafka.util.config.ConnectorConfig.NAME;
 
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.Nulls;
@@ -154,7 +155,11 @@ public class ConnectValidator extends ResourceValidator {
             Map<String, Validator> validationConstraints) {
         validationConstraints.forEach((key, value) -> {
             try {
-                value.ensureValid(key, connector.getSpec().getConfig().get(key));
+                if (key.equals(NAME)) {
+                    value.ensureValid(key, connector.getMetadata().getName());
+                } else {
+                    value.ensureValid(key, connector.getSpec().getConfig().get(key));
+                }
             } catch (FieldValidationException e) {
                 if (e.soft) {
                     validationWarnings.add(e.getMessage());

@@ -161,15 +161,12 @@ class TopicValidatorTest {
         TopicValidator nameValidator =
                 TopicValidator.builder().validationConstraints(Map.of()).build();
 
-        Topic invalidTopic;
-        ValidationResult validationErrors;
-
-        invalidTopic = Topic.builder()
+        Topic invalidTopic = Topic.builder()
                 .metadata(Resource.Metadata.builder().build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
 
-        validationErrors = nameValidator.validate(invalidTopic);
+        ValidationResult validationErrors = nameValidator.validate(invalidTopic);
         assertEquals(1, validationErrors.errors().size());
         assertLinesMatch(
                 List.of("Invalid empty value for field \"name\": value must not be empty."), validationErrors.errors());
@@ -253,6 +250,8 @@ class TopicValidatorTest {
     void shouldValidateWithNoConfig() {
         TopicValidator topicValidator = TopicValidator.builder()
                 .validationConstraints(Map.of(
+                        "name",
+                        ResourceValidator.RegexPattern.matches("^[A-Z0-9._-]+$", true),
                         "replication.factor",
                         ResourceValidator.Range.between(3, 3),
                         "partitions",
@@ -266,7 +265,7 @@ class TopicValidatorTest {
                 .build();
 
         Topic topic = Topic.builder()
-                .metadata(Resource.Metadata.builder().name("validName").build())
+                .metadata(Resource.Metadata.builder().name("lowercase").build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(3)
                         .partitions(3)
@@ -274,7 +273,10 @@ class TopicValidatorTest {
                 .build();
 
         ValidationResult actual = topicValidator.validate(topic);
-        assertEquals(3, actual.errors().size());
+        assertEquals(4, actual.errors().size());
+        assertTrue(actual.errors()
+                .contains(
+                        "Invalid value \"lowercase\" for field \"name\": value must match regex \"^[A-Z0-9._-]+$\"."));
         assertTrue(actual.errors()
                 .contains("Invalid empty value for field \"min.insync.replicas\": value must not be null."));
         assertTrue(actual.errors().contains("Invalid empty value for field \"retention.ms\": value must not be null."));
