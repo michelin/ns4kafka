@@ -19,65 +19,35 @@
 package com.michelin.ns4kafka.validation;
 
 import java.util.List;
-import java.util.stream.Stream;
 
-/**
- * Holds the outcome of a resource validation pass.
- *
- * <p>Errors are hard failures that must block resource creation/update. Warnings are soft failures (e.g. lenient-mode
- * regex mismatches) that are surfaced to the caller but do not prevent the operation from succeeding.
- *
- * <p>The {@code soft} flag on {@link FieldValidationException} drives the routing: {@code soft=true} → warning,
- * {@code soft=false} → error.
- */
+/** Holds the outcome of a resource validation pass. */
 public record ValidationResult(List<String> errors, List<String> warnings) {
 
-    /** Convenience factory for a result with no errors and no warnings. */
+    /**
+     * Build an empty result.
+     *
+     * @return A result with no errors and no warnings
+     */
     public static ValidationResult empty() {
         return new ValidationResult(List.of(), List.of());
     }
 
     /**
-     * Convenience factory for a result carrying only hard errors and no warnings.
+     * Build a result with only errors.
      *
-     * @param errors the list of hard errors
-     * @return a ValidationResult with the given errors and an empty warnings list
+     * @param errors The hard errors
+     * @return A result with the given errors and no warnings
      */
     public static ValidationResult ofErrors(List<String> errors) {
         return new ValidationResult(errors, List.of());
     }
 
     /**
-     * Convenience factory for a result carrying only soft warnings and no hard errors.
+     * Check if the result has at least one hard error.
      *
-     * @param warnings the list of warnings
-     * @return a ValidationResult with the given warnings and an empty errors list
+     * @return {@code true} if there is at least one hard error
      */
-    public static ValidationResult ofWarnings(List<String> warnings) {
-        return new ValidationResult(List.of(), warnings);
-    }
-
-    /**
-     * Merge this result with another, concatenating both error and warning lists.
-     *
-     * @param other the other ValidationResult to merge
-     * @return a new ValidationResult with the combined errors and warnings
-     */
-    public ValidationResult merge(ValidationResult other) {
-        List<String> mergedErrors =
-                Stream.concat(errors.stream(), other.errors().stream()).toList();
-        List<String> mergedWarnings =
-                Stream.concat(warnings.stream(), other.warnings().stream()).toList();
-        return new ValidationResult(mergedErrors, mergedWarnings);
-    }
-
-    /** Returns {@code true} when there is at least one hard error. */
     public boolean hasErrors() {
         return !errors.isEmpty();
-    }
-
-    /** Returns {@code true} when there is at least one soft warning. */
-    public boolean hasWarnings() {
-        return !warnings.isEmpty();
     }
 }

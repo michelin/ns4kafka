@@ -67,16 +67,6 @@ public class StreamService {
     }
 
     /**
-     * Find all Kafka Streams of given cluster.
-     *
-     * @param cluster The cluster
-     * @return A list of Kafka Streams
-     */
-    public List<KafkaStream> findAllForCluster(String cluster) {
-        return streamRepository.findAllForCluster(cluster);
-    }
-
-    /**
      * Find all Kafka Streams of a given namespace.
      *
      * @param namespace The namespace

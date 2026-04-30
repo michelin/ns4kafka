@@ -32,7 +32,7 @@ public class BytesUtils {
     public static final String GIBIBYTE = "GiB";
 
     /**
-     * Converts given bytes to either kibibyte, mebibite or gibibyte.
+     * Converts given bytes to either kibibyte, mebibyte or gibibyte.
      *
      * @param bytes The bytes to convert
      * @return The converted value as human-readable value

@@ -353,15 +353,14 @@ public abstract class ResourceValidator {
 
         @Override
         public void ensureValid(String name, Object value) {
-
             if (regex == null || regex.isEmpty()) {
-                // If for some reason the regex pattern is invoked but fields are not set, return.
                 return;
             }
 
             if (value == null) {
                 throw new FieldValidationException(invalidFieldValidationNull(name));
             }
+
             String s = (String) value;
             if (!s.matches(regex)) {
                 throw new FieldValidationException(invalidFieldValidationRegex(name, value.toString(), regex), !strict);
