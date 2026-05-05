@@ -38,7 +38,7 @@ public class ManagedClusterProperties {
     private boolean manageConnectors;
     private boolean manageTopics;
     private boolean manageUsers;
-    private boolean manageRbac = false;
+    private boolean manageRbac;
     private boolean dropUnsyncAcls = true;
     private boolean syncKstreamTopics;
     private TimeoutProperties timeout = new TimeoutProperties();

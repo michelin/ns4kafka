@@ -26,7 +26,6 @@ import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.KafkaStream;
 import com.michelin.ns4kafka.model.Namespace;
-import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.StreamService;
 import com.michelin.ns4kafka.util.enumation.ApplyStatus;
@@ -119,7 +118,6 @@ public class StreamController extends NamespacedResourceController {
         stream.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
         stream.getMetadata().setCluster(ns.getMetadata().getCluster());
         stream.getMetadata().setNamespace(ns.getMetadata().getName());
-        stream.getMetadata().setStatus(Resource.Metadata.Status.ofPending());
 
         // Creation of the correct ACLs
         Optional<KafkaStream> existingStream =
@@ -216,7 +214,6 @@ public class StreamController extends NamespacedResourceController {
         }
 
         for (KafkaStream kafkaStream : kafkaStreams) {
-            kafkaStream.getMetadata().setStatus(Resource.Metadata.Status.ofDeleting());
             sendEventLog(kafkaStream, ApplyStatus.DELETED, kafkaStream.getMetadata(), null, EMPTY_STRING);
             streamService.delete(ns, kafkaStream);
         }

@@ -34,12 +34,15 @@ import com.michelin.ns4kafka.model.KafkaStream;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.Topic;
+import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.StreamRepository;
 import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
 import com.michelin.ns4kafka.service.executor.ConfluentRoleBindingAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
 import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -68,6 +71,9 @@ class StreamServiceTest {
 
     @Mock
     ConfluentRoleBindingAsyncExecutor rbAsyncExecutor;
+
+    @Mock
+    List<ManagedClusterProperties> managedClusterProperties;
 
     @Test
     void shouldFindAllForClusterWhenEmpty() {
@@ -517,10 +523,15 @@ class StreamServiceTest {
                         .build())
                 .build();
 
+        ManagedClusterProperties managedClusterProps =
+                new ManagedClusterProperties("local", ManagedClusterProperties.KafkaProvider.SELF_MANAGED);
+        Properties properties = new Properties();
+        managedClusterProps.setConfig(properties);
+        managedClusterProps.setManageAcls(true);
+
+        when(managedClusterProperties.stream()).thenReturn(Stream.of(managedClusterProps));
         when(applicationContext.getBean(eq(AccessControlEntryAsyncExecutor.class), any()))
                 .thenReturn(aceAsyncExecutor);
-        when(applicationContext.getBean(eq(ConfluentRoleBindingAsyncExecutor.class), any()))
-                .thenReturn(rbAsyncExecutor);
         List<KafkaStream> kafkaStreams = List.of(kafkaStream);
         when(streamRepository.findAllForCluster(any())).thenReturn(kafkaStreams);
 
@@ -529,7 +540,6 @@ class StreamServiceTest {
 
         streamService.delete(namespace, stream);
         verify(aceAsyncExecutor).deleteKafkaStreams(namespace, stream);
-        verify(rbAsyncExecutor).deleteRoleBindingFromKafkaStream(stream);
         verify(topicService)
                 .deleteTopics(argThat(topics -> topics.stream().anyMatch(topic -> topic.getMetadata()
                                 .getName()
@@ -604,10 +614,15 @@ class StreamServiceTest {
                         .build())
                 .build();
 
+        ManagedClusterProperties managedClusterProps =
+                new ManagedClusterProperties("local", ManagedClusterProperties.KafkaProvider.SELF_MANAGED);
+        Properties properties = new Properties();
+        managedClusterProps.setConfig(properties);
+        managedClusterProps.setManageAcls(true);
+
+        when(managedClusterProperties.stream()).thenReturn(Stream.of(managedClusterProps));
         when(applicationContext.getBean(eq(AccessControlEntryAsyncExecutor.class), any()))
                 .thenReturn(aceAsyncExecutor);
-        when(applicationContext.getBean(eq(ConfluentRoleBindingAsyncExecutor.class), any()))
-                .thenReturn(rbAsyncExecutor);
         when(streamRepository.findAllForCluster(any())).thenReturn(Collections.emptyList());
 
         List<Topic> allTopics = List.of(topic1, topic2, topic3, topic4, topic5, topic6);
@@ -615,7 +630,6 @@ class StreamServiceTest {
 
         streamService.delete(namespace, stream);
         verify(aceAsyncExecutor).deleteKafkaStreams(namespace, stream);
-        verify(rbAsyncExecutor).deleteRoleBindingFromKafkaStream(stream);
         verify(topicService)
                 .deleteTopics(argThat(topics -> topics.stream().anyMatch(topic -> topic.getMetadata()
                                 .getName()
@@ -654,15 +668,54 @@ class StreamServiceTest {
                         .build())
                 .build();
 
+        ManagedClusterProperties managedClusterProps =
+                new ManagedClusterProperties("local", ManagedClusterProperties.KafkaProvider.SELF_MANAGED);
+        Properties properties = new Properties();
+        managedClusterProps.setConfig(properties);
+        managedClusterProps.setManageAcls(true);
+
+        when(managedClusterProperties.stream()).thenReturn(Stream.of(managedClusterProps));
         when(applicationContext.getBean(eq(AccessControlEntryAsyncExecutor.class), any()))
                 .thenReturn(aceAsyncExecutor);
-        when(applicationContext.getBean(eq(ConfluentRoleBindingAsyncExecutor.class), any()))
-                .thenReturn(rbAsyncExecutor);
         when(topicService.findByWildcardName(eq(ns), anyString())).thenReturn(List.of()); // No topics
 
         streamService.delete(ns, stream);
 
         verify(topicService, never()).deleteTopics(any());
         verify(streamRepository).delete(stream);
+    }
+
+    @Test
+    void shouldDeleteKafkaStreamsOnConfluentCloud() throws Exception {
+        Namespace namespace = Namespace.builder()
+                .metadata(
+                        Resource.Metadata.builder().name("ns").cluster("local").build())
+                .build();
+
+        KafkaStream stream = KafkaStream.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("prefix.stream_app_id")
+                        .namespace("ns")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        ManagedClusterProperties managedClusterProps =
+                new ManagedClusterProperties("local", ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
+        Properties properties = new Properties();
+        managedClusterProps.setConfig(properties);
+        managedClusterProps.setManageAcls(false);
+        managedClusterProps.setManageRbac(true);
+
+        when(managedClusterProperties.stream()).thenReturn(Stream.of(managedClusterProps));
+        when(applicationContext.getBean(eq(AccessControlEntryAsyncExecutor.class), any()))
+                .thenReturn(aceAsyncExecutor);
+        when(streamRepository.findAllForCluster(any())).thenReturn(Collections.emptyList());
+        when(topicService.findByWildcardName(eq(namespace), anyString())).thenReturn(List.of());
+
+        streamService.delete(namespace, stream);
+
+        verify(aceAsyncExecutor).deleteKafkaStreams(namespace, stream);
+        verify(streamRepository).create(stream);
     }
 }

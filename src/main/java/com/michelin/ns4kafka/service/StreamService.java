@@ -23,9 +23,9 @@ import com.michelin.ns4kafka.model.KafkaStream;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.Topic;
+import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.StreamRepository;
 import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
-import com.michelin.ns4kafka.service.executor.ConfluentRoleBindingAsyncExecutor;
 import com.michelin.ns4kafka.util.RegexUtils;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
@@ -48,6 +48,7 @@ public class StreamService {
     private final StreamRepository streamRepository;
     private final AclService aclService;
     private final TopicService topicService;
+    private final List<ManagedClusterProperties> managedClusterProperties;
 
     /**
      * Constructor.
@@ -61,11 +62,13 @@ public class StreamService {
             ApplicationContext applicationContext,
             StreamRepository streamRepository,
             AclService aclService,
-            TopicService topicService) {
+            TopicService topicService,
+            List<ManagedClusterProperties> managedClusterProperties) {
         this.applicationContext = applicationContext;
         this.streamRepository = streamRepository;
         this.aclService = aclService;
         this.topicService = topicService;
+        this.managedClusterProperties = managedClusterProperties;
     }
 
     /**
@@ -77,6 +80,18 @@ public class StreamService {
     public List<KafkaStream> findAllToDeployForCluster(String cluster) {
         return streamRepository.findAllForCluster(cluster).stream()
                 .filter(Resource::isPending)
+                .toList();
+    }
+
+    /**
+     * Find all Kafka Streams to delete for a cluster.
+     *
+     * @param cluster The cluster
+     * @return A list of Kafka Streams
+     */
+    public List<KafkaStream> findAllToDeleteForCluster(String cluster) {
+        return streamRepository.findAllForCluster(cluster).stream()
+                .filter(Resource::isDeleting)
                 .toList();
     }
 
@@ -164,6 +179,15 @@ public class StreamService {
      * @return The created Kafka Stream
      */
     public KafkaStream create(KafkaStream stream) {
+        Optional<ManagedClusterProperties> streamCluster = managedClusterProperties.stream()
+                .filter(cluster -> cluster.getName().equals(stream.getMetadata().getCluster()))
+                .findFirst();
+
+        if (streamCluster.isPresent()
+                && streamCluster.get().isConfluentCloud()
+                && streamCluster.get().isManageRbac()) {
+            stream.getMetadata().setStatus(Resource.Metadata.Status.ofPending());
+        }
         return streamRepository.create(stream);
     }
 
@@ -177,12 +201,7 @@ public class StreamService {
         AccessControlEntryAsyncExecutor accessControlEntryAsyncExecutor = applicationContext.getBean(
                 AccessControlEntryAsyncExecutor.class,
                 Qualifiers.byName(stream.getMetadata().getCluster()));
-        ConfluentRoleBindingAsyncExecutor confluentRoleBindingAsyncExecutor = applicationContext.getBean(
-                ConfluentRoleBindingAsyncExecutor.class,
-                Qualifiers.byName(stream.getMetadata().getCluster()));
-        stream.getMetadata().setStatus(Resource.Metadata.Status.ofDeleting());
         accessControlEntryAsyncExecutor.deleteKafkaStreams(namespace, stream);
-        confluentRoleBindingAsyncExecutor.deleteRoleBindingFromKafkaStream(stream);
 
         List<KafkaStream> overlapKafkaStreams = findAllForNamespace(namespace).stream()
                 .filter(kafkaStream -> kafkaStream
@@ -209,6 +228,17 @@ public class StreamService {
             topicService.deleteTopics(kafkaStreamsTopics);
         }
 
-        streamRepository.delete(stream);
+        Optional<ManagedClusterProperties> streamCluster = managedClusterProperties.stream()
+                .filter(cluster -> cluster.getName().equals(stream.getMetadata().getCluster()))
+                .findFirst();
+
+        if (streamCluster.isPresent() && streamCluster.get().isManageAcls()) {
+            streamRepository.delete(stream);
+        } else if (streamCluster.isPresent()
+                && streamCluster.get().isConfluentCloud()
+                && streamCluster.get().isManageRbac()) {
+            stream.getMetadata().setStatus(Resource.Metadata.Status.ofDeleting());
+            streamRepository.create(stream);
+        }
     }
 }
