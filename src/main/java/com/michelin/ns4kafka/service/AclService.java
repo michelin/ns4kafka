@@ -18,6 +18,10 @@
  */
 package com.michelin.ns4kafka.service;
 
+import static com.michelin.ns4kafka.model.AccessControlEntry.ResourceType.CONNECT;
+import static com.michelin.ns4kafka.model.AccessControlEntry.ResourceType.GROUP;
+import static com.michelin.ns4kafka.model.AccessControlEntry.ResourceType.TOPIC;
+import static com.michelin.ns4kafka.model.AccessControlEntry.ResourceType.TRANSACTIONAL_ID;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidAclCollision;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidAclGrantedToMyself;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidAclNotOwnerOfTopLevel;
@@ -30,6 +34,8 @@ import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidProtectedNamesp
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
+import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.AccessControlEntryRepository;
 import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
 import com.michelin.ns4kafka.util.RegexUtils;
@@ -49,6 +55,8 @@ import java.util.stream.Collectors;
 public class AclService {
     private static final Set<AccessControlEntry.ResourceType> ALLOWED_RESOURCE_TYPES =
             EnumSet.of(AccessControlEntry.ResourceType.TOPIC, AccessControlEntry.ResourceType.CONNECT_CLUSTER);
+    private static final Set<AccessControlEntry.ResourceType> RESOURCE_TYPES_TO_DEPLOY =
+            EnumSet.of(TOPIC, GROUP, CONNECT, TRANSACTIONAL_ID);
     private static final Set<AccessControlEntry.Permission> ALLOWED_PERMISSIONS =
             EnumSet.of(AccessControlEntry.Permission.READ, AccessControlEntry.Permission.WRITE);
     private static final Set<AccessControlEntry.ResourcePatternType> ALLOWED_PATTERN_TYPES =
@@ -57,6 +65,7 @@ public class AclService {
 
     private final AccessControlEntryRepository accessControlEntryRepository;
     private final ApplicationContext applicationContext;
+    private final List<ManagedClusterProperties> managedClusterProperties;
 
     /**
      * Constructor.
@@ -65,9 +74,12 @@ public class AclService {
      * @param applicationContext The application context
      */
     public AclService(
-            AccessControlEntryRepository accessControlEntryRepository, ApplicationContext applicationContext) {
+            AccessControlEntryRepository accessControlEntryRepository,
+            ApplicationContext applicationContext,
+            List<ManagedClusterProperties> managedClusterProperties) {
         this.accessControlEntryRepository = accessControlEntryRepository;
         this.applicationContext = applicationContext;
+        this.managedClusterProperties = managedClusterProperties;
     }
 
     /**
@@ -312,6 +324,13 @@ public class AclService {
      * @return The created ACL
      */
     public AccessControlEntry create(AccessControlEntry accessControlEntry) {
+        accessControlEntry
+                .getMetadata()
+                .setStatus(
+                        RESOURCE_TYPES_TO_DEPLOY.contains(
+                                        accessControlEntry.getSpec().getResourceType())
+                                ? Resource.Metadata.Status.ofPending()
+                                : Resource.Metadata.Status.ofSuccess());
         return accessControlEntryRepository.create(accessControlEntry);
     }
 
@@ -324,9 +343,25 @@ public class AclService {
         AccessControlEntryAsyncExecutor accessControlEntryAsyncExecutor = applicationContext.getBean(
                 AccessControlEntryAsyncExecutor.class,
                 Qualifiers.byName(accessControlEntry.getMetadata().getCluster()));
-        accessControlEntryAsyncExecutor.deleteAcl(accessControlEntry);
 
-        accessControlEntryRepository.delete(accessControlEntry);
+        Optional<ManagedClusterProperties> aclCluster = managedClusterProperties.stream()
+                .filter(cluster -> cluster.getName()
+                        .equals(accessControlEntry.getMetadata().getCluster()))
+                .findFirst();
+
+        if (aclCluster.isPresent() && aclCluster.get().isManageAcls()) {
+            accessControlEntryAsyncExecutor.deleteAcl(accessControlEntry);
+            accessControlEntryRepository.delete(accessControlEntry);
+        } else if (aclCluster.isPresent()
+                && aclCluster.get().isConfluentCloud()
+                && aclCluster.get().isManageRbac()) {
+            if (RESOURCE_TYPES_TO_DEPLOY.contains(accessControlEntry.getSpec().getResourceType())) {
+                accessControlEntry.getMetadata().setStatus(Resource.Metadata.Status.ofDeleting());
+                accessControlEntryRepository.create(accessControlEntry);
+            } else {
+                accessControlEntryRepository.delete(accessControlEntry);
+            }
+        }
     }
 
     /**
@@ -498,7 +533,7 @@ public class AclService {
     }
 
     /**
-     * Find all ACLs of given cluster.
+     * Find all ACLs for a cluster.
      *
      * @param cluster The cluster
      * @return A list of ACLs
@@ -507,6 +542,32 @@ public class AclService {
         return accessControlEntryRepository.findAll().stream()
                 .filter(accessControlEntry ->
                         accessControlEntry.getMetadata().getCluster().equals(cluster))
+                .toList();
+    }
+
+    /**
+     * Find all non-public ACLs to deploy for a cluster.
+     *
+     * @param cluster The cluster
+     * @return A list of ACLs to deploy
+     */
+    public List<AccessControlEntry> findNonPublicToDeployForCluster(String cluster) {
+        return accessControlEntryRepository.findAll().stream()
+                .filter(acl -> acl.getMetadata().getCluster().equals(cluster) && !isPublicAcl(acl))
+                .filter(Resource::isPending)
+                .toList();
+    }
+
+    /**
+     * Find all non-public ACLs to delete for a cluster.
+     *
+     * @param cluster The cluster
+     * @return A list of ACLs to delete
+     */
+    public List<AccessControlEntry> findNonPublicToDeleteForCluster(String cluster) {
+        return accessControlEntryRepository.findAll().stream()
+                .filter(acl -> acl.getMetadata().getCluster().equals(cluster) && !isPublicAcl(acl))
+                .filter(Resource::isDeleting)
                 .toList();
     }
 
