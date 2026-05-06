@@ -86,8 +86,8 @@ public class Schema extends Resource {
         @Builder.Default
         private SchemaType schemaType = SchemaType.AVRO;
 
-        @Builder.Default
-        private Compatibility compatibility = Compatibility.GLOBAL;
+        private Compatibility compatibility;
+        private String alias;
 
         @Valid private List<Reference> references;
 
