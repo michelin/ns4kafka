@@ -82,14 +82,14 @@ public class ConsumerGroupService {
         ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor = applicationContext.getBean(
                 ConsumerGroupAsyncExecutor.class,
                 Qualifiers.byName(namespace.getMetadata().getCluster()));
-        List<AccessControlEntry> ownerAcls =
+        List<AccessControlEntry> groupOwnerAcls =
                 aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.GROUP);
         List<String> nameFilterPatterns = RegexUtils.convertWildcardStringsToRegex(List.of(name));
         List<String> consumerGroupIds = consumerGroupAsyncExecutor.listConsumerGroupIds().stream()
-                .filter(groupId -> aclService.isResourceCoveredByAcls(ownerAcls, groupId))
-                .filter(groupId -> RegexUtils.isResourceCoveredByRegex(groupId, nameFilterPatterns))
-                .sorted()
-                .toList();
+            .filter(groupId -> aclService.isResourceCoveredByAcls(groupOwnerAcls, groupId))
+            .filter(groupId -> RegexUtils.isResourceCoveredByRegex(groupId, nameFilterPatterns))
+            .sorted()
+            .toList();
 
         if (consumerGroupIds.isEmpty()) {
             return List.of();
@@ -105,6 +105,49 @@ public class ConsumerGroupService {
                         groupId,
                         descriptions.get(groupId),
                         includeOffsets ? getCommittedOffsetsSafely(consumerGroupAsyncExecutor, groupId) : Map.of()))
+                .toList();
+    }
+
+    /**
+     * Find all external consumer groups consuming topics owned by a given namespace, filtered by name parameter.
+     *
+     * @param namespace The namespace
+     * @param name The name filter
+     * @return A list of external consumer groups
+     * @throws ExecutionException Any execution exception during consumer groups listing
+     * @throws InterruptedException Any interrupted exception during consumer groups listing
+     */
+    public List<ConsumerGroup> findExternalByWildcardName(Namespace namespace, String name)
+            throws ExecutionException, InterruptedException {
+        ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor = applicationContext.getBean(
+                ConsumerGroupAsyncExecutor.class,
+                Qualifiers.byName(namespace.getMetadata().getCluster()));
+        List<AccessControlEntry> groupOwnerAcls =
+                aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.GROUP);
+        List<AccessControlEntry> topicOwnerAcls =
+                aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.TOPIC);
+        List<String> nameFilterPatterns = RegexUtils.convertWildcardStringsToRegex(List.of(name));
+        List<String> consumerGroupIds = consumerGroupAsyncExecutor.listConsumerGroupIds().stream()
+                .filter(groupId -> RegexUtils.isResourceCoveredByRegex(groupId, nameFilterPatterns))
+                .filter(groupId -> !aclService.isResourceCoveredByAcls(groupOwnerAcls, groupId))
+                .filter(groupId -> isConsumerGroupOnNamespaceOwnedTopics(
+                        consumerGroupAsyncExecutor, topicOwnerAcls, groupId))
+                .sorted()
+                .toList();
+
+        if (consumerGroupIds.isEmpty()) {
+            return List.of();
+        }
+
+        Map<String, ConsumerGroupDescription> descriptions =
+                consumerGroupAsyncExecutor.describeConsumerGroups(consumerGroupIds);
+
+        return consumerGroupIds.stream()
+                .map(groupId -> buildConsumerGroup(
+                        namespace,
+                        groupId,
+                        descriptions.get(groupId),
+                getCommittedOffsetsSafely(consumerGroupAsyncExecutor, groupId)))
                 .toList();
     }
 
@@ -367,5 +410,18 @@ public class ConsumerGroupService {
             Thread.currentThread().interrupt();
             return Map.of();
         }
+    }
+
+    private boolean isConsumerGroupOnNamespaceOwnedTopics(
+            ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor,
+            List<AccessControlEntry> topicOwnerAcls,
+            String groupId) {
+        if (topicOwnerAcls.isEmpty()) {
+            return false;
+        }
+
+        return getCommittedOffsetsSafely(consumerGroupAsyncExecutor, groupId).keySet().stream()
+                .map(TopicPartition::topic)
+                .anyMatch(topic -> aclService.isResourceCoveredByAcls(topicOwnerAcls, topic));
     }
 }
