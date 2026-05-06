@@ -18,8 +18,6 @@
  */
 package com.michelin.ns4kafka.service.client.confluent;
 
-import static com.michelin.ns4kafka.util.enumation.ConfluentRole.DEVELOPER_READ;
-
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.service.client.confluent.entities.RoleBinding;
 import com.michelin.ns4kafka.service.client.confluent.entities.RoleBindingListResponse;
@@ -141,12 +139,7 @@ public class ConfluentCloudClient {
         return listRoleBindings(kafkaCluster, rbRequest.crnPattern())
                 .filter(response -> response.crnPattern().equals(rbRequest.crnPattern()))
                 .next()
-                .flatMap(response -> deleteRoleBinding(kafkaCluster, response.id()))
-                // if the list returns Mono.empty(), we want to complete successfully because there would be nothing to
-                // delete on the cluster side
-                // and the resource would still exist on Ns4Kafka side
-                .defaultIfEmpty(
-                        new RoleBindingResponse("default-id", "default-principal", DEVELOPER_READ, "default-pattern"));
+                .flatMap(response -> deleteRoleBinding(kafkaCluster, response.id()));
     }
 
     /**
