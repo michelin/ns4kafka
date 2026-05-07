@@ -55,7 +55,6 @@ public class ConfluentRoleBindingAsyncExecutor {
     private final ManagedClusterProperties managedClusterProperties;
     private final AclService aclService;
     private final StreamService streamService;
-    private final NamespaceRepository namespaceRepository;
     private final AccessControlEntryRepository aclRepository;
     private final KafkaStreamRepository kafkaStreamRepository;
     private final ConfluentCloudClient confluentCloudClient;
@@ -83,7 +82,6 @@ public class ConfluentRoleBindingAsyncExecutor {
         this.streamService = streamService;
         this.aclRepository = aclRepository;
         this.kafkaStreamRepository = kafkaStreamRepository;
-        this.namespaceRepository = namespaceRepository;
         this.confluentCloudClient = confluentCloudClient;
         this.namespaceService = namespaceService;
     }
@@ -129,33 +127,31 @@ public class ConfluentRoleBindingAsyncExecutor {
      */
     void createRoleBindingsFromAcls(List<AccessControlEntry> toCreate) {
         // Currently no possible to batch create Confluent Role Bindings
-        toCreate.forEach(acl -> {
-            convertAclToRoleBinding(acl).forEach(roleBinding -> confluentCloudClient
-                    .createRoleBinding(managedClusterProperties.getName(), roleBinding)
-                    .subscribe(
-                            roleBindingResponse -> {
-                                if (isUnchangedSinceLastApply(acl)) {
-                                    log.info(
-                                            "Success creating RoleBinding {} for ACL {} on {}",
-                                            roleBindingResponse.id(),
-                                            acl.getMetadata().getName(),
-                                            managedClusterProperties.getName());
-                                    acl.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
-                                    aclRepository.create(acl);
-                                }
-                            },
-                            e -> {
-                                if (isUnchangedSinceLastApply(acl)) {
-                                    log.error(
-                                            "Error while creating RoleBinding for ACL {} on {}",
-                                            acl.getMetadata().getName(),
-                                            managedClusterProperties.getName(),
-                                            e);
-                                    acl.getMetadata().setStatus(Resource.Metadata.Status.ofFailed(e.getMessage()));
-                                    aclRepository.create(acl);
-                                }
-                            }));
-        });
+        toCreate.forEach(acl -> convertAclToRoleBinding(acl).forEach(roleBinding -> confluentCloudClient
+                .createRoleBinding(managedClusterProperties.getName(), roleBinding)
+                .subscribe(
+                        roleBindingResponse -> {
+                            if (isUnchangedSinceLastApply(acl)) {
+                                log.info(
+                                        "Success creating RoleBinding {} for ACL {} on {}",
+                                        roleBindingResponse.id(),
+                                        acl.getMetadata().getName(),
+                                        managedClusterProperties.getName());
+                                acl.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
+                                aclRepository.create(acl);
+                            }
+                        },
+                        e -> {
+                            if (isUnchangedSinceLastApply(acl)) {
+                                log.error(
+                                        "Error while creating RoleBinding for ACL {} on {}",
+                                        acl.getMetadata().getName(),
+                                        managedClusterProperties.getName(),
+                                        e);
+                                acl.getMetadata().setStatus(Resource.Metadata.Status.ofFailed(e.getMessage()));
+                                aclRepository.create(acl);
+                            }
+                        })));
     }
 
     /**
@@ -295,7 +291,7 @@ public class ConfluentRoleBindingAsyncExecutor {
      */
     List<RoleBinding> convertTopicAclToRoleBinding(AccessControlEntry acl) {
         Namespace namespace =
-                namespaceRepository.findByName(acl.getSpec().getGrantedTo()).orElseThrow();
+                namespaceService.findByName(acl.getSpec().getGrantedTo()).orElseThrow();
         String principal = USER_PRINCIPAL + namespace.getSpec().getKafkaUser();
         String resource = computeResourcePattern(acl);
 
@@ -317,7 +313,7 @@ public class ConfluentRoleBindingAsyncExecutor {
      */
     List<RoleBinding> convertGroupAclToRoleBinding(AccessControlEntry acl) {
         Namespace namespace =
-                namespaceRepository.findByName(acl.getSpec().getGrantedTo()).orElseThrow();
+                namespaceService.findByName(acl.getSpec().getGrantedTo()).orElseThrow();
         String principal = USER_PRINCIPAL + namespace.getSpec().getKafkaUser();
 
         return (switch (acl.getSpec().getPermission()) {
@@ -336,7 +332,7 @@ public class ConfluentRoleBindingAsyncExecutor {
      */
     List<RoleBinding> convertConnectAclToRoleBinding(AccessControlEntry acl) {
         Namespace namespace =
-                namespaceRepository.findByName(acl.getSpec().getGrantedTo()).orElseThrow();
+                namespaceService.findByName(acl.getSpec().getGrantedTo()).orElseThrow();
         String principal = USER_PRINCIPAL + namespace.getSpec().getKafkaUser();
         String resource = "connect-" + computeResourcePattern(acl);
 
@@ -356,7 +352,7 @@ public class ConfluentRoleBindingAsyncExecutor {
      */
     List<RoleBinding> convertTransAclToRoleBinding(AccessControlEntry acl) {
         Namespace namespace =
-                namespaceRepository.findByName(acl.getSpec().getGrantedTo()).orElseThrow();
+                namespaceService.findByName(acl.getSpec().getGrantedTo()).orElseThrow();
         String principal = USER_PRINCIPAL + namespace.getSpec().getKafkaUser();
         String resource = computeResourcePattern(acl);
 
@@ -391,9 +387,8 @@ public class ConfluentRoleBindingAsyncExecutor {
      * @return A Role Binding
      */
     RoleBinding convertKafkaStreamToRoleBinding(KafkaStream stream) {
-        Namespace namespace = namespaceRepository
-                .findByName(stream.getMetadata().getNamespace())
-                .orElseThrow();
+        Namespace namespace =
+                namespaceService.findByName(stream.getMetadata().getNamespace()).orElseThrow();
         String principal = USER_PRINCIPAL + namespace.getSpec().getKafkaUser();
 
         return new RoleBinding(
