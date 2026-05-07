@@ -31,7 +31,6 @@ import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.AccessControlEntryRepository;
-import com.michelin.ns4kafka.repository.NamespaceRepository;
 import com.michelin.ns4kafka.repository.kafka.KafkaStoreException;
 import com.michelin.ns4kafka.repository.kafka.KafkaStreamRepository;
 import com.michelin.ns4kafka.service.AclService;
@@ -53,37 +52,39 @@ public class ConfluentRoleBindingAsyncExecutor {
     private static final String USER_PRINCIPAL = "User:";
 
     private final ManagedClusterProperties managedClusterProperties;
+    private final ConfluentCloudClient confluentCloudClient;
     private final AclService aclService;
+    private final NamespaceService namespaceService;
     private final StreamService streamService;
     private final AccessControlEntryRepository aclRepository;
     private final KafkaStreamRepository kafkaStreamRepository;
-    private final ConfluentCloudClient confluentCloudClient;
-    private final NamespaceService namespaceService;
 
     /**
      * Constructor.
      *
      * @param managedClusterProperties The managed cluster properties
+     * @param confluentCloudClient The Confluent Cloud client
      * @param aclService The ACL service
+     * @param namespaceService The namespace service
      * @param streamService The stream service
-     * @param namespaceRepository The namespace repository
+     * @param aclRepository The ACL repository
+     * @param kafkaStreamRepository The Kafka Stream repository
      */
     public ConfluentRoleBindingAsyncExecutor(
             ManagedClusterProperties managedClusterProperties,
-            AclService aclService,
-            StreamService streamService,
-            NamespaceRepository namespaceRepository,
-            AccessControlEntryRepository aclRepository,
-            KafkaStreamRepository kafkaStreamRepository,
             ConfluentCloudClient confluentCloudClient,
-            NamespaceService namespaceService) {
+            AclService aclService,
+            NamespaceService namespaceService,
+            StreamService streamService,
+            AccessControlEntryRepository aclRepository,
+            KafkaStreamRepository kafkaStreamRepository) {
         this.managedClusterProperties = managedClusterProperties;
+        this.confluentCloudClient = confluentCloudClient;
         this.aclService = aclService;
+        this.namespaceService = namespaceService;
         this.streamService = streamService;
         this.aclRepository = aclRepository;
         this.kafkaStreamRepository = kafkaStreamRepository;
-        this.confluentCloudClient = confluentCloudClient;
-        this.namespaceService = namespaceService;
     }
 
     /** Run the ACLs synchronization. */

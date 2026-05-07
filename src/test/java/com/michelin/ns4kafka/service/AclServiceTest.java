@@ -36,7 +36,6 @@ import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.AccessControlEntryRepository;
 import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
-import com.michelin.ns4kafka.service.executor.ConfluentRoleBindingAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
 import java.util.Collection;
@@ -59,9 +58,6 @@ class AclServiceTest {
 
     @Mock
     AccessControlEntryAsyncExecutor accessControlEntryAsyncExecutor;
-
-    @Mock
-    ConfluentRoleBindingAsyncExecutor rbAsyncExecutor;
 
     @Mock
     ApplicationContext applicationContext;
@@ -1030,8 +1026,51 @@ class AclServiceTest {
     }
 
     @Test
-    void shouldFindNonPublicAclToDeployForCluster() {
-        AccessControlEntry ace1 = AccessControlEntry.builder()
+    void shouldFindNonPublicAclsToDeployAndToDeleteForCluster() {
+        AccessControlEntry publicAcl1 = AccessControlEntry.builder()
+                .metadata(Resource.Metadata.builder()
+                        .namespace("namespace4")
+                        .cluster("local")
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .grantedTo("*")
+                        .build())
+                .build();
+
+        AccessControlEntry publicAcl2 = AccessControlEntry.builder()
+                .metadata(Resource.Metadata.builder()
+                        .namespace("namespace1")
+                        .cluster("local")
+                        .status(Resource.Metadata.Status.ofPending())
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .grantedTo("*")
+                        .build())
+                .build();
+
+        AccessControlEntry publicAcl3 = AccessControlEntry.builder()
+                .metadata(Resource.Metadata.builder()
+                        .namespace("namespace2")
+                        .cluster("local")
+                        .status(Resource.Metadata.Status.ofDeleting())
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .grantedTo("*")
+                        .build())
+                .build();
+
+        AccessControlEntry publicAcl4 = AccessControlEntry.builder()
+                .metadata(Resource.Metadata.builder()
+                        .namespace("namespace3")
+                        .cluster("local")
+                        .status(Resource.Metadata.Status.ofFailed("error"))
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .grantedTo("*")
+                        .build())
+                .build();
+
+        AccessControlEntry acl1 = AccessControlEntry.builder()
                 .metadata(Resource.Metadata.builder()
                         .namespace("namespace1")
                         .cluster("local")
@@ -1041,9 +1080,9 @@ class AclServiceTest {
                         .build())
                 .build();
 
-        AccessControlEntry ace2 = AccessControlEntry.builder()
+        AccessControlEntry acl2 = AccessControlEntry.builder()
                 .metadata(Resource.Metadata.builder()
-                        .namespace("namespace1")
+                        .namespace("namespace2")
                         .cluster("local")
                         .status(Resource.Metadata.Status.ofPending())
                         .build())
@@ -1052,33 +1091,70 @@ class AclServiceTest {
                         .build())
                 .build();
 
-        AccessControlEntry ace3 = AccessControlEntry.builder()
+        AccessControlEntry acl3 = AccessControlEntry.builder()
                 .metadata(Resource.Metadata.builder()
-                        .namespace("namespace2")
+                        .namespace("namespace3")
                         .cluster("local")
-                        .status(Resource.Metadata.Status.ofPending())
+                        .status(Resource.Metadata.Status.ofDeleting())
                         .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .grantedTo("*")
+                        .grantedTo("namespace3")
                         .build())
                 .build();
 
-        AccessControlEntry ace4 = AccessControlEntry.builder()
+        AccessControlEntry acl4 = AccessControlEntry.builder()
                 .metadata(Resource.Metadata.builder()
-                        .namespace("namespace1")
+                        .namespace("namespace4")
                         .cluster("local")
-                        .status(Resource.Metadata.Status.ofPending())
+                        .status(Resource.Metadata.Status.ofFailed("error"))
                         .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .grantedTo("*")
+                        .grantedTo("namespace4")
                         .build())
                 .build();
 
-        when(accessControlEntryRepository.findAll()).thenReturn(List.of(ace1, ace2, ace3, ace4));
+        AccessControlEntry otherClusterAcl1 = AccessControlEntry.builder()
+                .metadata(Resource.Metadata.builder()
+                        .namespace("namespace5")
+                        .cluster("other")
+                        .status(Resource.Metadata.Status.ofPending())
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .grantedTo("namespace5")
+                        .build())
+                .build();
 
-        List<AccessControlEntry> actual = aclService.findNonPublicToDeployForCluster("local");
-        assertEquals(1, actual.size());
-        assertTrue(actual.contains(ace2));
+        AccessControlEntry otherClusterAcl2 = AccessControlEntry.builder()
+                .metadata(Resource.Metadata.builder()
+                        .namespace("namespace5")
+                        .cluster("other")
+                        .status(Resource.Metadata.Status.ofDeleting())
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .grantedTo("namespace5")
+                        .build())
+                .build();
+
+        when(accessControlEntryRepository.findAll())
+                .thenReturn(List.of(
+                        publicAcl1,
+                        publicAcl2,
+                        publicAcl3,
+                        publicAcl4,
+                        acl1,
+                        acl2,
+                        acl3,
+                        acl4,
+                        otherClusterAcl1,
+                        otherClusterAcl2));
+
+        List<AccessControlEntry> toDeploy = aclService.findNonPublicToDeployForCluster("local");
+        assertEquals(1, toDeploy.size());
+        assertTrue(toDeploy.contains(acl2));
+
+        List<AccessControlEntry> toDelete = aclService.findNonPublicToDeleteForCluster("local");
+        assertEquals(1, toDelete.size());
+        assertTrue(toDelete.contains(acl3));
     }
 
     @Test

@@ -37,7 +37,6 @@ import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.StreamRepository;
 import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
-import com.michelin.ns4kafka.service.executor.ConfluentRoleBindingAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
 import java.util.Collections;
 import java.util.List;
@@ -58,19 +57,16 @@ class StreamServiceTest {
     AclService aclService;
 
     @Mock
-    StreamRepository streamRepository;
+    TopicService topicService;
 
     @Mock
-    TopicService topicService;
+    StreamRepository streamRepository;
 
     @Mock
     ApplicationContext applicationContext;
 
     @Mock
     AccessControlEntryAsyncExecutor aceAsyncExecutor;
-
-    @Mock
-    ConfluentRoleBindingAsyncExecutor rbAsyncExecutor;
 
     @Mock
     List<ManagedClusterProperties> managedClusterProperties;
@@ -328,6 +324,39 @@ class StreamServiceTest {
         when(streamRepository.findAllForCluster("local")).thenReturn(List.of(stream1, stream2, stream3));
 
         var actual = streamService.findAllToDeployForCluster("local");
+
+        assertEquals(1, actual.size());
+        assertTrue(actual.contains(stream2));
+    }
+
+    @Test
+    void shouldFindAllToDeleteForCluster() {
+        KafkaStream stream1 = KafkaStream.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test_stream1")
+                        .namespace("test")
+                        .cluster("local")
+                        .build())
+                .build();
+        KafkaStream stream2 = KafkaStream.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test_stream2")
+                        .namespace("test")
+                        .cluster("local")
+                        .status(Resource.Metadata.Status.ofDeleting())
+                        .build())
+                .build();
+        KafkaStream stream3 = KafkaStream.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test_stream3")
+                        .namespace("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        when(streamRepository.findAllForCluster("local")).thenReturn(List.of(stream1, stream2, stream3));
+
+        var actual = streamService.findAllToDeleteForCluster("local");
 
         assertEquals(1, actual.size());
         assertTrue(actual.contains(stream2));
