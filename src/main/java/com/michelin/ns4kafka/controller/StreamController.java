@@ -115,13 +115,17 @@ public class StreamController extends NamespacedResourceController {
                     stream, invalidOwner(stream.getMetadata().getName()));
         }
 
+        Optional<KafkaStream> existingStream =
+                streamService.findByName(ns, stream.getMetadata().getName());
+
         stream.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
+        stream.getMetadata()
+                .setGeneration(existingStream
+                        .map(oldStream -> oldStream.getMetadata().getGeneration())
+                        .orElse(0));
         stream.getMetadata().setCluster(ns.getMetadata().getCluster());
         stream.getMetadata().setNamespace(ns.getMetadata().getName());
 
-        // Creation of the correct ACLs
-        Optional<KafkaStream> existingStream =
-                streamService.findByName(ns, stream.getMetadata().getName());
         if (existingStream.isPresent() && existingStream.get().equals(stream)) {
             return formatHttpResponse(stream, ApplyStatus.UNCHANGED);
         }

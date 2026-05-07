@@ -38,6 +38,7 @@ public class KafkaAsyncExecutorScheduler {
     private final AtomicBoolean ready = new AtomicBoolean(false);
     private final List<TopicAsyncExecutor> topicAsyncExecutors;
     private final List<AccessControlEntryAsyncExecutor> accessControlEntryAsyncExecutors;
+    private final List<ConfluentRoleBindingAsyncExecutor> confluentRoleBindingAsyncExecutors;
     private final List<ConnectorAsyncExecutor> connectorAsyncExecutors;
     private final List<UserAsyncExecutor> userAsyncExecutors;
     private final Ns4KafkaProperties.SchedulerProperties schedulerProperties;
@@ -50,17 +51,20 @@ public class KafkaAsyncExecutorScheduler {
      *
      * @param topicAsyncExecutors The topic async executors
      * @param accessControlEntryAsyncExecutors The access control entry async executors
+     * @param confluentRoleBindingAsyncExecutors The confluent role binding async executors
      * @param connectorAsyncExecutors The connector async executors
      * @param userAsyncExecutors The user async executors
      */
     public KafkaAsyncExecutorScheduler(
             List<TopicAsyncExecutor> topicAsyncExecutors,
             List<AccessControlEntryAsyncExecutor> accessControlEntryAsyncExecutors,
+            List<ConfluentRoleBindingAsyncExecutor> confluentRoleBindingAsyncExecutors,
             List<ConnectorAsyncExecutor> connectorAsyncExecutors,
             List<UserAsyncExecutor> userAsyncExecutors,
             Ns4KafkaProperties.SchedulerProperties schedulerProperties) {
         this.topicAsyncExecutors = topicAsyncExecutors;
         this.accessControlEntryAsyncExecutors = accessControlEntryAsyncExecutors;
+        this.confluentRoleBindingAsyncExecutors = confluentRoleBindingAsyncExecutors;
         this.connectorAsyncExecutors = connectorAsyncExecutors;
         this.userAsyncExecutors = userAsyncExecutors;
         this.schedulerProperties = schedulerProperties;
@@ -84,6 +88,7 @@ public class KafkaAsyncExecutorScheduler {
         if (ready.get()) {
             topicAsyncExecutors.forEach(TopicAsyncExecutor::run);
             accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
+            confluentRoleBindingAsyncExecutors.forEach(ConfluentRoleBindingAsyncExecutor::run);
             userAsyncExecutors.forEach(UserAsyncExecutor::run);
         } else {
             log.warn("Scheduled jobs did not start because Micronaut is not ready yet.");

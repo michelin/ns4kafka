@@ -36,6 +36,7 @@ import jakarta.inject.Singleton;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -95,9 +96,7 @@ public class AccessControlEntryAsyncExecutor {
         this.namespaceRepository = namespaceRepository;
 
         AccessControlEntryFilter accessControlEntryFilter = new AccessControlEntryFilter(
-                managedClusterProperties.getProvider().equals(ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD)
-                        ? USER_PRINCIPAL_PUBLIC_V2
-                        : null,
+                managedClusterProperties.isConfluentCloud() ? USER_PRINCIPAL_PUBLIC_V2 : null,
                 null,
                 AclOperation.ANY,
                 AclPermissionType.ANY);
@@ -107,7 +106,7 @@ public class AccessControlEntryAsyncExecutor {
 
     /** Run the ACLs synchronization. */
     public void run() {
-        if (this.managedClusterProperties.isManageAcls()) {
+        if (this.managedClusterProperties.isManageAcls() || this.managedClusterProperties.isManageRbac()) {
             synchronizeAcls();
         }
     }
@@ -132,10 +131,21 @@ public class AccessControlEntryAsyncExecutor {
                                 toCreate.stream().map(AclBinding::toString).collect(Collectors.joining(",")))
                         .log("ACL(s) to create: {}");
 
-                createAcls(toCreate);
+                Map<Boolean, List<AclBinding>> partitions = toCreate.stream()
+                        .collect(Collectors.partitioningBy(aclBinding ->
+                                PUBLIC_GRANTED_TO.equals(aclBinding.entry().principal())));
+
+                // Create Kafka ACL only for public ACLs because not possible with Confluent Role Bindings
+                List<AclBinding> publicAclsToCreate = partitions.get(true);
+                createAcls(publicAclsToCreate);
+
+                if (managedClusterProperties.isManageAcls()) {
+                    List<AclBinding> nonPublicAclsToCreate = partitions.get(false);
+                    createAcls(nonPublicAclsToCreate);
+                }
             }
 
-            if (managedClusterProperties.isDropUnsyncAcls()) {
+            if (managedClusterProperties.isManageAcls() && managedClusterProperties.isDropUnsyncAcls()) {
                 List<AclBinding> toDelete = brokerAcls.stream()
                         .filter(aclBinding -> !ns4KafkaAcls.contains(aclBinding))
                         .toList();
@@ -257,7 +267,7 @@ public class AccessControlEntryAsyncExecutor {
                     AclOperation.fromString(acl.getSpec().getPermission().toString()));
         }
 
-        if (acl.getSpec().getGrantedTo().equals(PUBLIC_GRANTED_TO)) {
+        if (aclService.isPublicAcl(acl)) {
             return aclOperations.stream()
                     .map(aclOperation -> new AclBinding(
                             resourcePattern,
@@ -303,16 +313,12 @@ public class AccessControlEntryAsyncExecutor {
                 // Kafka Stream needs to create & delete changelog/repartition topics with the application id as prefix
                 new AclBinding(
                         new ResourcePattern(
-                                org.apache.kafka.common.resource.ResourceType.TOPIC,
-                                stream.getMetadata().getName(),
-                                PatternType.PREFIXED),
+                                ResourceType.TOPIC, stream.getMetadata().getName(), PatternType.PREFIXED),
                         new org.apache.kafka.common.acl.AccessControlEntry(
                                 principal, "*", AclOperation.CREATE, AclPermissionType.ALLOW)),
                 new AclBinding(
                         new ResourcePattern(
-                                org.apache.kafka.common.resource.ResourceType.TOPIC,
-                                stream.getMetadata().getName(),
-                                PatternType.PREFIXED),
+                                ResourceType.TOPIC, stream.getMetadata().getName(), PatternType.PREFIXED),
                         new org.apache.kafka.common.acl.AccessControlEntry(
                                 principal, "*", AclOperation.DELETE, AclPermissionType.ALLOW)));
     }
@@ -330,18 +336,12 @@ public class AccessControlEntryAsyncExecutor {
     private void addKafkaStreamAclBindings(List<AclBinding> results, AccessControlEntry acl, String principal) {
         // PREFIXED ACLs to cover all Kafka Streams & EOS connectors.
         results.add(new AclBinding(
-                new ResourcePattern(
-                        org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID,
-                        acl.getSpec().getResource(),
-                        PatternType.PREFIXED),
+                new ResourcePattern(ResourceType.TRANSACTIONAL_ID, acl.getSpec().getResource(), PatternType.PREFIXED),
                 new org.apache.kafka.common.acl.AccessControlEntry(
                         principal, "*", AclOperation.WRITE, AclPermissionType.ALLOW)));
 
         results.add(new AclBinding(
-                new ResourcePattern(
-                        org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID,
-                        acl.getSpec().getResource(),
-                        PatternType.PREFIXED),
+                new ResourcePattern(ResourceType.TRANSACTIONAL_ID, acl.getSpec().getResource(), PatternType.PREFIXED),
                 new org.apache.kafka.common.acl.AccessControlEntry(
                         principal, "*", AclOperation.DESCRIBE, AclPermissionType.ALLOW)));
     }
@@ -394,9 +394,7 @@ public class AccessControlEntryAsyncExecutor {
                 PatternType.fromString(acl.getSpec().getResourcePatternType().toString());
 
         ResourcePattern resourcePattern = new ResourcePattern(
-                org.apache.kafka.common.resource.ResourceType.GROUP,
-                "connect-" + acl.getSpec().getResource(),
-                patternType);
+                ResourceType.GROUP, "connect-" + acl.getSpec().getResource(), patternType);
 
         String kafkaUser = namespaceRepository
                 .findByName(acl.getSpec().getGrantedTo())
@@ -408,6 +406,29 @@ public class AccessControlEntryAsyncExecutor {
                 resourcePattern,
                 new org.apache.kafka.common.acl.AccessControlEntry(
                         USER_PRINCIPAL + kafkaUser, "*", AclOperation.READ, AclPermissionType.ALLOW));
+    }
+
+    /**
+     * Convert public ACL into Kafka ACL Binding.
+     *
+     * @param acl The Ns4Kafka ACL
+     */
+    AclBinding convertPublicAcl(AccessControlEntry acl) {
+        PatternType patternType =
+                PatternType.fromString(acl.getSpec().getResourcePatternType().toString());
+
+        ResourcePattern resourcePattern = new ResourcePattern(
+                ResourceType.fromString(acl.getSpec().getResourceType().toString()),
+                acl.getSpec().getResource(),
+                patternType);
+
+        return new AclBinding(
+                resourcePattern,
+                new org.apache.kafka.common.acl.AccessControlEntry(
+                        USER_PRINCIPAL_PUBLIC,
+                        "*",
+                        AclOperation.fromString(acl.getSpec().getPermission().toString()),
+                        AclPermissionType.ALLOW));
     }
 
     /**
@@ -429,7 +450,7 @@ public class AccessControlEntryAsyncExecutor {
      *
      * @param toDelete The list of ACLs to delete
      */
-    private void deleteAcls(List<AclBinding> toDelete) {
+    void deleteAcls(List<AclBinding> toDelete) {
         getAdminClient()
                 .deleteAcls(toDelete.stream().map(AclBinding::toFilter).toList())
                 .values()
@@ -469,6 +490,10 @@ public class AccessControlEntryAsyncExecutor {
             }
 
             deleteAcls(results);
+        } else {
+            if (aclService.isPublicAcl(accessControlEntry) && managedClusterProperties.isManageRbac()) {
+                deleteAcls(List.of(convertPublicAcl(accessControlEntry)));
+            }
         }
     }
 

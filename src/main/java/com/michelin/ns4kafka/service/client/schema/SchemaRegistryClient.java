@@ -553,8 +553,7 @@ public class SchemaRegistryClient {
      */
     private ManagedClusterProperties.SchemaRegistryProperties getSchemaRegistry(String kafkaCluster) {
         Optional<ManagedClusterProperties> config = managedClusterProperties.stream()
-                .filter(kafkaAsyncExecutorConfig ->
-                        kafkaAsyncExecutorConfig.getName().equals(kafkaCluster))
+                .filter(properties -> properties.getName().equals(kafkaCluster))
                 .findFirst();
 
         if (config.isEmpty()) {

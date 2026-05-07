@@ -41,7 +41,10 @@ Ns4Kafka brings a namespace-based deployment model for Kafka resources, inspired
     * [Kafka](#kafka) 
       * [Kafka Broker](#kafka-broker)
       * [Managed Kafka Clusters](#managed-kafka-clusters)
-      * [Stream Catalog](#stream-catalog)
+        * [Self-Managed](#self-managed) 
+        * [Confluent Cloud](#confluent-cloud)
+          * [Stream Catalog](#stream-catalog)
+          * [Role Binding](#role-binding)
       * [AKHQ](#akhq)
     * [Technical](#technical)
       * [Security](#security)
@@ -305,9 +308,14 @@ The configuration will depend on the authentication method selected for your bro
 
 #### Managed Kafka Clusters
 
-Managed clusters are the clusters where Ns4Kafka namespaces are deployed, and Kafka resources are managed.
+Ns4Kafka supports two types of cluster providers:
 
-You can configure your managed clusters with the following properties:
+- Self-managed
+- Confluent Cloud
+
+##### Self-Managed
+
+The following properties are available for both self-managed and [Confluent Cloud](#confluent-cloud) cluster providers.
 
 ```yaml
 ns4kafka:
@@ -327,7 +335,7 @@ ns4kafka:
         sasl.jaas.config: "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"admin\" password=\"admin\";"
         cluster.id: "lkc-abcde"
       connects:
-        connectOne:
+        connect-name:
           url: "http://localhost:8083"
           basicAuthUsername: "user"
           basicAuthPassword: "password"
@@ -352,45 +360,50 @@ ns4kafka:
           describe-quotas: 10000
 ```
 
-The name for each managed cluster has to be unique. This is this name you have to set in the field **metadata.cluster**
-of your namespace descriptors.
+`cluster-name` must be a unique name identifying the cluster.
+This is the name you need to set in the `metadata.cluster` field of your namespace descriptors.
 
-| Property                             | Type    | Required | Description                                                                                                                                                                                                    |
-|--------------------------------------|---------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| manage-acls                          | boolean | No       | Does the cluster manages access control entries (Default: false)                                                                                                                                               |
-| manage-connectors                    | boolean | No       | Does the cluster manages connects (Default: false)                                                                                                                                                             |
-| manage-topics                        | boolean | No       | Does the cluster manages topics (Default: false)                                                                                                                                                               |
-| manage-users                         | boolean | No       | Does the cluster manages users (Default: false)                                                                                                                                                                |
-| drop-unsync-acls                     | boolean | No       | Should unsynchronized acls be dropped (Default: true)                                                                                                                                                          |
-| sync-kstream-topics                  | boolean | No       | Should Kafka Streams internal topics be automatically imported into Ns4kafka (Default: false)                                                                                                                  |
-| timeout.acl.create                   | int     | No       | The timeout in milliseconds used by the AdminClient to create acls (Default: 30000ms)                                                                                                                          |
-| timeout.acl.describe                 | int     | No       | The timeout in milliseconds used by the AdminClient to describe acls (Default: 30000ms)                                                                                                                        |
-| timeout.acl.delete                   | int     | No       | The timeout in milliseconds used by the AdminClient to delete acls (Default: 30000ms)                                                                                                                          |
-| timeout.topic.alter-configs          | int     | No       | The timeout in milliseconds used by the AdminClient to alter topic configs (Default: 30000ms)                                                                                                                  |
-| timeout.topic.create                 | int     | No       | The timeout in milliseconds used by the AdminClient to create topics (Default: 30000ms)                                                                                                                        |
-| timeout.topic.describe-configs       | int     | No       | The timeout in milliseconds used by the AdminClient to describe topic configs (Default: 30000ms)                                                                                                               |
-| timeout.topic.delete                 | int     | No       | The timeout in milliseconds used by the AdminClient to delete topics (Default: 30000ms)                                                                                                                        |
-| timeout.topic.list                   | int     | No       | The timeout in milliseconds used by the AdminClient to list topics (Default: 30000ms)                                                                                                                          |
-| timeout.user.alter-quotas            | int     | No       | The timeout in milliseconds used by the AdminClient to alter client quotas (Default: 30000ms)                                                                                                                  |
-| timeout.user.alter-scram-credentials | int     | No       | The timeout in milliseconds used by the AdminClient to alter scram credentials (Default: 30000ms)                                                                                                              |
-| timeout.user.describe-quotas         | int     | No       | The timeout in milliseconds used by the AdminClient to describe client quotas (Default: 30000ms)                                                                                                               |
-| provider                             | boolean | Yes      | The kind of cluster. Either SELF_MANAGED or CONFLUENT_CLOUD                                                                                                                                                    |
-| config.bootstrap.servers             | string  | Yes      | The location of the clusters servers                                                                                                                                                                           |
-| config.cluster.id                    | string  | No       | The cluster id. Required to use [Confluent Cloud tags](https://docs.confluent.io/cloud/current/stream-governance/stream-catalog.html). In this case, [Stream Catalog properties](#stream-catalog) must be set. |
-| schema-registry.url                  | string  | No       | The location of the Schema Registry                                                                                                                                                                            |
-| schema-registry.basicAuthUsername    | string  | No       | Basic authentication username to the Schema Registry                                                                                                                                                           |
-| schema-registry.basicAuthPassword    | string  | No       | Basic authentication password to the Schema Registry                                                                                                                                                           |
-| connects.<name>.url                  | string  | No       | The location of the kafka connect                                                                                                                                                                              |
-| connects.<name>.basicAuthUsername    | string  | No       | Basic authentication username to the Kafka Connect                                                                                                                                                             |
-| connects.<name>.basicAuthPassword    | string  | No       | Basic authentication password to the Kafka Connect                                                                                                                                                             |
+`connect-name` must be a unique name identifying a Kafka Connect cluster.
+
+| Property                                  | Type    | Required | Description                                                                                                                                                                                                    |
+|-------------------------------------------|---------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| manage-acls                               | boolean | No       | Does the cluster manages access control entries (Default: false)                                                                                                                                               |
+| manage-connectors                         | boolean | No       | Does the cluster manages connects (Default: false)                                                                                                                                                             |
+| manage-topics                             | boolean | No       | Does the cluster manages topics (Default: false)                                                                                                                                                               |
+| manage-users                              | boolean | No       | Does the cluster manages users (Default: false)                                                                                                                                                                |
+| drop-unsync-acls                          | boolean | No       | Should unsynchronized acls be dropped (Default: true)                                                                                                                                                          |
+| sync-kstream-topics                       | boolean | No       | Should Kafka Streams internal topics be automatically imported into Ns4kafka (Default: false)                                                                                                                  |
+| timeout.acl.create                        | int     | No       | The timeout in milliseconds used by the AdminClient to create acls (Default: 30000ms)                                                                                                                          |
+| timeout.acl.describe                      | int     | No       | The timeout in milliseconds used by the AdminClient to describe acls (Default: 30000ms)                                                                                                                        |
+| timeout.acl.delete                        | int     | No       | The timeout in milliseconds used by the AdminClient to delete acls (Default: 30000ms)                                                                                                                          |
+| timeout.topic.alter-configs               | int     | No       | The timeout in milliseconds used by the AdminClient to alter topic configs (Default: 30000ms)                                                                                                                  |
+| timeout.topic.create                      | int     | No       | The timeout in milliseconds used by the AdminClient to create topics (Default: 30000ms)                                                                                                                        |
+| timeout.topic.describe-configs            | int     | No       | The timeout in milliseconds used by the AdminClient to describe topic configs (Default: 30000ms)                                                                                                               |
+| timeout.topic.delete                      | int     | No       | The timeout in milliseconds used by the AdminClient to delete topics (Default: 30000ms)                                                                                                                        |
+| timeout.topic.list                        | int     | No       | The timeout in milliseconds used by the AdminClient to list topics (Default: 30000ms)                                                                                                                          |
+| timeout.user.alter-quotas                 | int     | No       | The timeout in milliseconds used by the AdminClient to alter client quotas (Default: 30000ms)                                                                                                                  |
+| timeout.user.alter-scram-credentials      | int     | No       | The timeout in milliseconds used by the AdminClient to alter scram credentials (Default: 30000ms)                                                                                                              |
+| timeout.user.describe-quotas              | int     | No       | The timeout in milliseconds used by the AdminClient to describe client quotas (Default: 30000ms)                                                                                                               |
+| provider                                  | boolean | Yes      | The kind of cluster. Either SELF_MANAGED or CONFLUENT_CLOUD                                                                                                                                                    |
+| config.bootstrap.servers                  | string  | Yes      | The location of the clusters servers                                                                                                                                                                           |
+| schema-registry.url                       | string  | No       | The location of the Schema Registry                                                                                                                                                                            |
+| schema-registry.basicAuthUsername         | string  | No       | Basic authentication username to the Schema Registry                                                                                                                                                           |
+| schema-registry.basicAuthPassword         | string  | No       | Basic authentication password to the Schema Registry                                                                                                                                                           |
+| connects.<connect-name>.url               | string  | No       | The location of the kafka connect                                                                                                                                                                              |
+| connects.<connect-name>.basicAuthUsername | string  | No       | Basic authentication username to the Kafka Connect                                                                                                                                                             |
+| connects.<connect-name>.basicAuthPassword | string  | No       | Basic authentication password to the Kafka Connect                                                                                                                                                             |
 
 The configuration will depend on the authentication method selected for your broker, schema registry and Kafka Connect.
 
-#### Stream Catalog
+##### Confluent Cloud
 
-For Confluent Cloud only, topic tags and description can be synchronized with Ns4Kafka.
+The following features are not supported when using Confluent Cloud as the provider.
 
-The synchronization is done with the [Confluent Stream Catalog GraphQL API](https://docs.confluent.io/cloud/current/stream-governance/graphql-apis.html) if you have the appropriate Stream Governance package on Confluent, otherwise with the [Confluent Stream Catalog REST API](https://docs.confluent.io/cloud/current/stream-governance/stream-catalog-rest-apis.html#list-all-topics).
+###### Stream Catalog
+
+Topic tags and descriptions can be synchronized with Ns4Kafka.
+
+The synchronization is performed using the [Confluent Stream Catalog GraphQL API](https://docs.confluent.io/cloud/current/stream-governance/graphql-apis.html) if you have the appropriate Stream Governance package on Confluent. Otherwise, it uses the [Confluent Stream Catalog REST API](https://docs.confluent.io/cloud/current/stream-governance/stream-catalog-rest-apis.html#list-all-topics).
 
 You can configure the synchronization using the following properties:
 
@@ -400,11 +413,53 @@ ns4kafka:
     stream-catalog:
       page-size: 500
       sync-catalog: true
+  managed-clusters:
+    cluster-name:
+      provider: "CONFLUENT_CLOUD"
+      config:
+        cluster.id: "my-cluster-id" 
 ```
 
-The page size is used for the Stream Catalog REST API and is capped at 500 as described in the [Confluent Cloud documentation](https://docs.confluent.io/cloud/current/stream-governance/stream-catalog-rest-apis.html#limits-on-topic-listings).
+| Property                             | Type    | Required | Description                                                                                                                                                                                                    |
+|--------------------------------------|---------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| config.cluster.id                    | string  | No       | The cluster id. Required to use [Confluent Cloud tags](https://docs.confluent.io/cloud/current/stream-governance/stream-catalog.html). In this case, [Stream Catalog properties](#stream-catalog) must be set. |
 
-Reminder that the `config.cluster.id` parameter from [managed Kafka cluster properties](#managed-kafka-clusters) must be set to use Confluent Cloud.
+The page size is used for the Stream Catalog REST API and is capped at 500, as described in the [Confluent Cloud documentation](https://docs.confluent.io/cloud/current/stream-governance/stream-catalog-rest-apis.html#limits-on-topic-listings).
+
+##### Role Binding
+
+Confluent role bindings can be synchronized with Ns4Kafka.
+
+The synchronization is performed using thz [Confluent Cloud API](https://docs.confluent.io/cloud/current/api.html#tag/Role-Bindings-(iamv2)).
+
+You can configure the synchronization using the following properties:
+
+```yaml
+ns4kafka:
+  managed-clusters:
+    cluster-name:
+      provider: "CONFLUENT_CLOUD"
+      manage-rbac: true
+      confluent-cloud:
+        organization-id: "xxx"
+        environment-id: "env-xxx"
+        cluster-id: "lkc-xxx"
+        url: "https://api.confluent.cloud"
+        basic-auth-username: "username"
+        basic-auth-password: "password"
+```
+
+| Property                             | Type    | Required | Description                                                                                                                                                                                                    |
+|--------------------------------------|---------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| manage-rbac                          | boolean | No       | Does the cluster manages Confluent role bindings (Default: false). The provider must be Confluent Cloud.                                                                                                       |
+| confluent-cloud.organization-id      | string  | No       | Confluent Cloud Organization ID. Required to use [Confluent Cloud Role Binding](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html).                                         |
+| confluent-cloud.environment-id       | string  | No       | Confluent Cloud environment ID. Required to use [Confluent Cloud Role Binding](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html).                                          |
+| confluent-cloud.cluster-id           | string  | No       | Confluent Cloud cluster ID. Required to use [Confluent Cloud Role Binding](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html).                                              |
+| confluent-cloud.url                  | string  | No       | Confluent Cloud API hostname. Required to use [Confluent Cloud Role Binding](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html).                                            |
+| confluent-cloud.basic-auth-username  | string  | No       | Basic authentication password to the Confluent Cloud API. Required to use [Confluent Cloud Role Binding](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html).                |
+| confluent-cloud.basic-auth-password  | string  | No       | Basic authentication password to the Confluent Cloud API. Required to use [Confluent Cloud Role Binding](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html).                |
+
+Ns4Kafka ACLs will be converted to the corresponding Role Bindings when synchronized.
 
 #### AKHQ
 
