@@ -41,9 +41,10 @@ Ns4Kafka brings a namespace-based deployment model for Kafka resources, inspired
     * [Kafka](#kafka) 
       * [Kafka Broker](#kafka-broker)
       * [Managed Kafka Clusters](#managed-kafka-clusters)
+        * [Self-Managed](#self-managed) 
         * [Confluent Cloud](#confluent-cloud)
           * [Stream Catalog](#stream-catalog)
-          * [Role Bindings](#role-bindings)
+          * [Role Binding](#role-binding)
       * [AKHQ](#akhq)
     * [Technical](#technical)
       * [Security](#security)
@@ -312,6 +313,10 @@ Ns4Kafka supports two types of cluster providers:
 - Self-managed
 - Confluent Cloud
 
+##### Self-Managed
+
+The following properties are available for both self-managed and [Confluent Cloud](#confluent-cloud) cluster providers.
+
 ```yaml
 ns4kafka:
   managed-clusters:
@@ -392,6 +397,8 @@ The configuration will depend on the authentication method selected for your bro
 
 ##### Confluent Cloud
 
+The following features are not supported when using Confluent Cloud as the provider.
+
 ###### Stream Catalog
 
 Topic tags and descriptions can be synchronized with Ns4Kafka.
@@ -419,7 +426,7 @@ ns4kafka:
 
 The page size is used for the Stream Catalog REST API and is capped at 500, as described in the [Confluent Cloud documentation](https://docs.confluent.io/cloud/current/stream-governance/stream-catalog-rest-apis.html#limits-on-topic-listings).
 
-##### Role Bindings
+##### Role Binding
 
 Confluent role bindings can be synchronized with Ns4Kafka.
 
