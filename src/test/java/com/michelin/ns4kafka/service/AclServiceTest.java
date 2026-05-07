@@ -1100,6 +1100,47 @@ class AclServiceTest {
     }
 
     @Test
+    void shouldCheckIfTopicReadableForNamespace() {
+        AccessControlEntry aclOwner = AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .resource("topic1")
+                        .grantedTo("namespace1")
+                        .build())
+                .build();
+
+        AccessControlEntry aclRead = AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                        .permission(AccessControlEntry.Permission.READ)
+                        .resource("topic2")
+                        .grantedTo("namespace2")
+                        .build())
+                .build();
+
+        AccessControlEntry aclWrite = AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
+                        .permission(AccessControlEntry.Permission.WRITE)
+                        .resource("topic3")
+                        .grantedTo("namespace3")
+                        .build())
+                .build();
+
+        when(accessControlEntryRepository.findAll()).thenReturn(List.of(aclOwner, aclRead, aclWrite));
+
+        assertTrue(aclService.isTopicReadableByNamespace("namespace1", "topic1"));
+        assertTrue(aclService.isTopicReadableByNamespace("namespace2", "topic2"));
+        assertFalse(aclService.isTopicReadableByNamespace("namespace3", "topic3"));
+        assertFalse(aclService.isTopicReadableByNamespace("namespace1", "topic2"));
+        assertFalse(aclService.isTopicReadableByNamespace("namespace1", "topic3"));
+    }
+
+    @Test
     void shouldNotCollideIfDifferentResource() {
         AccessControlEntry aceTopicPrefixedOwner = AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()

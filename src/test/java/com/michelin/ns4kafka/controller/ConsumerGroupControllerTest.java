@@ -41,6 +41,7 @@ import com.michelin.ns4kafka.model.consumer.group.ConsumerGroupResetOffsets.Cons
 import com.michelin.ns4kafka.model.consumer.group.ConsumerGroupResetOffsets.ResetOffsetsMethod;
 import com.michelin.ns4kafka.model.consumer.group.ConsumerGroupResetOffsetsResponse;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
+import com.michelin.ns4kafka.service.AclService;
 import com.michelin.ns4kafka.service.ConsumerGroupService;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
@@ -69,6 +70,9 @@ class ConsumerGroupControllerTest {
 
     @Mock
     ConsumerGroupService consumerGroupService;
+
+    @Mock
+    AclService aclService;
 
     @Mock
     ApplicationEventPublisher<AuditLog> applicationEventPublisher;
@@ -133,6 +137,7 @@ class ConsumerGroupControllerTest {
         when(consumerGroupService.validateResetOffsets(resetOffset)).thenReturn(List.of());
         when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
                 .thenReturn(true);
+        when(aclService.isTopicReadableByNamespace("test", "topic1")).thenReturn(true);
         when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(GroupState.EMPTY);
         when(consumerGroupService.getPartitionsToReset(ns, "groupID", "topic1")).thenReturn(topicPartitions);
         when(consumerGroupService.prepareOffsetsToReset(
@@ -193,6 +198,7 @@ class ConsumerGroupControllerTest {
         when(consumerGroupService.validateResetOffsets(resetOffset)).thenReturn(List.of());
         when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
                 .thenReturn(true);
+        when(aclService.isTopicReadableByNamespace("test", "topic1")).thenReturn(true);
         when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(GroupState.EMPTY);
         when(consumerGroupService.getPartitionsToReset(ns, "groupID", "topic1")).thenReturn(topicPartitions);
         when(consumerGroupService.prepareOffsetsToReset(
@@ -245,6 +251,7 @@ class ConsumerGroupControllerTest {
         when(consumerGroupService.validateResetOffsets(resetOffset)).thenReturn(List.of());
         when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
                 .thenReturn(true);
+        when(aclService.isTopicReadableByNamespace("test", "topic1")).thenReturn(true);
         when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(GroupState.EMPTY);
         when(consumerGroupService.getPartitionsToReset(ns, "groupID", "topic1"))
                 .thenThrow(new ExecutionException("Error during getPartitionsToReset", new Throwable()));
@@ -280,6 +287,7 @@ class ConsumerGroupControllerTest {
         when(consumerGroupService.validateResetOffsets(resetOffset)).thenReturn(new ArrayList<>());
         when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
                 .thenReturn(false);
+        when(aclService.isTopicReadableByNamespace("test", "topic1")).thenReturn(true);
 
         ResourceValidationException result = assertThrows(
                 ResourceValidationException.class,
@@ -287,6 +295,41 @@ class ConsumerGroupControllerTest {
 
         assertLinesMatch(
                 List.of("Invalid value \"groupID\" for field \"group\": " + "namespace is not owner of the resource."),
+                result.getValidationErrors());
+    }
+
+    @Test
+    void shouldNotResetConsumerGroupWhenTopicUnreadable() {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        ConsumerGroupResetOffsets resetOffset = ConsumerGroupResetOffsets.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("groupID")
+                        .cluster("local")
+                        .build())
+                .spec(ConsumerGroupResetOffsetsSpec.builder()
+                        .topic("topic1")
+                        .method(ResetOffsetsMethod.TO_EARLIEST)
+                        .build())
+                .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(consumerGroupService.validateResetOffsets(resetOffset)).thenReturn(new ArrayList<>());
+        when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
+                .thenReturn(true);
+        when(aclService.isTopicReadableByNamespace("test", "topic1")).thenReturn(false);
+
+        ResourceValidationException result = assertThrows(
+                ResourceValidationException.class,
+                () -> consumerGroupController.resetOffsets("test", "groupID", resetOffset, false));
+
+        assertLinesMatch(
+                List.of("Invalid \"reset offset\" operation: namespace cannot read topic topic1."),
                 result.getValidationErrors());
     }
 
@@ -314,6 +357,7 @@ class ConsumerGroupControllerTest {
         when(consumerGroupService.validateResetOffsets(resetOffset)).thenReturn(List.of("Validation Error"));
         when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
                 .thenReturn(true);
+        when(aclService.isTopicReadableByNamespace("test", "topic1")).thenReturn(true);
 
         ResourceValidationException result = assertThrows(
                 ResourceValidationException.class,
@@ -346,6 +390,7 @@ class ConsumerGroupControllerTest {
         when(consumerGroupService.validateResetOffsets(resetOffset)).thenReturn(new ArrayList<>());
         when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
                 .thenReturn(true);
+        when(aclService.isTopicReadableByNamespace("test", "topic1")).thenReturn(true);
         when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(GroupState.STABLE);
 
         ResourceValidationException result = assertThrows(

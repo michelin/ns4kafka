@@ -545,6 +545,31 @@ public class AclService {
     }
 
     /**
+     * Does the namespace have READ ACL on the topic.
+     *
+     * @param namespace The namespace
+     * @param topic The topic name
+     * @return true if it has, false otherwise
+     */
+    public boolean isTopicReadableByNamespace(String namespace, String topic) {
+        return accessControlEntryRepository.findAll().stream()
+                .filter(accessControlEntry ->
+                        accessControlEntry.getSpec().getGrantedTo().equals(namespace))
+                .filter(accessControlEntry -> List.of(
+                                AccessControlEntry.Permission.READ, AccessControlEntry.Permission.OWNER)
+                        .contains(accessControlEntry.getSpec().getPermission()))
+                .filter(accessControlEntry ->
+                        accessControlEntry.getSpec().getResourceType() == AccessControlEntry.ResourceType.TOPIC)
+                .anyMatch(accessControlEntry -> switch (accessControlEntry
+                        .getSpec()
+                        .getResourcePatternType()) {
+                    case PREFIXED ->
+                        topic.startsWith(accessControlEntry.getSpec().getResource());
+                    case LITERAL -> topic.equals(accessControlEntry.getSpec().getResource());
+                });
+    }
+
+    /**
      * Find an ACL by name.
      *
      * @param namespace The namespace
