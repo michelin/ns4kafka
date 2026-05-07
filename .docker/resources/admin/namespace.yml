@@ -2,7 +2,7 @@ apiVersion: "v1"
 kind: "Namespace"
 metadata:
   name: "myNamespace"
-  cluster: "cloud-test"
+  cluster: "local"
   labels:
     contacts: "namespace.owner@example.com"
 spec:
