@@ -6,7 +6,7 @@ metadata:
   labels:
     contacts: "namespace.owner@example.com"
 spec:
-  kafkaUser: "user1"
+  kafkaUser: "sa-1jr3jg3"
   transactionsEnabled: true
   subjectNameStrategies:
     - "TopicNameStrategy"

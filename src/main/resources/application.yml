@@ -46,6 +46,11 @@ micronaut:
         read-idle-timeout: "5s"
         read-timeout: "5s"
         url: "${micronaut.security.gitlab.url}"
+      confluent-cloud:
+        connect-timeout: "10s"
+        event-loop-group: "confluent-cloud"
+        read-idle-timeout: "10s"
+        read-timeout: "10s"
       kafka-connect:
         connect-timeout: "10s"
         event-loop-group: "connect"
@@ -63,6 +68,8 @@ micronaut:
         read-timeout: "10s"
   netty:
     event-loops:
+      confluent-cloud:
+        num-threads: 4
       connect:
         num-threads: 4
       connect-health-check:

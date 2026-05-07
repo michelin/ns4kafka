@@ -30,7 +30,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -42,7 +41,6 @@ import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.AccessControlEntryRepository;
-import com.michelin.ns4kafka.repository.kafka.KafkaStoreException;
 import com.michelin.ns4kafka.repository.kafka.KafkaStreamRepository;
 import com.michelin.ns4kafka.service.AclService;
 import com.michelin.ns4kafka.service.NamespaceService;
@@ -1165,8 +1163,13 @@ class ConfluentRoleBindingAsyncExecutorTest {
         RoleBindingResponse response = RoleBindingResponse.builder().build();
 
         when(managedClusterProperties.getName()).thenReturn("cluster");
+        when(managedClusterProperties.isManageAcls()).thenReturn(false);
+        when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
+        when(managedClusterProperties.isManageRbac()).thenReturn(true);
         when(aclService.findNonPublicToDeployForCluster("cluster")).thenReturn(List.of(acl));
+        when(aclService.findNonPublicToDeleteForCluster("cluster")).thenReturn(List.of());
         when(streamService.findAllToDeployForCluster("cluster")).thenReturn(List.of());
+        when(streamService.findAllToDeleteForCluster("cluster")).thenReturn(List.of());
         when(namespaceService.findByName("ns1"))
                 .thenReturn(Optional.of(Namespace.builder()
                         .spec(Namespace.NamespaceSpec.builder()
@@ -1175,38 +1178,13 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .build()));
 
         when(confluentCloudClient.createRoleBinding(any(), any())).thenReturn(Mono.just(response));
+        when(aclService.findByName("ns1", "ns1-write")).thenReturn(Optional.empty());
         when(aclRepository.create(acl)).thenReturn(acl);
 
-        rbAsyncExecutor.synchronizeConfluentRoleBindings();
+        rbAsyncExecutor.run();
 
         verify(confluentCloudClient).createRoleBinding(any(), any());
         verify(aclRepository).create(acl);
-    }
-
-    @Test
-    void shouldNotSynchronizeRoleBindings() {
-        AccessControlEntry acl = AccessControlEntry.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("ns1-write")
-                        .namespace("ns1")
-                        .cluster("cluster")
-                        .status(Resource.Metadata.Status.ofPending())
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resource("ns1-")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.WRITE)
-                        .grantedTo("ns1")
-                        .build())
-                .build();
-
-        when(managedClusterProperties.getName()).thenReturn("cluster");
-        doThrow(new KafkaStoreException("exception")).when(aclService).findNonPublicToDeployForCluster("cluster");
-
-        rbAsyncExecutor.synchronizeConfluentRoleBindings();
-
-        verify(aclService, never()).create(acl);
     }
 
     @Test

@@ -31,7 +31,6 @@ import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.AccessControlEntryRepository;
-import com.michelin.ns4kafka.repository.kafka.KafkaStoreException;
 import com.michelin.ns4kafka.repository.kafka.KafkaStreamRepository;
 import com.michelin.ns4kafka.service.AclService;
 import com.michelin.ns4kafka.service.NamespaceService;
@@ -92,20 +91,14 @@ public class ConfluentRoleBindingAsyncExecutor {
         if (!this.managedClusterProperties.isManageAcls()
                 && this.managedClusterProperties.isConfluentCloud()
                 && this.managedClusterProperties.isManageRbac()) {
-            synchronizeConfluentRoleBindings();
-        }
-    }
+            log.debug("Starting Role Bindings collection for cluster {}", managedClusterProperties.getName());
 
-    /** Start the Confluent Role Bindings synchronization. */
-    void synchronizeConfluentRoleBindings() {
-        log.debug("Starting Role Bindings collection for cluster {}", managedClusterProperties.getName());
-
-        try {
             // Public ACLs are handled by the ACL executor as Confluent Role Binding cannot manage "*"
             List<AccessControlEntry> aclsToCreate =
                     aclService.findNonPublicToDeployForCluster(managedClusterProperties.getName());
             List<KafkaStream> streamsToCreate =
                     streamService.findAllToDeployForCluster(managedClusterProperties.getName());
+
             List<AccessControlEntry> aclsToDelete =
                     aclService.findNonPublicToDeleteForCluster(managedClusterProperties.getName());
             List<KafkaStream> streamsToDelete =
@@ -115,9 +108,6 @@ public class ConfluentRoleBindingAsyncExecutor {
             createRoleBindingsFromKafkaStreams(streamsToCreate);
             deleteRoleBindingsFromAcls(aclsToDelete);
             deleteRoleBindingsFromKafkaStreams(streamsToDelete);
-
-        } catch (KafkaStoreException e) {
-            log.error("An error occurred collecting ACLs from Ns4kafka during Role Bindings synchronization", e);
         }
     }
 
@@ -134,10 +124,13 @@ public class ConfluentRoleBindingAsyncExecutor {
                         roleBindingResponse -> {
                             if (isUnchangedSinceLastApply(acl)) {
                                 log.info(
-                                        "Success creating RoleBinding {} for ACL {} on {}",
+                                        "Success creating RoleBinding {} for ACL {} on {}.",
                                         roleBindingResponse.id(),
                                         acl.getMetadata().getName(),
                                         managedClusterProperties.getName());
+
+                                acl.getMetadata()
+                                        .setGeneration(acl.getMetadata().getGeneration() + 1);
                                 acl.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
                                 aclRepository.create(acl);
                             }
@@ -145,10 +138,11 @@ public class ConfluentRoleBindingAsyncExecutor {
                         e -> {
                             if (isUnchangedSinceLastApply(acl)) {
                                 log.error(
-                                        "Error while creating RoleBinding for ACL {} on {}",
+                                        "Error creating RoleBinding for ACL {} on {}.",
                                         acl.getMetadata().getName(),
                                         managedClusterProperties.getName(),
                                         e);
+
                                 acl.getMetadata().setStatus(Resource.Metadata.Status.ofFailed(e.getMessage()));
                                 aclRepository.create(acl);
                             }
@@ -170,10 +164,13 @@ public class ConfluentRoleBindingAsyncExecutor {
                             roleBindingResponse -> {
                                 if (isUnchangedSinceLastApply(ks)) {
                                     log.info(
-                                            "Success creating RoleBinding {} for KafkaStream {} on {}",
+                                            "Success creating RoleBinding {} for KafkaStream {} on {}.",
                                             roleBindingResponse.id(),
                                             ks.getMetadata().getName(),
                                             managedClusterProperties.getName());
+
+                                    ks.getMetadata()
+                                            .setGeneration(ks.getMetadata().getGeneration() + 1);
                                     ks.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
                                     kafkaStreamRepository.create(ks);
                                 }
@@ -181,10 +178,11 @@ public class ConfluentRoleBindingAsyncExecutor {
                             e -> {
                                 if (isUnchangedSinceLastApply(ks)) {
                                     log.error(
-                                            "Error while creating RoleBinding for KafkaStream {} on {}",
+                                            "Error creating RoleBinding for KafkaStream {} on {}.",
                                             ks.getMetadata().getName(),
                                             managedClusterProperties.getName(),
                                             e);
+
                                     ks.getMetadata().setStatus(Resource.Metadata.Status.ofFailed(e.getMessage()));
                                     kafkaStreamRepository.create(ks);
                                 }
@@ -207,23 +205,26 @@ public class ConfluentRoleBindingAsyncExecutor {
                                 "No RoleBinding to delete for ACL {} on {}: ACL will be removed from Ns4Kafka.",
                                 acl.getMetadata().getName(),
                                 managedClusterProperties.getName());
+
                         aclRepository.delete(acl);
                     } else if (isUnchangedSinceLastApply(acl)) {
                         log.info(
-                                "Success deleting RoleBinding {} for ACL {} on {}",
+                                "Success deleting RoleBinding {} for ACL {} on {}.",
                                 roleBindingResponse.id(),
                                 acl.getMetadata().getName(),
                                 managedClusterProperties.getName());
+
                         aclRepository.delete(acl);
                     }
                 })
                 .doOnError(e -> {
                     if (isUnchangedSinceLastApply(acl)) {
                         log.error(
-                                "Error while deleting RoleBinding for ACL {} on {}",
+                                "Error deleting RoleBinding for ACL {} on {}.",
                                 acl.getMetadata().getName(),
                                 managedClusterProperties.getName(),
                                 e);
+
                         acl.getMetadata().setStatus(Resource.Metadata.Status.ofFailed(e.getMessage()));
                         aclRepository.create(acl);
                     }
@@ -246,23 +247,26 @@ public class ConfluentRoleBindingAsyncExecutor {
                                 "No RoleBinding to delete for KafkaStream {} on {}: KafkaStream will be removed from Ns4Kafka.",
                                 ks.getMetadata().getName(),
                                 managedClusterProperties.getName());
+
                         kafkaStreamRepository.delete(ks);
                     } else if (isUnchangedSinceLastApply(ks)) {
                         log.info(
-                                "Success deleting RoleBinding {} for KafkaStream {} on {}",
+                                "Success deleting RoleBinding {} for KafkaStream {} on {}.",
                                 roleBindingResponse.id(),
                                 ks.getMetadata().getName(),
                                 managedClusterProperties.getName());
+
                         kafkaStreamRepository.delete(ks);
                     }
                 })
                 .doOnError(e -> {
                     if (isUnchangedSinceLastApply(ks)) {
                         log.error(
-                                "Error while deleting RoleBinding for KafkaStream {} on {}",
+                                "Error deleting RoleBinding for KafkaStream {} on {}",
                                 ks.getMetadata().getName(),
                                 managedClusterProperties.getName(),
                                 e);
+
                         ks.getMetadata().setStatus(Resource.Metadata.Status.ofFailed(e.getMessage()));
                         kafkaStreamRepository.create(ks);
                     }
@@ -296,14 +300,14 @@ public class ConfluentRoleBindingAsyncExecutor {
         String principal = USER_PRINCIPAL + namespace.getSpec().getKafkaUser();
         String resource = computeResourcePattern(acl);
 
-        return (switch (acl.getSpec().getPermission()) {
+        return switch (acl.getSpec().getPermission()) {
             case OWNER ->
                 List.of(
                         new RoleBinding(principal, DEVELOPER_READ, TOPIC, resource),
                         new RoleBinding(principal, DEVELOPER_WRITE, TOPIC, resource));
             case READ -> List.of(new RoleBinding(principal, DEVELOPER_READ, TOPIC, resource));
             case WRITE -> List.of(new RoleBinding(principal, DEVELOPER_WRITE, TOPIC, resource));
-        });
+        };
     }
 
     /**
@@ -317,12 +321,12 @@ public class ConfluentRoleBindingAsyncExecutor {
                 namespaceService.findByName(acl.getSpec().getGrantedTo()).orElseThrow();
         String principal = USER_PRINCIPAL + namespace.getSpec().getKafkaUser();
 
-        return (switch (acl.getSpec().getPermission()) {
+        return switch (acl.getSpec().getPermission()) {
             case OWNER, READ -> List.of(new RoleBinding(principal, DEVELOPER_READ, GROUP, computeResourcePattern(acl)));
             default ->
                 throw new IllegalArgumentException(
                         "Not implemented for GROUP ACL: " + acl.getSpec().getPermission());
-        });
+        };
     }
 
     /**
@@ -337,12 +341,12 @@ public class ConfluentRoleBindingAsyncExecutor {
         String principal = USER_PRINCIPAL + namespace.getSpec().getKafkaUser();
         String resource = "connect-" + computeResourcePattern(acl);
 
-        return (switch (acl.getSpec().getPermission()) {
-            case OWNER -> List.of(new RoleBinding(principal, DEVELOPER_READ, GROUP, resource));
-            default ->
-                throw new IllegalArgumentException(
-                        "Not implemented for CONNECT ACL: " + acl.getSpec().getPermission());
-        });
+        if (acl.getSpec().getPermission() == AccessControlEntry.Permission.OWNER) {
+            return List.of(new RoleBinding(principal, DEVELOPER_READ, GROUP, resource));
+        }
+
+        throw new IllegalArgumentException(
+                "Not implemented for CONNECT ACL: " + acl.getSpec().getPermission());
     }
 
     /**
@@ -357,12 +361,12 @@ public class ConfluentRoleBindingAsyncExecutor {
         String principal = USER_PRINCIPAL + namespace.getSpec().getKafkaUser();
         String resource = computeResourcePattern(acl);
 
-        return (switch (acl.getSpec().getPermission()) {
+        return switch (acl.getSpec().getPermission()) {
             case OWNER, WRITE -> List.of(new RoleBinding(principal, DEVELOPER_WRITE, TRANSACTIONAL_ID, resource));
             default ->
                 throw new IllegalArgumentException("Not implemented for TRANSACTIONAL_ID ACL: "
                         + acl.getSpec().getPermission());
-        });
+        };
     }
 
     /**

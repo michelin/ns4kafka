@@ -165,6 +165,12 @@ public class AclController extends NamespacedResourceController {
         }
 
         accessControlEntry.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
+        accessControlEntry
+                .getMetadata()
+                .setGeneration(existingAcl
+                        .map(oldAccessControlEntry ->
+                                oldAccessControlEntry.getMetadata().getGeneration())
+                        .orElse(0));
         accessControlEntry.getMetadata().setCluster(ns.getMetadata().getCluster());
         accessControlEntry.getMetadata().setNamespace(ns.getMetadata().getName());
 

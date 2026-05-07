@@ -21,6 +21,7 @@ package com.michelin.ns4kafka.model;
 import static com.michelin.ns4kafka.security.ResourceBasedSecurityRule.RESOURCE_PATTERN;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.michelin.ns4kafka.util.enumation.Kind;
@@ -146,6 +147,7 @@ public class Resource {
      *
      * @return {@code true} if it is, {@code false} otherwise
      */
+    @JsonIgnore
     public boolean isPending() {
         if (metadata == null || metadata.getStatus() == null) {
             return false;
@@ -159,6 +161,7 @@ public class Resource {
      *
      * @return {@code true} if it is, {@code false} otherwise
      */
+    @JsonIgnore
     public boolean isDeleting() {
         if (metadata == null || metadata.getStatus() == null) {
             return false;

@@ -135,39 +135,39 @@ services:
       CONTROL_CENTER_KAFKA_MYCLUSTER_SECURITY_PROTOCOL: SASL_PLAINTEXT
       CONTROL_CENTER_KAFKA_MYCLUSTER_SASL_JAAS_CONFIG: org.apache.kafka.common.security.scram.ScramLoginModule required username="admin" password="admin";
 
-  ns4kafka:
-    image: michelin/ns4kafka:1.17.0
-    hostname: ns4kafka
-    container_name: ns4kafka
-    networks:
-      - ns4kafka-network
-    depends_on:
-      - broker
-      - schema-registry
-      - connect
-    ports:
-      - "80:8080"
-    restart: unless-stopped
-    volumes:
-      - ./config/ns4kafka/application.yml:/home/app/application.yml:ro
-      - ./config/ns4kafka/logback.xml:/home/app/resources/logback.xml:ro
-    environment:
-      - MICRONAUT_CONFIG_FILES=/home/app/application.yml
-
-  kafkactl:
-    image: michelin/kafkactl:1.17.2-native
-    hostname: kafkactl
-    container_name: kafkactl
-    networks:
-      - ns4kafka-network
-    depends_on:
-      - broker
-      - schema-registry
-      - connect
-    entrypoint: [ "tail", "-f", "/dev/null" ]
-    volumes:
-      - ./config/kafkactl/config.yml:/root/.kafkactl/config.yml
-      - ./resources:/resources
+  # ns4kafka:
+  #   image: michelin/ns4kafka:1.17.0
+  #   hostname: ns4kafka
+  #   container_name: ns4kafka
+  #   networks:
+  #     - ns4kafka-network
+  #   depends_on:
+  #     - broker
+  #     - schema-registry
+  #     - connect
+  #   ports:
+  #     - "80:8080"
+  #   restart: unless-stopped
+  #   volumes:
+  #     - ./config/ns4kafka/application.yml:/home/app/application.yml:ro
+  #     - ./config/ns4kafka/logback.xml:/home/app/resources/logback.xml:ro
+  #   environment:
+  #     - MICRONAUT_CONFIG_FILES=/home/app/application.yml
+#
+  # kafkactl:
+  #   image: michelin/kafkactl:1.17.2-native
+  #   hostname: kafkactl
+  #   container_name: kafkactl
+  #   networks:
+  #     - ns4kafka-network
+  #   depends_on:
+  #     - broker
+  #     - schema-registry
+  #     - connect
+  #   entrypoint: [ "tail", "-f", "/dev/null" ]
+  #   volumes:
+  #     - ./config/kafkactl/config.yml:/root/.kafkactl/config.yml
+  #     - ./resources:/resources
 
 networks:
   ns4kafka-network:

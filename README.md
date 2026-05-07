@@ -41,8 +41,9 @@ Ns4Kafka brings a namespace-based deployment model for Kafka resources, inspired
     * [Kafka](#kafka) 
       * [Kafka Broker](#kafka-broker)
       * [Managed Kafka Clusters](#managed-kafka-clusters)
-      * [Stream Catalog](#stream-catalog)
-      * [Confluent Role Bindings](#confluent-role-bindings)
+        * [Confluent Cloud](#confluent-cloud)
+          * [Stream Catalog](#stream-catalog)
+          * [Role Bindings](#role-bindings)
       * [AKHQ](#akhq)
     * [Technical](#technical)
       * [Security](#security)
@@ -306,9 +307,12 @@ The configuration will depend on the authentication method selected for your bro
 
 #### Managed Kafka Clusters
 
-Managed clusters are the clusters where Ns4Kafka namespaces are deployed, and Kafka resources are managed.
+Managed clusters are clusters where Ns4Kafka namespaces are applied and Kafka resources are managed.
 
-You can configure your managed clusters with the following properties:
+Two types of cluster providers are supported:
+
+- Self-managed
+- Confluent Cloud
 
 ```yaml
 ns4kafka:
@@ -402,7 +406,9 @@ of your namespace descriptors.
 
 The configuration will depend on the authentication method selected for your broker, schema registry and Kafka Connect.
 
-#### Stream Catalog
+##### Confluent Cloud
+
+###### Stream Catalog
 
 For Confluent Cloud only, topic tags and description can be synchronized with Ns4Kafka.
 
@@ -422,9 +428,9 @@ The page size is used for the Stream Catalog REST API and is capped at 500 as de
 
 Reminder that the `config.cluster.id` parameter from [managed Kafka cluster properties](#managed-kafka-clusters) must be set to use Confluent Cloud.
 
-#### Confluent Role Bindings
+##### Role Bindings
 
-For Confluent Cloud only, Confluent Role Bindings can be synchronized with Ns4Kafka.
+Confluent Role Bindings can be synchronized with Ns4Kafka.
 
 The synchronization is done with the [Confluent Cloud API](https://docs.confluent.io/cloud/current/api.html#tag/Role-Bindings-(iamv2)).
 
