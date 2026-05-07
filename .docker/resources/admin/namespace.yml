@@ -2,11 +2,11 @@ apiVersion: "v1"
 kind: "Namespace"
 metadata:
   name: "myNamespace"
-  cluster: "local"
+  cluster: "cloud-test"
   labels:
     contacts: "namespace.owner@example.com"
 spec:
-  kafkaUser: "sa-1jr3jg3"
+  kafkaUser: "user1"
   transactionsEnabled: true
   subjectNameStrategies:
     - "TopicNameStrategy"
