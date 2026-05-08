@@ -201,8 +201,6 @@ class ConsumerGroupServiceTest {
         when(aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.GROUP))
                 .thenReturn(acls);
         when(aclService.isResourceCoveredByAcls(acls, "namespace-group2")).thenReturn(true);
-        when(aclService.isResourceCoveredByAcls(acls, "namespace-group1")).thenReturn(true);
-        when(aclService.isResourceCoveredByAcls(acls, "other-group")).thenReturn(false);
         when(consumerGroupAsyncExecutor.describeConsumerGroups(List.of("namespace-group2")))
                 .thenReturn(Map.of());
         when(consumerGroupAsyncExecutor.getCommittedOffsets("namespace-group2"))
@@ -245,6 +243,173 @@ class ConsumerGroupServiceTest {
         when(aclService.isResourceCoveredByAcls(acls, "other-group")).thenReturn(false);
 
         assertEquals(List.of(), consumerGroupService.findByWildcardName(namespace, "*"));
+    }
+
+        @Test
+        void shouldListExternalConsumerGroupsConsumingNamespaceOwnedTopics()
+                        throws InterruptedException, ExecutionException {
+        Namespace namespace = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("test")
+                        .build())
+                .build();
+
+        List<AccessControlEntry> groupOwnerAcls = List.of(AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.GROUP)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .grantedTo("namespace")
+                        .resource("namespace-")
+                        .build())
+                .build());
+        List<AccessControlEntry> topicOwnerAcls = List.of(AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .grantedTo("namespace")
+                        .resource("namespace-")
+                        .build())
+                .build());
+
+        ConsumerGroupDescription stableDescription =
+                new ConsumerGroupDescription(null, true, null, null, null, GroupState.STABLE, null, null, null, null);
+
+        TopicPartition ownedPartition = new TopicPartition("namespace-topic", 0);
+        TopicPartition foreignPartition = new TopicPartition("other-topic", 0);
+
+        ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor = mock(ConsumerGroupAsyncExecutor.class);
+        when(applicationContext.getBean(
+                        ConsumerGroupAsyncExecutor.class,
+                        Qualifiers.byName(namespace.getMetadata().getCluster())))
+                .thenReturn(consumerGroupAsyncExecutor);
+        when(consumerGroupAsyncExecutor.listConsumerGroupIds())
+                .thenReturn(List.of("consumer-on-owned-topic", "consumer-on-other-topic", "namespace-owned-group"));
+        when(aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.GROUP))
+                .thenReturn(groupOwnerAcls);
+        when(aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.TOPIC))
+                .thenReturn(topicOwnerAcls);
+        when(aclService.isResourceCoveredByAcls(groupOwnerAcls, "consumer-on-owned-topic")).thenReturn(false);
+        when(aclService.isResourceCoveredByAcls(groupOwnerAcls, "consumer-on-other-topic")).thenReturn(false);
+        when(aclService.isResourceCoveredByAcls(groupOwnerAcls, "namespace-owned-group")).thenReturn(true);
+        when(consumerGroupAsyncExecutor.getCommittedOffsets("consumer-on-owned-topic"))
+                .thenReturn(Map.of(ownedPartition, 5L));
+        when(consumerGroupAsyncExecutor.getCommittedOffsets("consumer-on-other-topic"))
+                .thenReturn(Map.of(foreignPartition, 7L));
+        when(aclService.isResourceCoveredByAcls(topicOwnerAcls, "namespace-topic")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(topicOwnerAcls, "other-topic")).thenReturn(false);
+        when(consumerGroupAsyncExecutor.describeConsumerGroups(List.of("consumer-on-owned-topic")))
+                .thenReturn(Map.of("consumer-on-owned-topic", stableDescription));
+
+        List<ConsumerGroup> result = consumerGroupService.findExternalByWildcardName(namespace, "*");
+
+        assertEquals(1, result.size());
+        assertEquals("consumer-on-owned-topic", result.getFirst().getMetadata().getName());
+        assertEquals(1, result.getFirst().getStatus().getOffsets().size());
+        assertEquals("namespace-topic", result.getFirst().getStatus().getOffsets().getFirst().getTopic());
+    }
+
+        @Test
+        void shouldIncludeTopicsForMultipleExternalConsumerGroups()
+                        throws InterruptedException, ExecutionException {
+        Namespace namespace = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("test")
+                        .build())
+                .build();
+
+        List<AccessControlEntry> groupOwnerAcls = List.of(AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.GROUP)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .grantedTo("namespace")
+                        .resource("namespace-")
+                        .build())
+                .build());
+        List<AccessControlEntry> topicOwnerAcls = List.of(AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .grantedTo("namespace")
+                        .resource("namespace-")
+                        .build())
+                .build());
+
+        ConsumerGroupDescription stableDescription =
+                new ConsumerGroupDescription(null, true, null, null, null, GroupState.STABLE, null, null, null, null);
+
+        TopicPartition firstOwnedPartition = new TopicPartition("namespace-topic", 0);
+        TopicPartition secondOwnedPartition = new TopicPartition("namespace-topic-2", 1);
+
+        ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor = mock(ConsumerGroupAsyncExecutor.class);
+        when(applicationContext.getBean(
+                        ConsumerGroupAsyncExecutor.class,
+                        Qualifiers.byName(namespace.getMetadata().getCluster())))
+                .thenReturn(consumerGroupAsyncExecutor);
+        when(consumerGroupAsyncExecutor.listConsumerGroupIds())
+                .thenReturn(List.of("external-group-1", "external-group-2"));
+        when(aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.GROUP))
+                .thenReturn(groupOwnerAcls);
+        when(aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.TOPIC))
+                .thenReturn(topicOwnerAcls);
+        when(aclService.isResourceCoveredByAcls(groupOwnerAcls, "external-group-1")).thenReturn(false);
+        when(aclService.isResourceCoveredByAcls(groupOwnerAcls, "external-group-2")).thenReturn(false);
+        when(consumerGroupAsyncExecutor.getCommittedOffsets("external-group-1"))
+                .thenReturn(Map.of(firstOwnedPartition, 5L));
+        when(consumerGroupAsyncExecutor.getCommittedOffsets("external-group-2"))
+                .thenReturn(Map.of(secondOwnedPartition, 7L));
+        when(aclService.isResourceCoveredByAcls(topicOwnerAcls, "namespace-topic")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(topicOwnerAcls, "namespace-topic-2")).thenReturn(true);
+        when(consumerGroupAsyncExecutor.describeConsumerGroups(List.of("external-group-1", "external-group-2")))
+                .thenReturn(Map.of("external-group-1", stableDescription, "external-group-2", stableDescription));
+
+        List<ConsumerGroup> result = consumerGroupService.findExternalByWildcardName(namespace, "*");
+
+        assertEquals(2, result.size());
+        assertEquals("namespace-topic", result.get(0).getStatus().getOffsets().getFirst().getTopic());
+        assertEquals("namespace-topic-2", result.get(1).getStatus().getOffsets().getFirst().getTopic());
+    }
+
+        @Test
+        void shouldNotListExternalConsumerGroupsWhenCommittedOffsetsCannotBeRead()
+                        throws InterruptedException, ExecutionException {
+        Namespace namespace = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("test")
+                        .build())
+                .build();
+
+        List<AccessControlEntry> topicOwnerAcls = List.of(AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .grantedTo("namespace")
+                        .resource("namespace-")
+                        .build())
+                .build());
+        ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor = mock(ConsumerGroupAsyncExecutor.class);
+        when(applicationContext.getBean(
+                        ConsumerGroupAsyncExecutor.class,
+                        Qualifiers.byName(namespace.getMetadata().getCluster())))
+                .thenReturn(consumerGroupAsyncExecutor);
+        when(consumerGroupAsyncExecutor.listConsumerGroupIds()).thenReturn(List.of("namespace-group1"));
+        when(aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.GROUP))
+                .thenReturn(List.of());
+        when(aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.TOPIC))
+                .thenReturn(topicOwnerAcls);
+        when(consumerGroupAsyncExecutor.getCommittedOffsets("namespace-group1"))
+                .thenThrow(new ExecutionException(new RuntimeException("boom")));
+
+        List<ConsumerGroup> result = consumerGroupService.findExternalByWildcardName(namespace, "*");
+
+        assertTrue(result.isEmpty());
     }
 
     @ParameterizedTest
