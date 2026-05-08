@@ -86,10 +86,10 @@ public class ConsumerGroupService {
                 aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.GROUP);
         List<String> nameFilterPatterns = RegexUtils.convertWildcardStringsToRegex(List.of(name));
         List<String> consumerGroupIds = consumerGroupAsyncExecutor.listConsumerGroupIds().stream()
-            .filter(groupId -> aclService.isResourceCoveredByAcls(groupOwnerAcls, groupId))
-            .filter(groupId -> RegexUtils.isResourceCoveredByRegex(groupId, nameFilterPatterns))
-            .sorted()
-            .toList();
+                .filter(groupId -> aclService.isResourceCoveredByAcls(groupOwnerAcls, groupId))
+                .filter(groupId -> RegexUtils.isResourceCoveredByRegex(groupId, nameFilterPatterns))
+                .sorted()
+                .toList();
 
         if (consumerGroupIds.isEmpty()) {
             return List.of();
@@ -130,8 +130,8 @@ public class ConsumerGroupService {
         List<String> consumerGroupIds = consumerGroupAsyncExecutor.listConsumerGroupIds().stream()
                 .filter(groupId -> RegexUtils.isResourceCoveredByRegex(groupId, nameFilterPatterns))
                 .filter(groupId -> !aclService.isResourceCoveredByAcls(groupOwnerAcls, groupId))
-                .filter(groupId -> isConsumerGroupOnNamespaceOwnedTopics(
-                        consumerGroupAsyncExecutor, topicOwnerAcls, groupId))
+                .filter(groupId ->
+                        isConsumerGroupOnNamespaceOwnedTopics(consumerGroupAsyncExecutor, topicOwnerAcls, groupId))
                 .sorted()
                 .toList();
 
@@ -147,7 +147,7 @@ public class ConsumerGroupService {
                         namespace,
                         groupId,
                         descriptions.get(groupId),
-                getCommittedOffsetsSafely(consumerGroupAsyncExecutor, groupId)))
+                        getCommittedOffsetsSafely(consumerGroupAsyncExecutor, groupId)))
                 .toList();
     }
 

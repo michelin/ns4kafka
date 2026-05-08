@@ -245,9 +245,9 @@ class ConsumerGroupServiceTest {
         assertEquals(List.of(), consumerGroupService.findByWildcardName(namespace, "*"));
     }
 
-        @Test
-        void shouldListExternalConsumerGroupsConsumingNamespaceOwnedTopics()
-                        throws InterruptedException, ExecutionException {
+    @Test
+    void shouldListExternalConsumerGroupsConsumingNamespaceOwnedTopics()
+            throws InterruptedException, ExecutionException {
         Namespace namespace = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("namespace")
@@ -291,14 +291,18 @@ class ConsumerGroupServiceTest {
                 .thenReturn(groupOwnerAcls);
         when(aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.TOPIC))
                 .thenReturn(topicOwnerAcls);
-        when(aclService.isResourceCoveredByAcls(groupOwnerAcls, "consumer-on-owned-topic")).thenReturn(false);
-        when(aclService.isResourceCoveredByAcls(groupOwnerAcls, "consumer-on-other-topic")).thenReturn(false);
-        when(aclService.isResourceCoveredByAcls(groupOwnerAcls, "namespace-owned-group")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(groupOwnerAcls, "consumer-on-owned-topic"))
+                .thenReturn(false);
+        when(aclService.isResourceCoveredByAcls(groupOwnerAcls, "consumer-on-other-topic"))
+                .thenReturn(false);
+        when(aclService.isResourceCoveredByAcls(groupOwnerAcls, "namespace-owned-group"))
+                .thenReturn(true);
         when(consumerGroupAsyncExecutor.getCommittedOffsets("consumer-on-owned-topic"))
                 .thenReturn(Map.of(ownedPartition, 5L));
         when(consumerGroupAsyncExecutor.getCommittedOffsets("consumer-on-other-topic"))
                 .thenReturn(Map.of(foreignPartition, 7L));
-        when(aclService.isResourceCoveredByAcls(topicOwnerAcls, "namespace-topic")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(topicOwnerAcls, "namespace-topic"))
+                .thenReturn(true);
         when(aclService.isResourceCoveredByAcls(topicOwnerAcls, "other-topic")).thenReturn(false);
         when(consumerGroupAsyncExecutor.describeConsumerGroups(List.of("consumer-on-owned-topic")))
                 .thenReturn(Map.of("consumer-on-owned-topic", stableDescription));
@@ -308,12 +312,13 @@ class ConsumerGroupServiceTest {
         assertEquals(1, result.size());
         assertEquals("consumer-on-owned-topic", result.getFirst().getMetadata().getName());
         assertEquals(1, result.getFirst().getStatus().getOffsets().size());
-        assertEquals("namespace-topic", result.getFirst().getStatus().getOffsets().getFirst().getTopic());
+        assertEquals(
+                "namespace-topic",
+                result.getFirst().getStatus().getOffsets().getFirst().getTopic());
     }
 
-        @Test
-        void shouldIncludeTopicsForMultipleExternalConsumerGroups()
-                        throws InterruptedException, ExecutionException {
+    @Test
+    void shouldIncludeTopicsForMultipleExternalConsumerGroups() throws InterruptedException, ExecutionException {
         Namespace namespace = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("namespace")
@@ -357,27 +362,35 @@ class ConsumerGroupServiceTest {
                 .thenReturn(groupOwnerAcls);
         when(aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.TOPIC))
                 .thenReturn(topicOwnerAcls);
-        when(aclService.isResourceCoveredByAcls(groupOwnerAcls, "external-group-1")).thenReturn(false);
-        when(aclService.isResourceCoveredByAcls(groupOwnerAcls, "external-group-2")).thenReturn(false);
+        when(aclService.isResourceCoveredByAcls(groupOwnerAcls, "external-group-1"))
+                .thenReturn(false);
+        when(aclService.isResourceCoveredByAcls(groupOwnerAcls, "external-group-2"))
+                .thenReturn(false);
         when(consumerGroupAsyncExecutor.getCommittedOffsets("external-group-1"))
                 .thenReturn(Map.of(firstOwnedPartition, 5L));
         when(consumerGroupAsyncExecutor.getCommittedOffsets("external-group-2"))
                 .thenReturn(Map.of(secondOwnedPartition, 7L));
-        when(aclService.isResourceCoveredByAcls(topicOwnerAcls, "namespace-topic")).thenReturn(true);
-        when(aclService.isResourceCoveredByAcls(topicOwnerAcls, "namespace-topic-2")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(topicOwnerAcls, "namespace-topic"))
+                .thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(topicOwnerAcls, "namespace-topic-2"))
+                .thenReturn(true);
         when(consumerGroupAsyncExecutor.describeConsumerGroups(List.of("external-group-1", "external-group-2")))
                 .thenReturn(Map.of("external-group-1", stableDescription, "external-group-2", stableDescription));
 
         List<ConsumerGroup> result = consumerGroupService.findExternalByWildcardName(namespace, "*");
 
         assertEquals(2, result.size());
-        assertEquals("namespace-topic", result.get(0).getStatus().getOffsets().getFirst().getTopic());
-        assertEquals("namespace-topic-2", result.get(1).getStatus().getOffsets().getFirst().getTopic());
+        assertEquals(
+                "namespace-topic",
+                result.get(0).getStatus().getOffsets().getFirst().getTopic());
+        assertEquals(
+                "namespace-topic-2",
+                result.get(1).getStatus().getOffsets().getFirst().getTopic());
     }
 
-        @Test
-        void shouldNotListExternalConsumerGroupsWhenCommittedOffsetsCannotBeRead()
-                        throws InterruptedException, ExecutionException {
+    @Test
+    void shouldNotListExternalConsumerGroupsWhenCommittedOffsetsCannotBeRead()
+            throws InterruptedException, ExecutionException {
         Namespace namespace = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("namespace")

@@ -108,8 +108,8 @@ class ConsumerGroupControllerTest {
         assertEquals(expected, consumerGroupController.list("test", "group*"));
     }
 
-        @Test
-        void shouldListExternalConsumerGroups() throws InterruptedException, ExecutionException {
+    @Test
+    void shouldListExternalConsumerGroups() throws InterruptedException, ExecutionException {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test")
@@ -128,8 +128,7 @@ class ConsumerGroupControllerTest {
                 .build());
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(consumerGroupService.findExternalByWildcardName(ns, "group*"))
-                .thenReturn(expected);
+        when(consumerGroupService.findExternalByWildcardName(ns, "group*")).thenReturn(expected);
 
         assertEquals(expected, consumerGroupController.listExternal("test", "group*"));
     }
