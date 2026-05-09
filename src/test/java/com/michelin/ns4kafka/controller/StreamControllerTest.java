@@ -280,6 +280,40 @@ class StreamControllerTest {
     }
 
     @Test
+    void shouldApplyStreamWithCreatedStatusWhenExistingStreamIsDeleting() {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        KafkaStream stream = KafkaStream.builder()
+                .metadata(Resource.Metadata.builder().name("test_stream1").build())
+                .build();
+
+        KafkaStream existingDeletingStream = KafkaStream.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test_stream1")
+                        .status(Resource.Metadata.Status.ofDeleting())
+                        .build())
+                .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(streamService.isNamespaceOwnerOfKafkaStream(ns, "test_stream1")).thenReturn(true);
+        when(streamService.findByName(ns, "test_stream1")).thenReturn(Optional.of(existingDeletingStream));
+        when(streamService.isClusterManagingRbac(existingDeletingStream)).thenReturn(true);
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
+        doNothing().when(applicationEventPublisher).publishEvent(any());
+        when(streamService.create(stream)).thenReturn(stream);
+
+        var response = streamController.apply("test", stream, false);
+        assertEquals("created", response.header("X-Ns4kafka-Result"));
+        assertEquals("test_stream1", response.body().getMetadata().getName());
+    }
+
+    @Test
     void shouldNotCreateStreamsWhenValidationErrors() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()

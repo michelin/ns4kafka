@@ -143,28 +143,27 @@ public class AclController extends NamespacedResourceController {
         boolean isAdmin = authentication.getRoles().contains(ResourceBasedSecurityRule.IS_ADMIN);
         boolean isSelfAssigned = namespace.equals(accessControlEntry.getSpec().getGrantedTo());
 
-        List<String> validationErrors;
-
-        if (isAdmin && isSelfAssigned) {
-            // Validate overlapping OWNER
-            validationErrors = aclService.validateSelfAssignedAdmin(accessControlEntry, ns);
-        } else {
-            validationErrors = aclService.validate(accessControlEntry, ns);
-        }
+        List<String> validationErrors = isAdmin && isSelfAssigned
+                ? aclService.validateSelfAssignedAdmin(accessControlEntry, ns)
+                : aclService.validate(accessControlEntry, ns);
 
         if (!validationErrors.isEmpty()) {
             throw new ResourceValidationException(accessControlEntry, validationErrors);
         }
 
-        // AccessControlEntry spec is immutable
-        // This prevents accidental updates on ACL resources already declared with the same name (with different rules)
-        Optional<AccessControlEntry> existingAcl = aclService.findByName(
-                namespace, accessControlEntry.getMetadata().getName());
+        // When the cluster manages RBAC, an ACL in "deleting" state is treated as non-existent,
+        // so that an apply-delete-apply flow transparently returns "created".
+        Optional<AccessControlEntry> existingAcl = aclService
+                .findByName(namespace, accessControlEntry.getMetadata().getName())
+                .filter(existing -> !(aclService.isClusterManagingRbac(existing) && existing.isDeleting()));
+
+        // Spec is immutable to prevent accidental updates to ACLs already declared with the same name
         if (existingAcl.isPresent() && !existingAcl.get().getSpec().equals(accessControlEntry.getSpec())) {
             throw new ResourceValidationException(accessControlEntry, invalidImmutableField("spec"));
         }
 
         accessControlEntry.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
+        accessControlEntry.getMetadata().setUpdateTimestamp(Date.from(Instant.now()));
         accessControlEntry
                 .getMetadata()
                 .setGeneration(existingAcl
@@ -209,12 +208,12 @@ public class AclController extends NamespacedResourceController {
             String namespace,
             @QueryValue(defaultValue = "*") String name,
             @QueryValue(defaultValue = "false") boolean dryrun) {
-
         Namespace ns = getNamespace(namespace);
         List<AccessControlEntry> acls = aclService.findAllGrantedByNamespaceByWildcardName(ns, name);
         List<AccessControlEntry> selfAssignedAcls = acls.stream()
                 .filter(acl -> namespace.equals(acl.getSpec().getGrantedTo()))
                 .toList();
+
         boolean isAdmin = authentication.getRoles().contains(ResourceBasedSecurityRule.IS_ADMIN);
 
         if (acls.isEmpty()) {
@@ -236,6 +235,7 @@ public class AclController extends NamespacedResourceController {
         }
 
         acls.forEach(acl -> {
+            acl.getMetadata().setUpdateTimestamp(Date.from(Instant.now()));
             sendEventLog(acl, ApplyStatus.DELETED, acl.getSpec(), null, EMPTY_STRING);
             aclService.delete(acl);
         });

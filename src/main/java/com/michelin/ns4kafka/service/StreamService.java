@@ -192,6 +192,21 @@ public class StreamService {
     }
 
     /**
+     * Check if the cluster manages Confluent Cloud RBAC.
+     *
+     * @param stream The Kafka Stream
+     * @return true if the cluster is Confluent Cloud with RBAC management enabled, false otherwise
+     */
+    public boolean isClusterManagingRbac(KafkaStream stream) {
+        String cluster = stream.getMetadata().getCluster();
+        return managedClusterProperties.stream()
+                .filter(clusterProperties -> clusterProperties.getName().equals(cluster))
+                .findFirst()
+                .map(clusterProperties -> clusterProperties.isConfluentCloud() && clusterProperties.isManageRbac())
+                .orElse(false);
+    }
+
+    /**
      * Delete a given Kafka Stream.
      *
      * @param stream The Kafka Stream
@@ -234,7 +249,10 @@ public class StreamService {
 
         if (streamCluster.isPresent() && streamCluster.get().isManageAcls()) {
             streamRepository.delete(stream);
-        } else if (streamCluster.isPresent()
+            return;
+        }
+
+        if (streamCluster.isPresent()
                 && streamCluster.get().isConfluentCloud()
                 && streamCluster.get().isManageRbac()) {
             stream.getMetadata().setStatus(Resource.Metadata.Status.ofDeleting());

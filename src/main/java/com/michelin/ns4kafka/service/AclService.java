@@ -318,7 +318,7 @@ public class AclService {
     }
 
     /**
-     * Create an ACL in internal topic.
+     * Create an ACL.
      *
      * @param accessControlEntry The ACL
      * @return The created ACL
@@ -352,16 +352,35 @@ public class AclService {
         if (aclCluster.isPresent() && aclCluster.get().isManageAcls()) {
             accessControlEntryAsyncExecutor.deleteAcl(accessControlEntry);
             accessControlEntryRepository.delete(accessControlEntry);
-        } else if (aclCluster.isPresent()
+            return;
+        }
+
+        if (aclCluster.isPresent()
                 && aclCluster.get().isConfluentCloud()
                 && aclCluster.get().isManageRbac()) {
             if (RESOURCE_TYPES_TO_DEPLOY.contains(accessControlEntry.getSpec().getResourceType())) {
                 accessControlEntry.getMetadata().setStatus(Resource.Metadata.Status.ofDeleting());
                 accessControlEntryRepository.create(accessControlEntry);
-            } else {
-                accessControlEntryRepository.delete(accessControlEntry);
+                return;
             }
+
+            accessControlEntryRepository.delete(accessControlEntry);
         }
+    }
+
+    /**
+     * Check if the cluster manages Confluent Cloud RBAC.
+     *
+     * @param accessControlEntry The ACL
+     * @return true if the cluster is Confluent Cloud with RBAC management enabled, false otherwise
+     */
+    public boolean isClusterManagingRbac(AccessControlEntry accessControlEntry) {
+        String cluster = accessControlEntry.getMetadata().getCluster();
+        return managedClusterProperties.stream()
+                .filter(clusterProperties -> clusterProperties.getName().equals(cluster))
+                .findFirst()
+                .map(clusterProperties -> clusterProperties.isConfluentCloud() && clusterProperties.isManageRbac())
+                .orElse(false);
     }
 
     /**
