@@ -417,7 +417,7 @@ public class ConnectClusterService {
      * @return The connect cluster with decrypted information.
      */
     public ConnectCluster buildConnectClusterWithDecryptedInformation(ConnectCluster connectCluster) {
-        var builder = ConnectCluster.ConnectClusterSpec.builder()
+        ConnectCluster.ConnectClusterSpec.ConnectClusterSpecBuilder builder = ConnectCluster.ConnectClusterSpec.builder()
                 .url(connectCluster.getSpec().getUrl())
                 .username(connectCluster.getSpec().getUsername())
                 .password(EncryptionUtils.decryptAes256Gcm(

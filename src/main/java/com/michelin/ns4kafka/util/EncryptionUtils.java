@@ -206,8 +206,8 @@ public class EncryptionUtils {
      */
     private static SecretKey getAesSecretKey(final String key, final String salt)
             throws NoSuchAlgorithmException, InvalidKeySpecException {
-        var factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
-        var spec = new PBEKeySpec(key.toCharArray(), salt.getBytes(StandardCharsets.UTF_8), 65536, 256);
+        SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
+        PBEKeySpec spec = new PBEKeySpec(key.toCharArray(), salt.getBytes(StandardCharsets.UTF_8), 65536, 256);
         return new SecretKeySpec(factory.generateSecret(spec).getEncoded(), "AES");
     }
 

@@ -827,7 +827,7 @@ public class TopicAsyncExecutor {
                 .stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, kv -> {
                     try {
-                        var newValue = kv.getValue().get().lowWatermark();
+                        long newValue = kv.getValue().get().lowWatermark();
                         log.info("Deleting records {} of topic-partition {}", newValue, kv.getKey());
                         return newValue;
                     } catch (InterruptedException e) {

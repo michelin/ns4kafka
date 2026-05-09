@@ -178,7 +178,7 @@ public class StreamController extends NamespacedResourceController {
             return HttpResponse.noContent();
         }
 
-        var streamToDelete = optionalStream.get();
+        KafkaStream streamToDelete = optionalStream.get();
 
         sendEventLog(streamToDelete, ApplyStatus.DELETED, streamToDelete.getMetadata(), null, EMPTY_STRING);
 
