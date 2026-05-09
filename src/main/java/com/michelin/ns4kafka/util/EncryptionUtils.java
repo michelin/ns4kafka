@@ -143,7 +143,7 @@ public class EncryptionUtils {
         try {
             final SecretKey secret = getAesSecretKey(key, salt);
             final byte[] iv = getRandomIv();
-            final var cipher = Cipher.getInstance(ENCRYPT_ALGO);
+            final Cipher cipher = Cipher.getInstance(ENCRYPT_ALGO);
             cipher.init(Cipher.ENCRYPT_MODE, secret, new GCMParameterSpec(TAG_LENGTH_BIT, iv));
             final byte[] cipherText = cipher.doFinal(clearText.getBytes(StandardCharsets.UTF_8));
             final byte[] prefix = NS4KAFKA_PREFIX.getBytes(StandardCharsets.UTF_8);
@@ -176,7 +176,7 @@ public class EncryptionUtils {
         try {
             // Get IV and cipherText from encrypted text.
             final byte[] prefix = NS4KAFKA_PREFIX.getBytes(StandardCharsets.UTF_8);
-            final var byteBuffer = ByteBuffer.wrap(Base64.getDecoder().decode(encryptedText));
+            final ByteBuffer byteBuffer = ByteBuffer.wrap(Base64.getDecoder().decode(encryptedText));
             final byte[] iv = new byte[IV_LENGTH_BYTE];
             byteBuffer.position(prefix.length);
             byteBuffer.get(iv);
@@ -185,7 +185,7 @@ public class EncryptionUtils {
 
             // decrypt the cipher text.
             final SecretKey secret = getAesSecretKey(key, salt);
-            final var cipher = Cipher.getInstance(ENCRYPT_ALGO);
+            final Cipher cipher = Cipher.getInstance(ENCRYPT_ALGO);
             cipher.init(Cipher.DECRYPT_MODE, secret, new GCMParameterSpec(TAG_LENGTH_BIT, iv));
             return new String(cipher.doFinal(cipherText), StandardCharsets.UTF_8);
         } catch (Exception e) {
@@ -206,8 +206,8 @@ public class EncryptionUtils {
      */
     private static SecretKey getAesSecretKey(final String key, final String salt)
             throws NoSuchAlgorithmException, InvalidKeySpecException {
-        var factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
-        var spec = new PBEKeySpec(key.toCharArray(), salt.getBytes(StandardCharsets.UTF_8), 65536, 256);
+        SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
+        PBEKeySpec spec = new PBEKeySpec(key.toCharArray(), salt.getBytes(StandardCharsets.UTF_8), 65536, 256);
         return new SecretKeySpec(factory.generateSecret(spec).getEncoded(), "AES");
     }
 

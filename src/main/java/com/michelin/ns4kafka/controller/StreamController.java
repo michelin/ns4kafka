@@ -115,16 +115,13 @@ public class StreamController extends NamespacedResourceController {
                     stream, invalidOwner(stream.getMetadata().getName()));
         }
 
-        Optional<KafkaStream> existingStream =
-                streamService.findByName(ns, stream.getMetadata().getName());
+        // When the cluster manages RBAC, a stream in "deleting" state is treated as non-existent,
+        // so that an apply-delete-apply flow transparently returns "created".
+        Optional<KafkaStream> existingStream = streamService
+                .findByName(ns, stream.getMetadata().getName())
+                .filter(existing -> !(streamService.isClusterManagingRbac(existing) && existing.isDeleting()));
 
-        stream.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
-        stream.getMetadata()
-                .setGeneration(existingStream
-                        .map(oldStream -> oldStream.getMetadata().getGeneration())
-                        .orElse(0));
-        stream.getMetadata().setCluster(ns.getMetadata().getCluster());
-        stream.getMetadata().setNamespace(ns.getMetadata().getName());
+        assignResourceMetadata(stream, ns, existingStream.orElse(null));
 
         if (existingStream.isPresent() && existingStream.get().equals(stream)) {
             return formatHttpResponse(stream, ApplyStatus.UNCHANGED);
@@ -174,7 +171,7 @@ public class StreamController extends NamespacedResourceController {
             return HttpResponse.noContent();
         }
 
-        var streamToDelete = optionalStream.get();
+        KafkaStream streamToDelete = optionalStream.get();
 
         sendEventLog(streamToDelete, ApplyStatus.DELETED, streamToDelete.getMetadata(), null, EMPTY_STRING);
 
@@ -218,6 +215,7 @@ public class StreamController extends NamespacedResourceController {
         }
 
         for (KafkaStream kafkaStream : kafkaStreams) {
+            kafkaStream.getMetadata().setUpdateTimestamp(Date.from(Instant.now()));
             sendEventLog(kafkaStream, ApplyStatus.DELETED, kafkaStream.getMetadata(), null, EMPTY_STRING);
             streamService.delete(ns, kafkaStream);
         }

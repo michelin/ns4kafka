@@ -33,6 +33,7 @@ import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.RoleBindingService;
 import io.micronaut.context.event.ApplicationEventPublisher;
+import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.security.utils.SecurityService;
 import java.util.List;
@@ -80,7 +81,7 @@ class RoleBindingControllerTest {
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        var response = roleBindingController.apply("test", rolebinding, false);
+        HttpResponse<RoleBinding> response = roleBindingController.apply("test", rolebinding, false);
         RoleBinding actual = response.body();
         assertEquals("created", response.header("X-Ns4kafka-Result"));
         assertEquals(actual.getMetadata().getName(), rolebinding.getMetadata().getName());
@@ -102,7 +103,7 @@ class RoleBindingControllerTest {
         when(namespaceService.findByName(any())).thenReturn(Optional.of(ns));
         when(roleBindingService.findByName("test", "test.rolebinding")).thenReturn(Optional.of(rolebinding));
 
-        var response = roleBindingController.apply("test", rolebinding, false);
+        HttpResponse<RoleBinding> response = roleBindingController.apply("test", rolebinding, false);
         RoleBinding actual = response.body();
         assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
         assertEquals(actual.getMetadata().getName(), rolebinding.getMetadata().getName());
@@ -135,7 +136,7 @@ class RoleBindingControllerTest {
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        var response = roleBindingController.apply("test", rolebinding, false);
+        HttpResponse<RoleBinding> response = roleBindingController.apply("test", rolebinding, false);
         RoleBinding actual = response.body();
         assertEquals("changed", response.header("X-Ns4kafka-Result"));
         assertEquals(actual.getMetadata().getName(), rolebinding.getMetadata().getName());
@@ -156,7 +157,7 @@ class RoleBindingControllerTest {
 
         when(namespaceService.findByName(any())).thenReturn(Optional.of(ns));
 
-        var response = roleBindingController.apply("test", rolebinding, true);
+        HttpResponse<RoleBinding> response = roleBindingController.apply("test", rolebinding, true);
         assertEquals("created", response.header("X-Ns4kafka-Result"));
         verify(roleBindingService, never()).create(rolebinding);
     }
@@ -175,7 +176,7 @@ class RoleBindingControllerTest {
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        var result = roleBindingController.delete("test", "test.rolebinding*", false);
+        HttpResponse<List<RoleBinding>> result = roleBindingController.delete("test", "test.rolebinding*", false);
         assertEquals(HttpStatus.OK, result.getStatus());
     }
 
@@ -191,7 +192,7 @@ class RoleBindingControllerTest {
 
         when(roleBindingService.findByWildcardName(any(), any())).thenReturn(List.of(rolebinding1, rolebinding2));
 
-        var result = roleBindingController.delete("test", "test.rolebinding*", true);
+        HttpResponse<List<RoleBinding>> result = roleBindingController.delete("test", "test.rolebinding*", true);
         assertEquals(HttpStatus.OK, result.getStatus());
         verify(roleBindingService, never()).delete(any());
     }
@@ -200,7 +201,7 @@ class RoleBindingControllerTest {
     void shouldNotDeleteRoleBindingsWhenNotFound() {
         when(roleBindingService.findByWildcardName(any(), any())).thenReturn(List.of());
 
-        var response = roleBindingController.delete("test", "test.rolebinding*", false);
+        HttpResponse<List<RoleBinding>> response = roleBindingController.delete("test", "test.rolebinding*", false);
         verify(roleBindingService, never()).delete(any());
         assertEquals(HttpStatus.NOT_FOUND, response.getStatus());
     }

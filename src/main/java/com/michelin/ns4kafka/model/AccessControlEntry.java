@@ -56,7 +56,7 @@ public class AccessControlEntry extends Resource {
         CONNECT,
         CONNECT_CLUSTER,
         SCHEMA,
-        TRANSACTIONAL_ID // kept for retro compatibility (record deserialization in ns4kafka topic)
+        TRANSACTIONAL_ID
     }
 
     /** Resource pattern type. */

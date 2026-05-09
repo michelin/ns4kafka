@@ -235,7 +235,7 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
                         .build())
                 .build();
 
-        var response = ns4KafkaClient
+        HttpResponse<?> response = ns4KafkaClient
                 .toBlocking()
                 .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics")
                         .bearerAuth(token)
@@ -284,7 +284,7 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
                         .build())
                 .build();
 
-        var response = ns4KafkaClient
+        HttpResponse<?> response = ns4KafkaClient
                 .toBlocking()
                 .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics")
                         .bearerAuth(token)
@@ -486,7 +486,7 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
                         .build())
                 .build();
 
-        var response = ns4KafkaClient
+        HttpResponse<?> response = ns4KafkaClient
                 .toBlocking()
                 .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics")
                         .bearerAuth(token)
@@ -554,7 +554,7 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
                         .build())
                 .build();
 
-        var response = ns4KafkaClient
+        HttpResponse<?> response = ns4KafkaClient
                 .toBlocking()
                 .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics")
                         .bearerAuth(token)
@@ -617,7 +617,7 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
                         .build())
                 .build();
 
-        var createResponse1 = ns4KafkaClient
+        HttpResponse<?> createResponse1 = ns4KafkaClient
                 .toBlocking()
                 .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics")
                         .bearerAuth(token)
@@ -625,7 +625,7 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
 
         assertEquals("created", createResponse1.header("X-Ns4kafka-Result"));
 
-        var createResponse2 = ns4KafkaClient
+        HttpResponse<?> createResponse2 = ns4KafkaClient
                 .toBlocking()
                 .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics")
                         .bearerAuth(token)
@@ -633,7 +633,7 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
 
         assertEquals("created", createResponse2.header("X-Ns4kafka-Result"));
 
-        var createResponse3 = ns4KafkaClient
+        HttpResponse<?> createResponse3 = ns4KafkaClient
                 .toBlocking()
                 .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics")
                         .bearerAuth(token)
@@ -643,7 +643,7 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
 
         forceTopicSynchronization();
 
-        var deleteResponse = ns4KafkaClient
+        HttpResponse<?> deleteResponse = ns4KafkaClient
                 .toBlocking()
                 .exchange(HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/topics?name=ns1-*Topic")
                         .bearerAuth(token));

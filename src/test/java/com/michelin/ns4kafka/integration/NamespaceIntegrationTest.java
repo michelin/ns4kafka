@@ -104,7 +104,7 @@ class NamespaceIntegrationTest extends KafkaIntegrationTest {
 
         namespace.getMetadata().setName("accepted.namespace");
 
-        var responseCreateNs = ns4KafkaClient
+        HttpResponse<?> responseCreateNs = ns4KafkaClient
                 .toBlocking()
                 .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces")
                         .bearerAuth(token)
@@ -112,7 +112,7 @@ class NamespaceIntegrationTest extends KafkaIntegrationTest {
 
         assertEquals("created", responseCreateNs.header("X-Ns4kafka-Result"));
 
-        var responseGetNs = ns4KafkaClient
+        Namespace responseGetNs = ns4KafkaClient
                 .toBlocking()
                 .retrieve(
                         HttpRequest.create(HttpMethod.GET, "/api/namespaces?name=accepted.namespace")
@@ -183,7 +183,7 @@ class NamespaceIntegrationTest extends KafkaIntegrationTest {
                         .bearerAuth(token)
                         .body(topic));
 
-        var responseGetTopic = ns4KafkaClient
+        Topic responseGetTopic = ns4KafkaClient
                 .toBlocking()
                 .retrieve(
                         HttpRequest.create(
@@ -233,7 +233,7 @@ class NamespaceIntegrationTest extends KafkaIntegrationTest {
                         .bearerAuth(token)
                         .body(namespace));
 
-        var response = ns4KafkaClient
+        HttpResponse<?> response = ns4KafkaClient
                 .toBlocking()
                 .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/namespace/role-bindings")
                         .bearerAuth(token)

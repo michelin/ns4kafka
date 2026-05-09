@@ -56,7 +56,7 @@ public class ExceptionHandlerController {
      */
     @Error(global = true)
     public HttpResponse<Status> error(HttpRequest<?> request, ResourceValidationException exception) {
-        var status = Status.builder()
+        Status status = Status.builder()
                 .status(FAILED)
                 .message("Resource validation failed")
                 .httpStatus(HttpStatus.UNPROCESSABLE_ENTITY)
@@ -79,7 +79,7 @@ public class ExceptionHandlerController {
      */
     @Error(global = true)
     public HttpResponse<Status> error(HttpRequest<?> request, ConstraintViolationException exception) {
-        var status = Status.builder()
+        Status status = Status.builder()
                 .status(FAILED)
                 .message("Constraint validation failed")
                 .httpStatus(HttpStatus.UNPROCESSABLE_ENTITY)
@@ -101,7 +101,7 @@ public class ExceptionHandlerController {
      */
     @Error(global = true, status = HttpStatus.NOT_FOUND)
     public HttpResponse<Status> error(HttpRequest<?> request) {
-        var status = Status.builder()
+        Status status = Status.builder()
                 .status(FAILED)
                 .message("Not Found")
                 .httpStatus(HttpStatus.NOT_FOUND)
@@ -119,7 +119,7 @@ public class ExceptionHandlerController {
      */
     @Error(global = true)
     public HttpResponse<Status> error(HttpRequest<?> request, NotAllowedException exception) {
-        var status = Status.builder()
+        Status status = Status.builder()
                 .status(FAILED)
                 .message(exception.getMessage())
                 .httpStatus(HttpStatus.METHOD_NOT_ALLOWED)
@@ -140,7 +140,7 @@ public class ExceptionHandlerController {
      */
     @Error(global = true)
     public HttpResponse<Status> error(HttpRequest<?> request, AuthenticationException exception) {
-        var status = Status.builder()
+        Status status = Status.builder()
                 .status(FAILED)
                 .message(exception.getMessage())
                 .httpStatus(HttpStatus.UNAUTHORIZED)
@@ -159,7 +159,7 @@ public class ExceptionHandlerController {
     @Error(global = true)
     public HttpResponse<Status> error(HttpRequest<?> request, AuthorizationException exception) {
         if (exception.isForbidden()) {
-            var status = Status.builder()
+            Status status = Status.builder()
                     .status(FAILED)
                     .message(exception.getMessage() != null ? exception.getMessage() : HttpStatus.FORBIDDEN.getReason())
                     .httpStatus(HttpStatus.FORBIDDEN)
@@ -168,7 +168,7 @@ public class ExceptionHandlerController {
             return HttpResponse.status(HttpStatus.FORBIDDEN).body(status);
         }
 
-        var status = Status.builder()
+        Status status = Status.builder()
                 .status(FAILED)
                 .message(exception.getMessage())
                 .httpStatus(HttpStatus.UNAUTHORIZED)
@@ -186,7 +186,7 @@ public class ExceptionHandlerController {
      */
     @Error(global = true)
     public HttpResponse<Status> error(HttpRequest<?> request, UnknownNamespaceException exception) {
-        var status = Status.builder()
+        Status status = Status.builder()
                 .status(FAILED)
                 .message(exception.getMessage())
                 .httpStatus(HttpStatus.UNPROCESSABLE_ENTITY)
@@ -204,7 +204,7 @@ public class ExceptionHandlerController {
      */
     @Error(global = true)
     public HttpResponse<Status> error(HttpRequest<?> request, ForbiddenNamespaceException exception) {
-        var status = Status.builder()
+        Status status = Status.builder()
                 .status(FAILED)
                 .message(exception.getMessage())
                 .httpStatus(HttpStatus.FORBIDDEN)
@@ -222,7 +222,7 @@ public class ExceptionHandlerController {
      */
     @Error(global = true)
     public HttpResponse<Status> error(HttpRequest<?> request, HttpStatusException exception) {
-        var status = Status.builder()
+        Status status = Status.builder()
                 .status(FAILED)
                 .message(exception.getStatus().getReason())
                 .httpStatus(exception.getStatus())

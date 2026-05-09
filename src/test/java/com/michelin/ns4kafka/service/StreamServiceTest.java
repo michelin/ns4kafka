@@ -40,6 +40,7 @@ import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
@@ -82,7 +83,7 @@ class StreamServiceTest {
 
         when(streamRepository.findAllForCluster("local")).thenReturn(List.of());
 
-        var actual = streamService.findAllForNamespace(ns);
+        List<KafkaStream> actual = streamService.findAllForNamespace(ns);
         assertTrue(actual.isEmpty());
     }
 
@@ -118,7 +119,7 @@ class StreamServiceTest {
 
         when(streamRepository.findAllForCluster("local")).thenReturn(List.of(stream1, stream2, stream3));
 
-        var actual = streamService.findAllForNamespace(ns);
+        List<KafkaStream> actual = streamService.findAllForNamespace(ns);
 
         assertEquals(3, actual.size());
         assertTrue(actual.contains(stream1));
@@ -274,7 +275,7 @@ class StreamServiceTest {
 
         when(streamRepository.findAllForCluster("local")).thenReturn(List.of(stream1, stream2, stream3));
 
-        var actual = streamService.findByName(ns, "test_stream2");
+        Optional<KafkaStream> actual = streamService.findByName(ns, "test_stream2");
 
         assertTrue(actual.isPresent());
         assertEquals(stream2, actual.get());
@@ -291,7 +292,7 @@ class StreamServiceTest {
 
         when(streamRepository.findAllForCluster("local")).thenReturn(List.of());
 
-        var actual = streamService.findByName(ns, "test_stream2");
+        Optional<KafkaStream> actual = streamService.findByName(ns, "test_stream2");
 
         assertTrue(actual.isEmpty());
     }
@@ -323,7 +324,7 @@ class StreamServiceTest {
 
         when(streamRepository.findAllForCluster("local")).thenReturn(List.of(stream1, stream2, stream3));
 
-        var actual = streamService.findAllToDeployForCluster("local");
+        List<KafkaStream> actual = streamService.findAllToDeployForCluster("local");
 
         assertEquals(1, actual.size());
         assertTrue(actual.contains(stream2));
@@ -356,7 +357,7 @@ class StreamServiceTest {
 
         when(streamRepository.findAllForCluster("local")).thenReturn(List.of(stream1, stream2, stream3));
 
-        var actual = streamService.findAllToDeleteForCluster("local");
+        List<KafkaStream> actual = streamService.findAllToDeleteForCluster("local");
 
         assertEquals(1, actual.size());
         assertTrue(actual.contains(stream2));

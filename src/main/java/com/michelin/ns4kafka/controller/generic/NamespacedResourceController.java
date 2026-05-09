@@ -20,9 +20,13 @@ package com.michelin.ns4kafka.controller.generic;
 
 import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.service.NamespaceService;
 import io.micronaut.context.event.ApplicationEventPublisher;
+import io.micronaut.core.annotation.Nullable;
 import io.micronaut.security.utils.SecurityService;
+import java.time.Instant;
+import java.util.Date;
 
 /** Namespaced resource controller. */
 public abstract class NamespacedResourceController extends ResourceController {
@@ -51,5 +55,24 @@ public abstract class NamespacedResourceController extends ResourceController {
      */
     public Namespace getNamespace(String namespace) {
         return namespaceService.findByName(namespace).orElseThrow();
+    }
+
+    /**
+     * Assign server-side metadata fields to a resource.
+     *
+     * @param resource The resource
+     * @param ns The namespace
+     * @param existingResource The existing resource, or null if none
+     */
+    protected void assignResourceMetadata(Resource resource, Namespace ns, @Nullable Resource existingResource) {
+        resource.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
+        resource.getMetadata().setUpdateTimestamp(resource.getMetadata().getCreationTimestamp());
+        resource.getMetadata()
+                .setGeneration(
+                        existingResource != null
+                                ? existingResource.getMetadata().getGeneration()
+                                : 0);
+        resource.getMetadata().setCluster(ns.getMetadata().getCluster());
+        resource.getMetadata().setNamespace(ns.getMetadata().getName());
     }
 }

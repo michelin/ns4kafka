@@ -414,8 +414,8 @@ public class ConfluentRoleBindingAsyncExecutor {
                 || !existingAcl
                         .get()
                         .getMetadata()
-                        .getCreationTimestamp()
-                        .after(acl.getMetadata().getCreationTimestamp());
+                        .getUpdateTimestamp()
+                        .after(acl.getMetadata().getUpdateTimestamp());
     }
 
     /**
@@ -435,8 +435,8 @@ public class ConfluentRoleBindingAsyncExecutor {
                     || !existingStream
                             .get()
                             .getMetadata()
-                            .getCreationTimestamp()
-                            .after(kafkaStream.getMetadata().getCreationTimestamp());
+                            .getUpdateTimestamp()
+                            .after(kafkaStream.getMetadata().getUpdateTimestamp());
         }
         return true;
     }

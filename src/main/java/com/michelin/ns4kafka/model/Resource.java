@@ -69,6 +69,10 @@ public class Resource {
         private Date creationTimestamp;
 
         @EqualsAndHashCode.Exclude
+        @JsonFormat(shape = JsonFormat.Shape.STRING)
+        private Date updateTimestamp;
+
+        @EqualsAndHashCode.Exclude
         private Status status;
 
         @Data
@@ -81,7 +85,7 @@ public class Resource {
             private String message;
 
             @JsonFormat(shape = JsonFormat.Shape.STRING)
-            private Date lastUpdateTime;
+            private Date deployTimestamp;
 
             @JsonInclude(JsonInclude.Include.NON_NULL)
             private Map<String, String> options;
@@ -89,7 +93,7 @@ public class Resource {
             public static Status ofSuccess() {
                 return Status.builder()
                         .phase(Phase.SUCCESS)
-                        .lastUpdateTime(Date.from(Instant.now()))
+                        .deployTimestamp(Date.from(Instant.now()))
                         .build();
             }
 
@@ -97,7 +101,7 @@ public class Resource {
                 return Status.builder()
                         .phase(Phase.FAIL)
                         .message(message)
-                        .lastUpdateTime(Date.from(Instant.now()))
+                        .deployTimestamp(Date.from(Instant.now()))
                         .build();
             }
 
@@ -112,7 +116,7 @@ public class Resource {
                 return Status.builder()
                         .phase(Phase.DELETING)
                         .message("Awaiting deletion by executor")
-                        .lastUpdateTime(Date.from(Instant.now()))
+                        .deployTimestamp(Date.from(Instant.now()))
                         .options(options)
                         .build();
             }

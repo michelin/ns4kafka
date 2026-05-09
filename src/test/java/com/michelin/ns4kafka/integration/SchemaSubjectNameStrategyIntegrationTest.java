@@ -154,7 +154,7 @@ class SchemaSubjectNameStrategyIntegrationTest extends SchemaRegistryIntegration
                         .build())
                 .build();
 
-        var headerCreateResponse = ns4KafkaClient
+        HttpResponse<Schema> headerCreateResponse = ns4KafkaClient
                 .toBlocking()
                 .exchange(
                         HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
@@ -224,7 +224,7 @@ class SchemaSubjectNameStrategyIntegrationTest extends SchemaRegistryIntegration
                         .build())
                 .build();
 
-        var personCreateResponse = ns4KafkaClient
+        HttpResponse<Schema> personCreateResponse = ns4KafkaClient
                 .toBlocking()
                 .exchange(
                         HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")

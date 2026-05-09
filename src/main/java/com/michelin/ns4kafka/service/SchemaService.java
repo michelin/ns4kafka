@@ -435,13 +435,13 @@ public class SchemaService {
                         Flux.fromIterable(oldSchemas)
                                 .flatMap(oldSchema -> getSchemaReferences(namespace, oldSchema)
                                         .map(oldSchemaRefs -> {
-                                            var currentSchema = new AvroSchema(
+                                            AvroSchema currentSchema = new AvroSchema(
                                                     oldSchema.getSpec().getSchema(),
                                                     getReferences(oldSchema),
                                                     oldSchemaRefs,
                                                     null);
 
-                                            var newSchema = new AvroSchema(
+                                            AvroSchema newSchema = new AvroSchema(
                                                     schema.getSpec().getSchema(),
                                                     getReferences(schema),
                                                     schemaRefs,
