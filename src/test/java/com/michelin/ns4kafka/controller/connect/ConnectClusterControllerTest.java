@@ -914,7 +914,7 @@ class ConnectClusterControllerTest {
         when(connectClusterService.validateConnectClusterVault(ns, connectClusterName))
                 .thenReturn(List.of("Error config."));
 
-        var secrets = List.of("secret");
+        List<String> secrets = List.of("secret");
         ResourceValidationException result = assertThrows(
                 ResourceValidationException.class,
                 () -> connectClusterController.vaultPassword("test", connectClusterName, secrets));

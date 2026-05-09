@@ -25,6 +25,7 @@ import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.RoleBinding;
 import com.michelin.ns4kafka.repository.RoleBindingRepository;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -64,7 +65,7 @@ class RoleBindingServiceTest {
 
         when(roleBindingRepository.findAllForNamespace("namespace")).thenReturn(List.of(rb1, rb2, rb3));
 
-        var result = roleBindingService.findByName("namespace", "namespace-rb2");
+        Optional<RoleBinding> result = roleBindingService.findByName("namespace", "namespace-rb2");
         assertEquals(rb2, result.orElse(null));
     }
 

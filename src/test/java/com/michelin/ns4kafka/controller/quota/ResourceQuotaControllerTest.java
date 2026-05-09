@@ -32,12 +32,12 @@ import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.quota.ResourceQuota;
-import com.michelin.ns4kafka.model.quota.ResourceQuotaResponse;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.ResourceQuotaService;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.context.event.ApplicationEventPublisher;
+import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.security.utils.SecurityService;
 import java.util.List;
@@ -235,7 +235,7 @@ class ResourceQuotaControllerTest {
         when(resourceQuotaService.validateNewResourceQuota(ns, resourceQuota)).thenReturn(List.of());
         when(resourceQuotaService.findByNamespace(ns.getMetadata().getName())).thenReturn(Optional.of(resourceQuota));
 
-        var response = resourceQuotaController.apply("test", resourceQuota, false);
+        HttpResponse<ResourceQuota> response = resourceQuotaController.apply("test", resourceQuota, false);
         assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
         verify(resourceQuotaService, never()).create(ArgumentMatchers.any());
         assertEquals(resourceQuota, response.body());
@@ -262,7 +262,7 @@ class ResourceQuotaControllerTest {
         when(resourceQuotaService.validateNewResourceQuota(ns, resourceQuota)).thenReturn(List.of());
         when(resourceQuotaService.findByNamespace(ns.getMetadata().getName())).thenReturn(Optional.empty());
 
-        var response = resourceQuotaController.apply("test", resourceQuota, true);
+        HttpResponse<ResourceQuota> response = resourceQuotaController.apply("test", resourceQuota, true);
         assertEquals("created", response.header("X-Ns4kafka-Result"));
         verify(resourceQuotaService, never()).create(ArgumentMatchers.any());
     }
@@ -292,7 +292,7 @@ class ResourceQuotaControllerTest {
         doNothing().when(applicationEventPublisher).publishEvent(any());
         when(resourceQuotaService.create(resourceQuota)).thenReturn(resourceQuota);
 
-        var response = resourceQuotaController.apply("test", resourceQuota, false);
+        HttpResponse<ResourceQuota> response = resourceQuotaController.apply("test", resourceQuota, false);
         ResourceQuota actual = response.body();
         assertEquals("created", response.header("X-Ns4kafka-Result"));
         assertEquals("created-quota", actual.getMetadata().getName());
@@ -332,7 +332,7 @@ class ResourceQuotaControllerTest {
         doNothing().when(applicationEventPublisher).publishEvent(any());
         when(resourceQuotaService.create(resourceQuota)).thenReturn(resourceQuota);
 
-        var response = resourceQuotaController.apply("test", resourceQuota, false);
+        HttpResponse<ResourceQuota> response = resourceQuotaController.apply("test", resourceQuota, false);
         ResourceQuota actual = response.body();
         assertEquals("changed", response.header("X-Ns4kafka-Result"));
         assertEquals("created-quota", actual.getMetadata().getName());
@@ -342,7 +342,7 @@ class ResourceQuotaControllerTest {
     @Test
     void shouldNotDeleteQuotaWhenNotFound() {
         when(resourceQuotaService.findByWildcardName("test", "quota*")).thenReturn(List.of());
-        var actual = resourceQuotaController.delete("test", "quota*", false);
+        HttpResponse<List<ResourceQuota>> actual = resourceQuotaController.delete("test", "quota*", false);
         assertEquals(HttpStatus.NOT_FOUND, actual.getStatus());
         verify(resourceQuotaService, never()).delete(ArgumentMatchers.any());
     }
@@ -358,7 +358,7 @@ class ResourceQuotaControllerTest {
                 .build();
 
         when(resourceQuotaService.findByWildcardName("test", "quota*")).thenReturn(List.of(resourceQuota1));
-        var actual = resourceQuotaController.delete("test", "quota*", true);
+        HttpResponse<List<ResourceQuota>> actual = resourceQuotaController.delete("test", "quota*", true);
         assertEquals(HttpStatus.OK, actual.getStatus());
         verify(resourceQuotaService, never()).delete(ArgumentMatchers.any());
     }
@@ -379,7 +379,7 @@ class ResourceQuotaControllerTest {
         doNothing().when(applicationEventPublisher).publishEvent(any());
         doNothing().when(resourceQuotaService).delete(resourceQuota);
 
-        var actual = resourceQuotaController.delete("test", "quota*", false);
+        HttpResponse<List<ResourceQuota>> actual = resourceQuotaController.delete("test", "quota*", false);
         assertEquals(HttpStatus.OK, actual.getStatus());
         verify(resourceQuotaService).delete(resourceQuota);
     }

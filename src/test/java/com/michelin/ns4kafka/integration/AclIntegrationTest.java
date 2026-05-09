@@ -761,7 +761,7 @@ class AclIntegrationTest extends KafkaIntegrationTest {
         Admin kafkaClient = getAdminClient();
 
         // Verify namespace has no TransactionalId ACL
-        var aclTransactionalId = kafkaClient
+        HttpResponse aclTransactionalId = kafkaClient
                 .describeAcls(new AclBindingFilter(
                         new ResourcePatternFilter(
                                 org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID,
@@ -900,7 +900,7 @@ class AclIntegrationTest extends KafkaIntegrationTest {
         // Verify no TransactionalId ACLs are created
         Admin kafkaClient = getAdminClient();
 
-        var aclTransactionalId = kafkaClient
+        HttpResponse aclTransactionalId = kafkaClient
                 .describeAcls(new AclBindingFilter(
                         new ResourcePatternFilter(
                                 org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID,

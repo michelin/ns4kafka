@@ -21,9 +21,11 @@ package com.michelin.ns4kafka.controller;
 import static com.michelin.ns4kafka.util.enumation.Kind.TOPIC;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.michelin.ns4kafka.model.Status;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
+import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.NotAllowedException;
@@ -42,10 +44,10 @@ class ExceptionHandlerControllerTest {
 
     @Test
     void shouldHandleResourceValidationException() {
-        var response = exceptionHandlerController.error(
+        HttpResponse<Status> response = exceptionHandlerController.error(
                 HttpRequest.create(HttpMethod.POST, "local"),
                 new ResourceValidationException(TOPIC, "Name", List.of("Error1", "Error2")));
-        var status = response.body();
+        Status status = response.body();
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, response.getStatus());
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY.getCode(), status.getCode());
@@ -58,9 +60,9 @@ class ExceptionHandlerControllerTest {
 
     @Test
     void shouldHandleConstraintViolationException() {
-        var response = exceptionHandlerController.error(
+        HttpResponse<Status> response = exceptionHandlerController.error(
                 HttpRequest.create(HttpMethod.POST, "local"), new ConstraintViolationException(Set.of()));
-        var status = response.body();
+        Status status = response.body();
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, response.getStatus());
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY.getCode(), status.getCode());
@@ -68,9 +70,9 @@ class ExceptionHandlerControllerTest {
 
     @Test
     void shouldHandleAuthorizationExceptionAndConvertToUnauthorized() {
-        var response = exceptionHandlerController.error(
+        HttpResponse<Status> response = exceptionHandlerController.error(
                 HttpRequest.create(HttpMethod.POST, "local"), new AuthorizationException(null));
-        var status = response.body();
+        Status status = response.body();
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatus());
         assertEquals(HttpStatus.UNAUTHORIZED.getCode(), status.getCode());
@@ -79,8 +81,8 @@ class ExceptionHandlerControllerTest {
     @Test
     void shouldHandleAuthorizationExceptionAndConvertToForbidden() {
         AuthorizationException exception = new AuthorizationException(Authentication.build("user", Map.of()));
-        var response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"), exception);
-        var status = response.body();
+        HttpResponse<Status> response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"), exception);
+        Status status = response.body();
 
         assertEquals(HttpStatus.FORBIDDEN, response.getStatus());
         assertEquals(HttpStatus.FORBIDDEN.getCode(), status.getCode());
@@ -89,10 +91,10 @@ class ExceptionHandlerControllerTest {
 
     @Test
     void shouldHandleNotAllowedException() {
-        var response = exceptionHandlerController.error(
+        HttpResponse<Status> response = exceptionHandlerController.error(
                 HttpRequest.create(HttpMethod.PUT, "/api/namespaces/ns1/topics"),
                 new NotAllowedException("PUT", URI.create("/api/namespaces/ns1/topics"), Set.of("GET")));
-        var status = response.body();
+        Status status = response.body();
 
         assertEquals(HttpStatus.METHOD_NOT_ALLOWED, response.getStatus());
         assertEquals(HttpStatus.METHOD_NOT_ALLOWED.getCode(), status.getCode());
@@ -100,9 +102,9 @@ class ExceptionHandlerControllerTest {
 
     @Test
     void shouldHandleAuthenticationException() {
-        var response = exceptionHandlerController.error(
+        HttpResponse<Status> response = exceptionHandlerController.error(
                 HttpRequest.create(HttpMethod.POST, "local"), new AuthenticationException());
-        var status = response.body();
+        Status status = response.body();
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatus());
         assertEquals(HttpStatus.UNAUTHORIZED.getCode(), status.getCode());
@@ -110,10 +112,10 @@ class ExceptionHandlerControllerTest {
 
     @Test
     void shouldHandleHttpStatusException() {
-        var response = exceptionHandlerController.error(
+        HttpResponse<Status> response = exceptionHandlerController.error(
                 HttpRequest.create(HttpMethod.POST, "local"),
                 new HttpStatusException(HttpStatus.BAD_GATEWAY, "Connect cluster unreachable"));
-        var status = response.body();
+        Status status = response.body();
 
         assertEquals(HttpStatus.BAD_GATEWAY, response.getStatus());
         assertEquals(HttpStatus.BAD_GATEWAY.getCode(), status.getCode());
@@ -124,9 +126,9 @@ class ExceptionHandlerControllerTest {
 
     @Test
     void shouldHandleAnyException() {
-        var response = exceptionHandlerController.error(
+        HttpResponse<Status> response = exceptionHandlerController.error(
                 HttpRequest.create(HttpMethod.POST, "local"), new Exception("Unexpected error"));
-        var status = response.body();
+        Status status = response.body();
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR.getCode(), status.getCode());

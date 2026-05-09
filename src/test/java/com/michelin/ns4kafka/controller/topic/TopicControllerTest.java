@@ -199,7 +199,7 @@ class TopicControllerTest {
         doNothing().when(topicService).deleteTopics(toDelete);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        var actual = topicController.bulkDelete("test", "prefix1.*", false);
+        HttpResponse<List<Topic>> actual = topicController.bulkDelete("test", "prefix1.*", false);
         assertEquals(HttpStatus.OK, actual.getStatus());
     }
 
@@ -216,7 +216,7 @@ class TopicControllerTest {
 
         when(topicService.findByWildcardName(ns, "topic*")).thenReturn(List.of());
 
-        var actual = topicController.bulkDelete("test", "topic*", false);
+        HttpResponse<List<Topic>> actual = topicController.bulkDelete("test", "topic*", false);
 
         assertEquals(HttpStatus.NOT_FOUND, actual.getStatus());
         verify(topicService, never()).delete(any());
@@ -239,7 +239,7 @@ class TopicControllerTest {
 
         when(topicService.findByWildcardName(ns, "prefix.topic")).thenReturn(toDelete);
 
-        var actual = topicController.bulkDelete("test", "prefix.topic", true);
+        HttpResponse<List<Topic>> actual = topicController.bulkDelete("test", "prefix.topic", true);
         assertEquals(HttpStatus.OK, actual.getStatus());
         verify(topicService, never()).delete(any());
     }
@@ -343,7 +343,7 @@ class TopicControllerTest {
 
         when(topicService.create(topic)).thenReturn(topic);
 
-        var response = topicController.apply("test", topic, false);
+        HttpResponse<Topic> response = topicController.apply("test", topic, false);
         Topic actual = response.body();
         assertEquals("created", response.header("X-Ns4kafka-Result"));
         assertEquals("test.topic", actual.getMetadata().getName());
@@ -382,7 +382,7 @@ class TopicControllerTest {
 
         when(topicService.create(topic)).thenReturn(topic);
 
-        var response = topicController.apply("test", topic, false);
+        HttpResponse<Topic> response = topicController.apply("test", topic, false);
         Topic actual = response.body();
         assertEquals("created", response.header("X-Ns4kafka-Result"));
         assertEquals("test.topic", actual.getMetadata().getName());
@@ -428,7 +428,7 @@ class TopicControllerTest {
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        var response = topicController.apply("test", topic, false);
+        HttpResponse<Topic> response = topicController.apply("test", topic, false);
         Topic actual = response.body();
         assertEquals("changed", response.header("X-Ns4kafka-Result"));
         assertEquals("test.topic", actual.getMetadata().getName());
@@ -521,7 +521,7 @@ class TopicControllerTest {
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        var response = topicController.apply("test", topic, false);
+        HttpResponse<Topic> response = topicController.apply("test", topic, false);
         Topic actual = response.body();
         assertEquals("changed", response.header("X-Ns4kafka-Result"));
         assertEquals("test.topic", actual.getMetadata().getName());
@@ -615,7 +615,7 @@ class TopicControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
 
-        var response = topicController.apply("test", topic, false);
+        HttpResponse<Topic> response = topicController.apply("test", topic, false);
         Topic actual = response.body();
         assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
         verify(topicService, never()).create(ArgumentMatchers.any());
@@ -650,7 +650,7 @@ class TopicControllerTest {
         when(resourceQuotaService.validateTopicQuota(ns, Optional.empty(), topic))
                 .thenReturn(List.of());
 
-        var response = topicController.apply("test", topic, true);
+        HttpResponse<Topic> response = topicController.apply("test", topic, true);
         assertEquals("created", response.header("X-Ns4kafka-Result"));
         verify(topicService, never()).create(topic);
     }
@@ -712,7 +712,7 @@ class TopicControllerTest {
         when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
 
-        var response = topicController.apply("test", topic, true);
+        HttpResponse<Topic> response = topicController.apply("test", topic, true);
         assertEquals("created", response.header("X-Ns4kafka-Result"));
         verify(topicService, never()).create(topic);
     }
@@ -744,7 +744,7 @@ class TopicControllerTest {
         when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
         when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.empty());
 
-        var response = topicController.apply("test", topic, true);
+        HttpResponse<Topic> response = topicController.apply("test", topic, true);
         assertEquals("created", response.header("X-Ns4kafka-Result"));
         verify(topicService, never()).create(topic);
     }

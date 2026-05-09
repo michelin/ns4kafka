@@ -36,6 +36,7 @@ import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.StreamService;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.context.event.ApplicationEventPublisher;
+import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.security.utils.SecurityService;
 import java.util.List;
@@ -221,7 +222,7 @@ class StreamControllerTest {
 
         when(streamService.create(stream1)).thenReturn(stream1);
 
-        var response = streamController.apply("test", stream1, false);
+        HttpResponse<KafkaStream> response = streamController.apply("test", stream1, false);
         KafkaStream actual = response.body();
         assertEquals("created", response.header("X-Ns4kafka-Result"));
         assertEquals("test_stream1", actual.getMetadata().getName());
@@ -246,7 +247,7 @@ class StreamControllerTest {
 
         when(streamService.findByName(ns, "test_stream1")).thenReturn(Optional.empty());
 
-        var response = streamController.apply("test", stream1, true);
+        HttpResponse<KafkaStream> response = streamController.apply("test", stream1, true);
         KafkaStream actual = response.body();
         verify(streamService, never()).create(any());
         assertEquals("created", response.header("X-Ns4kafka-Result"));
@@ -272,7 +273,7 @@ class StreamControllerTest {
 
         when(streamService.findByName(ns, "test_stream1")).thenReturn(Optional.of(stream1));
 
-        var response = streamController.apply("test", stream1, false);
+        HttpResponse<KafkaStream> response = streamController.apply("test", stream1, false);
         KafkaStream actual = response.body();
         verify(streamService, never()).create(any());
         assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
@@ -308,7 +309,7 @@ class StreamControllerTest {
         doNothing().when(applicationEventPublisher).publishEvent(any());
         when(streamService.create(stream)).thenReturn(stream);
 
-        var response = streamController.apply("test", stream, false);
+        HttpResponse<KafkaStream> response = streamController.apply("test", stream, false);
         assertEquals("created", response.header("X-Ns4kafka-Result"));
         assertEquals("test_stream1", response.body().getMetadata().getName());
     }
@@ -358,7 +359,7 @@ class StreamControllerTest {
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
         doNothing().when(streamService).delete(ns, stream);
-        var response = streamController.delete("test", "test_stream1", false);
+        HttpResponse<Void> response = streamController.delete("test", "test_stream1", false);
         assertEquals(HttpStatus.NO_CONTENT, response.getStatus());
     }
 
@@ -382,7 +383,7 @@ class StreamControllerTest {
 
         when(streamService.findByName(ns, "test_stream1")).thenReturn(Optional.of(stream1));
 
-        var response = streamController.delete("test", "test_stream1", true);
+        HttpResponse<Void> response = streamController.delete("test", "test_stream1", true);
         verify(streamService, never()).delete(any(), any());
         assertEquals(HttpStatus.NO_CONTENT, response.getStatus());
     }
@@ -402,7 +403,7 @@ class StreamControllerTest {
 
         when(streamService.findByName(ns, "test_stream1")).thenReturn(Optional.empty());
 
-        var response = streamController.delete("test", "test_stream1", false);
+        HttpResponse<Void> response = streamController.delete("test", "test_stream1", false);
         verify(streamService, never()).delete(any(), any());
 
         assertEquals(HttpStatus.NOT_FOUND, response.getStatus());
@@ -456,7 +457,7 @@ class StreamControllerTest {
         doNothing().when(applicationEventPublisher).publishEvent(any());
         doNothing().when(streamService).delete(ns, stream1);
         doNothing().when(streamService).delete(ns, stream2);
-        var response = streamController.bulkDelete("test", "test_stream*", false);
+        HttpResponse<List<KafkaStream>> response = streamController.bulkDelete("test", "test_stream*", false);
         assertEquals(HttpStatus.OK, response.getStatus());
     }
 
@@ -485,7 +486,7 @@ class StreamControllerTest {
 
         when(streamService.findByWildcardName(ns, "test_stream*")).thenReturn(List.of(stream1, stream2));
 
-        var response = streamController.bulkDelete("test", "test_stream*", true);
+        HttpResponse<List<KafkaStream>> response = streamController.bulkDelete("test", "test_stream*", true);
         verify(streamService, never()).delete(any(), any());
         assertEquals(HttpStatus.OK, response.getStatus());
     }
@@ -503,7 +504,7 @@ class StreamControllerTest {
 
         when(streamService.findByWildcardName(ns, "test_stream*")).thenReturn(List.of());
 
-        var response = streamController.bulkDelete("test", "test_stream*", false);
+        HttpResponse<List<KafkaStream>> response = streamController.bulkDelete("test", "test_stream*", false);
         verify(streamService, never()).delete(any(), any());
 
         assertEquals(HttpStatus.NOT_FOUND, response.getStatus());

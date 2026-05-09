@@ -165,7 +165,7 @@ class NamespaceControllerTest {
         doNothing().when(applicationEventPublisher).publishEvent(any());
         when(namespaceService.createOrUpdate(namespace)).thenReturn(namespace);
 
-        var response = namespaceController.apply(namespace, false);
+        HttpResponse<Namespace> response = namespaceController.apply(namespace, false);
         Namespace actual = response.body();
         assertEquals("created", response.header("X-Ns4kafka-Result"));
         assertEquals("new-namespace", actual.getMetadata().getName());
@@ -184,7 +184,7 @@ class NamespaceControllerTest {
         when(namespaceService.findByName("new-namespace")).thenReturn(Optional.empty());
         when(namespaceService.validateCreation(namespace)).thenReturn(List.of());
 
-        var response = namespaceController.apply(namespace, true);
+        HttpResponse<Namespace> response = namespaceController.apply(namespace, true);
         assertEquals("created", response.header("X-Ns4kafka-Result"));
         verify(namespaceService, never()).createOrUpdate(namespace);
     }
@@ -243,7 +243,7 @@ class NamespaceControllerTest {
         doNothing().when(applicationEventPublisher).publishEvent(any());
         when(namespaceService.createOrUpdate(namespaceToUpdate)).thenReturn(namespaceToUpdate);
 
-        var response = namespaceController.apply(namespaceToUpdate, false);
+        HttpResponse<Namespace> response = namespaceController.apply(namespaceToUpdate, false);
         Namespace actual = response.body();
         assertEquals("changed", response.header("X-Ns4kafka-Result"));
         assertNotNull(actual);
@@ -275,7 +275,7 @@ class NamespaceControllerTest {
 
         when(namespaceService.findByName("namespace")).thenReturn(Optional.of(existing));
 
-        var response = namespaceController.apply(namespaceToUpdate, false);
+        HttpResponse<Namespace> response = namespaceController.apply(namespaceToUpdate, false);
         Namespace actual = response.body();
         assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
         assertEquals(existing, actual);
@@ -303,7 +303,7 @@ class NamespaceControllerTest {
 
         when(namespaceService.findByName("namespace")).thenReturn(Optional.of(existing));
 
-        var response = namespaceController.apply(namespaceToUpdate, true);
+        HttpResponse<Namespace> response = namespaceController.apply(namespaceToUpdate, true);
         assertEquals("changed", response.header("X-Ns4kafka-Result"));
         verify(namespaceService, never()).createOrUpdate(namespaceToUpdate);
     }
@@ -333,7 +333,7 @@ class NamespaceControllerTest {
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
 
         doNothing().when(applicationEventPublisher).publishEvent(any());
-        var result = namespaceController.delete("namespace*", false);
+        HttpResponse<List<Namespace>> result = namespaceController.delete("namespace*", false);
         assertEquals(HttpStatus.OK, result.getStatus());
     }
 
@@ -359,7 +359,7 @@ class NamespaceControllerTest {
         when(namespaceService.findAllResourcesByNamespace(namespace1)).thenReturn(List.of());
         when(namespaceService.findAllResourcesByNamespace(namespace2)).thenReturn(List.of());
 
-        var result = namespaceController.delete("namespace*", true);
+        HttpResponse<List<Namespace>> result = namespaceController.delete("namespace*", true);
         verify(namespaceService, never()).delete(any());
         assertEquals(HttpStatus.OK, result.getStatus());
     }
@@ -393,7 +393,7 @@ class NamespaceControllerTest {
     @Test
     void shouldNotDeleteNamespacesWhenNoPatternMatches() {
         when(namespaceService.findByWildcardName("namespace*")).thenReturn(List.of());
-        var result = namespaceController.delete("namespace*", false);
+        HttpResponse<List<Namespace>> result = namespaceController.delete("namespace*", false);
         assertEquals(HttpResponse.notFound().getStatus(), result.getStatus());
     }
 }
