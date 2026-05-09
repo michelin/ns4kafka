@@ -417,26 +417,32 @@ public class ConnectClusterService {
      * @return The connect cluster with decrypted information.
      */
     public ConnectCluster buildConnectClusterWithDecryptedInformation(ConnectCluster connectCluster) {
-        ConnectCluster.ConnectClusterSpec.ConnectClusterSpecBuilder builder = ConnectCluster.ConnectClusterSpec.builder()
-                .url(connectCluster.getSpec().getUrl())
-                .username(connectCluster.getSpec().getUsername())
-                .password(EncryptionUtils.decryptAes256Gcm(
-                        connectCluster.getSpec().getPassword(),
-                        ns4KafkaProperties.getSecurity().getAes256EncryptionKey()))
-                .aes256Key(EncryptionUtils.decryptAes256Gcm(
-                        connectCluster.getSpec().getAes256Key(),
-                        ns4KafkaProperties.getSecurity().getAes256EncryptionKey()))
-                .aes256Salt(EncryptionUtils.decryptAes256Gcm(
-                        connectCluster.getSpec().getAes256Salt(),
-                        ns4KafkaProperties.getSecurity().getAes256EncryptionKey()))
-                .aes256Format(connectCluster.getSpec().getAes256Format())
-                .status(
-                        healthyConnectClusters
-                                        .getOrDefault(
-                                                connectCluster.getMetadata().getCluster(), Set.of())
-                                        .contains(connectCluster.getMetadata().getName())
-                                ? ConnectCluster.Status.HEALTHY
-                                : ConnectCluster.Status.IDLE);
+        ConnectCluster.ConnectClusterSpec.ConnectClusterSpecBuilder builder =
+                ConnectCluster.ConnectClusterSpec.builder()
+                        .url(connectCluster.getSpec().getUrl())
+                        .username(connectCluster.getSpec().getUsername())
+                        .password(EncryptionUtils.decryptAes256Gcm(
+                                connectCluster.getSpec().getPassword(),
+                                ns4KafkaProperties.getSecurity().getAes256EncryptionKey()))
+                        .aes256Key(EncryptionUtils.decryptAes256Gcm(
+                                connectCluster.getSpec().getAes256Key(),
+                                ns4KafkaProperties.getSecurity().getAes256EncryptionKey()))
+                        .aes256Salt(EncryptionUtils.decryptAes256Gcm(
+                                connectCluster.getSpec().getAes256Salt(),
+                                ns4KafkaProperties.getSecurity().getAes256EncryptionKey()))
+                        .aes256Format(connectCluster.getSpec().getAes256Format())
+                        .status(
+                                healthyConnectClusters
+                                                .getOrDefault(
+                                                        connectCluster
+                                                                .getMetadata()
+                                                                .getCluster(),
+                                                        Set.of())
+                                                .contains(connectCluster
+                                                        .getMetadata()
+                                                        .getName())
+                                        ? ConnectCluster.Status.HEALTHY
+                                        : ConnectCluster.Status.IDLE);
 
         return ConnectCluster.builder()
                 .metadata(connectCluster.getMetadata())

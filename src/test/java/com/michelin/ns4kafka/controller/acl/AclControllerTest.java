@@ -413,7 +413,8 @@ class AclControllerTest {
                 .thenReturn(List.of());
         when(aclService.create(accessControlEntry)).thenReturn(accessControlEntry);
 
-        HttpResponse<AccessControlEntry> response = accessControlListController.apply(authentication, "test", accessControlEntry, false);
+        HttpResponse<AccessControlEntry> response =
+                accessControlListController.apply(authentication, "test", accessControlEntry, false);
         AccessControlEntry actual = response.body();
         assertEquals("created", response.header("X-Ns4kafka-Result"));
         assertEquals("test", actual.getMetadata().getNamespace());
@@ -489,7 +490,8 @@ class AclControllerTest {
         doNothing().when(applicationEventPublisher).publishEvent(any());
         when(aclService.create(accessControlEntry)).thenReturn(accessControlEntry);
 
-        HttpResponse<AccessControlEntry> response = accessControlListController.apply(authentication, "test", accessControlEntry, false);
+        HttpResponse<AccessControlEntry> response =
+                accessControlListController.apply(authentication, "test", accessControlEntry, false);
         AccessControlEntry actual = response.body();
         assertEquals("created", response.header("X-Ns4kafka-Result"));
         assertEquals("test", actual.getMetadata().getNamespace());
@@ -528,7 +530,8 @@ class AclControllerTest {
         when(aclService.validate(accessControlEntry, namespace)).thenReturn(List.of());
         when(aclService.findByName("test", "ace1")).thenReturn(Optional.of(accessControlEntry));
 
-        HttpResponse<AccessControlEntry> response = accessControlListController.apply(authentication, "test", accessControlEntry, false);
+        HttpResponse<AccessControlEntry> response =
+                accessControlListController.apply(authentication, "test", accessControlEntry, false);
         AccessControlEntry actual = response.body();
         assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
         assertEquals("test", actual.getMetadata().getNamespace());
@@ -639,7 +642,8 @@ class AclControllerTest {
         when(aclService.findByName("test", "ace1")).thenReturn(Optional.of(oldAccessControlEntry));
         when(aclService.create(accessControlEntry)).thenReturn(accessControlEntry);
 
-        HttpResponse<AccessControlEntry> response = accessControlListController.apply(authentication, "test", accessControlEntry, false);
+        HttpResponse<AccessControlEntry> response =
+                accessControlListController.apply(authentication, "test", accessControlEntry, false);
         AccessControlEntry actual = response.body();
         assertEquals("changed", response.header("X-Ns4kafka-Result"));
         assertEquals("test", actual.getMetadata().getNamespace());
@@ -694,7 +698,8 @@ class AclControllerTest {
         when(aclService.validate(accessControlEntry, ns)).thenReturn(List.of());
         when(aclService.findByName("test", "ace1")).thenReturn(Optional.of(oldAccessControlEntry));
 
-        HttpResponse<AccessControlEntry> response = accessControlListController.apply(authentication, "test", accessControlEntry, true);
+        HttpResponse<AccessControlEntry> response =
+                accessControlListController.apply(authentication, "test", accessControlEntry, true);
         AccessControlEntry actual = response.body();
         assertEquals("changed", response.header("X-Ns4kafka-Result"));
         assertEquals("test", actual.getMetadata().getNamespace());
@@ -754,7 +759,8 @@ class AclControllerTest {
         doNothing().when(applicationEventPublisher).publishEvent(any());
         when(aclService.create(accessControlEntry)).thenReturn(accessControlEntry);
 
-        HttpResponse<AccessControlEntry> response = accessControlListController.apply(authentication, "test", accessControlEntry, false);
+        HttpResponse<AccessControlEntry> response =
+                accessControlListController.apply(authentication, "test", accessControlEntry, false);
         assertEquals("created", response.header("X-Ns4kafka-Result"));
         assertEquals("test", response.body().getMetadata().getNamespace());
         assertEquals("local", response.body().getMetadata().getCluster());
@@ -791,7 +797,8 @@ class AclControllerTest {
         when(aclService.validateSelfAssignedAdmin(accessControlEntry, adminNamespace))
                 .thenReturn(List.of());
 
-        HttpResponse<AccessControlEntry> response = accessControlListController.apply(authentication, "admin", accessControlEntry, true);
+        HttpResponse<AccessControlEntry> response =
+                accessControlListController.apply(authentication, "admin", accessControlEntry, true);
 
         assertEquals("created", response.header("X-Ns4kafka-Result"));
         verify(aclService, never()).create(ArgumentMatchers.any());
@@ -825,7 +832,8 @@ class AclControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(namespace));
         when(aclService.validate(accessControlEntry, namespace)).thenReturn(List.of());
 
-        HttpResponse<AccessControlEntry> response = accessControlListController.apply(authentication, "test", accessControlEntry, true);
+        HttpResponse<AccessControlEntry> response =
+                accessControlListController.apply(authentication, "test", accessControlEntry, true);
 
         assertEquals("created", response.header("X-Ns4kafka-Result"));
         verify(aclService, never()).create(accessControlEntry);
@@ -977,7 +985,8 @@ class AclControllerTest {
         when(aclService.findAllGrantedByNamespaceByWildcardName(namespace, "ace1"))
                 .thenReturn(List.of());
 
-        HttpResponse<List<AccessControlEntry>> actual = accessControlListController.bulkDelete(authentication, "test", "ace1", false);
+        HttpResponse<List<AccessControlEntry>> actual =
+                accessControlListController.bulkDelete(authentication, "test", "ace1", false);
         assertEquals(HttpStatus.NOT_FOUND, actual.status());
     }
 
@@ -1065,7 +1074,8 @@ class AclControllerTest {
         when(aclService.findAllGrantedByNamespaceByWildcardName(namespace, "ace1"))
                 .thenReturn(List.of(accessControlEntry));
 
-        HttpResponse<List<AccessControlEntry>> actual = accessControlListController.bulkDelete(authentication, "test", "ace1", false);
+        HttpResponse<List<AccessControlEntry>> actual =
+                accessControlListController.bulkDelete(authentication, "test", "ace1", false);
 
         assertEquals(HttpStatus.OK, actual.status());
     }
@@ -1117,7 +1127,8 @@ class AclControllerTest {
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        HttpResponse<List<AccessControlEntry>> actual = accessControlListController.bulkDelete(authentication, "test", "ace*", false);
+        HttpResponse<List<AccessControlEntry>> actual =
+                accessControlListController.bulkDelete(authentication, "test", "ace*", false);
 
         assertEquals(HttpStatus.OK, actual.status());
     }
@@ -1150,7 +1161,8 @@ class AclControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(namespace));
         when(aclService.findAllGrantedByNamespaceByWildcardName(namespace, "ace1"))
                 .thenReturn(List.of(accessControlEntry));
-        HttpResponse<List<AccessControlEntry>> actual = accessControlListController.bulkDelete(authentication, "test", "ace1", true);
+        HttpResponse<List<AccessControlEntry>> actual =
+                accessControlListController.bulkDelete(authentication, "test", "ace1", true);
 
         verify(aclService, never()).delete(any());
         assertEquals(HttpStatus.OK, actual.status());

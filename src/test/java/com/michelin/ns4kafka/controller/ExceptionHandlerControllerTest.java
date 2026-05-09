@@ -81,7 +81,8 @@ class ExceptionHandlerControllerTest {
     @Test
     void shouldHandleAuthorizationExceptionAndConvertToForbidden() {
         AuthorizationException exception = new AuthorizationException(Authentication.build("user", Map.of()));
-        HttpResponse<Status> response = exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"), exception);
+        HttpResponse<Status> response =
+                exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"), exception);
         Status status = response.body();
 
         assertEquals(HttpStatus.FORBIDDEN, response.getStatus());

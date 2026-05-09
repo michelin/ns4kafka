@@ -162,16 +162,7 @@ public class AclController extends NamespacedResourceController {
             throw new ResourceValidationException(accessControlEntry, invalidImmutableField("spec"));
         }
 
-        accessControlEntry.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
-        accessControlEntry.getMetadata().setUpdateTimestamp(Date.from(Instant.now()));
-        accessControlEntry
-                .getMetadata()
-                .setGeneration(existingAcl
-                        .map(oldAccessControlEntry ->
-                                oldAccessControlEntry.getMetadata().getGeneration())
-                        .orElse(0));
-        accessControlEntry.getMetadata().setCluster(ns.getMetadata().getCluster());
-        accessControlEntry.getMetadata().setNamespace(ns.getMetadata().getName());
+        assignResourceMetadata(accessControlEntry, ns, existingAcl.orElse(null));
 
         if (existingAcl.isPresent() && existingAcl.get().equals(accessControlEntry)) {
             return formatHttpResponse(existingAcl.get(), ApplyStatus.UNCHANGED);

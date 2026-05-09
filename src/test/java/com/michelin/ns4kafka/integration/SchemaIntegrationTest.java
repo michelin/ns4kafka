@@ -159,7 +159,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                         .build())
                 .build();
 
-        HttpResponse createResponse = ns4KafkaClient
+        HttpResponse<Schema> createResponse = ns4KafkaClient
                 .toBlocking()
                 .exchange(
                         HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
@@ -204,7 +204,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                         .build())
                 .build();
 
-        HttpResponse createV2Response = ns4KafkaClient
+        HttpResponse<Schema> createV2Response = ns4KafkaClient
                 .toBlocking()
                 .exchange(
                         HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
@@ -239,7 +239,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                         .build())
                 .build();
 
-        HttpResponse createResponse = ns4KafkaClient
+        HttpResponse<Schema> createResponse = ns4KafkaClient
                 .toBlocking()
                 .exchange(
                         HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
@@ -312,7 +312,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                 .build();
 
         // Header created
-        HttpResponse headerCreateResponse = ns4KafkaClient
+        HttpResponse<Schema> headerCreateResponse = ns4KafkaClient
                 .toBlocking()
                 .exchange(
                         HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
@@ -386,7 +386,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                         .build())
                 .build();
 
-        HttpResponse personCreateResponse = ns4KafkaClient
+        HttpResponse<Schema> personCreateResponse = ns4KafkaClient
                 .toBlocking()
                 .exchange(
                         HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
@@ -459,7 +459,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                         Schema.class);
 
         // Create person, result should be unchanged
-        HttpResponse personUnchangedResponse = ns4KafkaClient
+        HttpResponse<Schema> personUnchangedResponse = ns4KafkaClient
                 .toBlocking()
                 .exchange(
                         HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
@@ -493,7 +493,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                         .build())
                 .build();
 
-        HttpResponse newPersonCreateResponse = ns4KafkaClient
+        HttpResponse<Schema> newPersonCreateResponse = ns4KafkaClient
                 .toBlocking()
                 .exchange(
                         HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
@@ -512,7 +512,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
         assertEquals("ns1-person2-subject-value", newActualPerson.subject());
 
         // Recreate person v1, result should be unchanged
-        HttpResponse personCreateV1Response = ns4KafkaClient
+        HttpResponse<Schema> personCreateV1Response = ns4KafkaClient
                 .toBlocking()
                 .exchange(
                         HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
@@ -535,7 +535,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                 .build();
 
         // Create header v2
-        HttpResponse headerV2CreateResponse = ns4KafkaClient
+        HttpResponse<Schema> headerV2CreateResponse = ns4KafkaClient
                 .toBlocking()
                 .exchange(
                         HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
@@ -556,7 +556,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
         // Create person referencing header v2, result should be changed
         newSchemaVersionPersonWithRefs.getSpec().getReferences().getFirst().setVersion(2);
 
-        HttpResponse newPersonCreateWithV2RefResponse = ns4KafkaClient
+        HttpResponse<Schema> newPersonCreateWithV2RefResponse = ns4KafkaClient
                 .toBlocking()
                 .exchange(
                         HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
@@ -596,7 +596,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
         assertEquals("Resource validation failed", createException.getMessage());
 
         // Get all schemas
-        HttpResponse getResponse = ns4KafkaClient
+        HttpResponse<List<Schema>> getResponse = ns4KafkaClient
                 .toBlocking()
                 .exchange(
                         HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/schemas")
@@ -635,7 +635,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                 .build();
 
         // Apply schema
-        HttpResponse createResponse = ns4KafkaClient
+        HttpResponse<Schema> createResponse = ns4KafkaClient
                 .toBlocking()
                 .exchange(
                         HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
@@ -646,7 +646,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
         assertEquals("created", createResponse.header("X-Ns4kafka-Result"));
 
         // Get all schemas
-        HttpResponse getResponse = ns4KafkaClient
+        HttpResponse<List<Schema>> getResponse = ns4KafkaClient
                 .toBlocking()
                 .exchange(
                         HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/schemas")
@@ -659,7 +659,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                         schemaResponse -> schemaResponse.getMetadata().getName().equals("ns1-subject2-value")));
 
         // Delete schema
-        HttpResponse deleteResponse = ns4KafkaClient
+        HttpResponse<Schema> deleteResponse = ns4KafkaClient
                 .toBlocking()
                 .exchange(
                         HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/schemas/ns1-subject2-value")
@@ -669,7 +669,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
         assertEquals(HttpStatus.NO_CONTENT, deleteResponse.getStatus());
 
         // Get all schemas
-        HttpResponse getResponseEmpty = ns4KafkaClient
+        HttpResponse<List<Schema>> getResponseEmpty = ns4KafkaClient
                 .toBlocking()
                 .exchange(
                         HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/schemas")
@@ -708,7 +708,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                 .build();
 
         // Apply schema
-        HttpResponse createResponse = ns4KafkaClient
+        HttpResponse<Schema> createResponse = ns4KafkaClient
                 .toBlocking()
                 .exchange(
                         HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
@@ -719,7 +719,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
         assertEquals("created", createResponse.header("X-Ns4kafka-Result"));
 
         // Get all schemas
-        HttpResponse getResponse = ns4KafkaClient
+        HttpResponse<List<Schema>> getResponse = ns4KafkaClient
                 .toBlocking()
                 .exchange(
                         HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/schemas")
@@ -745,7 +745,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                         .build())
                 .build();
 
-        HttpResponse createSwappedFieldsResponse = ns4KafkaClient
+        HttpResponse<Schema> createSwappedFieldsResponse = ns4KafkaClient
                 .toBlocking()
                 .exchange(
                         HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
@@ -766,7 +766,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
         assertEquals("ns1-subject3-value", schemaAfterApply.subject());
 
         // Apply again the schema with swapped fields
-        HttpResponse createAgainResponse = ns4KafkaClient
+        HttpResponse<Schema> createAgainResponse = ns4KafkaClient
                 .toBlocking()
                 .exchange(
                         HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/schemas")
@@ -880,7 +880,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                         Schema.class);
 
         // Delete latest schema version
-        HttpResponse deleteLatestVersionResponse = ns4KafkaClient
+        HttpResponse<Schema> deleteLatestVersionResponse = ns4KafkaClient
                 .toBlocking()
                 .exchange(
                         HttpRequest.create(
@@ -892,7 +892,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
         assertEquals(HttpStatus.OK, deleteLatestVersionResponse.getStatus());
 
         // Get schemas versions
-        HttpResponse getSchemaAfterLatestVersionDeletionResponse = schemaRegistryClient
+        HttpResponse<List<String>> getSchemaAfterLatestVersionDeletionResponse = schemaRegistryClient
                 .toBlocking()
                 .exchange(
                         HttpRequest.create(HttpMethod.GET, "/subjects/ns1-subject4-value/versions"),
@@ -902,7 +902,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
         assertTrue(getSchemaAfterLatestVersionDeletionResponse.getBody().get().containsAll(List.of("1", "2", "3")));
 
         // Delete old schema version
-        HttpResponse deleteOldVersionResponse = ns4KafkaClient
+        HttpResponse<Schema> deleteOldVersionResponse = ns4KafkaClient
                 .toBlocking()
                 .exchange(
                         HttpRequest.create(
@@ -914,7 +914,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
         assertEquals(HttpStatus.OK, deleteOldVersionResponse.getStatus());
 
         // Get schemas versions
-        HttpResponse getSchemaAfterOldVersionDeletionResponse = schemaRegistryClient
+        HttpResponse<List<String>> getSchemaAfterOldVersionDeletionResponse = schemaRegistryClient
                 .toBlocking()
                 .exchange(
                         HttpRequest.create(HttpMethod.GET, "/subjects/ns1-subject4-value/versions"),
@@ -924,7 +924,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
         assertTrue(getSchemaAfterOldVersionDeletionResponse.getBody().get().containsAll(List.of("2", "3")));
 
         // Delete all remaining schema versions
-        HttpResponse deleteAllVersionsResponse = ns4KafkaClient
+        HttpResponse<Schema> deleteAllVersionsResponse = ns4KafkaClient
                 .toBlocking()
                 .exchange(
                         HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/schemas?name=ns1-subject4-value")
@@ -934,7 +934,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
         assertEquals(HttpStatus.OK, deleteAllVersionsResponse.getStatus());
 
         // Get all schemas
-        HttpResponse getSchemaAfterAllVersionsDeletionResponse = schemaRegistryClient
+        HttpResponse<List<String>> getSchemaAfterAllVersionsDeletionResponse = schemaRegistryClient
                 .toBlocking()
                 .exchange(HttpRequest.create(HttpMethod.GET, "/subjects"), Argument.listOf(String.class));
 
@@ -1004,7 +1004,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                                 .body(schema3),
                         Schema.class);
 
-        HttpResponse getSchemasBeforeDeletionResponse = schemaRegistryClient
+        HttpResponse<List<String>> getSchemasBeforeDeletionResponse = schemaRegistryClient
                 .toBlocking()
                 .exchange(HttpRequest.create(HttpMethod.GET, "/subjects"), Argument.listOf(String.class));
 
@@ -1015,7 +1015,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                 .containsAll(List.of("ns1-subject5-value", "ns1-subject5-key", "ns1-subject6-value")));
 
         // Delete schema with wildcard
-        HttpResponse deleteResponse = ns4KafkaClient
+        HttpResponse<List<Schema>> deleteResponse = ns4KafkaClient
                 .toBlocking()
                 .exchange(
                         HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/schemas?name=ns1-*-key")
@@ -1024,7 +1024,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
 
         assertEquals(HttpStatus.OK, deleteResponse.getStatus());
 
-        HttpResponse getSchemasAfterDeletionResponse = schemaRegistryClient
+        HttpResponse<List<String>> getSchemasAfterDeletionResponse = schemaRegistryClient
                 .toBlocking()
                 .exchange(HttpRequest.create(HttpMethod.GET, "/subjects"), Argument.listOf(String.class));
 

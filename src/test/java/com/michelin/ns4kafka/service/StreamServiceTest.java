@@ -40,6 +40,7 @@ import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
