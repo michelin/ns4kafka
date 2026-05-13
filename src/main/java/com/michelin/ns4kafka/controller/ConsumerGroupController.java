@@ -20,6 +20,7 @@ package com.michelin.ns4kafka.controller;
 
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidConsumerGroupDeleteOperation;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidConsumerGroupOperation;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNamespaceCannotReadTopic;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidOwner;
 import static com.michelin.ns4kafka.util.enumation.Kind.CONSUMER_GROUP;
 import static com.michelin.ns4kafka.util.enumation.Kind.CONSUMER_GROUP_RESET_OFFSET;
@@ -31,6 +32,7 @@ import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.consumer.group.ConsumerGroup;
 import com.michelin.ns4kafka.model.consumer.group.ConsumerGroupResetOffsets;
 import com.michelin.ns4kafka.model.consumer.group.ConsumerGroupResetOffsetsResponse;
+import com.michelin.ns4kafka.service.AclService;
 import com.michelin.ns4kafka.service.ConsumerGroupService;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.util.enumation.ApplyStatus;
@@ -59,21 +61,26 @@ import org.apache.kafka.common.TopicPartition;
 @Controller("/api/namespaces/{namespace}/consumer-groups")
 public class ConsumerGroupController extends NamespacedResourceController {
     private final ConsumerGroupService consumerGroupService;
+    private final AclService aclService;
 
     /**
      * Constructor.
      *
+     * @param consumerGroupService The consumer group service
      * @param namespaceService The namespace service
+     * @param aclService The ACL service
      * @param securityService The security service
      * @param applicationEventPublisher The application event publisher
      */
     public ConsumerGroupController(
             ConsumerGroupService consumerGroupService,
             NamespaceService namespaceService,
+            AclService aclService,
             SecurityService securityService,
             ApplicationEventPublisher<AuditLog> applicationEventPublisher) {
         super(namespaceService, securityService, applicationEventPublisher);
         this.consumerGroupService = consumerGroupService;
+        this.aclService = aclService;
     }
 
     /**
@@ -113,6 +120,12 @@ public class ConsumerGroupController extends NamespacedResourceController {
 
         if (!consumerGroupService.isNamespaceOwnerOfConsumerGroup(namespace, consumerGroup)) {
             validationErrors.add(invalidOwner("group", consumerGroup));
+        }
+
+        if (!aclService.isTopicReadableByNamespace(
+                namespace, consumerGroupResetOffsets.getSpec().getTopic())) {
+            validationErrors.add(invalidNamespaceCannotReadTopic(
+                    consumerGroupResetOffsets.getSpec().getTopic()));
         }
 
         if (!validationErrors.isEmpty()) {

@@ -544,6 +544,16 @@ public class FormatErrorUtils {
     }
 
     /**
+     * Invalid namespace cannot read the topic.
+     *
+     * @param topic the topic name
+     * @return the error message
+     */
+    public static String invalidNamespaceCannotReadTopic(String topic) {
+        return INVALID_OPERATION.formatted("reset offset", "namespace cannot read topic %s".formatted(topic));
+    }
+
+    /**
      * Invalid name empty.
      *
      * @return the error message
