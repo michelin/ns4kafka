@@ -136,7 +136,7 @@ services:
       CONTROL_CENTER_KAFKA_MYCLUSTER_SASL_JAAS_CONFIG: org.apache.kafka.common.security.scram.ScramLoginModule required username="admin" password="admin";
 
   ns4kafka:
-    image: michelin/ns4kafka:1.17.0
+    image: michelin/ns4kafka:1.20.0
     hostname: ns4kafka
     container_name: ns4kafka
     networks:
@@ -152,10 +152,10 @@ services:
       - ./config/ns4kafka/application.yml:/home/app/application.yml:ro
       - ./config/ns4kafka/logback.xml:/home/app/resources/logback.xml:ro
     environment:
-      - MICRONAUT_CONFIG_FILES=/home/app/application.yml
+      MICRONAUT_CONFIG_FILES: /home/app/application.yml
 
   kafkactl:
-    image: michelin/kafkactl:1.17.2-native
+    image: michelin/kafkactl:1.20.0-native
     hostname: kafkactl
     container_name: kafkactl
     networks:
