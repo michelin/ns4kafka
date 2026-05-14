@@ -18,26 +18,25 @@
  */
 package com.michelin.ns4kafka.service.executor;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
+
+import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
-
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.GroupListing;
 import org.apache.kafka.clients.admin.ListGroupsResult;
 import org.apache.kafka.common.GroupState;
 import org.apache.kafka.common.GroupType;
 import org.apache.kafka.common.KafkaFuture;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import com.michelin.ns4kafka.property.ManagedClusterProperties;
 
 @ExtendWith(MockitoExtension.class)
 class ConsumerGroupAsyncExecutorTest {
@@ -63,8 +62,8 @@ class ConsumerGroupAsyncExecutorTest {
                 "connect-group", Optional.of(GroupType.CLASSIC), "connect", Optional.of(GroupState.STABLE));
         GroupListing streamsGroup = new GroupListing(
                 "streams-group", Optional.of(GroupType.STREAMS), "stream", Optional.of(GroupState.STABLE));
-        GroupListing shareGroup = new GroupListing(
-                "share-group", Optional.of(GroupType.SHARE), "share", Optional.of(GroupState.STABLE));
+        GroupListing shareGroup =
+                new GroupListing("share-group", Optional.of(GroupType.SHARE), "share", Optional.of(GroupState.STABLE));
 
         when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
         when(adminClient.listGroups()).thenReturn(listGroupsResult);
@@ -88,8 +87,7 @@ class ConsumerGroupAsyncExecutorTest {
 
         when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
         when(adminClient.listGroups()).thenReturn(listGroupsResult);
-        when(listGroupsResult.all())
-                .thenReturn(KafkaFuture.completedFuture(List.of(connectGroup, consumerGroup)));
+        when(listGroupsResult.all()).thenReturn(KafkaFuture.completedFuture(List.of(connectGroup, consumerGroup)));
 
         List<String> result = consumerGroupAsyncExecutor.listConsumerGroupIds();
 
@@ -99,15 +97,13 @@ class ConsumerGroupAsyncExecutorTest {
 
     @Test
     void shouldFilterOutGroupsWithEmptyType() throws ExecutionException, InterruptedException {
-        GroupListing emptyTypeGroup =
-                new GroupListing("empty-type-group", Optional.empty(), "", Optional.empty());
-        GroupListing classicGroup =
-                new GroupListing("classic-group", Optional.of(GroupType.CLASSIC), "consumer", Optional.of(GroupState.STABLE));
+        GroupListing emptyTypeGroup = new GroupListing("empty-type-group", Optional.empty(), "", Optional.empty());
+        GroupListing classicGroup = new GroupListing(
+                "classic-group", Optional.of(GroupType.CLASSIC), "consumer", Optional.of(GroupState.STABLE));
 
         when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
         when(adminClient.listGroups()).thenReturn(listGroupsResult);
-        when(listGroupsResult.all())
-                .thenReturn(KafkaFuture.completedFuture(List.of(emptyTypeGroup, classicGroup)));
+        when(listGroupsResult.all()).thenReturn(KafkaFuture.completedFuture(List.of(emptyTypeGroup, classicGroup)));
 
         List<String> result = consumerGroupAsyncExecutor.listConsumerGroupIds();
 
@@ -117,8 +113,8 @@ class ConsumerGroupAsyncExecutorTest {
 
     @Test
     void shouldReturnEmptyListWhenNoConsumerGroups() throws ExecutionException, InterruptedException {
-        GroupListing streamsGroup =
-                new GroupListing("streams-group", Optional.of(GroupType.STREAMS), "stream", Optional.of(GroupState.STABLE));
+        GroupListing streamsGroup = new GroupListing(
+                "streams-group", Optional.of(GroupType.STREAMS), "stream", Optional.of(GroupState.STABLE));
 
         when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
         when(adminClient.listGroups()).thenReturn(listGroupsResult);
