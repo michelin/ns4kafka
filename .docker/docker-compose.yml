@@ -1,7 +1,7 @@
 ---
 services:
   broker:
-    image: confluentinc/cp-kafka:8.0.0
+    image: confluentinc/cp-kafka:8.2.0
     hostname: broker
     container_name: broker
     networks:
@@ -39,7 +39,7 @@ services:
       KAFKA_OPTS: -Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf
 
   schema-registry:
-    image: confluentinc/cp-schema-registry:8.0.0
+    image: confluentinc/cp-schema-registry:8.2.0
     hostname: schema-registry
     container_name: schema-registry
     depends_on:
@@ -82,7 +82,7 @@ services:
       CONNECT_VALUE_CONVERTER: io.confluent.connect.avro.AvroConverter
       CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: http://schema-registry:8081
       # CLASSPATH required due to CC-2422
-      CLASSPATH: /usr/share/java/monitoring-interceptors/monitoring-interceptors-7.3.3.jar
+      CLASSPATH: /usr/share/java/monitoring-interceptors/monitoring-interceptors-8.2.0.jar
       CONNECT_PRODUCER_INTERCEPTOR_CLASSES: "io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor"
       CONNECT_CONSUMER_INTERCEPTOR_CLASSES: "io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor"
       CONNECT_PLUGIN_PATH: "/usr/share/java,/usr/share/confluent-hub-components"
@@ -105,7 +105,7 @@ services:
       CONNECT_CONSUMER_CONFLUENT_MONITORING_INTERCEPTOR_SASL_MECHANISM: SCRAM-SHA-512
 
   control-center:
-    image: confluentinc/cp-enterprise-control-center-next-gen:2.2.2
+    image: confluentinc/cp-enterprise-control-center-next-gen:2.5.0
     hostname: control-center
     container_name: control-center
     networks:
