@@ -8,7 +8,6 @@ services:
       - ns4kafka-network
     ports:
       - "9092:9092"
-      - "9101:9101"
     volumes:
       - ./config/broker/kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf
       - ./config/broker/client.properties:/home/appuser/client.properties
@@ -16,7 +15,6 @@ services:
     command: bash -c '/home/appuser/create-user.sh && /etc/confluent/docker/run'
     environment:
       KAFKA_NODE_ID: 1
-      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
       KAFKA_LISTENERS: 'INTERNAL://broker:29092,EXTERNAL://0.0.0.0:9092,CONTROLLER://broker:29093'
       KAFKA_ADVERTISED_LISTENERS: 'INTERNAL://broker:29092,EXTERNAL://localhost:9092'
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'INTERNAL:SASL_PLAINTEXT,EXTERNAL:SASL_PLAINTEXT,CONTROLLER:SASL_PLAINTEXT'
@@ -35,6 +33,9 @@ services:
       KAFKA_SUPER_USERS: User:admin
       KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: 'false'
       KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
+      # Replace CLUSTER_ID with a unique base64 UUID using "bin/kafka-storage.sh random-uuid"
+      # See https://docs.confluent.io/kafka/operations-tools/kafka-tools.html#kafka-storage-sh
+      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
       # Kafka Options
       KAFKA_OPTS: -Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf
 

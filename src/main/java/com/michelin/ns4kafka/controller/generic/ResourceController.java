@@ -67,10 +67,6 @@ public abstract class ResourceController {
     /**
      * Format an HTTP response with the operation status and optional validation warnings.
      *
-     * <p>When {@code warnings} is non-empty each warning message is joined with {@code ", "} and emitted in the
-     * {@value WARNING_HEADER} response header so clients (e.g. Kafkactl) can surface them without blocking the
-     * operation.
-     *
      * @param body The response body
      * @param status The operation status
      * @param warnings The list of soft-validation warnings (maybe empty)
