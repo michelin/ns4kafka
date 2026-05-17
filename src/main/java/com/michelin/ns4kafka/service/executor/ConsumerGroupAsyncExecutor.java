@@ -34,6 +34,7 @@ import org.apache.kafka.clients.admin.ConsumerGroupDescription;
 import org.apache.kafka.clients.admin.GroupListing;
 import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.GroupType;
 import org.apache.kafka.common.TopicPartition;
 
 /** Consumer group executor. */
@@ -70,6 +71,8 @@ public class ConsumerGroupAsyncExecutor {
      */
     public List<String> listConsumerGroupIds() throws ExecutionException, InterruptedException {
         return getAdminClient().listGroups().all().get().stream()
+                .filter(groupListing -> groupListing.type().orElse(null) == GroupType.CONSUMER
+                        || "consumer".equals(groupListing.protocol()))
                 .map(GroupListing::groupId)
                 .toList();
     }
