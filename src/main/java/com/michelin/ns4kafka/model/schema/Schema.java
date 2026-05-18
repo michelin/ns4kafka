@@ -69,13 +69,13 @@ public class Schema extends Resource {
         /**
          * Deserialize compatibility from value, supporting lowercase with hyphens (e.g., "backward-transitive").
          *
-         * @param value the value to deserialize
-         * @return the compatibility
+         * @param value The value to deserialize
+         * @return The compatibility
          */
         @JsonCreator
         public static Compatibility fromString(String value) {
             return Arrays.stream(values())
-                    .filter(c -> c.name().equalsIgnoreCase(value.replace("-", "_")))
+                    .filter(compatibility -> compatibility.name().equalsIgnoreCase(value.replace("-", "_")))
                     .findFirst()
                     .orElseThrow(() -> new IllegalArgumentException("Invalid compatibility value: " + value));
         }
