@@ -20,11 +20,13 @@ package com.michelin.ns4kafka.model.schema;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.SCHEMA;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.michelin.ns4kafka.model.Resource;
 import io.micronaut.core.annotation.Introspected;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.util.Arrays;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -62,7 +64,21 @@ public class Schema extends Resource {
         FORWARD_TRANSITIVE,
         FULL,
         FULL_TRANSITIVE,
-        NONE
+        NONE;
+
+        /**
+         * Deserialize compatibility from value, supporting lowercase with hyphens (e.g., "backward-transitive").
+         *
+         * @param value the value to deserialize
+         * @return the compatibility
+         */
+        @JsonCreator
+        public static Compatibility fromString(String value) {
+            return Arrays.stream(values())
+                    .filter(c -> c.name().equalsIgnoreCase(value.replace("-", "_")))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Invalid compatibility value: " + value));
+        }
     }
 
     /** Schema type. */
