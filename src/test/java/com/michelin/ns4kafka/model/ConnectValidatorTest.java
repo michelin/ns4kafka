@@ -423,4 +423,32 @@ class ConnectValidatorTest {
                                 "Invalid empty value for field \"consumer.override.sasl.jaas.config\": value must not be null."));
         assertTrue(actual.errors().contains("Invalid empty value for field \"db.timezone\": value must not be null."));
     }
+
+    @Test
+    void shouldNotValidateNameFromClassValidationConstraints() {
+        ConnectValidator validator = ConnectValidator.builder()
+                .classValidationConstraints(Map.of(
+                        "io.confluent.connect.jdbc.JdbcSinkConnector",
+                        Map.of(
+                                "name",
+                                ResourceValidator.RegexPattern.matches("^[A-Z0-9._-]+$", true),
+                                "db.timezone",
+                                new ResourceValidator.NonEmptyString())))
+                .build();
+
+        Connector connector = Connector.builder()
+                .metadata(Resource.Metadata.builder().name("lowercase").build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("cluster1")
+                        .config(Map.of("connector.class", "io.confluent.connect.jdbc.JdbcSinkConnector"))
+                        .build())
+                .build();
+
+        ValidationResult actual = validator.validate(connector, "sink");
+        assertEquals(2, actual.errors().size());
+        assertTrue(actual.errors()
+                .contains(
+                        "Invalid value \"lowercase\" for field \"name\": value must match regex \"^[A-Z0-9._-]+$\"."));
+        assertTrue(actual.errors().contains("Invalid empty value for field \"db.timezone\": value must not be null."));
+    }
 }

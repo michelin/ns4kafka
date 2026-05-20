@@ -121,20 +121,12 @@ public class ConnectValidator extends ResourceValidator {
 
         if (classValidationConstraints.containsKey(
                 connector.getSpec().getConfig().get(CONNECTOR_CLASS))) {
-            classValidationConstraints
-                    .get(connector.getSpec().getConfig().get(CONNECTOR_CLASS))
-                    .forEach((key, value) -> {
-                        try {
-                            value.ensureValid(
-                                    key, connector.getSpec().getConfig().get(key));
-                        } catch (FieldValidationException e) {
-                            if (e.soft) {
-                                validationWarnings.add(e.getMessage());
-                            } else {
-                                validationErrors.add(e.getMessage());
-                            }
-                        }
-                    });
+            validateConstraints(
+                    connector,
+                    validationErrors,
+                    validationWarnings,
+                    classValidationConstraints.get(
+                            connector.getSpec().getConfig().get(CONNECTOR_CLASS)));
         }
 
         return new ValidationResult(validationErrors, validationWarnings);
