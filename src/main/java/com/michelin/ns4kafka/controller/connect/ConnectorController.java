@@ -30,6 +30,7 @@ import com.michelin.ns4kafka.model.connect.ChangeConnectorState;
 import com.michelin.ns4kafka.model.connect.Connector;
 import com.michelin.ns4kafka.model.connect.ConnectorOffsetResponse;
 import com.michelin.ns4kafka.service.ConnectorService;
+import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsetsResponse;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.ResourceQuotaService;
 import com.michelin.ns4kafka.util.enumation.ApplyStatus;
@@ -359,6 +360,30 @@ public class ConnectorController extends NamespacedResourceController {
                 })
                 .map(_ -> HttpResponse.ok(state))
                 .onErrorReturn(HttpResponse.ok(state));
+    }
+
+    /**
+     * Reset the offsets of a connector.
+     *
+     * @param namespace The namespace
+     * @param connector The connector to reset offsets for
+     * @return An HTTP response
+     */
+    @Delete("/{connector}/offsets")
+    public Mono<HttpResponse<ConnectorOffsetsResponse>> resetOffsets(String namespace, String connector) {
+        Namespace ns = getNamespace(namespace);
+
+        if (!connectorService.isNamespaceOwnerOfConnect(ns, connector)) {
+            return Mono.error(new ResourceValidationException(CONNECTOR, connector, invalidOwner(connector)));
+        }
+
+        Optional<Connector> optionalConnector = connectorService.findByName(ns, connector);
+
+        if (optionalConnector.isEmpty()) {
+            return Mono.just(HttpResponse.notFound());
+        }
+
+        return connectorService.resetOffsets(ns, optionalConnector.get());
     }
 
     /**
