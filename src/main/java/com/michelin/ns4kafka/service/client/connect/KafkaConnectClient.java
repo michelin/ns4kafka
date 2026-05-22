@@ -29,6 +29,7 @@ import com.michelin.ns4kafka.service.client.connect.entities.ConnectorPluginInfo
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorSpecs;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorStateInfo;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorStatus;
+import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsetsResponse;
 import com.michelin.ns4kafka.service.client.connect.entities.ServerInfo;
 import com.michelin.ns4kafka.util.EncryptionUtils;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
@@ -371,6 +372,31 @@ public class KafkaConnectClient {
                 .basicAuth(config.getUsername(), config.getPassword());
 
         return Mono.from(httpClient.exchange(request, Void.class));
+    }
+
+    /**
+     * Reset a connector offsets.
+     *
+     * @param kafkaCluster The Kafka cluster
+     * @param connectCluster The Kafka Connect
+     * @param connector The connector
+     * @return The reset response
+     */
+    @Retryable(
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
+        public Mono<HttpResponse<ConnectorOffsetsResponse>> resetOffsets(
+                        String kafkaCluster, String connectCluster, String connector) {
+        KafkaConnectHttpConfig config = getKafkaConnectConfig(kafkaCluster, connectCluster);
+        String encodedConnector = URLEncoder.encode(connector, StandardCharsets.UTF_8);
+
+        HttpRequest<?> request = HttpRequest.DELETE(
+                        URI.create(StringUtils.prependUri(config.getUrl(), CONNECTORS + encodedConnector + "/offsets")))
+                .basicAuth(config.getUsername(), config.getPassword());
+
+                return Mono.from(httpClient.exchange(request, ConnectorOffsetsResponse.class));
     }
 
     /**
