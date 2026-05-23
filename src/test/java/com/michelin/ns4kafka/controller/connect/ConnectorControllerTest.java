@@ -35,6 +35,7 @@ import com.michelin.ns4kafka.model.connect.ConnectorOffsetResponse;
 import com.michelin.ns4kafka.model.connect.ConnectorOperation;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.service.ConnectorService;
+import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsetsResponse;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.ResourceQuotaService;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsetsResponse;
