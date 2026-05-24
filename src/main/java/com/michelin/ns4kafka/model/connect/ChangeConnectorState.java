@@ -59,7 +59,8 @@ public class ChangeConnectorState extends Resource {
     public enum ConnectorAction {
         PAUSE,
         RESUME,
-        RESTART;
+        RESTART,
+        STOP;
 
         /**
          * Build connector action from string.
