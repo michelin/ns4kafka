@@ -334,6 +334,31 @@ public class KafkaConnectClient {
     }
 
     /**
+     * Stop a connector.
+     *
+     * @param kafkaCluster The Kafka cluster
+     * @param connectCluster The Kafka Connect
+     * @param connector The connector
+     * @return The stop response
+     */
+    @Retryable(
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
+    public Mono<HttpResponse<Void>> stop(String kafkaCluster, String connectCluster, String connector) {
+        KafkaConnectHttpConfig config = getKafkaConnectConfig(kafkaCluster, connectCluster);
+        String encodedConnector = URLEncoder.encode(connector, StandardCharsets.UTF_8);
+
+        HttpRequest<?> request = HttpRequest.PUT(
+                        URI.create(StringUtils.prependUri(config.getUrl(), CONNECTORS + encodedConnector + "/stop")),
+                        null)
+                .basicAuth(config.getUsername(), config.getPassword());
+
+        return Mono.from(httpClient.exchange(request, Void.class));
+    }
+
+    /**
      * Get the Kafka Connect configuration.
      *
      * @param kafkaCluster The Kafka cluster

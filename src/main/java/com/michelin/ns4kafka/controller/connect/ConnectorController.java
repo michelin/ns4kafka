@@ -305,6 +305,7 @@ public class ConnectorController extends NamespacedResourceController {
             case RESTART -> response = connectorService.restart(ns, optionalConnector.get());
             case PAUSE -> response = connectorService.pause(ns, optionalConnector.get());
             case RESUME -> response = connectorService.resume(ns, optionalConnector.get());
+            case STOP -> response = connectorService.stop(ns, optionalConnector.get());
             default -> {
                 return Mono.error(new IllegalStateException(
                         "Unspecified action " + state.getSpec().getAction()));
