@@ -622,6 +622,85 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
     }
 
     @Test
+    void shouldStopConnector() throws InterruptedException {
+        Topic topic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-topic5")
+                        .namespace("ns1")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(3)
+                        .replicationFactor(1)
+                        .configs(
+                                Map.of("cleanup.policy", "delete", "min.insync.replicas", "1", "retention.ms", "60000"))
+                        .build())
+                .build();
+
+        Connector connector = Connector.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-connector-stop")
+                        .namespace("ns1")
+                        .build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("test-connect")
+                        .config(Map.of(
+                                "connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
+                                "tasks.max", "1",
+                                "topics", "ns1-topic5"))
+                        .build())
+                .build();
+
+        ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics")
+                        .bearerAuth(token)
+                        .body(topic));
+
+        topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
+        ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors")
+                        .bearerAuth(token)
+                        .body(connector));
+
+        forceConnectorSynchronization();
+        waitForConnectorToBeInState("ns1-connector-stop", "RUNNING");
+
+        ConnectorStateInfo actual = connectClient
+                .toBlocking()
+                .retrieve(HttpRequest.GET("/connectors/ns1-connector-stop/status"), ConnectorStateInfo.class);
+
+        assertEquals("RUNNING", actual.connector().getState());
+
+        ChangeConnectorState stopState = ChangeConnectorState.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-connector-stop")
+                        .build())
+                .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
+                        .action(ChangeConnectorState.ConnectorAction.STOP)
+                        .build())
+                .build();
+
+        HttpResponse<ChangeConnectorState> stopResponse = ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest.create(
+                                HttpMethod.POST,
+                                "/api/namespaces/ns1/connectors/ns1-connector-stop/change-state")
+                        .bearerAuth(token)
+                        .body(stopState));
+
+        assertEquals(HttpStatus.OK, stopResponse.status());
+
+        waitForConnectorToBeInState("ns1-connector-stop", "STOPPED");
+
+        actual = connectClient
+                .toBlocking()
+                .retrieve(HttpRequest.GET("/connectors/ns1-connector-stop/status"), ConnectorStateInfo.class);
+
+        assertEquals("STOPPED", actual.connector().getState());
+    }
+
+    @Test
     void shouldNotCreateConnectorWhenStrictRegexPatternDoesNotMatchName() {
         Namespace namespace = Namespace.builder()
                 .metadata(Resource.Metadata.builder()

@@ -1407,4 +1407,37 @@ class ConnectorServiceTest {
                         connector.getMetadata().getName(),
                         2);
     }
+
+    @Test
+    void shouldStopConnector() {
+        Namespace namespace = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Connector connector = Connector.builder()
+                .metadata(Resource.Metadata.builder().name("ns-connect1").build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("local-name")
+                        .build())
+                .build();
+
+        when(kafkaConnectClient.stop(
+                        namespace.getMetadata().getCluster(),
+                        connector.getSpec().getConnectCluster(),
+                        connector.getMetadata().getName()))
+                .thenReturn(Mono.just(HttpResponse.noContent()));
+
+        StepVerifier.create(connectorService.stop(namespace, connector))
+                .consumeNextWith(response -> assertEquals(HttpStatus.ACCEPTED, response.getStatus()))
+                .verifyComplete();
+
+        verify(kafkaConnectClient)
+                .stop(
+                        namespace.getMetadata().getCluster(),
+                        connector.getSpec().getConnectCluster(),
+                        connector.getMetadata().getName());
+    }
 }
