@@ -385,27 +385,27 @@ public class ConnectorService {
                 });
     }
 
-        /**
-         * Stop a given connector.
-         *
-         * @param namespace The namespace
-         * @param connector The connector
-         * @return An HTTP response
-         */
-        public Mono<HttpResponse<Void>> stop(Namespace namespace, Connector connector) {
-                return kafkaConnectClient
-                                .stop(
-                                                namespace.getMetadata().getCluster(),
-                                                connector.getSpec().getConnectCluster(),
-                                                connector.getMetadata().getName())
-                                .map(_ -> {
-                                        log.info(
-                                                        "Success stopping Connector [{}] on Namespace [{}] Connect [{}]",
-                                                        connector.getMetadata().getName(),
-                                                        namespace.getMetadata().getName(),
-                                                        connector.getSpec().getConnectCluster());
+    /**
+     * Stop a given connector.
+     *
+     * @param namespace The namespace
+     * @param connector The connector
+     * @return An HTTP response
+     */
+    public Mono<HttpResponse<Void>> stop(Namespace namespace, Connector connector) {
+        return kafkaConnectClient
+                .stop(
+                        namespace.getMetadata().getCluster(),
+                        connector.getSpec().getConnectCluster(),
+                        connector.getMetadata().getName())
+                .map(_ -> {
+                    log.info(
+                            "Success stopping Connector [{}] on Namespace [{}] Connect [{}]",
+                            connector.getMetadata().getName(),
+                            namespace.getMetadata().getName(),
+                            connector.getSpec().getConnectCluster());
 
-                                        return HttpResponse.accepted();
-                                });
-        }
+                    return HttpResponse.accepted();
+                });
+    }
 }

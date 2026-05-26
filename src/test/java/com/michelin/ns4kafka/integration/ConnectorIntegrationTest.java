@@ -673,9 +673,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
         assertEquals("RUNNING", actual.connector().getState());
 
         ChangeConnectorState stopState = ChangeConnectorState.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("ns1-connector-stop")
-                        .build())
+                .metadata(Resource.Metadata.builder().name("ns1-connector-stop").build())
                 .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
                         .action(ChangeConnectorState.ConnectorAction.STOP)
                         .build())
@@ -684,8 +682,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
         HttpResponse<ChangeConnectorState> stopResponse = ns4KafkaClient
                 .toBlocking()
                 .exchange(HttpRequest.create(
-                                HttpMethod.POST,
-                                "/api/namespaces/ns1/connectors/ns1-connector-stop/change-state")
+                                HttpMethod.POST, "/api/namespaces/ns1/connectors/ns1-connector-stop/change-state")
                         .bearerAuth(token)
                         .body(stopState));
 
