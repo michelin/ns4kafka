@@ -166,6 +166,7 @@ public class ConnectorController extends NamespacedResourceController {
                             .findByName(ns, connector.getMetadata().getName())
                             .map(Resource::isDeleting)
                             .orElse(false);
+
                     if (!replacingDeletingConnector) {
                         List<String> quotaErrors = resourceQuotaService.validateConnectorQuota(ns);
                         if (!quotaErrors.isEmpty()) {
@@ -177,6 +178,8 @@ public class ConnectorController extends NamespacedResourceController {
                 if (dryrun) {
                     return Mono.just(formatHttpResponse(connector, status, warnings));
                 }
+
+                connector.getMetadata().setStatus(Resource.Metadata.Status.ofPending());
 
                 sendEventLog(
                         connector,
