@@ -20,10 +20,10 @@ package com.michelin.ns4kafka.controller;
 
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.security.auth.AuthenticationInfo;
-import io.micronaut.core.annotation.Introspected;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.security.rules.SecurityRule;
+import io.micronaut.serde.annotation.Serdeable;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
 import java.util.List;
@@ -153,7 +153,7 @@ public class ApiResourcesController {
     @Getter
     @Setter
     @Builder
-    @Introspected
+    @Serdeable
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ResourceDefinition {

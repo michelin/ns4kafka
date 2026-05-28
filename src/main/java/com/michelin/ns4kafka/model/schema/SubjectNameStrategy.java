@@ -19,10 +19,12 @@
 package com.michelin.ns4kafka.model.schema;
 
 import com.fasterxml.jackson.annotation.JsonValue;
+import io.micronaut.serde.annotation.Serdeable;
 import java.util.List;
 import lombok.AllArgsConstructor;
 
 /** Schema subject naming strategies supported by Schema Registry. */
+@Serdeable
 @AllArgsConstructor
 public enum SubjectNameStrategy {
     TOPIC_NAME("TopicNameStrategy"),

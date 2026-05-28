@@ -20,7 +20,7 @@ package com.michelin.ns4kafka.model;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.ROLE_BINDING;
 
-import io.micronaut.core.annotation.Introspected;
+import io.micronaut.serde.annotation.Serdeable;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -34,7 +34,7 @@ import lombok.NoArgsConstructor;
 
 /** Role binding. */
 @Data
-@Introspected
+@Serdeable
 @EqualsAndHashCode(callSuper = true)
 public class RoleBinding extends Resource {
     @Valid @NotNull private RoleBindingSpec spec;
@@ -68,7 +68,7 @@ public class RoleBinding extends Resource {
     /** Role binding spec. */
     @Data
     @Builder
-    @Introspected
+    @Serdeable
     @NoArgsConstructor
     @AllArgsConstructor
     public static class RoleBindingSpec {
@@ -80,7 +80,7 @@ public class RoleBinding extends Resource {
     /** Role. */
     @Data
     @Builder
-    @Introspected
+    @Serdeable
     @NoArgsConstructor
     @AllArgsConstructor
     public static class Role {
@@ -92,7 +92,7 @@ public class RoleBinding extends Resource {
     /** Subject. */
     @Data
     @Builder
-    @Introspected
+    @Serdeable
     @NoArgsConstructor
     @AllArgsConstructor
     public static class Subject {

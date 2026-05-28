@@ -15,10 +15,6 @@ endpoints:
     enabled: false
   threaddump:
     enabled: false
-jackson:
-  serialization:
-    indent-output: true
-  serialization-inclusion: "NON_ABSENT"
 kafka:
   bootstrap.servers: "localhost:9092"
   consumers:

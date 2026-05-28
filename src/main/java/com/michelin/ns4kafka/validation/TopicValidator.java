@@ -34,6 +34,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import io.micronaut.serde.annotation.Serdeable;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -43,6 +45,7 @@ import lombok.experimental.SuperBuilder;
 /** Topic validator. */
 @Getter
 @Setter
+@Serdeable
 @SuperBuilder
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)

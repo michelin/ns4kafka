@@ -24,14 +24,14 @@ import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNameSpecChars;
 import static com.michelin.ns4kafka.util.config.ConnectorConfig.CONNECTOR_CLASS;
 import static com.michelin.ns4kafka.util.config.ConnectorConfig.NAME;
 
-import com.fasterxml.jackson.annotation.JsonSetter;
-import com.fasterxml.jackson.annotation.Nulls;
 import com.michelin.ns4kafka.model.connect.Connector;
 import io.micronaut.core.util.StringUtils;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import io.micronaut.serde.annotation.Serdeable;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -40,21 +40,49 @@ import lombok.experimental.SuperBuilder;
 
 /** Validator for connectors. */
 @Data
+@Serdeable
 @SuperBuilder
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 public class ConnectValidator extends ResourceValidator {
     @Builder.Default
-    @JsonSetter(nulls = Nulls.AS_EMPTY)
     private Map<String, Validator> sourceValidationConstraints = new HashMap<>();
 
     @Builder.Default
-    @JsonSetter(nulls = Nulls.AS_EMPTY)
     private Map<String, Validator> sinkValidationConstraints = new HashMap<>();
 
     @Builder.Default
-    @JsonSetter(nulls = Nulls.AS_EMPTY)
     private Map<String, Map<String, Validator>> classValidationConstraints = new HashMap<>();
+
+    /**
+     * Set the source validation constraints, defaulting to an empty map when null.
+     *
+     * @param sourceValidationConstraints The source validation constraints
+     */
+    public void setSourceValidationConstraints(Map<String, Validator> sourceValidationConstraints) {
+        this.sourceValidationConstraints =
+                sourceValidationConstraints != null ? sourceValidationConstraints : new HashMap<>();
+    }
+
+    /**
+     * Set the sink validation constraints, defaulting to an empty map when null.
+     *
+     * @param sinkValidationConstraints The sink validation constraints
+     */
+    public void setSinkValidationConstraints(Map<String, Validator> sinkValidationConstraints) {
+        this.sinkValidationConstraints =
+                sinkValidationConstraints != null ? sinkValidationConstraints : new HashMap<>();
+    }
+
+    /**
+     * Set the class validation constraints, defaulting to an empty map when null.
+     *
+     * @param classValidationConstraints The class validation constraints
+     */
+    public void setClassValidationConstraints(Map<String, Map<String, Validator>> classValidationConstraints) {
+        this.classValidationConstraints =
+                classValidationConstraints != null ? classValidationConstraints : new HashMap<>();
+    }
 
     /**
      * Make a default ConnectValidator.

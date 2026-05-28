@@ -21,9 +21,7 @@ package com.michelin.ns4kafka.model;
 import static com.michelin.ns4kafka.util.enumation.Kind.TOPIC;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.annotation.JsonSetter;
-import com.fasterxml.jackson.annotation.Nulls;
-import io.micronaut.core.annotation.Introspected;
+import io.micronaut.serde.annotation.Serdeable;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -43,7 +41,7 @@ import lombok.Setter;
 
 /** Topic. */
 @Data
-@Introspected
+@Serdeable
 @EqualsAndHashCode(callSuper = true)
 public class Topic extends Resource {
     @Valid @NotNull private TopicSpec spec;
@@ -68,7 +66,7 @@ public class Topic extends Resource {
     /** Topic spec. */
     @Data
     @Builder
-    @Introspected
+    @Serdeable
     @NoArgsConstructor
     @AllArgsConstructor
     public static class TopicSpec {
@@ -76,22 +74,38 @@ public class Topic extends Resource {
         private int partitions;
 
         @Builder.Default
-        @JsonSetter(nulls = Nulls.AS_EMPTY)
         private List<String> tags = new ArrayList<>();
 
         private String description;
 
         @Builder.Default
-        @JsonSetter(nulls = Nulls.AS_EMPTY)
         private Map<String, String> configs = new HashMap<>();
+
+        /**
+         * Set the tags, defaulting to an empty list when null.
+         *
+         * @param tags The tags
+         */
+        public void setTags(List<String> tags) {
+            this.tags = tags != null ? tags : new ArrayList<>();
+        }
+
+        /**
+         * Set the configs, defaulting to an empty map when null.
+         *
+         * @param configs The configs
+         */
+        public void setConfigs(Map<String, String> configs) {
+            this.configs = configs != null ? configs : new HashMap<>();
+        }
     }
 
     /** Topic status. */
     @Getter
     @Setter
     @Builder
-    @AllArgsConstructor
     @NoArgsConstructor
+    @AllArgsConstructor
     @Schema(description = "Server-side", accessMode = Schema.AccessMode.READ_ONLY)
     public static class TopicStatus {
         private TopicPhase phase;

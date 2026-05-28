@@ -20,14 +20,14 @@ package com.michelin.ns4kafka.model;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.KAFKA_STREAM;
 
-import io.micronaut.core.annotation.Introspected;
+import io.micronaut.serde.annotation.Serdeable;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 /** Kafka Stream. */
 @Data
-@Introspected
+@Serdeable
 @EqualsAndHashCode(callSuper = true)
 public class KafkaStream extends Resource {
     /**

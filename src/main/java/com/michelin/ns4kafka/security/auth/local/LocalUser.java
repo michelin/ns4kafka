@@ -18,7 +18,7 @@
  */
 package com.michelin.ns4kafka.security.auth.local;
 
-import io.micronaut.core.annotation.Introspected;
+import io.micronaut.serde.annotation.Serdeable;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -35,7 +35,7 @@ import lombok.extern.slf4j.Slf4j;
 @Getter
 @Setter
 @Builder
-@Introspected
+@Serdeable
 @NoArgsConstructor
 @AllArgsConstructor
 public class LocalUser {

@@ -26,7 +26,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.michelin.ns4kafka.util.enumation.Kind;
-import io.micronaut.core.annotation.Introspected;
+import io.micronaut.serde.annotation.Serdeable;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -42,6 +42,7 @@ import lombok.NoArgsConstructor;
 
 /** Resource. */
 @Data
+@Serdeable
 @NoArgsConstructor
 @AllArgsConstructor
 public class Resource {
@@ -52,7 +53,7 @@ public class Resource {
 
     @Data
     @Builder
-    @Introspected
+    @Serdeable
     @NoArgsConstructor
     @AllArgsConstructor
     public static class Metadata {
@@ -78,7 +79,7 @@ public class Resource {
 
         @Data
         @Builder
-        @Introspected
+        @Serdeable
         @NoArgsConstructor
         @AllArgsConstructor
         public static class Status {
@@ -127,6 +128,7 @@ public class Resource {
             }
         }
 
+        @Serdeable
         public enum Phase {
             PENDING("Pending"),
             FAIL("Fail"),

@@ -21,7 +21,7 @@ package com.michelin.ns4kafka.model.consumer.group;
 import static com.michelin.ns4kafka.util.enumation.Kind.CONSUMER_GROUP_RESET_OFFSET_RESPONSE;
 
 import com.michelin.ns4kafka.model.Resource;
-import io.micronaut.core.annotation.Introspected;
+import io.micronaut.serde.annotation.Serdeable;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -34,7 +34,7 @@ import lombok.ToString;
 
 /** Consumer group reset offsets response. */
 @Data
-@Introspected
+@Serdeable
 @EqualsAndHashCode(callSuper = true)
 public class ConsumerGroupResetOffsetsResponse extends Resource {
     /** Resource specifications. */
@@ -56,7 +56,7 @@ public class ConsumerGroupResetOffsetsResponse extends Resource {
     @Getter
     @Builder
     @ToString
-    @Introspected
+    @Serdeable
     @AllArgsConstructor
     @NoArgsConstructor
     public static class ConsumerGroupResetOffsetsResponseSpec {

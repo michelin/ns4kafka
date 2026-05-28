@@ -21,7 +21,7 @@ package com.michelin.ns4kafka.model.connect;
 import static com.michelin.ns4kafka.util.enumation.Kind.VAULT_RESPONSE;
 
 import com.michelin.ns4kafka.model.Resource;
-import io.micronaut.core.annotation.Introspected;
+import io.micronaut.serde.annotation.Serdeable;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -33,7 +33,7 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 @Data
-@Introspected
+@Serdeable
 @EqualsAndHashCode(callSuper = true)
 public class VaultResponse extends Resource {
     @Valid @NotNull private VaultResponseSpec spec;
@@ -54,7 +54,7 @@ public class VaultResponse extends Resource {
     @Getter
     @Builder
     @ToString
-    @Introspected
+    @Serdeable
     @NoArgsConstructor
     @AllArgsConstructor
     public static class VaultResponseSpec {

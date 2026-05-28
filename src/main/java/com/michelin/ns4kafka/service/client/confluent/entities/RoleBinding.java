@@ -21,10 +21,12 @@ package com.michelin.ns4kafka.service.client.confluent.entities;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.michelin.ns4kafka.model.AccessControlEntry.ResourceType;
 import com.michelin.ns4kafka.util.enumation.ConfluentRole;
+import io.micronaut.serde.annotation.Serdeable;
 import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 
 @Builder
+@Serdeable
 public record RoleBinding(
         @NotNull String principal,
         @JsonProperty("role_name") @NotNull ConfluentRole roleName,

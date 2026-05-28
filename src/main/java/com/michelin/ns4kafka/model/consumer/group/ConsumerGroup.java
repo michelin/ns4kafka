@@ -21,7 +21,7 @@ package com.michelin.ns4kafka.model.consumer.group;
 import static com.michelin.ns4kafka.util.enumation.Kind.CONSUMER_GROUP;
 
 import com.michelin.ns4kafka.model.Resource;
-import io.micronaut.core.annotation.Introspected;
+import io.micronaut.serde.annotation.Serdeable;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -36,7 +36,7 @@ import org.apache.kafka.common.GroupState;
 
 /** Consumer group. */
 @Data
-@Introspected
+@Serdeable
 @EqualsAndHashCode(callSuper = true)
 public class ConsumerGroup extends Resource {
     @EqualsAndHashCode.Exclude
@@ -57,7 +57,7 @@ public class ConsumerGroup extends Resource {
     /** Consumer group status. */
     @Data
     @Builder
-    @Introspected
+    @Serdeable
     @NoArgsConstructor
     @AllArgsConstructor
     @Schema(description = "Server-side", accessMode = Schema.AccessMode.READ_ONLY)
@@ -71,7 +71,7 @@ public class ConsumerGroup extends Resource {
     /** Consumer group committed offset. */
     @Data
     @Builder
-    @Introspected
+    @Serdeable
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ConsumerGroupOffset {

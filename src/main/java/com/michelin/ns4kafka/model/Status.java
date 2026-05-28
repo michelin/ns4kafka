@@ -20,8 +20,8 @@ package com.michelin.ns4kafka.model;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.michelin.ns4kafka.util.enumation.Kind;
-import io.micronaut.core.annotation.Introspected;
 import io.micronaut.http.HttpStatus;
+import io.micronaut.serde.annotation.Serdeable;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -31,7 +31,7 @@ import lombok.NoArgsConstructor;
 
 /** Status. */
 @Data
-@Introspected
+@Serdeable
 @NoArgsConstructor
 public class Status {
     private StatusPhase status;
@@ -73,6 +73,7 @@ public class Status {
     /** Status details. */
     @Data
     @Builder
+    @Serdeable
     @NoArgsConstructor
     @AllArgsConstructor
     public static class StatusDetails {

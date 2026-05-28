@@ -23,7 +23,7 @@ import static com.michelin.ns4kafka.util.enumation.Kind.CONNECTOR;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.michelin.ns4kafka.model.Resource;
-import io.micronaut.core.annotation.Introspected;
+import io.micronaut.serde.annotation.Serdeable;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -40,7 +40,7 @@ import lombok.Setter;
 
 /** Connector. */
 @Data
-@Introspected
+@Serdeable
 @EqualsAndHashCode(callSuper = true)
 public class Connector extends Resource {
     @Valid @NotNull private ConnectorSpec spec;
@@ -76,7 +76,7 @@ public class Connector extends Resource {
     /** Connector specification. */
     @Data
     @Builder
-    @Introspected
+    @Serdeable
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ConnectorSpec {
@@ -90,7 +90,7 @@ public class Connector extends Resource {
     @Getter
     @Setter
     @Builder
-    @Introspected
+    @Serdeable
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ConnectorStatus {
@@ -107,7 +107,7 @@ public class Connector extends Resource {
     @Getter
     @Setter
     @Builder
-    @Introspected
+    @Serdeable
     @NoArgsConstructor
     @AllArgsConstructor
     public static class TaskStatus {
