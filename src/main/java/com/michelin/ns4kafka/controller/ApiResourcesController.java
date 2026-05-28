@@ -27,8 +27,10 @@ import io.micronaut.security.rules.SecurityRule;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
 import java.util.List;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.jspecify.annotations.Nullable;
 
@@ -148,10 +150,12 @@ public class ApiResourcesController {
     }
 
     /** API resource definition. */
-    @Introspected
-    @Builder
     @Getter
     @Setter
+    @Builder
+    @Introspected
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class ResourceDefinition {
         private String kind;
         private boolean namespaced;

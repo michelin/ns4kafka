@@ -23,8 +23,10 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -34,10 +36,12 @@ import lombok.extern.slf4j.Slf4j;
 @Setter
 @Builder
 @Introspected
+@NoArgsConstructor
+@AllArgsConstructor
 public class LocalUser {
-    String username;
-    String password;
-    List<String> groups;
+    private String username;
+    private String password;
+    private List<String> groups;
 
     /**
      * Verify if the provided password is valid for this user.
