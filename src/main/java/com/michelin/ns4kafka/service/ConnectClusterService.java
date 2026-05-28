@@ -284,8 +284,9 @@ public class ConnectClusterService {
 
         if (managedClusterProperties.stream()
                 .filter(cluster -> cluster.getConnects() != null)
-                .anyMatch(cluster -> cluster.getConnects().entrySet().stream().anyMatch(entry -> entry.getKey()
-                        .equals(connectCluster.getMetadata().getName())))) {
+                .anyMatch(cluster -> cluster.getConnects().entrySet().stream()
+                        .anyMatch(entry -> entry.getKey()
+                                .equals(connectCluster.getMetadata().getName())))) {
             errors.add(invalidConnectClusterNameAlreadyExistGlobally(
                     connectCluster.getMetadata().getName()));
         }

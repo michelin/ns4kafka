@@ -134,14 +134,16 @@ public class UserAsyncExecutor {
      */
     private Map<String, Map<String, Double>> collectNs4KafkaQuotas() {
         return namespaceRepository.findAllForCluster(managedClusterProperties.getName()).stream()
-                .collect(Collectors.toMap(namespace -> namespace.getSpec().getKafkaUser(), namespace -> quotaRepository
-                        .findByNamespace(namespace.getMetadata().getName())
-                        .map(resourceQuota -> resourceQuota.getSpec().entrySet().stream()
-                                .filter(q -> q.getKey().startsWith(USER_QUOTA_PREFIX))
-                                .collect(Collectors.toMap(
-                                        q -> q.getKey().substring(USER_QUOTA_PREFIX.length()),
-                                        q -> Double.parseDouble(q.getValue()))))
-                        .orElse(Map.of())));
+                .collect(Collectors.toMap(
+                        namespace -> namespace.getSpec().getKafkaUser(),
+                        namespace -> quotaRepository
+                                .findByNamespace(namespace.getMetadata().getName())
+                                .map(resourceQuota -> resourceQuota.getSpec().entrySet().stream()
+                                        .filter(q -> q.getKey().startsWith(USER_QUOTA_PREFIX))
+                                        .collect(Collectors.toMap(
+                                                q -> q.getKey().substring(USER_QUOTA_PREFIX.length()),
+                                                q -> Double.parseDouble(q.getValue()))))
+                                .orElse(Map.of())));
     }
 
     /** Abstract user synchronizer to define the operations required for the user synchronization and password reset. */

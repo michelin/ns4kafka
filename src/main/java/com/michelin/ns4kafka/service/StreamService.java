@@ -234,9 +234,10 @@ public class StreamService {
                                 || topic.getMetadata().getName().endsWith("-changelog"))
                         // Exclude topics covered by other Kafka Streams
                         // (E.g., When deleting "abc.appId", avoid deleting "abc.appId-1234")
-                        .filter(topic -> overlapKafkaStreams.stream().noneMatch(kafkaStream -> topic.getMetadata()
-                                .getName()
-                                .startsWith(kafkaStream.getMetadata().getName())))
+                        .filter(topic -> overlapKafkaStreams.stream()
+                                .noneMatch(kafkaStream -> topic.getMetadata()
+                                        .getName()
+                                        .startsWith(kafkaStream.getMetadata().getName())))
                         .toList();
 
         if (!kafkaStreamsTopics.isEmpty()) {

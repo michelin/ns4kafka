@@ -333,9 +333,10 @@ public class SchemaRegistryClient {
                 .onErrorResume(
                         HttpClientResponseException.class,
                         ex -> ex.getStatus().equals(HttpStatus.NOT_FOUND)
-                                ? getGlobalConfig(kafkaCluster).map(response -> SubjectConfigResponse.builder()
-                                        .compatibilityLevel(response.compatibilityLevel())
-                                        .build())
+                                ? getGlobalConfig(kafkaCluster)
+                                        .map(response -> SubjectConfigResponse.builder()
+                                                .compatibilityLevel(response.compatibilityLevel())
+                                                .build())
                                 : Mono.error(ex));
     }
 

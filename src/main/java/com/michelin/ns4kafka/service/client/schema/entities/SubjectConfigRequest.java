@@ -30,5 +30,5 @@ import org.jspecify.annotations.Nullable;
  */
 @Builder
 public record SubjectConfigRequest(
-Schema.@Nullable Compatibility compatibility,
+        Schema.@Nullable Compatibility compatibility,
         @Nullable String alias) {}
