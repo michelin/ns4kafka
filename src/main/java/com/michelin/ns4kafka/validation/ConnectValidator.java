@@ -26,12 +26,11 @@ import static com.michelin.ns4kafka.util.config.ConnectorConfig.NAME;
 
 import com.michelin.ns4kafka.model.connect.Connector;
 import io.micronaut.core.util.StringUtils;
+import io.micronaut.serde.annotation.Serdeable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import io.micronaut.serde.annotation.Serdeable;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;

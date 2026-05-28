@@ -30,12 +30,11 @@ import static com.michelin.ns4kafka.util.config.TopicConfig.REPLICATION_FACTOR;
 
 import com.michelin.ns4kafka.model.Topic;
 import io.micronaut.core.util.StringUtils;
+import io.micronaut.serde.annotation.Serdeable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import io.micronaut.serde.annotation.Serdeable;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

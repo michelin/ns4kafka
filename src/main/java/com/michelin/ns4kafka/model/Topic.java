@@ -22,7 +22,6 @@ import static com.michelin.ns4kafka.util.enumation.Kind.TOPIC;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.micronaut.serde.annotation.Serdeable;
-import io.micronaut.serde.config.annotation.SerdeConfig;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;

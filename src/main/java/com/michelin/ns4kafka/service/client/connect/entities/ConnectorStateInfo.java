@@ -21,10 +21,9 @@ package com.michelin.ns4kafka.service.client.connect.entities;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.micronaut.serde.annotation.Serdeable;
 import java.util.List;
 import java.util.Objects;
-
-import io.micronaut.serde.annotation.Serdeable;
 import lombok.Getter;
 
 /**

@@ -21,7 +21,6 @@ package com.michelin.ns4kafka.service.client.connect.entities;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import io.micronaut.serde.annotation.Serdeable;
-
 import java.util.Locale;
 
 /** Connector type. */

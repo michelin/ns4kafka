@@ -18,9 +18,8 @@
  */
 package com.michelin.ns4kafka.service.client.schema.entities;
 
-import java.util.List;
-
 import io.micronaut.serde.annotation.Serdeable;
+import java.util.List;
 import lombok.Builder;
 
 /**
