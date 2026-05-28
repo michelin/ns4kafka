@@ -32,6 +32,7 @@ import lombok.NoArgsConstructor;
 /** Status. */
 @Data
 @Introspected
+@NoArgsConstructor
 public class Status {
     private StatusPhase status;
     private String message;
@@ -72,8 +73,8 @@ public class Status {
     /** Status details. */
     @Data
     @Builder
-    @AllArgsConstructor
     @NoArgsConstructor
+    @AllArgsConstructor
     public static class StatusDetails {
         private String name;
         private Kind kind;
