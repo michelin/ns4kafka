@@ -18,6 +18,7 @@
  */
 package com.michelin.ns4kafka.util.enumation;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 /** Resource kind. */
@@ -45,6 +46,7 @@ public enum Kind {
     @JsonValue
     private final String name;
 
+    @JsonCreator
     Kind(String name) {
         this.name = name;
     }

@@ -27,7 +27,6 @@ import com.michelin.ns4kafka.security.auth.AuthenticationInfo;
 import com.michelin.ns4kafka.security.auth.AuthenticationRoleBinding;
 import com.michelin.ns4kafka.util.exception.ForbiddenNamespaceException;
 import com.michelin.ns4kafka.util.exception.UnknownNamespaceException;
-import io.micronaut.core.annotation.Nullable;
 import io.micronaut.core.async.publisher.Publishers;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpRequest;
@@ -41,6 +40,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.Nullable;
 import org.reactivestreams.Publisher;
 
 /** Security rule to check if a user can access a given URL. */

@@ -18,6 +18,7 @@
  */
 package com.michelin.ns4kafka.service.client.connect.entities;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
@@ -44,6 +45,7 @@ public record ConnectorStateInfo(String name, ConnectorState connector, List<Tas
         @JsonProperty("worker_id")
         private final String workerId;
 
+        @JsonCreator
         AbstractState(String state, String workerId, String trace) {
             this.state = state;
             this.workerId = workerId;

@@ -110,11 +110,10 @@ micronaut:
     ldap:
       enabled: false
     token:
-      jwt:
-        signatures:
-          secret:
-            generator:
-              secret: "\"${JWT_GENERATOR_SIGNATURE_SECRET:pleaseChangeThisSecretForANewOne}\""
+      signatures:
+        secret:
+          generator:
+            secret: "\"${JWT_GENERATOR_SIGNATURE_SECRET:pleaseChangeThisSecretForANewOne}\""
 ns4kafka:
   akhq:
     admin-group: "_"

@@ -21,7 +21,6 @@ package com.michelin.ns4kafka.controller;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.security.auth.AuthenticationInfo;
 import io.micronaut.core.annotation.Introspected;
-import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.security.rules.SecurityRule;
@@ -31,6 +30,7 @@ import java.util.List;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
+import org.jspecify.annotations.Nullable;
 
 /** Controller to manage API resources. */
 @Tag(name = "Resources", description = "Manage the API resources.")

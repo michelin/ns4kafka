@@ -34,7 +34,6 @@ import com.michelin.ns4kafka.service.SchemaService;
 import com.michelin.ns4kafka.util.enumation.ApplyStatus;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.context.event.ApplicationEventPublisher;
-import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
@@ -54,6 +53,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -332,7 +332,7 @@ public class SchemaController extends NamespacedResourceController {
     public Mono<HttpResponse<SubjectConfigState>> config(
             String namespace,
             @PathVariable String subject,
-            @Nullable Schema.Compatibility compatibility,
+            Schema.@Nullable Compatibility compatibility,
             @Nullable String alias) {
         Namespace ns = getNamespace(namespace);
 

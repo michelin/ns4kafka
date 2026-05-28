@@ -20,10 +20,10 @@ package com.michelin.ns4kafka.integration.container;
 
 import static org.apache.kafka.clients.CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG;
 
-import io.micronaut.core.annotation.NonNull;
 import io.micronaut.test.support.TestPropertyProvider;
 import java.util.Map;
 import org.apache.kafka.clients.admin.Admin;
+import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.TestInstance;
 import org.testcontainers.containers.Network;
 import org.testcontainers.kafka.ConfluentKafkaContainer;

@@ -18,9 +18,9 @@
  */
 package com.michelin.ns4kafka.integration.container;
 
-import io.micronaut.core.annotation.NonNull;
 import java.util.HashMap;
 import java.util.Map;
+import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.TestInstance;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
