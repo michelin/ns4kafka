@@ -23,6 +23,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 import java.util.Objects;
+
+import io.micronaut.serde.annotation.Serdeable;
 import lombok.Getter;
 
 /**
@@ -33,6 +35,7 @@ import lombok.Getter;
  * @param tasks Tasks
  * @param type Type
  */
+@Serdeable
 public record ConnectorStateInfo(String name, ConnectorState connector, List<TaskState> tasks, ConnectorType type) {
     /** Abstract state. */
     @Getter
@@ -54,6 +57,7 @@ public record ConnectorStateInfo(String name, ConnectorState connector, List<Tas
     }
 
     /** Connector state. */
+    @Serdeable
     public static class ConnectorState extends AbstractState {
         public ConnectorState(
                 @JsonProperty("state") String state,
@@ -65,6 +69,7 @@ public record ConnectorStateInfo(String name, ConnectorState connector, List<Tas
 
     /** Task state. */
     @Getter
+    @Serdeable
     public static class TaskState extends AbstractState implements Comparable<TaskState> {
         private final int id;
 

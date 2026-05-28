@@ -19,6 +19,8 @@
 package com.michelin.ns4kafka.service.client.schema.entities;
 
 import java.util.List;
+
+import io.micronaut.serde.annotation.Serdeable;
 import lombok.Builder;
 
 /**
@@ -27,4 +29,5 @@ import lombok.Builder;
  * @param entities List of entities
  */
 @Builder
+@Serdeable
 public record TopicListResponse(List<TopicEntity> entities) {}

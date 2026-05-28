@@ -18,6 +18,7 @@
  */
 package com.michelin.ns4kafka.service.client.schema.entities;
 
+import io.micronaut.serde.annotation.Serdeable;
 import lombok.Builder;
 
 /**
@@ -26,4 +27,5 @@ import lombok.Builder;
  * @param data the response data
  */
 @Builder
+@Serdeable
 public record GraphQueryResponse(GraphQueryData data) {}

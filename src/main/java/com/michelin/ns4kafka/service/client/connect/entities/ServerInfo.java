@@ -19,6 +19,7 @@
 package com.michelin.ns4kafka.service.client.connect.entities;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.micronaut.serde.annotation.Serdeable;
 import lombok.Builder;
 
 /**
@@ -29,6 +30,7 @@ import lombok.Builder;
  * @param kafkaClusterId The Kafka cluster id
  */
 @Builder
+@Serdeable
 public record ServerInfo(
         @JsonProperty("version") String version,
         @JsonProperty("commit") String commit,

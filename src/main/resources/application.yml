@@ -106,10 +106,11 @@ micronaut:
     ldap:
       enabled: false
     token:
-      signatures:
-        secret:
-          generator:
-            secret: "\"${JWT_GENERATOR_SIGNATURE_SECRET:pleaseChangeThisSecretForANewOne}\""
+      jwt:
+        signatures:
+          secret:
+            generator:
+              secret: "${JWT_GENERATOR_SIGNATURE_SECRET:pleaseChangeThisSecretForANewOne}"
 ns4kafka:
   akhq:
     admin-group: "_"
@@ -147,6 +148,7 @@ ns4kafka:
       enabled: true
     kafka:
       enabled: false
+      topic: "ns4kafka-logs"
   retry:
     attempt: "5"
     delay: "2s"

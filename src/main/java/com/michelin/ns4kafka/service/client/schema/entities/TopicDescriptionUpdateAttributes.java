@@ -19,6 +19,7 @@
 package com.michelin.ns4kafka.service.client.schema.entities;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import io.micronaut.serde.annotation.Serdeable;
 import lombok.Builder;
 
 /**
@@ -28,5 +29,6 @@ import lombok.Builder;
  * @param description topic description
  */
 @Builder
+@Serdeable
 @JsonInclude
 public record TopicDescriptionUpdateAttributes(String qualifiedName, String description) {}

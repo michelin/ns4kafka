@@ -178,11 +178,12 @@ public class ConnectorAsyncExecutor {
                     } else if (error instanceof HttpClientResponseException httpClientResponseException) {
                         log.error(
                                 "Invalid HTTP response {} ({}) during connectors synchronization for Kafka cluster {}"
-                                        + " and Kafka Connect {}.",
+                                        + " and Kafka Connect {}: {}.",
                                 httpClientResponseException.getStatus(),
                                 httpClientResponseException.getResponse().getStatus(),
                                 managedClusterProperties.getName(),
-                                connectCluster);
+                                connectCluster,
+                                error.getMessage());
                     } else {
                         log.error(
                                 "Error during connectors synchronization for Kafka cluster {} and Kafka Connect {}: {}.",

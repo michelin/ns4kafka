@@ -84,6 +84,7 @@ public class Status {
 
     /** Status phase. */
     @Getter
+    @Serdeable
     @AllArgsConstructor
     public enum StatusPhase {
         SUCCESS("Success"),

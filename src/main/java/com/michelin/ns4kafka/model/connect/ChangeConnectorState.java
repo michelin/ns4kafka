@@ -56,6 +56,7 @@ public class ChangeConnectorState extends Resource {
     }
 
     /** Connector action. */
+    @Serdeable
     public enum ConnectorAction {
         PAUSE,
         RESUME,

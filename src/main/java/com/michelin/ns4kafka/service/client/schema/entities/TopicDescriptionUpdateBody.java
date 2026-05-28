@@ -18,6 +18,7 @@
  */
 package com.michelin.ns4kafka.service.client.schema.entities;
 
+import io.micronaut.serde.annotation.Serdeable;
 import lombok.Builder;
 
 /**
@@ -26,4 +27,5 @@ import lombok.Builder;
  * @param entity entity
  */
 @Builder
+@Serdeable
 public record TopicDescriptionUpdateBody(TopicDescriptionUpdateEntity entity) {}

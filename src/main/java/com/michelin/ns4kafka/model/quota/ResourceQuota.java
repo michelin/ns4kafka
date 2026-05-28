@@ -51,6 +51,7 @@ public class ResourceQuota extends Resource {
 
     /** Resource quota spec keys. */
     @Getter
+    @Serdeable
     @AllArgsConstructor
     public enum ResourceQuotaSpecKey {
         COUNT_TOPICS("count/topics"),

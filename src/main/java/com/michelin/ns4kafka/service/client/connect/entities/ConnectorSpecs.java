@@ -21,6 +21,8 @@ package com.michelin.ns4kafka.service.client.connect.entities;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.Map;
+
+import io.micronaut.serde.annotation.Serdeable;
 import lombok.Builder;
 
 /**
@@ -29,6 +31,7 @@ import lombok.Builder;
  * @param config Config
  */
 @Builder
+@Serdeable
 public record ConnectorSpecs(
         @JsonAnyGetter @JsonInclude(value = JsonInclude.Include.NON_ABSENT)
         Map<String, String> config) {}
