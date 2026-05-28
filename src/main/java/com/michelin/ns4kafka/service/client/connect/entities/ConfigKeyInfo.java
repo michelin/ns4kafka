@@ -39,12 +39,12 @@ import java.util.List;
 public record ConfigKeyInfo(
         String name,
         String type,
-        @JsonProperty("required") boolean required,
+        @JsonProperty("required") Boolean required,
         @JsonProperty("default_value") String defaultValue,
         String importance,
         String documentation,
         String group,
-        @JsonProperty("order_in_group") int orderInGroup,
+        @JsonProperty("order_in_group") Integer orderInGroup,
         String width,
         @JsonProperty("display_name") String displayName,
         List<String> dependents) {}
