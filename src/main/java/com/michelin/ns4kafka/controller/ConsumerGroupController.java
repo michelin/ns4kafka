@@ -99,6 +99,21 @@ public class ConsumerGroupController extends NamespacedResourceController {
     }
 
     /**
+     * List external consumer groups consuming topics owned by the namespace, filtered by name parameter.
+     *
+     * @param namespace The namespace
+     * @param name The name parameter
+     * @return The list of external consumer groups
+     * @throws ExecutionException Any execution exception
+     * @throws InterruptedException Any interrupted exception
+     */
+    @Get("/external")
+    public List<ConsumerGroup> listExternal(String namespace, @QueryValue(defaultValue = "*") String name)
+            throws ExecutionException, InterruptedException {
+        return consumerGroupService.findExternalByWildcardName(getNamespace(namespace), name);
+    }
+
+    /**
      * Reset offsets by topic and consumer group.
      *
      * @param namespace The namespace

@@ -26,7 +26,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -80,11 +79,14 @@ class ConnectorServiceTest {
     @Mock
     ApplicationContext applicationContext;
 
-    @InjectMocks
-    ConnectorService connectorService;
-
     @Mock
     ConnectClusterService connectClusterService;
+
+    @Mock
+    ConnectorAsyncExecutor connectorAsyncExecutor;
+
+    @InjectMocks
+    ConnectorService connectorService;
 
     @Test
     void shouldListConnectorsWhenEmpty() {
@@ -863,7 +865,6 @@ class ConnectorServiceTest {
                         .build())
                 .build();
 
-        ConnectorAsyncExecutor connectorAsyncExecutor = mock(ConnectorAsyncExecutor.class);
         when(applicationContext.getBean(
                         ConnectorAsyncExecutor.class,
                         Qualifiers.byName(ns.getMetadata().getCluster())))
@@ -964,7 +965,6 @@ class ConnectorServiceTest {
                         .build())
                 .build();
 
-        ConnectorAsyncExecutor connectorAsyncExecutor = mock(ConnectorAsyncExecutor.class);
         when(applicationContext.getBean(
                         ConnectorAsyncExecutor.class,
                         Qualifiers.byName(ns.getMetadata().getCluster())))
@@ -1070,7 +1070,6 @@ class ConnectorServiceTest {
                 .build();
 
         // init connectorAsyncExecutor
-        ConnectorAsyncExecutor connectorAsyncExecutor = mock(ConnectorAsyncExecutor.class);
         when(applicationContext.getBean(
                         ConnectorAsyncExecutor.class,
                         Qualifiers.byName(ns.getMetadata().getCluster())))
@@ -1157,7 +1156,6 @@ class ConnectorServiceTest {
                 .build();
 
         // init connectorAsyncExecutor
-        ConnectorAsyncExecutor connectorAsyncExecutor = mock(ConnectorAsyncExecutor.class);
         when(applicationContext.getBean(
                         ConnectorAsyncExecutor.class,
                         Qualifiers.byName(ns.getMetadata().getCluster())))

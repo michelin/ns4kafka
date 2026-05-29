@@ -56,16 +56,20 @@ import org.apache.kafka.common.TopicPartition;
 public class ConsumerGroupService {
     private final ApplicationContext applicationContext;
     private final AclService aclService;
+    private final TopicService topicService;
 
     /**
      * Constructor.
      *
      * @param applicationContext The application context
      * @param aclService The ACL service
+     * @param topicService The topic service
      */
-    public ConsumerGroupService(ApplicationContext applicationContext, AclService aclService) {
+    public ConsumerGroupService(
+            ApplicationContext applicationContext, AclService aclService, TopicService topicService) {
         this.applicationContext = applicationContext;
         this.aclService = aclService;
+        this.topicService = topicService;
     }
 
     /**
@@ -82,11 +86,10 @@ public class ConsumerGroupService {
         ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor = applicationContext.getBean(
                 ConsumerGroupAsyncExecutor.class,
                 Qualifiers.byName(namespace.getMetadata().getCluster()));
-        List<AccessControlEntry> ownerAcls =
-                aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.GROUP);
         List<String> nameFilterPatterns = RegexUtils.convertWildcardStringsToRegex(List.of(name));
         List<String> consumerGroupIds = consumerGroupAsyncExecutor.listConsumerGroupIds().stream()
-                .filter(groupId -> aclService.isResourceCoveredByAcls(ownerAcls, groupId))
+                .filter(groupId ->
+                        isNamespaceOwnerOfConsumerGroup(namespace.getMetadata().getName(), groupId))
                 .filter(groupId -> RegexUtils.isResourceCoveredByRegex(groupId, nameFilterPatterns))
                 .sorted()
                 .toList();
@@ -104,7 +107,54 @@ public class ConsumerGroupService {
                         namespace,
                         groupId,
                         descriptions.get(groupId),
-                        includeOffsets ? getCommittedOffsetsSafely(consumerGroupAsyncExecutor, groupId) : Map.of()))
+                        includeOffsets ? getCommittedOffsets(consumerGroupAsyncExecutor, groupId) : Map.of()))
+                .toList();
+    }
+
+    /**
+     * Find all external consumer groups consuming topics owned by a given namespace, filtered by name parameter.
+     *
+     * @param namespace The namespace
+     * @param name The name filter
+     * @return A list of external consumer groups
+     * @throws ExecutionException Any execution exception during consumer groups listing
+     * @throws InterruptedException Any interrupted exception during consumer groups listing
+     */
+    public List<ConsumerGroup> findExternalByWildcardName(Namespace namespace, String name)
+            throws ExecutionException, InterruptedException {
+        ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor = applicationContext.getBean(
+                ConsumerGroupAsyncExecutor.class,
+                Qualifiers.byName(namespace.getMetadata().getCluster()));
+        List<String> nameFilterPatterns = RegexUtils.convertWildcardStringsToRegex(List.of(name));
+        Map<String, Map<TopicPartition, Long>> committedOffsetsByGroup =
+                consumerGroupAsyncExecutor.listConsumerGroupIds().stream()
+                        .filter(groupId -> RegexUtils.isResourceCoveredByRegex(groupId, nameFilterPatterns))
+                        .filter(groupId -> !isNamespaceOwnerOfConsumerGroup(
+                                namespace.getMetadata().getName(), groupId))
+                        .collect(Collectors.toMap(
+                                groupId -> groupId,
+                                groupId -> getCommittedOffsets(consumerGroupAsyncExecutor, groupId).entrySet().stream()
+                                        .filter(entry -> topicService.isNamespaceOwnerOfTopic(
+                                                namespace.getMetadata().getName(),
+                                                entry.getKey().topic()))
+                                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))));
+
+        List<String> consumerGroupIds = committedOffsetsByGroup.entrySet().stream()
+                .filter(entry -> !entry.getValue().isEmpty())
+                .map(Map.Entry::getKey)
+                .sorted()
+                .toList();
+
+        if (consumerGroupIds.isEmpty()) {
+            return List.of();
+        }
+
+        Map<String, ConsumerGroupDescription> descriptions =
+                consumerGroupAsyncExecutor.describeConsumerGroups(consumerGroupIds);
+
+        return consumerGroupIds.stream()
+                .map(groupId -> buildConsumerGroup(
+                        namespace, groupId, descriptions.get(groupId), committedOffsetsByGroup.get(groupId)))
                 .toList();
     }
 
@@ -331,6 +381,15 @@ public class ConsumerGroupService {
         consumerGroupAsyncExecutor.alterConsumerGroupOffsets(consumerGroupId, preparedOffsets);
     }
 
+    /**
+     * Build a consumer group resource.
+     *
+     * @param namespace The namespace
+     * @param consumerGroupId The consumer group
+     * @param description The consumer group description
+     * @param committedOffsets The committed offsets
+     * @return The consumer group
+     */
     private ConsumerGroup buildConsumerGroup(
             Namespace namespace,
             String consumerGroupId,
@@ -357,7 +416,14 @@ public class ConsumerGroupService {
                 .build();
     }
 
-    private Map<TopicPartition, Long> getCommittedOffsetsSafely(
+    /**
+     * Get the committed offsets of a given consumer group.
+     *
+     * @param consumerGroupAsyncExecutor The consumer group async executor
+     * @param groupId The consumer group
+     * @return The committed offsets
+     */
+    private Map<TopicPartition, Long> getCommittedOffsets(
             ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor, String groupId) {
         try {
             return consumerGroupAsyncExecutor.getCommittedOffsets(groupId);
