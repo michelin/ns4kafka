@@ -18,9 +18,11 @@
  */
 package com.michelin.ns4kafka.util.enumation;
 
+import io.micronaut.serde.annotation.Serdeable;
 import lombok.AllArgsConstructor;
 
 /** Apply status is used to track the status of a resource during an operation. */
+@Serdeable
 @AllArgsConstructor
 public enum ApplyStatus {
     CREATED("created"),

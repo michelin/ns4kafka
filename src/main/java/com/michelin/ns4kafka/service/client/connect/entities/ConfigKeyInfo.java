@@ -19,6 +19,7 @@
 package com.michelin.ns4kafka.service.client.connect.entities;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.micronaut.serde.annotation.Serdeable;
 import java.util.List;
 
 /**
@@ -36,6 +37,7 @@ import java.util.List;
  * @param displayName Display name
  * @param dependents Dependents
  */
+@Serdeable
 public record ConfigKeyInfo(
         String name,
         String type,

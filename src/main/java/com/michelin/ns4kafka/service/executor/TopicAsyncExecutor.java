@@ -441,9 +441,11 @@ public class TopicAsyncExecutor {
         if (descriptionResponse != null
                 && descriptionResponse.data() != null
                 && descriptionResponse.data().kafkaTopic() != null) {
-            descriptionResponse.data().kafkaTopic().forEach(describedTopic -> topics.get(describedTopic.name())
-                    .getSpec()
-                    .setDescription(describedTopic.description()));
+            descriptionResponse
+                    .data()
+                    .kafkaTopic()
+                    .forEach(describedTopic ->
+                            topics.get(describedTopic.name()).getSpec().setDescription(describedTopic.description()));
         }
 
         GraphQueryResponse tagsResponse = schemaRegistryClient
@@ -460,9 +462,11 @@ public class TopicAsyncExecutor {
         if (tagsResponse != null
                 && tagsResponse.data() != null
                 && tagsResponse.data().kafkaTopic() != null) {
-            tagsResponse.data().kafkaTopic().forEach(taggedTopic -> topics.get(taggedTopic.name())
-                    .getSpec()
-                    .setTags(taggedTopic.tags()));
+            tagsResponse
+                    .data()
+                    .kafkaTopic()
+                    .forEach(taggedTopic ->
+                            topics.get(taggedTopic.name()).getSpec().setTags(taggedTopic.tags()));
         }
     }
 

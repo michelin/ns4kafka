@@ -19,9 +19,11 @@
 package com.michelin.ns4kafka.util.enumation;
 
 import com.fasterxml.jackson.annotation.JsonValue;
+import io.micronaut.serde.annotation.Serdeable;
 import lombok.AllArgsConstructor;
 
 /** Confluent roles. */
+@Serdeable
 @AllArgsConstructor
 public enum ConfluentRole {
     DEVELOPER_READ("DeveloperRead"),

@@ -916,8 +916,11 @@ class TopicControllerTest {
                         && t.getStatus().getMessage().equals("Imported from cluster")
                         && t.getStatus().getPhase().equals(Topic.TopicPhase.Success)));
 
-        verify(topicService).importTopics(eq(ns), argThat(topics -> topics.stream()
-                .anyMatch(t -> t.getMetadata().getName().equals("test.topic1"))));
+        verify(topicService)
+                .importTopics(
+                        eq(ns),
+                        argThat(topics -> topics.stream()
+                                .anyMatch(t -> t.getMetadata().getName().equals("test.topic1"))));
     }
 
     @Test

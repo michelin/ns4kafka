@@ -18,6 +18,7 @@
  */
 package com.michelin.ns4kafka.service.client.schema.entities;
 
+import io.micronaut.serde.annotation.Serdeable;
 import lombok.Builder;
 
 /**
@@ -29,6 +30,7 @@ import lombok.Builder;
  * @param entityStatus The entity status
  */
 @Builder
+@Serdeable
 public record TagTopicInfo(String entityName, String entityType, String typeName, String entityStatus) {
 
     @Override

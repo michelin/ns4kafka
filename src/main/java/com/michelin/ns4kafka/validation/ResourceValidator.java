@@ -28,10 +28,9 @@ import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidation
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidFieldValidationRegex;
 import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 
-import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.Nulls;
+import io.micronaut.serde.annotation.Serdeable;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -46,13 +45,22 @@ import lombok.experimental.SuperBuilder;
 
 /** Resource validator. */
 @Data
+@Serdeable
 @SuperBuilder
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 public abstract class ResourceValidator {
     @Builder.Default
-    @JsonSetter(nulls = Nulls.AS_EMPTY)
     protected Map<String, Validator> validationConstraints = new HashMap<>();
+
+    /**
+     * Set the validation constraints, defaulting to an empty map when null.
+     *
+     * @param validationConstraints The validation constraints
+     */
+    public void setValidationConstraints(Map<String, Validator> validationConstraints) {
+        this.validationConstraints = validationConstraints != null ? validationConstraints : new HashMap<>();
+    }
 
     /** Validate the configuration. */
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "validation-type")
@@ -78,6 +86,7 @@ public abstract class ResourceValidator {
 
     /** Validation logic for numeric ranges. */
     @Data
+    @Serdeable
     @NoArgsConstructor
     public static class Range implements ResourceValidator.Validator {
         private Number min;
@@ -162,6 +171,7 @@ public abstract class ResourceValidator {
 
     /** Validation logic for a list of valid strings. */
     @Data
+    @Serdeable
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ValidList implements ResourceValidator.Validator {
@@ -216,6 +226,7 @@ public abstract class ResourceValidator {
 
     /** Validation logic for a valid string. */
     @Data
+    @Serdeable
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ValidString implements ResourceValidator.Validator {
@@ -262,6 +273,7 @@ public abstract class ResourceValidator {
     }
 
     /** Validation logic for a non-empty string. */
+    @Serdeable
     public static class NonEmptyString implements ResourceValidator.Validator {
         /**
          * Ensure that the value is non-empty.
@@ -309,6 +321,7 @@ public abstract class ResourceValidator {
 
     /** Validation logic for a mandatory list in a string/comma-separated list. */
     @Data
+    @Serdeable
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ContainsList implements Validator {
@@ -341,6 +354,7 @@ public abstract class ResourceValidator {
 
     /** Validation logic for a given regex pattern on a string. */
     @Data
+    @Serdeable
     @NoArgsConstructor
     @AllArgsConstructor
     public static class RegexPattern implements Validator {
@@ -370,6 +384,7 @@ public abstract class ResourceValidator {
 
     /** Validation logic for a composite validator. */
     @Data
+    @Serdeable
     @NoArgsConstructor
     public static class CompositeValidator implements ResourceValidator.Validator {
         private List<ResourceValidator.Validator> validators;

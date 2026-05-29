@@ -20,8 +20,6 @@ package com.michelin.ns4kafka.security.auth.local;
 
 import com.michelin.ns4kafka.property.Ns4KafkaProperties;
 import com.michelin.ns4kafka.security.auth.AuthenticationService;
-import io.micronaut.core.annotation.NonNull;
-import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.security.authentication.AuthenticationException;
 import io.micronaut.security.authentication.AuthenticationFailed;
@@ -32,6 +30,8 @@ import io.micronaut.security.authentication.provider.ReactiveAuthenticationProvi
 import jakarta.inject.Singleton;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 

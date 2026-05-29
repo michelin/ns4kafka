@@ -20,7 +20,7 @@ package com.michelin.ns4kafka.model;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.DELETE_RECORDS_RESPONSE;
 
-import io.micronaut.core.annotation.Introspected;
+import io.micronaut.serde.annotation.Serdeable;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -33,7 +33,7 @@ import lombok.ToString;
 
 /** Delete records response. */
 @Data
-@Introspected
+@Serdeable
 @EqualsAndHashCode(callSuper = true)
 public class DeleteRecordsResponse extends Resource {
     @Valid @NotNull private DeleteRecordsResponseSpec spec;
@@ -54,7 +54,7 @@ public class DeleteRecordsResponse extends Resource {
     @Getter
     @Builder
     @ToString
-    @Introspected
+    @Serdeable
     @AllArgsConstructor
     @NoArgsConstructor
     public static class DeleteRecordsResponseSpec {

@@ -20,12 +20,13 @@ package com.michelin.ns4kafka.security.auth;
 
 import static com.michelin.ns4kafka.security.auth.JwtCustomClaimNames.ROLE_BINDINGS;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micronaut.security.authentication.Authentication;
 import java.util.Collection;
 import java.util.List;
 import lombok.Builder;
 import lombok.Getter;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Authentication info. Type-safe representation of the authentication information and attributes. This class can be
@@ -56,7 +57,7 @@ public class AuthenticationInfo {
         // Basic authentication role bindings attributes is already a List<AuthenticationRoleBinding>
         // In all cases, convert attributes to avoid generic type or unchecked cast warnings
         List<?> roleBindings = (List<?>) authentication.getAttributes().get(ROLE_BINDINGS);
-        ObjectMapper objectMapper = new ObjectMapper();
+        ObjectMapper objectMapper = new JsonMapper();
         List<AuthenticationRoleBinding> typedRoleBindings = roleBindings.stream()
                 .map(roleBinding -> objectMapper.convertValue(roleBinding, AuthenticationRoleBinding.class))
                 .toList();

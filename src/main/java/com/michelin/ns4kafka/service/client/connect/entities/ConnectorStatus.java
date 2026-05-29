@@ -18,10 +18,13 @@
  */
 package com.michelin.ns4kafka.service.client.connect.entities;
 
+import io.micronaut.serde.annotation.Serdeable;
+
 /**
  * Connector status.
  *
  * @param info Connector info
  * @param status Connector status info
  */
+@Serdeable
 public record ConnectorStatus(ConnectorInfo info, ConnectorStateInfo status) {}

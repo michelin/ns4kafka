@@ -22,8 +22,8 @@ import static com.michelin.ns4kafka.util.enumation.Kind.CHANGE_CONNECTOR_STATE;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.michelin.ns4kafka.model.Resource;
-import io.micronaut.core.annotation.Introspected;
 import io.micronaut.http.HttpStatus;
+import io.micronaut.serde.annotation.Serdeable;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -34,7 +34,7 @@ import lombok.NoArgsConstructor;
 
 /** Change connector state. */
 @Data
-@Introspected
+@Serdeable
 @EqualsAndHashCode(callSuper = true)
 public class ChangeConnectorState extends Resource {
     @Valid @NotNull private ChangeConnectorStateSpec spec;
@@ -56,6 +56,7 @@ public class ChangeConnectorState extends Resource {
     }
 
     /** Connector action. */
+    @Serdeable
     public enum ConnectorAction {
         PAUSE,
         RESUME,
@@ -82,7 +83,7 @@ public class ChangeConnectorState extends Resource {
     /** Change connector state specification. */
     @Data
     @Builder
-    @Introspected
+    @Serdeable
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ChangeConnectorStateSpec {
@@ -92,7 +93,7 @@ public class ChangeConnectorState extends Resource {
     /** Change connector state status. */
     @Data
     @Builder
-    @Introspected
+    @Serdeable
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ChangeConnectorStateStatus {

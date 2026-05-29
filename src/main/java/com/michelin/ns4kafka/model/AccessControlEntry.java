@@ -20,7 +20,7 @@ package com.michelin.ns4kafka.model;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.ACCESS_CONTROL_ENTRY;
 
-import io.micronaut.core.annotation.Introspected;
+import io.micronaut.serde.annotation.Serdeable;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -32,7 +32,7 @@ import lombok.NoArgsConstructor;
 
 /** Access control entry. */
 @Data
-@Introspected
+@Serdeable
 @EqualsAndHashCode(callSuper = true)
 public class AccessControlEntry extends Resource {
     @Valid @NotNull private AccessControlEntrySpec spec;
@@ -75,7 +75,7 @@ public class AccessControlEntry extends Resource {
     /** Access control entry specification. */
     @Data
     @Builder
-    @Introspected
+    @Serdeable
     @NoArgsConstructor
     @AllArgsConstructor
     public static class AccessControlEntrySpec {

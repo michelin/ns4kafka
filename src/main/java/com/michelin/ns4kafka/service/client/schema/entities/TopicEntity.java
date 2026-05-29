@@ -18,6 +18,7 @@
  */
 package com.michelin.ns4kafka.service.client.schema.entities;
 
+import io.micronaut.serde.annotation.Serdeable;
 import java.util.List;
 import lombok.Builder;
 
@@ -27,4 +28,5 @@ import lombok.Builder;
  * @param attributes attributes of the topic
  */
 @Builder
+@Serdeable
 public record TopicEntity(TopicEntityAttributes attributes, List<String> classificationNames) {}

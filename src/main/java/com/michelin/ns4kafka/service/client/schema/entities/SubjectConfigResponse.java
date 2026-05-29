@@ -19,6 +19,7 @@
 package com.michelin.ns4kafka.service.client.schema.entities;
 
 import com.michelin.ns4kafka.model.schema.Schema;
+import io.micronaut.serde.annotation.Serdeable;
 import lombok.Builder;
 
 /**
@@ -28,4 +29,5 @@ import lombok.Builder;
  * @param alias The alias
  */
 @Builder
+@Serdeable
 public record SubjectConfigResponse(Schema.Compatibility compatibilityLevel, String alias) {}

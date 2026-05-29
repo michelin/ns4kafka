@@ -23,7 +23,7 @@ import static com.michelin.ns4kafka.util.enumation.Kind.NAMESPACE;
 import com.michelin.ns4kafka.model.schema.SubjectNameStrategy;
 import com.michelin.ns4kafka.validation.ConnectValidator;
 import com.michelin.ns4kafka.validation.TopicValidator;
-import io.micronaut.core.annotation.Introspected;
+import io.micronaut.serde.annotation.Serdeable;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -36,7 +36,7 @@ import lombok.NoArgsConstructor;
 
 /** Namespace. */
 @Data
-@Introspected
+@Serdeable
 @EqualsAndHashCode(callSuper = true)
 public class Namespace extends Resource {
     @Valid @NotNull private NamespaceSpec spec;
@@ -56,7 +56,7 @@ public class Namespace extends Resource {
     /** Namespace spec. */
     @Data
     @Builder
-    @Introspected
+    @Serdeable
     @NoArgsConstructor
     @AllArgsConstructor
     public static class NamespaceSpec {

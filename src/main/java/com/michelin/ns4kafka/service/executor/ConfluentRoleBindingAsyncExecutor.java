@@ -118,35 +118,36 @@ public class ConfluentRoleBindingAsyncExecutor {
      */
     void createRoleBindingsFromAcls(List<AccessControlEntry> toCreate) {
         // Currently no possible to batch create Confluent Role Bindings
-        toCreate.forEach(acl -> convertAclToRoleBinding(acl).forEach(roleBinding -> confluentCloudClient
-                .createRoleBinding(managedClusterProperties.getName(), roleBinding)
-                .subscribe(
-                        roleBindingResponse -> {
-                            if (isUnchangedSinceLastApply(acl)) {
-                                log.info(
-                                        "Success creating RoleBinding {} for ACL {} on {}.",
-                                        roleBindingResponse.id(),
-                                        acl.getMetadata().getName(),
-                                        managedClusterProperties.getName());
+        toCreate.forEach(acl -> convertAclToRoleBinding(acl)
+                .forEach(roleBinding -> confluentCloudClient
+                        .createRoleBinding(managedClusterProperties.getName(), roleBinding)
+                        .subscribe(
+                                roleBindingResponse -> {
+                                    if (isUnchangedSinceLastApply(acl)) {
+                                        log.info(
+                                                "Success creating RoleBinding {} for ACL {} on {}.",
+                                                roleBindingResponse.id(),
+                                                acl.getMetadata().getName(),
+                                                managedClusterProperties.getName());
 
-                                acl.getMetadata()
-                                        .setGeneration(acl.getMetadata().getGeneration() + 1);
-                                acl.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
-                                aclRepository.create(acl);
-                            }
-                        },
-                        e -> {
-                            if (isUnchangedSinceLastApply(acl)) {
-                                log.error(
-                                        "Error creating RoleBinding for ACL {} on {}.",
-                                        acl.getMetadata().getName(),
-                                        managedClusterProperties.getName(),
-                                        e);
+                                        acl.getMetadata()
+                                                .setGeneration(acl.getMetadata().getGeneration() + 1);
+                                        acl.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
+                                        aclRepository.create(acl);
+                                    }
+                                },
+                                e -> {
+                                    if (isUnchangedSinceLastApply(acl)) {
+                                        log.error(
+                                                "Error creating RoleBinding for ACL {} on {}.",
+                                                acl.getMetadata().getName(),
+                                                managedClusterProperties.getName(),
+                                                e);
 
-                                acl.getMetadata().setStatus(Resource.Metadata.Status.ofFailed(e.getMessage()));
-                                aclRepository.create(acl);
-                            }
-                        })));
+                                        acl.getMetadata().setStatus(Resource.Metadata.Status.ofFailed(e.getMessage()));
+                                        aclRepository.create(acl);
+                                    }
+                                })));
     }
 
     /**
@@ -197,39 +198,40 @@ public class ConfluentRoleBindingAsyncExecutor {
      */
     public void deleteRoleBindingsFromAcls(List<AccessControlEntry> acls) {
         // Not possible to batch delete Confluent Role Bindings
-        acls.forEach(acl -> convertAclToRoleBinding(acl).forEach(roleBinding -> confluentCloudClient
-                .deleteRoleBinding(managedClusterProperties.getName(), roleBinding)
-                .doOnSuccess(roleBindingResponse -> {
-                    if (roleBindingResponse == null) {
-                        log.info(
-                                "No RoleBinding to delete for ACL {} on {}: ACL will be removed from Ns4Kafka.",
-                                acl.getMetadata().getName(),
-                                managedClusterProperties.getName());
+        acls.forEach(acl -> convertAclToRoleBinding(acl)
+                .forEach(roleBinding -> confluentCloudClient
+                        .deleteRoleBinding(managedClusterProperties.getName(), roleBinding)
+                        .doOnSuccess(roleBindingResponse -> {
+                            if (roleBindingResponse == null) {
+                                log.info(
+                                        "No RoleBinding to delete for ACL {} on {}: ACL will be removed from Ns4Kafka.",
+                                        acl.getMetadata().getName(),
+                                        managedClusterProperties.getName());
 
-                        aclRepository.delete(acl);
-                    } else if (isUnchangedSinceLastApply(acl)) {
-                        log.info(
-                                "Success deleting RoleBinding {} for ACL {} on {}.",
-                                roleBindingResponse.id(),
-                                acl.getMetadata().getName(),
-                                managedClusterProperties.getName());
+                                aclRepository.delete(acl);
+                            } else if (isUnchangedSinceLastApply(acl)) {
+                                log.info(
+                                        "Success deleting RoleBinding {} for ACL {} on {}.",
+                                        roleBindingResponse.id(),
+                                        acl.getMetadata().getName(),
+                                        managedClusterProperties.getName());
 
-                        aclRepository.delete(acl);
-                    }
-                })
-                .doOnError(e -> {
-                    if (isUnchangedSinceLastApply(acl)) {
-                        log.error(
-                                "Error deleting RoleBinding for ACL {} on {}.",
-                                acl.getMetadata().getName(),
-                                managedClusterProperties.getName(),
-                                e);
+                                aclRepository.delete(acl);
+                            }
+                        })
+                        .doOnError(e -> {
+                            if (isUnchangedSinceLastApply(acl)) {
+                                log.error(
+                                        "Error deleting RoleBinding for ACL {} on {}.",
+                                        acl.getMetadata().getName(),
+                                        managedClusterProperties.getName(),
+                                        e);
 
-                        acl.getMetadata().setStatus(Resource.Metadata.Status.ofFailed(e.getMessage()));
-                        aclRepository.create(acl);
-                    }
-                })
-                .subscribe()));
+                                acl.getMetadata().setStatus(Resource.Metadata.Status.ofFailed(e.getMessage()));
+                                aclRepository.create(acl);
+                            }
+                        })
+                        .subscribe()));
     }
 
     /**

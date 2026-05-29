@@ -20,8 +20,10 @@ package com.michelin.ns4kafka.model.quota;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.RESOURCE_QUOTA;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.michelin.ns4kafka.model.Resource;
-import io.micronaut.core.annotation.Introspected;
+import io.micronaut.serde.annotation.Serdeable;
 import jakarta.validation.constraints.NotNull;
 import java.util.Map;
 import lombok.AllArgsConstructor;
@@ -32,7 +34,7 @@ import lombok.Getter;
 
 /** Resource quota. */
 @Data
-@Introspected
+@Serdeable
 @EqualsAndHashCode(callSuper = true)
 public class ResourceQuota extends Resource {
     @NotNull private Map<String, String> spec;
@@ -51,6 +53,7 @@ public class ResourceQuota extends Resource {
 
     /** Resource quota spec keys. */
     @Getter
+    @Serdeable
     @AllArgsConstructor
     public enum ResourceQuotaSpecKey {
         COUNT_TOPICS("count/topics"),
@@ -62,6 +65,23 @@ public class ResourceQuota extends Resource {
 
         private final String key;
 
+        /**
+         * Build a ResourceQuotaSpecKey from its key.
+         *
+         * @param key The key
+         * @return The matching ResourceQuotaSpecKey
+         */
+        @JsonCreator
+        public static ResourceQuotaSpecKey fromKey(String key) {
+            for (ResourceQuotaSpecKey specKey : values()) {
+                if (specKey.key.equals(key)) {
+                    return specKey;
+                }
+            }
+            throw new IllegalArgumentException("Unknown ResourceQuotaSpecKey: " + key);
+        }
+
+        @JsonValue
         @Override
         public String toString() {
             return key;

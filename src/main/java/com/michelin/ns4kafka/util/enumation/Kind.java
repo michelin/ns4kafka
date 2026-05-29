@@ -19,8 +19,10 @@
 package com.michelin.ns4kafka.util.enumation;
 
 import com.fasterxml.jackson.annotation.JsonValue;
+import io.micronaut.serde.annotation.Serdeable;
 
 /** Resource kind. */
+@Serdeable
 public enum Kind {
     ACCESS_CONTROL_ENTRY("AccessControlEntry"),
     CHANGE_CONNECTOR_STATE("ChangeConnectorState"),
@@ -42,13 +44,18 @@ public enum Kind {
     TOPIC("Topic"),
     VAULT_RESPONSE("VaultResponse");
 
-    @JsonValue
     private final String name;
 
+    /**
+     * Constructor.
+     *
+     * @param name The name
+     */
     Kind(String name) {
         this.name = name;
     }
 
+    @JsonValue
     @Override
     public String toString() {
         return name;

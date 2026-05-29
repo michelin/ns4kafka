@@ -145,8 +145,9 @@ public class NamespaceService {
     public List<String> validateCreation(Namespace namespace) {
         List<String> validationErrors = new ArrayList<>();
 
-        if (managedClusterProperties.stream().noneMatch(config -> config.getName()
-                .equals(namespace.getMetadata().getCluster()))) {
+        if (managedClusterProperties.stream()
+                .noneMatch(config ->
+                        config.getName().equals(namespace.getMetadata().getCluster()))) {
             validationErrors.add(
                     invalidNamespaceNoCluster(namespace.getMetadata().getCluster()));
         }

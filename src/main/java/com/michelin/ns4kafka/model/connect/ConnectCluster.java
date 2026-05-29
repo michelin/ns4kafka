@@ -21,7 +21,7 @@ package com.michelin.ns4kafka.model.connect;
 import static com.michelin.ns4kafka.util.enumation.Kind.CONNECT_CLUSTER;
 
 import com.michelin.ns4kafka.model.Resource;
-import io.micronaut.core.annotation.Introspected;
+import io.micronaut.serde.annotation.Serdeable;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -32,7 +32,7 @@ import lombok.NoArgsConstructor;
 
 /** Kafka Connect Cluster. */
 @Data
-@Introspected
+@Serdeable
 @EqualsAndHashCode(callSuper = true)
 public class ConnectCluster extends Resource {
     @Valid @NotNull private ConnectClusterSpec spec;
@@ -58,7 +58,7 @@ public class ConnectCluster extends Resource {
     /** Kafka Connect Cluster specification. */
     @Data
     @Builder
-    @Introspected
+    @Serdeable
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ConnectClusterSpec {

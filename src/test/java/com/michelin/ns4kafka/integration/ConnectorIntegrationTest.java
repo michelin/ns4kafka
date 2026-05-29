@@ -759,11 +759,13 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
                         .build())
                 .build();
 
-        HttpClientResponseException exception = assertThrows(HttpClientResponseException.class, () -> ns4KafkaClient
-                .toBlocking()
-                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns-strict-regex/connectors")
-                        .bearerAuth(token)
-                        .body(connector)));
+        HttpClientResponseException exception = assertThrows(
+                HttpClientResponseException.class,
+                () -> ns4KafkaClient
+                        .toBlocking()
+                        .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns-strict-regex/connectors")
+                                .bearerAuth(token)
+                                .body(connector)));
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
         assertTrue(exception.getResponse().getBody(Status.class).isPresent());

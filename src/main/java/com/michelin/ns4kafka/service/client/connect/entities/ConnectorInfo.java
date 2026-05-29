@@ -18,6 +18,7 @@
  */
 package com.michelin.ns4kafka.service.client.connect.entities;
 
+import io.micronaut.serde.annotation.Serdeable;
 import java.util.List;
 import java.util.Map;
 
@@ -29,4 +30,5 @@ import java.util.Map;
  * @param tasks Tasks
  * @param type Type
  */
+@Serdeable
 public record ConnectorInfo(String name, Map<String, String> config, List<ConnectorTaskId> tasks, ConnectorType type) {}

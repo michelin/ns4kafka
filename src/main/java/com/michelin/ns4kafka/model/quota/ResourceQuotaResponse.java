@@ -21,7 +21,7 @@ package com.michelin.ns4kafka.model.quota;
 import static com.michelin.ns4kafka.util.enumation.Kind.RESOURCE_QUOTA_RESPONSE;
 
 import com.michelin.ns4kafka.model.Resource;
-import io.micronaut.core.annotation.Introspected;
+import io.micronaut.serde.annotation.Serdeable;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -34,7 +34,7 @@ import lombok.ToString;
 
 /** Resource quota response. */
 @Data
-@Introspected
+@Serdeable
 @EqualsAndHashCode(callSuper = true)
 public class ResourceQuotaResponse extends Resource {
     @Valid @NotNull private ResourceQuotaResponseSpec spec;
@@ -55,7 +55,7 @@ public class ResourceQuotaResponse extends Resource {
     @Getter
     @Builder
     @ToString
-    @Introspected
+    @Serdeable
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ResourceQuotaResponseSpec {

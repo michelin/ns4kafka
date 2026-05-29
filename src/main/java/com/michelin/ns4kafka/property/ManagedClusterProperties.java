@@ -21,7 +21,7 @@ package com.michelin.ns4kafka.property;
 import io.micronaut.context.annotation.ConfigurationProperties;
 import io.micronaut.context.annotation.EachProperty;
 import io.micronaut.context.annotation.Parameter;
-import io.micronaut.core.annotation.Introspected;
+import io.micronaut.serde.annotation.Serdeable;
 import java.util.Map;
 import java.util.Properties;
 import lombok.Getter;
@@ -91,7 +91,7 @@ public class ManagedClusterProperties {
     /** Connect properties. */
     @Getter
     @Setter
-    @Introspected
+    @Serdeable
     public static class ConnectProperties {
         private String url;
         private String basicAuthUsername;

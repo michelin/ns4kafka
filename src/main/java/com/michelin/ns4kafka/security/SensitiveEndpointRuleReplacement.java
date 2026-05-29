@@ -21,7 +21,6 @@ package com.michelin.ns4kafka.security;
 import static com.michelin.ns4kafka.security.ResourceBasedSecurityRule.IS_ADMIN;
 
 import io.micronaut.context.annotation.Replaces;
-import io.micronaut.core.annotation.NonNull;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.inject.ExecutableMethod;
 import io.micronaut.management.endpoint.EndpointSensitivityProcessor;
@@ -31,6 +30,7 @@ import io.micronaut.security.rules.SensitiveEndpointRule;
 import jakarta.inject.Singleton;
 import java.util.Collection;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 

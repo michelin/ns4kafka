@@ -20,7 +20,7 @@ package com.michelin.ns4kafka.model;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.KAFKA_USER_RESET_PASSWORD;
 
-import io.micronaut.core.annotation.Introspected;
+import io.micronaut.serde.annotation.Serdeable;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -30,7 +30,7 @@ import lombok.NoArgsConstructor;
 
 /** Kafka user reset password. */
 @Data
-@Introspected
+@Serdeable
 @EqualsAndHashCode(callSuper = true)
 public class KafkaUserResetPassword extends Resource {
     private KafkaUserResetPasswordSpec spec;
@@ -50,7 +50,7 @@ public class KafkaUserResetPassword extends Resource {
     /** Kafka user reset password spec. */
     @Getter
     @Builder
-    @Introspected
+    @Serdeable
     @NoArgsConstructor
     @AllArgsConstructor
     public static class KafkaUserResetPasswordSpec {

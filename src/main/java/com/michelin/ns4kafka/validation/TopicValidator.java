@@ -30,6 +30,7 @@ import static com.michelin.ns4kafka.util.config.TopicConfig.REPLICATION_FACTOR;
 
 import com.michelin.ns4kafka.model.Topic;
 import io.micronaut.core.util.StringUtils;
+import io.micronaut.serde.annotation.Serdeable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +44,7 @@ import lombok.experimental.SuperBuilder;
 /** Topic validator. */
 @Getter
 @Setter
+@Serdeable
 @SuperBuilder
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)

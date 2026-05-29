@@ -35,6 +35,10 @@ import com.michelin.ns4kafka.model.schema.SubjectConfigState;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SubjectConfigResponse;
 import com.michelin.ns4kafka.validation.TopicValidator;
+import io.confluent.kafka.schemaregistry.client.rest.entities.Metadata;
+import io.confluent.kafka.schemaregistry.client.rest.entities.Rule;
+import io.confluent.kafka.schemaregistry.client.rest.entities.RuleSet;
+import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
 import io.confluent.kafka.schemaregistry.client.rest.entities.requests.RegisterSchemaRequest;
 import io.confluent.kafka.schemaregistry.client.rest.entities.requests.RegisterSchemaResponse;
 import io.micronaut.context.ApplicationContext;
@@ -48,6 +52,7 @@ import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
+import io.micronaut.serde.annotation.SerdeImport;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import jakarta.inject.Inject;
 import java.util.List;
@@ -55,6 +60,12 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+@SerdeImport(Rule.class)
+@SerdeImport(RuleSet.class)
+@SerdeImport(Metadata.class)
+@SerdeImport(SchemaReference.class)
+@SerdeImport(RegisterSchemaRequest.class)
+@SerdeImport(RegisterSchemaResponse.class)
 @MicronautTest
 class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
     @Inject
@@ -880,14 +891,14 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
                         Schema.class);
 
         // Delete latest schema version
-        HttpResponse<Schema> deleteLatestVersionResponse = ns4KafkaClient
+        HttpResponse<List<Schema>> deleteLatestVersionResponse = ns4KafkaClient
                 .toBlocking()
                 .exchange(
                         HttpRequest.create(
                                         HttpMethod.DELETE,
                                         "/api/namespaces/ns1/schemas?name=ns1-subject4-value&version=latest")
                                 .bearerAuth(token),
-                        Schema.class);
+                        Argument.listOf(Schema.class));
 
         assertEquals(HttpStatus.OK, deleteLatestVersionResponse.getStatus());
 
@@ -902,14 +913,14 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
         assertTrue(getSchemaAfterLatestVersionDeletionResponse.getBody().get().containsAll(List.of("1", "2", "3")));
 
         // Delete old schema version
-        HttpResponse<Schema> deleteOldVersionResponse = ns4KafkaClient
+        HttpResponse<List<Schema>> deleteOldVersionResponse = ns4KafkaClient
                 .toBlocking()
                 .exchange(
                         HttpRequest.create(
                                         HttpMethod.DELETE,
                                         "/api/namespaces/ns1/schemas?name=ns1-subject4-value&version=1")
                                 .bearerAuth(token),
-                        Schema.class);
+                        Argument.listOf(Schema.class));
 
         assertEquals(HttpStatus.OK, deleteOldVersionResponse.getStatus());
 
@@ -924,12 +935,12 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
         assertTrue(getSchemaAfterOldVersionDeletionResponse.getBody().get().containsAll(List.of("2", "3")));
 
         // Delete all remaining schema versions
-        HttpResponse<Schema> deleteAllVersionsResponse = ns4KafkaClient
+        HttpResponse<List<Schema>> deleteAllVersionsResponse = ns4KafkaClient
                 .toBlocking()
                 .exchange(
                         HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/schemas?name=ns1-subject4-value")
                                 .bearerAuth(token),
-                        Schema.class);
+                        Argument.listOf(Schema.class));
 
         assertEquals(HttpStatus.OK, deleteAllVersionsResponse.getStatus());
 

@@ -19,8 +19,9 @@
 package com.michelin.ns4kafka.service.client.schema.entities;
 
 import com.michelin.ns4kafka.model.schema.Schema;
-import io.micronaut.core.annotation.Nullable;
+import io.micronaut.serde.annotation.Serdeable;
 import lombok.Builder;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Subject config request.
@@ -29,6 +30,7 @@ import lombok.Builder;
  * @param alias The alias
  */
 @Builder
+@Serdeable
 public record SubjectConfigRequest(
-        @Nullable Schema.Compatibility compatibility,
+        Schema.@Nullable Compatibility compatibility,
         @Nullable String alias) {}

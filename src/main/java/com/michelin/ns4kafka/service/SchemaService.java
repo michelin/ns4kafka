@@ -525,9 +525,10 @@ public class SchemaService {
         }
 
         if (AVRO.equals(schema.getSpec().getSchemaType())) {
-            return getSchemaReferences(namespace, schema).map(schemaRefs -> new AvroSchema(
-                            schema.getSpec().getSchema(), getReferences(schema), schemaRefs, null)
-                    .name());
+            return getSchemaReferences(namespace, schema)
+                    .map(schemaRefs -> new AvroSchema(
+                                    schema.getSpec().getSchema(), getReferences(schema), schemaRefs, null)
+                            .name());
         }
 
         return Mono.empty();

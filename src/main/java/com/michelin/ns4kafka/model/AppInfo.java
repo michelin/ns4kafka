@@ -37,14 +37,14 @@ package com.michelin.ns4kafka.model;
  * under the License.
  */
 
-import io.micronaut.core.annotation.Introspected;
+import io.micronaut.serde.annotation.Serdeable;
 import lombok.Builder;
 import lombok.Data;
 
 /** App information. */
 @Data
 @Builder
-@Introspected
+@Serdeable
 public class AppInfo {
     private String version;
 }

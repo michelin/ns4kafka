@@ -21,12 +21,14 @@ package com.michelin.ns4kafka.model;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.michelin.ns4kafka.util.enumation.ApplyStatus;
 import com.michelin.ns4kafka.util.enumation.Kind;
+import io.micronaut.serde.annotation.Serdeable;
 import java.util.Date;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
 /** Audit log. */
 @Data
+@Serdeable
 @AllArgsConstructor
 public class AuditLog {
     private String user;

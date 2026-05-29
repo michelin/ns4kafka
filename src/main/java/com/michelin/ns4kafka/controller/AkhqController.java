@@ -23,11 +23,11 @@ import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.property.Ns4KafkaProperties;
 import com.michelin.ns4kafka.service.AclService;
 import com.michelin.ns4kafka.service.NamespaceService;
-import io.micronaut.core.annotation.Introspected;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.security.rules.SecurityRule;
+import io.micronaut.serde.annotation.Serdeable;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.validation.Valid;
@@ -336,9 +336,9 @@ public class AkhqController {
     }
 
     /** AKHQ request. */
-    @Introspected
     @Builder
     @Getter
+    @Serdeable
     public static class AkhqClaimRequest {
         String providerType;
         String providerName;
@@ -347,9 +347,9 @@ public class AkhqController {
     }
 
     /** AKHQ response (v2). */
-    @Introspected
     @Builder
     @Getter
+    @Serdeable
     public static class AkhqClaimResponseV2 {
         private List<String> roles;
         private List<String> topicsFilterRegexp;
@@ -388,9 +388,9 @@ public class AkhqController {
     }
 
     /** AKHQ response (v3). */
-    @Introspected
     @Builder
     @Getter
+    @Serdeable
     public static class AkhqClaimResponseV3 {
         private Map<String, List<Group>> groups;
 
@@ -413,7 +413,7 @@ public class AkhqController {
         /** AKHQ group. */
         @Data
         @Builder
-        @Introspected
+        @Serdeable
         public static class Group {
             private String role;
             private List<String> patterns;

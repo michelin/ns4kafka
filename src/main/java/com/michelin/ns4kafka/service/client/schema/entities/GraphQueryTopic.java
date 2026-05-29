@@ -19,6 +19,7 @@
 package com.michelin.ns4kafka.service.client.schema.entities;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.micronaut.serde.annotation.Serdeable;
 import java.util.List;
 import lombok.Builder;
 
@@ -30,4 +31,5 @@ import lombok.Builder;
  * @param tags the topic tags
  */
 @Builder
+@Serdeable
 public record GraphQueryTopic(@JsonProperty("nameLower") String name, String description, List<String> tags) {}

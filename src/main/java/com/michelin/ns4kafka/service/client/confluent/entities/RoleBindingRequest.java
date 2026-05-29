@@ -20,10 +20,12 @@ package com.michelin.ns4kafka.service.client.confluent.entities;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.michelin.ns4kafka.property.ManagedClusterProperties.ConfluentCloudProperties;
+import io.micronaut.serde.annotation.Serdeable;
 import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 
 @Builder
+@Serdeable
 public record RoleBindingRequest(
         @NotNull String principal,
         @JsonProperty("role_name") @NotNull String roleName,

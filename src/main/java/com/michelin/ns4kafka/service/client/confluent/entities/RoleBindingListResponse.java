@@ -18,8 +18,10 @@
  */
 package com.michelin.ns4kafka.service.client.confluent.entities;
 
+import io.micronaut.serde.annotation.Serdeable;
 import java.util.List;
 import lombok.Builder;
 
 @Builder
+@Serdeable
 public record RoleBindingListResponse(List<RoleBindingResponse> data) {}

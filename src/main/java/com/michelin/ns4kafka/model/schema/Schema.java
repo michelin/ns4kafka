@@ -21,7 +21,7 @@ package com.michelin.ns4kafka.model.schema;
 import static com.michelin.ns4kafka.util.enumation.Kind.SCHEMA;
 
 import com.michelin.ns4kafka.model.Resource;
-import io.micronaut.core.annotation.Introspected;
+import io.micronaut.serde.annotation.Serdeable;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -36,7 +36,7 @@ import lombok.Setter;
 
 /** Schema. */
 @Data
-@Introspected
+@Serdeable
 @EqualsAndHashCode(callSuper = true)
 public class Schema extends Resource {
     @Valid private SchemaSpec spec;
@@ -75,7 +75,7 @@ public class Schema extends Resource {
     /** Schema spec. */
     @Data
     @Builder
-    @Introspected
+    @Serdeable
     @NoArgsConstructor
     @AllArgsConstructor
     public static class SchemaSpec {
@@ -95,7 +95,7 @@ public class Schema extends Resource {
         @Getter
         @Setter
         @Builder
-        @Introspected
+        @Serdeable
         @NoArgsConstructor
         @AllArgsConstructor
         public static class Reference {

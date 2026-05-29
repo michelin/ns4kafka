@@ -23,10 +23,10 @@ import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.service.NamespaceService;
 import io.micronaut.context.event.ApplicationEventPublisher;
-import io.micronaut.core.annotation.Nullable;
 import io.micronaut.security.utils.SecurityService;
 import java.time.Instant;
 import java.util.Date;
+import org.jspecify.annotations.Nullable;
 
 /** Namespaced resource controller. */
 public abstract class NamespacedResourceController extends ResourceController {

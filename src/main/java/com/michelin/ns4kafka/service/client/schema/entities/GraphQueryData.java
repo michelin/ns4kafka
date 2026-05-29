@@ -19,6 +19,7 @@
 package com.michelin.ns4kafka.service.client.schema.entities;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.micronaut.serde.annotation.Serdeable;
 import java.util.List;
 import lombok.Builder;
 
@@ -28,4 +29,5 @@ import lombok.Builder;
  * @param kafkaTopic the list of queried kafka topics
  */
 @Builder
+@Serdeable
 public record GraphQueryData(@JsonProperty("kafka_topic") List<GraphQueryTopic> kafkaTopic) {}

@@ -19,6 +19,7 @@
 package com.michelin.ns4kafka.service.client.schema.entities;
 
 import com.michelin.ns4kafka.model.schema.Schema;
+import io.micronaut.serde.annotation.Serdeable;
 import java.util.List;
 import lombok.Builder;
 
@@ -33,6 +34,7 @@ import lombok.Builder;
  * @param references The schema references
  */
 @Builder
+@Serdeable
 public record SchemaResponse(
         Integer id,
         Integer version,

@@ -21,7 +21,7 @@ package com.michelin.ns4kafka.model.schema;
 import static com.michelin.ns4kafka.util.enumation.Kind.SUBJECT_CONFIG_STATE;
 
 import com.michelin.ns4kafka.model.Resource;
-import io.micronaut.core.annotation.Introspected;
+import io.micronaut.serde.annotation.Serdeable;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -33,7 +33,7 @@ import lombok.ToString;
 
 /** Subject config state. */
 @Data
-@Introspected
+@Serdeable
 @EqualsAndHashCode(callSuper = true)
 public class SubjectConfigState extends Resource {
     @Valid @NotNull private SubjectConfigState.SubjectConfigStateSpec spec;
@@ -54,7 +54,7 @@ public class SubjectConfigState extends Resource {
     @Getter
     @Builder
     @ToString
-    @Introspected
+    @Serdeable
     @AllArgsConstructor
     public static class SubjectConfigStateSpec {
         private final Schema.Compatibility compatibility;

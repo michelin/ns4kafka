@@ -19,6 +19,7 @@
 package com.michelin.ns4kafka.service.client.connect.entities;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.micronaut.serde.annotation.Serdeable;
 
 /**
  * Connector plugin info.
@@ -27,4 +28,5 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @param type Type
  * @param version Version
  */
+@Serdeable
 public record ConnectorPluginInfo(@JsonProperty("class") String className, ConnectorType type, String version) {}
