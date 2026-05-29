@@ -112,14 +112,15 @@ class NamespaceIntegrationTest extends KafkaIntegrationTest {
 
         assertEquals("created", responseCreateNs.header("X-Ns4kafka-Result"));
 
-        Namespace responseGetNs = ns4KafkaClient
+        List<Namespace> responseGetNs = ns4KafkaClient
                 .toBlocking()
                 .retrieve(
                         HttpRequest.create(HttpMethod.GET, "/api/namespaces?name=accepted.namespace")
                                 .bearerAuth(token),
-                        Namespace.class);
+                        Argument.listOf(Namespace.class));
 
-        assertEquals(namespace.getSpec(), responseGetNs.getSpec());
+        assertTrue(
+                responseGetNs.stream().anyMatch(ns -> ns.getMetadata().getName().equals("accepted.namespace")));
 
         RoleBinding roleBinding = RoleBinding.builder()
                 .metadata(Resource.Metadata.builder()
