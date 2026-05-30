@@ -106,6 +106,37 @@ class ConnectClusterServiceTest {
     }
 
     @Test
+    void shouldFindAllConnectClustersWithDecryptedInformation() {
+        String encryptKey = "changeitchangeitchangeitchangeit";
+        ConnectCluster connectCluster = ConnectCluster.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("connect-cluster")
+                        .cluster("local")
+                        .build())
+                .spec(ConnectCluster.ConnectClusterSpec.builder()
+                        .url("https://after")
+                        .username("user")
+                        .password(EncryptionUtils.encryptAes256Gcm("password", encryptKey))
+                        .aes256Key(EncryptionUtils.encryptAes256Gcm("aes256Key", encryptKey))
+                        .aes256Salt(EncryptionUtils.encryptAes256Gcm("aes256Salt", encryptKey))
+                        .build())
+                .build();
+
+        when(connectClusterRepository.findAll()).thenReturn(List.of(connectCluster));
+        when(ns4KafkaProperties.getSecurity()).thenReturn(buildSecurityProperties(encryptKey));
+
+        StepVerifier.create(connectClusterService.findAll(false, false))
+                .consumeNextWith(result -> {
+                    assertEquals("connect-cluster", result.getMetadata().getName());
+                    assertEquals("user", result.getSpec().getUsername());
+                    assertEquals("password", result.getSpec().getPassword());
+                    assertEquals("aes256Key", result.getSpec().getAes256Key());
+                    assertEquals("aes256Salt", result.getSpec().getAes256Salt());
+                })
+                .verifyComplete();
+    }
+
+    @Test
     void shouldFindAllConnectClustersIncludingThoseDeclaredInNs4KafkaConfig() {
         ConnectCluster connectCluster = ConnectCluster.builder()
                 .metadata(Resource.Metadata.builder().name("connect-cluster").build())
@@ -309,7 +340,6 @@ class ConnectClusterServiceTest {
                                 .build())
                         .build());
 
-        when(ns4KafkaProperties.getSecurity()).thenReturn(buildSecurityProperties("aes256Key"));
         when(connectClusterRepository.findAllForCluster("local")).thenReturn(List.of(cc1, cc2));
         when(aclService.findAllGrantedToNamespace(namespace)).thenReturn(acls);
         when(aclService.isResourceCoveredByAcls(acls, "abc.cc")).thenReturn(true);
@@ -396,7 +426,6 @@ class ConnectClusterServiceTest {
                                 .build())
                         .build());
 
-        when(ns4KafkaProperties.getSecurity()).thenReturn(buildSecurityProperties("aes256Key"));
         when(connectClusterRepository.findAllForCluster("local")).thenReturn(List.of(cc1, cc2, cc3, cc4, cc5));
         when(aclService.findAllGrantedToNamespace(namespace)).thenReturn(acls);
         when(aclService.isResourceCoveredByAcls(any(), eq("prefix.cc1"))).thenReturn(true);
@@ -544,7 +573,6 @@ class ConnectClusterServiceTest {
                                 .build())
                         .build()));
 
-        when(ns4KafkaProperties.getSecurity()).thenReturn(buildSecurityProperties("aes256Key"));
         when(aclService.isResourceCoveredByAcls(any(), eq("prefix.connect-cluster")))
                 .thenReturn(true);
 
@@ -591,7 +619,6 @@ class ConnectClusterServiceTest {
                                 .build())
                         .build()));
 
-        when(ns4KafkaProperties.getSecurity()).thenReturn(buildSecurityProperties("aes256Key"));
         when(aclService.isResourceCoveredByAcls(any(), eq("prefix.connect-cluster")))
                 .thenReturn(true);
 
