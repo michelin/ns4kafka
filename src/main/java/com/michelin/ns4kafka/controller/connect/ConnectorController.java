@@ -30,6 +30,7 @@ import com.michelin.ns4kafka.model.connect.Connector;
 import com.michelin.ns4kafka.service.ConnectorService;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.ResourceQuotaService;
+import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsetsRequest;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsetsResponse;
 import com.michelin.ns4kafka.util.enumation.ApplyStatus;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
@@ -41,6 +42,7 @@ import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Delete;
 import io.micronaut.http.annotation.Get;
+import io.micronaut.http.annotation.Patch;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
 import io.micronaut.scheduling.TaskExecutors;
@@ -354,6 +356,32 @@ public class ConnectorController extends NamespacedResourceController {
         }
 
         return connectorService.resetOffsets(ns, optionalConnector.get());
+    }
+
+    /**
+     * Alter or partially reset the offsets of a connector.
+     *
+     * @param namespace The namespace
+     * @param connector The connector to alter offsets for
+     * @param offsetsRequest The offsets payload
+     * @return An HTTP response
+     */
+    @Patch("/{connector}/offsets")
+    public Mono<HttpResponse<ConnectorOffsetsResponse>> alterOffsets(
+            String namespace, String connector, @Body ConnectorOffsetsRequest offsetsRequest) {
+        Namespace ns = getNamespace(namespace);
+
+        if (!connectorService.isNamespaceOwnerOfConnect(ns, connector)) {
+            return Mono.error(new ResourceValidationException(CONNECTOR, connector, invalidOwner(connector)));
+        }
+
+        Optional<Connector> optionalConnector = connectorService.findByName(ns, connector);
+
+        if (optionalConnector.isEmpty()) {
+            return Mono.just(HttpResponse.notFound());
+        }
+
+        return connectorService.alterOffsets(ns, optionalConnector.get(), offsetsRequest);
     }
 
     /**

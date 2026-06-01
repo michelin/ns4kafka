@@ -28,6 +28,7 @@ import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.connect.Connector;
 import com.michelin.ns4kafka.repository.ConnectorRepository;
 import com.michelin.ns4kafka.service.client.connect.KafkaConnectClient;
+import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsetsRequest;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsetsResponse;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorSpecs;
 import com.michelin.ns4kafka.service.executor.ConnectorAsyncExecutor;
@@ -430,6 +431,33 @@ public class ConnectorService {
                 .map(response -> {
                     log.info(
                             "Success resetting offsets for Connector [{}] on Namespace [{}] Connect [{}]",
+                            connector.getMetadata().getName(),
+                            namespace.getMetadata().getName(),
+                            connector.getSpec().getConnectCluster());
+
+                    return HttpResponse.status(response.getStatus()).body(response.body());
+                });
+    }
+
+    /**
+     * Alter offsets for a given connector.
+     *
+     * @param namespace The namespace
+     * @param connector The connector
+     * @param offsetsRequest The offsets payload
+     * @return An HTTP response
+     */
+    public Mono<HttpResponse<ConnectorOffsetsResponse>> alterOffsets(
+            Namespace namespace, Connector connector, ConnectorOffsetsRequest offsetsRequest) {
+        return kafkaConnectClient
+                .alterOffsets(
+                        namespace.getMetadata().getCluster(),
+                        connector.getSpec().getConnectCluster(),
+                        connector.getMetadata().getName(),
+                        offsetsRequest)
+                .map(response -> {
+                    log.info(
+                            "Success altering offsets for Connector [{}] on Namespace [{}] Connect [{}]",
                             connector.getMetadata().getName(),
                             namespace.getMetadata().getName(),
                             connector.getSpec().getConnectCluster());
