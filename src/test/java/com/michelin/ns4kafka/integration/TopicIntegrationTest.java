@@ -460,7 +460,6 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
 
-        // Compare spec of the topics and assure there is no change
         assertEquals(
                 topicToModify.getSpec(),
                 ns4KafkaClient
@@ -468,7 +467,8 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
                         .retrieve(
                                 HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/topics?name=ns1-topicToModify")
                                         .bearerAuth(token),
-                                Topic.class)
+                                Argument.listOf(Topic.class))
+                        .getFirst()
                         .getSpec());
     }
 
