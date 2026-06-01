@@ -465,7 +465,7 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
                 ns4KafkaClient
                         .toBlocking()
                         .retrieve(
-                                HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/topics/ns1-topicToModify")
+                                HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/topics?name=ns1-topicToModify")
                                         .bearerAuth(token),
                                 Argument.listOf(Topic.class))
                         .getFirst()
