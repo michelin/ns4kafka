@@ -30,6 +30,7 @@ import com.michelin.ns4kafka.model.connect.Connector;
 import com.michelin.ns4kafka.model.connect.ConnectorOffsetResponse;
 import com.michelin.ns4kafka.repository.ConnectorRepository;
 import com.michelin.ns4kafka.service.client.connect.KafkaConnectClient;
+import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsets;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsetsResponse;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorSpecs;
 import com.michelin.ns4kafka.util.FormatErrorUtils;
@@ -407,5 +408,32 @@ public class ConnectorService {
                 namespace.getMetadata().getCluster(),
                 connector.getSpec().getConnectCluster(),
                 connector.getMetadata().getName());
+    }
+
+    /**
+     * Alter offsets for a given connector.
+     *
+     * @param namespace The namespace
+     * @param connector The connector
+     * @param offsetsRequest The offsets payload
+     * @return An HTTP response
+     */
+    public Mono<HttpResponse<ConnectorOffsetsResponse>> alterOffsets(
+            Namespace namespace, Connector connector, ConnectorOffsets offsetsRequest) {
+        return kafkaConnectClient
+                .alterOffsets(
+                        namespace.getMetadata().getCluster(),
+                        connector.getSpec().getConnectCluster(),
+                        connector.getMetadata().getName(),
+                        offsetsRequest)
+                .map(response -> {
+                    log.info(
+                            "Success altering offsets for Connector [{}] on Namespace [{}] Connect [{}]",
+                            connector.getMetadata().getName(),
+                            namespace.getMetadata().getName(),
+                            connector.getSpec().getConnectCluster());
+
+                    return HttpResponse.status(response.getStatus()).body(response.body());
+                });
     }
 }
