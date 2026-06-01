@@ -247,28 +247,32 @@ public class ConnectorService {
                 connectClusterService.findAllForNamespaceWithWritePermission(namespace).stream()
                         .map(connectCluster -> connectCluster.getMetadata().getName()));
 
-        return Flux.fromStream(connectClusters).flatMap(connectClusterName -> kafkaConnectClient
-                .listAll(namespace.getMetadata().getCluster(), connectClusterName)
-                .flatMapMany(
-                        connectors -> Flux.fromIterable(connectors.values()).map(connectorStatus -> Connector.builder()
-                                .metadata(Resource.Metadata.builder()
-                                        .name(connectorStatus.info().name())
-                                        .build())
-                                .spec(Connector.ConnectorSpec.builder()
-                                        .connectCluster(connectClusterName)
-                                        .config(connectorStatus.info().config())
-                                        .build())
-                                .build()))
-                .filter(connector ->
-                        // ...that belongs to this namespace
-                        isNamespaceOwnerOfConnect(
-                                        namespace, connector.getMetadata().getName())
-                                // ...and aren't in Ns4Kafka storage
-                                && findByName(namespace, connector.getMetadata().getName())
-                                        .isEmpty()
-                                // ...and match the name parameter
-                                && RegexUtils.isResourceCoveredByRegex(
-                                        connector.getMetadata().getName(), nameFilterPatterns)));
+        return Flux.fromStream(connectClusters)
+                .flatMap(connectClusterName -> kafkaConnectClient
+                        .listAll(namespace.getMetadata().getCluster(), connectClusterName)
+                        .flatMapMany(connectors -> Flux.fromIterable(connectors.values())
+                                .map(connectorStatus -> Connector.builder()
+                                        .metadata(Resource.Metadata.builder()
+                                                .name(connectorStatus.info().name())
+                                                .build())
+                                        .spec(Connector.ConnectorSpec.builder()
+                                                .connectCluster(connectClusterName)
+                                                .config(connectorStatus.info().config())
+                                                .build())
+                                        .build()))
+                        .filter(connector ->
+                                // ...that belongs to this namespace
+                                isNamespaceOwnerOfConnect(
+                                                namespace,
+                                                connector.getMetadata().getName())
+                                        // ...and aren't in Ns4Kafka storage
+                                        && findByName(
+                                                        namespace,
+                                                        connector.getMetadata().getName())
+                                                .isEmpty()
+                                        // ...and match the name parameter
+                                        && RegexUtils.isResourceCoveredByRegex(
+                                                connector.getMetadata().getName(), nameFilterPatterns)));
     }
 
     /**

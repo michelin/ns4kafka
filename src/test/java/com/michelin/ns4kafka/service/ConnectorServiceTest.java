@@ -25,8 +25,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -74,13 +72,7 @@ class ConnectorServiceTest {
     ConnectorRepository connectorRepository;
 
     @Mock
-    ApplicationContext applicationContext;
-
-    @Mock
     ConnectClusterService connectClusterService;
-
-    @Mock
-    ConnectorAsyncExecutor connectorAsyncExecutor;
 
     @InjectMocks
     ConnectorService connectorService;
@@ -862,11 +854,6 @@ class ConnectorServiceTest {
                         .build())
                 .build();
 
-        when(applicationContext.getBean(
-                        ConnectorAsyncExecutor.class,
-                        Qualifiers.byName(ns.getMetadata().getCluster())))
-                .thenReturn(connectorAsyncExecutor);
-
         ConnectCluster connectCluster = ConnectCluster.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("ns-connect-cluster")
@@ -964,11 +951,6 @@ class ConnectorServiceTest {
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
-
-        when(applicationContext.getBean(
-                        ConnectorAsyncExecutor.class,
-                        Qualifiers.byName(ns.getMetadata().getCluster())))
-                .thenReturn(connectorAsyncExecutor);
 
         ConnectCluster connectCluster = ConnectCluster.builder()
                 .metadata(Resource.Metadata.builder().name("ns-connect-cluster").build())
@@ -1081,12 +1063,6 @@ class ConnectorServiceTest {
                         .build())
                 .build();
 
-        // init connectorAsyncExecutor
-        when(applicationContext.getBean(
-                        ConnectorAsyncExecutor.class,
-                        Qualifiers.byName(ns.getMetadata().getCluster())))
-                .thenReturn(connectorAsyncExecutor);
-
         // list of existing broker connectors
         ConnectorStatus c1 =
                 new ConnectorStatus(new ConnectorInfo("ns-connect1", Map.of(), List.of(), ConnectorType.SINK), null);
@@ -1188,12 +1164,6 @@ class ConnectorServiceTest {
                         .connectClusters(List.of("local-name"))
                         .build())
                 .build();
-
-        // init connectorAsyncExecutor
-        when(applicationContext.getBean(
-                        ConnectorAsyncExecutor.class,
-                        Qualifiers.byName(ns.getMetadata().getCluster())))
-                .thenReturn(connectorAsyncExecutor);
 
         // list of existing broker connectors
         ConnectorStatus c1 =

@@ -152,6 +152,9 @@ public class ConnectorController extends NamespacedResourceController {
                         .filter(c -> !c.isDeleting());
 
                 assignResourceMetadata(connector, ns, existingConnector.orElse(null));
+                connector.setStatus(Connector.ConnectorStatus.builder()
+                        .state(Connector.TaskState.UNASSIGNED)
+                        .build());
 
                 if (existingConnector.isPresent() && existingConnector.get().equals(connector)) {
                     return Mono.just(formatHttpResponse(existingConnector.get(), ApplyStatus.UNCHANGED, warnings));
