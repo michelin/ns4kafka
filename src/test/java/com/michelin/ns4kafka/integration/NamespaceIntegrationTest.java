@@ -184,7 +184,7 @@ class NamespaceIntegrationTest extends KafkaIntegrationTest {
                         .bearerAuth(token)
                         .body(topic));
 
-        List<Topic> responseGetTopic = ns4KafkaClient
+        List<Topic> responseGetTopics = ns4KafkaClient
                 .toBlocking()
                 .retrieve(
                         HttpRequest.create(
@@ -193,7 +193,7 @@ class NamespaceIntegrationTest extends KafkaIntegrationTest {
                                 .bearerAuth(token),
                         Argument.listOf(Topic.class));
 
-        assertEquals(topic.getSpec(), responseGetTopic.getFirst().getSpec());
+        assertEquals(topic.getSpec(), responseGetTopics.getFirst().getSpec());
     }
 
     @Test
