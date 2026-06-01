@@ -37,8 +37,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class AccessControlEntryAsyncExecutorTest {
-
     @Mock
+    @SuppressWarnings("unused")
     ManagedClusterProperties managedClusterProperties;
 
     @InjectMocks

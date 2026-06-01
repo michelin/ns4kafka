@@ -63,7 +63,6 @@ import reactor.core.publisher.Mono;
 
 @ExtendWith(MockitoExtension.class)
 class ConfluentRoleBindingAsyncExecutorTest {
-
     @Mock
     ConfluentCloudClient confluentCloudClient;
 
@@ -404,27 +403,12 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .build())
                 .build();
 
-        AccessControlEntry successAcl = AccessControlEntry.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("ns1-write")
-                        .namespace("ns1")
-                        .status(Resource.Metadata.Status.ofSuccess())
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resource("ns1-")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.WRITE)
-                        .grantedTo("ns1")
-                        .build())
-                .build();
-
         RoleBindingResponse response = RoleBindingResponse.builder().build();
 
         when(confluentCloudClient.createRoleBinding(any(), any())).thenReturn(Mono.just(response));
         when(namespaceService.findByName("ns1")).thenReturn(Optional.of(namespace));
         when(aclService.findByName("ns1", "ns1-write")).thenReturn(Optional.empty());
-        when(aclRepository.create(successAcl)).thenReturn(successAcl);
+        when(aclRepository.create(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         rbAsyncExecutor.createRoleBindingsFromAcls(List.of(acl));
 
@@ -511,30 +495,17 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .build())
                 .build();
 
-        AccessControlEntry failedAcl = AccessControlEntry.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("ns1-write")
-                        .namespace("ns1")
-                        .status(Resource.Metadata.Status.ofFailed("error"))
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resource("ns1-")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.WRITE)
-                        .grantedTo("ns1")
-                        .build())
-                .build();
-
         when(confluentCloudClient.createRoleBinding(any(), any()))
                 .thenReturn(Mono.error(new RuntimeException("error")));
         when(namespaceService.findByName("ns1")).thenReturn(Optional.of(namespace));
         when(aclService.findByName("ns1", "ns1-write")).thenReturn(Optional.empty());
-        when(aclRepository.create(acl)).thenReturn(failedAcl);
+        when(aclRepository.create(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         rbAsyncExecutor.createRoleBindingsFromAcls(List.of(acl));
 
-        verify(aclRepository).create(failedAcl);
+        verify(aclRepository)
+                .create(argThat(a -> a.getMetadata().getStatus().getPhase() == Resource.Metadata.Phase.FAIL
+                        && "error".equals(a.getMetadata().getStatus().getMessage())));
         verify(aclRepository, never()).delete(any());
     }
 
@@ -729,21 +700,6 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .build())
                 .build();
 
-        AccessControlEntry failedAcl = AccessControlEntry.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("ns1-write")
-                        .namespace("ns1")
-                        .status(Resource.Metadata.Status.ofFailed("error"))
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resource("ns1-")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.WRITE)
-                        .grantedTo("ns1")
-                        .build())
-                .build();
-
         RoleBinding writeRoleBinding =
                 new RoleBinding("User:user1", DEVELOPER_WRITE, AccessControlEntry.ResourceType.TOPIC, "ns1-*");
 
@@ -752,11 +708,13 @@ class ConfluentRoleBindingAsyncExecutorTest {
         when(confluentCloudClient.deleteRoleBinding("cluster", writeRoleBinding))
                 .thenReturn(Mono.error(new RuntimeException("error")));
         when(aclService.findByName("ns1", "ns1-write")).thenReturn(Optional.empty());
-        when(aclRepository.create(failedAcl)).thenReturn(failedAcl);
+        when(aclRepository.create(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         rbAsyncExecutor.deleteRoleBindingsFromAcls(List.of(acl));
 
-        verify(aclRepository).create(failedAcl);
+        verify(aclRepository)
+                .create(argThat(a -> a.getMetadata().getStatus().getPhase() == Resource.Metadata.Phase.FAIL
+                        && "error".equals(a.getMetadata().getStatus().getMessage())));
         verify(aclRepository, never()).delete(any());
     }
 
