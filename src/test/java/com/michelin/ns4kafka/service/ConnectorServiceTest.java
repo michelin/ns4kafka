@@ -44,6 +44,7 @@ import com.michelin.ns4kafka.service.client.connect.entities.ConnectorInfo;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsets;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorPluginInfo;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsetsResponse;
+import com.michelin.ns4kafka.service.client.connect.entities.ConnectorPluginInfo;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorStateInfo;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorStatus;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorType;
