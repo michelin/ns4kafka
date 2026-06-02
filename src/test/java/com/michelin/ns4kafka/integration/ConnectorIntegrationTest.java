@@ -47,6 +47,7 @@ import com.michelin.ns4kafka.model.connect.ChangeConnectorState;
 import com.michelin.ns4kafka.model.connect.Connector;
 import com.michelin.ns4kafka.model.connect.ConnectorOffsetResponse;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorInfo;
+import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsetsResponse;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorSpecs;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorStateInfo;
 import com.michelin.ns4kafka.service.client.connect.entities.ServerInfo;
@@ -827,10 +828,10 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
     }
 
     @Test
-    void shouldListConnectorOffsets() throws InterruptedException {
+    void shouldResetConnectorOffsets() throws InterruptedException {
         Topic topic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
-                        .name("ns1-topic-list-offsets")
+                        .name("ns1-topic-reset-offsets")
                         .namespace("ns1")
                         .build())
                 .spec(Topic.TopicSpec.builder()
@@ -843,7 +844,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
 
         Connector connector = Connector.builder()
                 .metadata(Resource.Metadata.builder()
-                        .name("ns1-connector-list-offsets")
+                        .name("ns1-connector-reset-offsets")
                         .namespace("ns1")
                         .build())
                 .spec(Connector.ConnectorSpec.builder()
@@ -851,7 +852,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
                         .config(Map.of(
                                 "connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
                                 "tasks.max", "1",
-                                "topics", "ns1-topic-list-offsets"))
+                                "topics", "ns1-topic-reset-offsets"))
                         .build())
                 .build();
 
@@ -869,17 +870,39 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
                         .body(connector));
 
         forceConnectorSynchronization();
-        waitForConnectorToBeInState("ns1-connector-list-offsets", "RUNNING");
+        waitForConnectorToBeInState("ns1-connector-reset-offsets", "RUNNING");
 
-        HttpResponse<List<ConnectorOffsetResponse>> offsetsResponse = ns4KafkaClient
+        ChangeConnectorState stopState = ChangeConnectorState.builder()
+                .metadata(Resource.Metadata.builder().name("ns1-connector-reset-offsets").build())
+                .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
+                        .action(ChangeConnectorState.ConnectorAction.STOP)
+                        .build())
+                .build();
+
+        HttpResponse<ChangeConnectorState> stopResponse = ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest.create(
+                                HttpMethod.POST,
+                                "/api/namespaces/ns1/connectors/ns1-connector-reset-offsets/change-state")
+                        .bearerAuth(token)
+                        .body(stopState));
+
+        assertEquals(HttpStatus.OK, stopResponse.status());
+
+        waitForConnectorToBeInState("ns1-connector-reset-offsets", "STOPPED");
+
+        HttpResponse<ConnectorOffsetsResponse> resetResponse = ns4KafkaClient
                 .toBlocking()
                 .exchange(
-                        HttpRequest.GET("/api/namespaces/ns1/connectors/ns1-connector-list-offsets/offsets")
+                        HttpRequest.create(
+                                        HttpMethod.DELETE,
+                                        "/api/namespaces/ns1/connectors/ns1-connector-reset-offsets/offsets")
                                 .bearerAuth(token),
-                        Argument.listOf(ConnectorOffsetResponse.class));
+                        ConnectorOffsetsResponse.class);
 
-        assertEquals(HttpStatus.OK, offsetsResponse.status());
-        assertTrue(offsetsResponse.getBody().isPresent());
+        assertEquals(HttpStatus.OK, resetResponse.status());
+        assertTrue(resetResponse.getBody().isPresent());
+        assertTrue(resetResponse.body().message().contains("reset successfully"));
     }
 
     @Test
