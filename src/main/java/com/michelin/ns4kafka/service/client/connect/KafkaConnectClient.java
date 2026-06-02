@@ -24,11 +24,11 @@ import com.michelin.ns4kafka.property.Ns4KafkaProperties;
 import com.michelin.ns4kafka.repository.ConnectClusterRepository;
 import com.michelin.ns4kafka.service.client.connect.entities.ConfigInfos;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorInfo;
+import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsetsResponse;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorPluginInfo;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorSpecs;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorStateInfo;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorStatus;
-import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsetsResponse;
 import com.michelin.ns4kafka.service.client.connect.entities.ServerInfo;
 import com.michelin.ns4kafka.util.EncryptionUtils;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
@@ -372,8 +372,8 @@ public class KafkaConnectClient {
             attempts = "${ns4kafka.retry.attempt}",
             multiplier = "${ns4kafka.retry.multiplier}",
             includes = ReadTimeoutException.class)
-        public Mono<HttpResponse<ConnectorOffsetsResponse>> resetOffsets(
-                        String kafkaCluster, String connectCluster, String connector) {
+    public Mono<HttpResponse<ConnectorOffsetsResponse>> resetOffsets(
+            String kafkaCluster, String connectCluster, String connector) {
         KafkaConnectHttpConfig config = getKafkaConnectConfig(kafkaCluster, connectCluster);
         String encodedConnector = URLEncoder.encode(connector, StandardCharsets.UTF_8);
 
@@ -381,7 +381,7 @@ public class KafkaConnectClient {
                         URI.create(StringUtils.prependUri(config.getUrl(), CONNECTORS + encodedConnector + "/offsets")))
                 .basicAuth(config.getUsername(), config.getPassword());
 
-                return Mono.from(httpClient.exchange(request, ConnectorOffsetsResponse.class));
+        return Mono.from(httpClient.exchange(request, ConnectorOffsetsResponse.class));
     }
 
     /**
