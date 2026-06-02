@@ -1173,6 +1173,42 @@ class ConnectorControllerTest {
     }
 
     @Test
+    void shouldStopConnector() {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Connector connector = Connector.builder()
+                .metadata(Resource.Metadata.builder().name("connect1").build())
+                .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1")).thenReturn(true);
+        when(connectorService.findByName(ns, "connect1")).thenReturn(Optional.of(connector));
+        when(connectorService.stop(ArgumentMatchers.any(), ArgumentMatchers.any()))
+                .thenReturn(Mono.just(HttpResponse.accepted()));
+
+        ChangeConnectorState changeConnectorState = ChangeConnectorState.builder()
+                .metadata(Resource.Metadata.builder().name("connect1").build())
+                .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
+                        .action(ChangeConnectorState.ConnectorAction.STOP)
+                        .build())
+                .build();
+
+        StepVerifier.create(connectorController.changeState("test", "connect1", changeConnectorState))
+                .consumeNextWith(response -> {
+                    assertTrue(response.getBody().isPresent());
+                    assertTrue(response.getBody().get().getStatus().isSuccess());
+                    assertEquals(HttpStatus.ACCEPTED, response.body().getStatus().getCode());
+                    assertEquals("connect1", response.body().getMetadata().getName());
+                })
+                .verifyComplete();
+    }
+
+    @Test
     void shouldNotResetConnectorOffsetsWhenNotOwned() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
