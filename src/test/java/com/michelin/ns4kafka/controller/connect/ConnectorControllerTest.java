@@ -1202,7 +1202,8 @@ class ConnectorControllerTest {
                 .consumeNextWith(response -> {
                     assertTrue(response.getBody().isPresent());
                     assertTrue(response.getBody().get().getStatus().isSuccess());
-                    assertEquals(HttpStatus.ACCEPTED, response.body().getStatus().getCode());
+                    assertEquals(
+                            HttpStatus.ACCEPTED, response.body().getStatus().getCode());
                     assertEquals("connect1", response.body().getMetadata().getName());
                 })
                 .verifyComplete();
