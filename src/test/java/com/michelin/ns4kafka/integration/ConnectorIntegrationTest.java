@@ -744,7 +744,9 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
         waitForConnectorToBeInState("ns1-connector-reset-offsets", "RUNNING");
 
         ChangeConnectorState stopState = ChangeConnectorState.builder()
-                .metadata(Resource.Metadata.builder().name("ns1-connector-reset-offsets").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-connector-reset-offsets")
+                        .build())
                 .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
                         .action(ChangeConnectorState.ConnectorAction.STOP)
                         .build())
