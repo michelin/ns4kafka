@@ -1259,7 +1259,7 @@ class ConnectorControllerTest {
     }
 
     @Test
-    void shouldResetConnectorOffsetsThroughDedicatedEndpoint() {
+    void shouldFullyResetConnectorOffsets() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test")

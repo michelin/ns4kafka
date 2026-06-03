@@ -828,7 +828,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
     }
 
     @Test
-    void shouldResetConnectorOffsets() throws InterruptedException {
+    void shouldFullyResetConnectorOffsets() throws InterruptedException {
         Topic topic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("ns1-topic-reset-offsets")
