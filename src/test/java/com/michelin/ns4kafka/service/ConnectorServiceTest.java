@@ -1441,7 +1441,7 @@ class ConnectorServiceTest {
     }
 
     @Test
-    void shouldResetConnectorOffsets() {
+    void shouldFullyResetConnectorOffsets() {
         Namespace namespace = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("namespace")
