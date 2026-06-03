@@ -38,6 +38,7 @@ import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.service.ConnectorService;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.ResourceQuotaService;
+import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsetsRequest;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsetsResponse;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import com.michelin.ns4kafka.validation.ValidationResult;
@@ -1160,6 +1161,38 @@ class ConnectorControllerTest {
                     assertEquals(HttpStatus.OK, response.getStatus());
                     assertTrue(response.getBody().isPresent());
                     assertEquals("reset ok", response.body().message());
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void shouldAlterConnectorOffsets() {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Connector connector = Connector.builder()
+                .metadata(Resource.Metadata.builder().name("connect1").build())
+                .build();
+
+        ConnectorOffsetsRequest offsetsRequest =
+                new ConnectorOffsetsRequest(List.of(new ConnectorOffsetsRequest.ConnectorOffsetRequest(
+                        Map.of("kafka_topic", "topic1", "kafka_partition", 0), null)));
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1")).thenReturn(true);
+        when(connectorService.findByName(ns, "connect1")).thenReturn(Optional.of(connector));
+        when(connectorService.alterOffsets(ns, connector, offsetsRequest))
+                .thenReturn(Mono.just(HttpResponse.ok(new ConnectorOffsetsResponse("alter ok"))));
+
+        StepVerifier.create(connectorController.alterOffsets("test", "connect1", offsetsRequest))
+                .consumeNextWith(response -> {
+                    assertEquals(HttpStatus.OK, response.getStatus());
+                    assertTrue(response.getBody().isPresent());
+                    assertEquals("alter ok", response.body().message());
                 })
                 .verifyComplete();
     }
