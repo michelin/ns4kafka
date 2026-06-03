@@ -44,7 +44,6 @@ import com.michelin.ns4kafka.service.client.connect.entities.ConnectorInfo;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsets;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsetsResponse;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorPluginInfo;
-import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsetsResponse;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorStateInfo;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorStatus;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorType;
@@ -1407,5 +1406,47 @@ class ConnectorServiceTest {
                         namespace.getMetadata().getCluster(),
                         connector.getSpec().getConnectCluster(),
                         connector.getMetadata().getName());
+    }
+
+    @Test
+    void shouldAlterConnectorOffsets() {
+        Namespace namespace = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Connector connector = Connector.builder()
+                .metadata(Resource.Metadata.builder().name("ns-connect1").build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("local-name")
+                        .build())
+                .build();
+
+        ConnectorOffsets offsetsRequest =
+                new ConnectorOffsets(List.of(new ConnectorOffsets.ConnectorOffset(
+                        Map.of("kafka_topic", "topic1", "kafka_partition", 0), null)));
+
+        when(kafkaConnectClient.alterOffsets(
+                        namespace.getMetadata().getCluster(),
+                        connector.getSpec().getConnectCluster(),
+                        connector.getMetadata().getName(),
+                        offsetsRequest))
+                .thenReturn(Mono.just(HttpResponse.ok(new ConnectorOffsetsResponse("alter ok"))));
+
+        StepVerifier.create(connectorService.alterOffsets(namespace, connector, offsetsRequest))
+                .consumeNextWith(response -> {
+                    assertEquals(HttpStatus.OK, response.getStatus());
+                    assertEquals("alter ok", response.body().message());
+                })
+                .verifyComplete();
+
+        verify(kafkaConnectClient)
+                .alterOffsets(
+                        namespace.getMetadata().getCluster(),
+                        connector.getSpec().getConnectCluster(),
+                        connector.getMetadata().getName(),
+                        offsetsRequest);
     }
 }

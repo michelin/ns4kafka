@@ -35,9 +35,9 @@ import com.michelin.ns4kafka.model.connect.ConnectorOffsetResponse;
 import com.michelin.ns4kafka.model.connect.ConnectorOperation;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.service.ConnectorService;
-import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsetsResponse;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.ResourceQuotaService;
+import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsets;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsetsResponse;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import com.michelin.ns4kafka.validation.ValidationResult;
@@ -1195,43 +1195,6 @@ class ConnectorControllerTest {
     }
 
     @Test
-    void shouldStopConnector() {
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
-
-        Connector connector = Connector.builder()
-                .metadata(Resource.Metadata.builder().name("connect1").build())
-                .build();
-
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1")).thenReturn(true);
-        when(connectorService.findByName(ns, "connect1")).thenReturn(Optional.of(connector));
-        when(connectorService.stop(ArgumentMatchers.any(), ArgumentMatchers.any()))
-                .thenReturn(Mono.just(HttpResponse.accepted()));
-
-        ChangeConnectorState changeConnectorState = ChangeConnectorState.builder()
-                .metadata(Resource.Metadata.builder().name("connect1").build())
-                .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
-                        .action(ChangeConnectorState.ConnectorAction.STOP)
-                        .build())
-                .build();
-
-        StepVerifier.create(connectorController.changeState("test", "connect1", changeConnectorState))
-                .consumeNextWith(response -> {
-                    assertTrue(response.getBody().isPresent());
-                    assertTrue(response.getBody().get().getStatus().isSuccess());
-                    assertEquals(
-                            HttpStatus.ACCEPTED, response.body().getStatus().getCode());
-                    assertEquals("connect1", response.body().getMetadata().getName());
-                })
-                .verifyComplete();
-    }
-
-    @Test
     void shouldNotResetConnectorOffsetsWhenNotOwned() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
@@ -1307,8 +1270,8 @@ class ConnectorControllerTest {
                 .verifyComplete();
     }
 
-    @Test
-    void shouldNotResetConnectorOffsetsWhenError() {
+        @Test
+        void shouldNotResetConnectorOffsetsWhenError() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test")
@@ -1333,5 +1296,35 @@ class ConnectorControllerTest {
                     assertEquals("Rebalancing", error.getMessage());
                 })
                 .verify();
+    }
+
+    @Test
+    void shouldAlterConnectorOffsets() {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Connector connector = Connector.builder()
+                .metadata(Resource.Metadata.builder().name("connect1").build())
+                .build();
+
+        ConnectorOffsets offsetsRequest = new ConnectorOffsets(List.of(new ConnectorOffsets.ConnectorOffset(
+                Map.of("kafka_topic", "topic1", "kafka_partition", 0), null)));
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1")).thenReturn(true);
+        when(connectorService.findByName(ns, "connect1")).thenReturn(Optional.of(connector));
+        when(connectorService.alterOffsets(ns, connector, offsetsRequest))
+                .thenReturn(Mono.just(HttpResponse.ok(new ConnectorOffsetsResponse("alter ok"))));
+
+        StepVerifier.create(connectorController.alterOffsets("test", "connect1", offsetsRequest))
+                .consumeNextWith(alterResponse -> {
+                    assertEquals(ConnectorOperation.RESET, alterResponse.getStatus().getCode());
+                    assertEquals("connect1", alterResponse.getMetadata().getName());
+                })
+                .verifyComplete();
     }
 }

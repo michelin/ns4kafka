@@ -48,6 +48,7 @@ import com.michelin.ns4kafka.model.connect.Connector;
 import com.michelin.ns4kafka.model.connect.ConnectorOperation;
 import com.michelin.ns4kafka.model.connect.ConnectorResetOffsetsResponse;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorInfo;
+import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsets;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorSpecs;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorStateInfo;
 import com.michelin.ns4kafka.service.client.connect.entities.ServerInfo;
@@ -906,6 +907,91 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
         assertTrue(resetResponse.getBody().isPresent());
         assertNotNull(resetResponse.body());
         assertEquals(ConnectorOperation.RESET, resetResponse.body().getStatus().getCode());
+    }
+
+    @Test
+    void shouldAlterConnectorOffsets() throws InterruptedException {
+        Topic topic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-topic-alter-offsets")
+                        .namespace("ns1")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(3)
+                        .replicationFactor(1)
+                        .configs(
+                                Map.of("cleanup.policy", "delete", "min.insync.replicas", "1", "retention.ms", "60000"))
+                        .build())
+                .build();
+
+        Connector connector = Connector.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-connector-alter-offsets")
+                        .namespace("ns1")
+                        .build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("test-connect")
+                        .config(Map.of(
+                                "connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
+                                "tasks.max", "1",
+                                "topics", "ns1-topic-alter-offsets"))
+                        .build())
+                .build();
+
+        ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics")
+                        .bearerAuth(token)
+                        .body(topic));
+
+        topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
+        ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors")
+                        .bearerAuth(token)
+                        .body(connector));
+
+        forceConnectorSynchronization();
+        waitForConnectorToBeInState("ns1-connector-alter-offsets", "RUNNING");
+
+        ChangeConnectorState stopState = ChangeConnectorState.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-connector-alter-offsets")
+                        .build())
+                .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
+                        .action(ChangeConnectorState.ConnectorAction.STOP)
+                        .build())
+                .build();
+
+        HttpResponse<ChangeConnectorState> stopResponse = ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest.create(
+                                HttpMethod.POST,
+                                "/api/namespaces/ns1/connectors/ns1-connector-alter-offsets/change-state")
+                        .bearerAuth(token)
+                        .body(stopState));
+
+        assertEquals(HttpStatus.OK, stopResponse.status());
+
+        waitForConnectorToBeInState("ns1-connector-alter-offsets", "STOPPED");
+
+        ConnectorOffsets offsetsRequest = new ConnectorOffsets(List.of(new ConnectorOffsets.ConnectorOffset(
+                Map.of("kafka_topic", "ns1-topic-alter-offsets", "kafka_partition", 0), null)));
+
+        HttpResponse<ConnectorResetOffsetsResponse> alterResponse = ns4KafkaClient
+                .toBlocking()
+                .exchange(
+                        HttpRequest.create(
+                                        HttpMethod.PATCH,
+                                        "/api/namespaces/ns1/connectors/ns1-connector-alter-offsets/offsets")
+                                .bearerAuth(token)
+                                .body(offsetsRequest),
+                        ConnectorResetOffsetsResponse.class);
+
+        assertEquals(HttpStatus.OK, alterResponse.status());
+        assertTrue(alterResponse.getBody().isPresent());
+        assertNotNull(alterResponse.body());
+        assertEquals(ConnectorOperation.RESET, alterResponse.body().getStatus().getCode());
     }
 
     @Test
