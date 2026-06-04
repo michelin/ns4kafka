@@ -196,6 +196,60 @@ class ConsumerGroupControllerTest {
     }
 
     @Test
+    void shouldResetConsumerGroupForTopicPartition() throws InterruptedException, ExecutionException {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        ConsumerGroupResetOffsets resetOffset = ConsumerGroupResetOffsets.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("groupID")
+                        .cluster("local")
+                        .build())
+                .spec(ConsumerGroupResetOffsetsSpec.builder()
+                        .topic("topic1:0")
+                        .method(ResetOffsetsMethod.TO_EARLIEST)
+                        .options(null)
+                        .build())
+                .build();
+
+        TopicPartition topicPartition1 = new TopicPartition("topic1", 0);
+        List<TopicPartition> topicPartitions = List.of(topicPartition1);
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(consumerGroupService.validateResetOffsets(resetOffset)).thenReturn(List.of());
+        when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
+                .thenReturn(true);
+        when(aclService.isTopicReadableByNamespace("test", "topic1")).thenReturn(true);
+        when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(GroupState.EMPTY);
+        when(consumerGroupService.getPartitionsToReset(ns, "groupID", "topic1:0"))
+                .thenReturn(topicPartitions);
+        when(consumerGroupService.prepareOffsetsToReset(
+                        ns, "groupID", null, topicPartitions, ResetOffsetsMethod.TO_EARLIEST))
+                .thenReturn(Map.of(topicPartition1, 5L));
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
+        doNothing().when(applicationEventPublisher).publishEvent(any());
+
+        List<ConsumerGroupResetOffsetsResponse> result =
+                consumerGroupController.resetOffsets("test", "groupID", resetOffset, false);
+
+        ConsumerGroupResetOffsetsResponse response = result.stream()
+                .filter(topicPartitionOffset -> topicPartitionOffset.getSpec().getPartition() == 0)
+                .findFirst()
+                .orElse(null);
+
+        assertNotNull(response);
+        assertEquals(5L, response.getSpec().getOffset());
+
+        verify(consumerGroupService)
+                .alterConsumerGroupOffsets(ArgumentMatchers.eq(ns), ArgumentMatchers.eq("groupID"), anyMap());
+    }
+
+    @Test
     void shouldResetConsumerGroupInDryRunMode() throws InterruptedException, ExecutionException {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
