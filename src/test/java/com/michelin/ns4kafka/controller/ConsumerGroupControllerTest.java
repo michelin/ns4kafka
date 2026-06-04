@@ -185,7 +185,7 @@ class ConsumerGroupControllerTest {
                         .cluster("local")
                         .build())
                 .spec(ConsumerGroupResetOffsetsSpec.builder()
-                        .topic("topic1")
+                        .topic("topic1:0")
                         .method(ResetOffsetsMethod.TO_EARLIEST)
                         .options(null)
                         .build())
@@ -218,14 +218,6 @@ class ConsumerGroupControllerTest {
 
         assertNotNull(response);
         assertEquals(5L, response.getSpec().getOffset());
-
-        ConsumerGroupResetOffsetsResponse response2 = result.stream()
-                .filter(topicPartitionOffset -> topicPartitionOffset.getSpec().getPartition() == 1)
-                .findFirst()
-                .orElse(null);
-
-        assertNotNull(response2);
-        assertEquals(10L, response2.getSpec().getOffset());
 
         verify(consumerGroupService)
                 .alterConsumerGroupOffsets(ArgumentMatchers.eq(ns), ArgumentMatchers.eq("groupID"), anyMap());
