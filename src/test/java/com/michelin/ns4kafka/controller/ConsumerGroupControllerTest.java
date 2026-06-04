@@ -200,9 +200,10 @@ class ConsumerGroupControllerTest {
                 .thenReturn(true);
         when(aclService.isTopicReadableByNamespace("test", "topic1")).thenReturn(true);
         when(consumerGroupService.getConsumerGroupStatus(ns, "groupID")).thenReturn(GroupState.EMPTY);
-        when(consumerGroupService.getPartitionsToReset(ns, "groupID", "topic1:0")).thenReturn(topicPartitions);
+        when(consumerGroupService.getPartitionsToReset(ns, "groupID", "topic1:0"))
+                .thenReturn(topicPartitions);
         when(consumerGroupService.prepareOffsetsToReset(
-                ns, "groupID", null, topicPartitions, ResetOffsetsMethod.TO_EARLIEST))
+                        ns, "groupID", null, topicPartitions, ResetOffsetsMethod.TO_EARLIEST))
                 .thenReturn(Map.of(topicPartition1, 5L));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
