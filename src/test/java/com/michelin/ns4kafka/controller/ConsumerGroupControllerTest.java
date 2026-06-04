@@ -413,6 +413,41 @@ class ConsumerGroupControllerTest {
     }
 
     @Test
+    void shouldNotResetConsumerGroupForTopicPartitionWhenTopicUnreadable() {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        ConsumerGroupResetOffsets resetOffset = ConsumerGroupResetOffsets.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("groupID")
+                        .cluster("local")
+                        .build())
+                .spec(ConsumerGroupResetOffsetsSpec.builder()
+                        .topic("topic1:0")
+                        .method(ResetOffsetsMethod.TO_EARLIEST)
+                        .build())
+                .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(consumerGroupService.validateResetOffsets(resetOffset)).thenReturn(new ArrayList<>());
+        when(consumerGroupService.isNamespaceOwnerOfConsumerGroup("test", "groupID"))
+                .thenReturn(true);
+        when(aclService.isTopicReadableByNamespace("test", "topic1")).thenReturn(false);
+
+        ResourceValidationException result = assertThrows(
+                ResourceValidationException.class,
+                () -> consumerGroupController.resetOffsets("test", "groupID", resetOffset, false));
+
+        assertLinesMatch(
+                List.of("Invalid \"reset offset\" operation: namespace cannot read topic topic1."),
+                result.getValidationErrors());
+    }
+
+    @Test
     void shouldNotResetConsumerGroupWhenValidationErrors() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()

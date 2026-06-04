@@ -137,10 +137,10 @@ public class ConsumerGroupController extends NamespacedResourceController {
             validationErrors.add(invalidOwner("group", consumerGroup));
         }
 
-        if (!aclService.isTopicReadableByNamespace(
-                namespace, consumerGroupResetOffsets.getSpec().getTopic().split(":")[0])) {
-            validationErrors.add(invalidNamespaceCannotReadTopic(
-                    consumerGroupResetOffsets.getSpec().getTopic()));
+        String topicName = consumerGroupResetOffsets.getSpec().getTopic().split(":")[0];
+
+        if (!aclService.isTopicReadableByNamespace(namespace, topicName)) {
+            validationErrors.add(invalidNamespaceCannotReadTopic(topicName));
         }
 
         if (!validationErrors.isEmpty()) {
