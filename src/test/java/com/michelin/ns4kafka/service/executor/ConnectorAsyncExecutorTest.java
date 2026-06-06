@@ -118,7 +118,7 @@ class ConnectorAsyncExecutorTest {
 
     @Test
     void shouldNotDeployConnectorWhenChangedSinceLastApply() {
-        Instant instant = Instant.now();
+        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
 
         Namespace namespace = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
@@ -206,7 +206,7 @@ class ConnectorAsyncExecutorTest {
 
     @Test
     void shouldNotUpdateConnectorWhenErrorCreatingAndChangedSinceLastApply() {
-        Instant instant = Instant.now();
+        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
 
         Namespace namespace = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
@@ -293,7 +293,7 @@ class ConnectorAsyncExecutorTest {
 
     @Test
     void shouldNotDeleteConnectorWhenChangedSinceLastApply() {
-        Instant instant = Instant.now();
+        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
 
         Namespace namespace = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
@@ -381,7 +381,7 @@ class ConnectorAsyncExecutorTest {
 
     @Test
     void shouldNotUpdateConnectorWhenErrorDeletingAndChangedSinceLastApply() {
-        Instant instant = Instant.now();
+        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
 
         Namespace namespace = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
