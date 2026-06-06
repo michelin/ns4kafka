@@ -38,14 +38,17 @@ Ns4Kafka brings a namespace-based deployment model for Kafka resources, inspired
       * [Identity Providers](#identity-providers)
         * [Local Users](#local-users)
         * [GitLab](#gitlab)
-    * [Kafka](#kafka) 
-      * [Kafka Broker](#kafka-broker)
-      * [Managed Kafka Clusters](#managed-kafka-clusters)
-        * [Self-Managed](#self-managed) 
-        * [Confluent Cloud](#confluent-cloud)
-          * [Stream Catalog](#stream-catalog)
-          * [Role Binding](#role-binding)
-      * [AKHQ](#akhq)
+    * [Storage](#storage)
+      * [Kafka](#kafka)
+    * [Managed Kafka Clusters](#managed-kafka-clusters)
+      * [Self-Managed](#self-managed)
+      * [Confluent Cloud](#confluent-cloud)
+        * [Stream Catalog](#stream-catalog)
+        * [Role Binding](#role-binding)
+    * [Audit Log](#audit-log)
+      * [Console](#console)
+      * [Kafka](#kafka-1)
+    * [AKHQ](#akhq)
     * [Technical](#technical)
       * [Security](#security)
       * [HTTP Client](#http-client)
@@ -288,13 +291,14 @@ changed update to a secure value.
 The admin group is set to "ADMIN_GROUP" in the example above. Users will be granted admin privileges if they belong
 to the GitLab group "ADMIN_GROUP".
 
-### Kafka
+### Storage
 
-#### Kafka Broker
+#### Kafka
 
-Ns4Kafka requires a Kafka broker to store data.
+Ns4Kafka supports data storage in Kafka compacted topics. This is where Ns4Kafka persists its own resource state, such as
+topics, ACLs, connectors, and schemas, separately from the [Kafka clusters](#managed-kafka-clusters) it manages on your behalf.
 
-You can configure authentication to the Kafka brokers using the following:
+You can configure the connection to the Kafka broker, including authentication, as follows:
 
 ```yaml
 kafka:
@@ -306,14 +310,34 @@ kafka:
 
 The configuration will depend on the authentication method selected for your broker.
 
-#### Managed Kafka Clusters
+You can configure the storage layer itself as follows:
+
+```yaml
+ns4kafka:
+  store:
+    kafka:
+      enabled: true
+      group-id: "ns4kafka.group"
+      init-timeout: 60000
+      topics:
+        prefix: "ns4kafka"
+        props:
+          cleanup.policy: "compact"
+          max.compaction.lag.ms: "604800000"
+          min.compaction.lag.ms: "0"
+          min.insync.replicas: 1
+          segment.ms: "600000"
+        replication-factor: 1
+```
+
+### Managed Kafka Clusters
 
 Ns4Kafka supports two types of cluster providers:
 
 - Self-managed
 - Confluent Cloud
 
-##### Self-Managed
+#### Self-Managed
 
 The following properties are available for both self-managed and [Confluent Cloud](#confluent-cloud) cluster providers.
 
@@ -395,11 +419,11 @@ This is the name you need to set in the `metadata.cluster` field of your namespa
 
 The configuration will depend on the authentication method selected for your broker, schema registry and Kafka Connect.
 
-##### Confluent Cloud
+#### Confluent Cloud
 
 The following features are not supported when using Confluent Cloud as the provider.
 
-###### Stream Catalog
+##### Stream Catalog
 
 Topic tags and descriptions can be synchronized with Ns4Kafka.
 
@@ -426,7 +450,7 @@ ns4kafka:
 
 The page size is used for the Stream Catalog REST API and is capped at 500, as described in the [Confluent Cloud documentation](https://docs.confluent.io/cloud/current/stream-governance/stream-catalog-rest-apis.html#limits-on-topic-listings).
 
-##### Role Binding
+#### Role Binding
 
 Confluent role bindings can be synchronized with Ns4Kafka.
 
@@ -461,7 +485,35 @@ ns4kafka:
 
 Ns4Kafka ACLs will be converted to the corresponding Role Bindings when synchronized.
 
-#### AKHQ
+### Audit Log
+
+Ns4Kafka records an audit log entry whenever a resource is created, modified, or deleted. Entries can be published to
+two destinations, enabled independently.
+
+#### Console
+
+Writes entries to the application logs. Enabled by default.
+
+```yaml
+ns4kafka:
+  log:
+    console:
+      enabled: true
+```
+
+#### Kafka
+
+Publishes entries to a Kafka topic, keyed by namespace. Disabled by default.
+
+```yaml
+ns4kafka:
+  log:
+    kafka:
+      enabled: false
+      topic: "${ns4kafka.store.kafka.topics.prefix}.logs"
+```
+
+### AKHQ
 
 [AKHQ](https://github.com/tchiotludo/akhq) can be integrated with Ns4Kafka to provide access to resources within your namespace.
 The link between AKHQ and Ns4Kafka namespaces is established using LDAP groups and LDAP authentication in AKHQ.
