@@ -177,4 +177,18 @@ public class Resource {
 
         return metadata.getStatus().getPhase().equals(Metadata.Phase.DELETING);
     }
+
+    /**
+     * Indicates whether the resource deployment has failed.
+     *
+     * @return {@code true} if it has, {@code false} otherwise
+     */
+    @JsonIgnore
+    public boolean isFailed() {
+        if (metadata == null || metadata.getStatus() == null) {
+            return false;
+        }
+
+        return metadata.getStatus().getPhase().equals(Metadata.Phase.FAIL);
+    }
 }
