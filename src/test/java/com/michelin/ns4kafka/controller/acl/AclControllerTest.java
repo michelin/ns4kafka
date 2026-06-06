@@ -540,6 +540,61 @@ class AclControllerTest {
     }
 
     @Test
+    void shouldChangeAclWhenExistingFailedEvenIfSpecUnchanged() {
+        Namespace namespace = Namespace.builder()
+                .spec(Namespace.NamespaceSpec.builder()
+                        .protectionEnabled(Boolean.FALSE)
+                        .build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        AccessControlEntry accessControlEntry = AccessControlEntry.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ace1")
+                        .namespace("test")
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .resource("prefix")
+                        .grantedTo("test")
+                        .build())
+                .build();
+
+        AccessControlEntry failedAcl = AccessControlEntry.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ace1")
+                        .namespace("test")
+                        .cluster("local")
+                        .status(Resource.Metadata.Status.ofFailed("Role binding creation failed"))
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .resource("prefix")
+                        .grantedTo("test")
+                        .build())
+                .build();
+
+        Authentication authentication = Authentication.build("user", Map.of("roles", List.of()));
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(namespace));
+        when(aclService.validate(accessControlEntry, namespace)).thenReturn(List.of());
+        when(aclService.findByName("test", "ace1")).thenReturn(Optional.of(failedAcl));
+        when(aclService.create(accessControlEntry)).thenReturn(accessControlEntry);
+
+        HttpResponse<AccessControlEntry> response =
+                accessControlListController.apply(authentication, "test", accessControlEntry, false);
+
+        assertEquals("changed", response.header("X-Ns4kafka-Result"));
+    }
+
+    @Test
     void shouldApplyFailWhenSpecChanges() {
         Namespace namespace = Namespace.builder()
                 .spec(Namespace.NamespaceSpec.builder()
