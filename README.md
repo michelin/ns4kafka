@@ -34,8 +34,8 @@ Ns4Kafka brings a namespace-based deployment model for Kafka resources, inspired
     * [Authentication](#authentication)
       * [Methods](#methods)
         * [Basic Authentication](#basic-authentication)
-        * [JWT Bearer](#jwt-bearer)
-      * [ID Providers](#id-providers)
+        * [JWT Bearer Token](#jwt-bearer-token)
+      * [Identity Providers](#identity-providers)
         * [Local Users](#local-users)
         * [GitLab](#gitlab)
     * [Kafka](#kafka) 
@@ -169,7 +169,7 @@ Ns4Kafka supports two authentication methods.
 curl -u username:password http://localhost:8080/api/namespaces/myNamespace/topics
 ```
 
-##### JWT Bearer
+##### JWT Bearer Token
 
 The JWT token can be retrieved using the built-in [Micronaut LoginController](https://micronaut-projects.github.io/micronaut-security/latest/guide/#login) and passed in the `Authorization` header.
 
@@ -222,9 +222,9 @@ The `roleBindings` field contains the permissions granted to the user.
 
 An ID provider is required to authenticate users. The following ID providers are supported.
 
-#### ID Providers
+#### Identity Providers
 
-Ns4Kafka supports two ID providers.
+Ns4Kafka supports two identity providers.
 
 ##### Local Users
 
