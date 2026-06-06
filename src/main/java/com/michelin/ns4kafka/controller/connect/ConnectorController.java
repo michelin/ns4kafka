@@ -30,6 +30,7 @@ import com.michelin.ns4kafka.model.connect.Connector;
 import com.michelin.ns4kafka.service.ConnectorService;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.ResourceQuotaService;
+import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsets;
 import com.michelin.ns4kafka.util.enumation.ApplyStatus;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.context.event.ApplicationEventPublisher;
@@ -107,6 +108,29 @@ public class ConnectorController extends NamespacedResourceController {
     @Deprecated(since = "1.12.0")
     public Optional<Connector> get(String namespace, String connector) {
         return connectorService.findByName(getNamespace(namespace), connector);
+    }
+
+    /**
+     * Get offsets for a connector.
+     *
+     * @param namespace The namespace
+     * @param connector The connector name
+     * @return The connector offsets
+     */
+    @Get("/{connector}/offsets")
+    public Mono<MutableHttpResponse<ConnectorOffsets>> offsets(String namespace, String connector) {
+        Namespace ns = getNamespace(namespace);
+
+        if (!connectorService.isNamespaceOwnerOfConnect(ns, connector)) {
+            return Mono.error(new ResourceValidationException(CONNECTOR, connector, invalidOwner(connector)));
+        }
+
+        Optional<Connector> optionalConnector = connectorService.findByName(ns, connector);
+        if (optionalConnector.isEmpty()) {
+            return Mono.just(HttpResponse.notFound());
+        }
+
+        return connectorService.listOffsets(ns, optionalConnector.get()).map(HttpResponse::ok);
     }
 
     /**
