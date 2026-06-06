@@ -268,8 +268,8 @@ public class ConnectorAsyncExecutor {
                     || !existingConnector
                             .get()
                             .getMetadata()
-                            .getCreationTimestamp()
-                            .after(connector.getMetadata().getCreationTimestamp());
+                            .getUpdateTimestamp()
+                            .after(connector.getMetadata().getUpdateTimestamp());
         }
 
         return true;

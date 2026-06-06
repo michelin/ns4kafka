@@ -156,7 +156,9 @@ public class ConnectorController extends NamespacedResourceController {
                         .state(Connector.TaskState.UNASSIGNED)
                         .build());
 
-                if (existingConnector.isPresent() && existingConnector.get().equals(connector)) {
+                if (existingConnector.isPresent()
+                        && !existingConnector.get().isFailed()
+                        && existingConnector.get().equals(connector)) {
                     return Mono.just(formatHttpResponse(existingConnector.get(), ApplyStatus.UNCHANGED, warnings));
                 }
 
