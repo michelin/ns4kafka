@@ -38,6 +38,7 @@ import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.service.ConnectorService;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.ResourceQuotaService;
+import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsets;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import com.michelin.ns4kafka.validation.ValidationResult;
 import io.micronaut.context.event.ApplicationEventPublisher;
@@ -171,6 +172,55 @@ class ConnectorControllerTest {
         Optional<Connector> actual = connectorController.get("test", "connect1");
         assertTrue(actual.isPresent());
         assertEquals("connect1", actual.get().getMetadata().getName());
+    }
+
+    @Test
+    void shouldListConnectorOffsets() {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Connector connector = Connector.builder()
+                .metadata(Resource.Metadata.builder().name("connect1").build())
+                .build();
+
+        ConnectorOffsets expected = new ConnectorOffsets(List.of(new ConnectorOffsets.ConnectorOffset(
+                Map.of("kafka_topic", "topic-a", "kafka_partition", 0), Map.of("kafka_offset", 42))));
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1")).thenReturn(true);
+        when(connectorService.findByName(ns, "connect1")).thenReturn(Optional.of(connector));
+        when(connectorService.listOffsets(ns, connector)).thenReturn(Mono.just(expected));
+
+        StepVerifier.create(connectorController.offsets("test", "connect1"))
+                .consumeNextWith(response -> {
+                    assertEquals(HttpStatus.OK, response.getStatus());
+                    assertEquals(expected, response.body());
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void shouldNotListConnectorOffsetsWhenNotFound() {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1")).thenReturn(true);
+        when(connectorService.findByName(ns, "connect1")).thenReturn(Optional.empty());
+
+        StepVerifier.create(connectorController.offsets("test", "connect1"))
+                .consumeNextWith(response -> assertEquals(HttpStatus.NOT_FOUND, response.getStatus()))
+                .verifyComplete();
+
+        verify(connectorService, never()).listOffsets(any(), any());
     }
 
     @Test
