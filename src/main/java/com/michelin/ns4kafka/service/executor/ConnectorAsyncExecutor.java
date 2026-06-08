@@ -192,7 +192,7 @@ public class ConnectorAsyncExecutor {
                     return force ? Mono.just(HttpResponse.noContent()) : Mono.error(error);
                 })
                 .doOnNext(_ -> {
-                    // Do not delete connector if it has been marked has pending by another update
+                    // Do not delete connector if it has been marked as pending by another update
                     if (isUnchangedSinceLastApply(connector)) {
                         connectorRepository.delete(connector);
 
@@ -206,7 +206,7 @@ public class ConnectorAsyncExecutor {
                     }
                 })
                 .doOnError(httpError -> {
-                    // Do not mark connector as failed if it has been marked has pending by another update
+                    // Do not mark connector as failed if it has been marked as pending by another update
                     if (isUnchangedSinceLastApply(connector)) {
                         connector.getMetadata().setStatus(Resource.Metadata.Status.ofFailed(httpError.getMessage()));
                         connectorRepository.create(connector);
