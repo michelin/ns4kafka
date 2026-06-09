@@ -238,11 +238,7 @@ public class ConnectorAsyncExecutor {
                 .findFirst()
                 .filter(ConnectCluster::isDeleting)
                 .ifPresent(connectCluster -> {
-                    connectCluster
-                            .getMetadata()
-                            .setStatus(Resource.Metadata.Status.ofFailed(
-                                    "Cannot delete Kafka Connect because connector %s failed to be deleted: %s"
-                                            .formatted(connector.getMetadata().getName(), error.getMessage())));
+                    connectCluster.getMetadata().setStatus(Resource.Metadata.Status.ofFailed(error.getMessage()));
                     connectClusterRepository.create(connectCluster);
                 });
     }
