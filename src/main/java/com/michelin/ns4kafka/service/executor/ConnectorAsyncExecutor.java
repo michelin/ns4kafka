@@ -217,9 +217,34 @@ public class ConnectorAsyncExecutor {
                                 connector.getSpec().getConnectCluster(),
                                 managedClusterProperties.getName(),
                                 httpError.getMessage());
+
+                        markConnectClusterAsFailedIfDeleting(connector, httpError);
                     }
                 })
                 .then(Mono.empty());
+    }
+
+    /**
+     * Mark the connect cluster as failed if it is deleting and one of its connectors failed to be deleted.
+     *
+     * @param connector The connector that failed to be deleted
+     * @param error The deletion error
+     */
+    private void markConnectClusterAsFailedIfDeleting(Connector connector, Throwable error) {
+        String connectClusterName = connector.getSpec().getConnectCluster();
+
+        connectClusterRepository.findAllForCluster(managedClusterProperties.getName()).stream()
+                .filter(connectCluster -> connectCluster.getMetadata().getName().equals(connectClusterName))
+                .findFirst()
+                .filter(ConnectCluster::isDeleting)
+                .ifPresent(connectCluster -> {
+                    connectCluster
+                            .getMetadata()
+                            .setStatus(Resource.Metadata.Status.ofFailed(
+                                    "Cannot delete Kafka Connect because connector %s failed to be deleted: %s"
+                                            .formatted(connector.getMetadata().getName(), error.getMessage())));
+                    connectClusterRepository.create(connectCluster);
+                });
     }
 
     /**

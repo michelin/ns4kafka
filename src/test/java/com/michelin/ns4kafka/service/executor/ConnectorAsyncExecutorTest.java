@@ -380,6 +380,57 @@ class ConnectorAsyncExecutorTest {
     }
 
     @Test
+    void shouldNotDeleteConnectClusterWhenFailToDeleteConnector() {
+        Namespace namespace = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Connector connector = Connector.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("connect1")
+                        .namespace("namespace")
+                        .status(Resource.Metadata.Status.ofDeleting())
+                        .build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("connect-cluster")
+                        .config(Map.of("connector.class", "io.connect.MyConnector"))
+                        .build())
+                .build();
+
+        ConnectCluster connectCluster = ConnectCluster.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("connect-cluster")
+                        .cluster("local")
+                        .status(Resource.Metadata.Status.ofDeleting())
+                        .build())
+                .spec(ConnectCluster.ConnectClusterSpec.builder()
+                        .url("https://connect-cluster")
+                        .build())
+                .build();
+
+        when(managedClusterProperties.isManageConnectors()).thenReturn(true);
+        when(managedClusterProperties.getName()).thenReturn("local");
+        when(connectorRepository.findAllForCluster("local")).thenReturn(List.of(connector));
+        when(kafkaConnectClient.delete("local", "connect-cluster", "connect1"))
+                .thenReturn(Mono.error(new RuntimeException("error")));
+        when(namespaceService.findByName("namespace")).thenReturn(Optional.of(namespace));
+        when(connectorService.findByName(namespace, "connect1")).thenReturn(Optional.empty());
+        when(connectClusterRepository.findAllForCluster("local")).thenReturn(List.of(connectCluster));
+
+        StepVerifier.create(connectorAsyncExecutor.run()).verifyError();
+
+        verify(connectorRepository)
+                .create(argThat(c -> c.getMetadata().getStatus().getPhase() == Resource.Metadata.Phase.FAIL));
+        verify(connectClusterRepository)
+                .create(argThat(cc -> cc.getMetadata().getStatus().getPhase() == Resource.Metadata.Phase.FAIL));
+        verify(connectClusterService, never()).delete(any());
+        verify(connectorRepository, never()).delete(any());
+    }
+
+    @Test
     void shouldNotUpdateConnectorWhenErrorDeletingAndChangedSinceLastApply() {
         Instant instant = Instant.parse("2026-01-01T00:00:00Z");
 
