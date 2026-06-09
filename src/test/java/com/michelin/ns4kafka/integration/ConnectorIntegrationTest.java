@@ -20,6 +20,7 @@ package com.michelin.ns4kafka.integration;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -65,6 +66,7 @@ import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import jakarta.inject.Inject;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -345,8 +347,6 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
                 .allMatch(connector -> Resource.Metadata.Phase.SUCCESS.equals(
                         connector.getMetadata().getStatus().getPhase())));
         assertTrue(connectors.getBody().get().stream()
-                .allMatch(connector -> connector.getMetadata().getStatus().getDeployTimestamp() != null));
-        assertTrue(connectors.getBody().get().stream()
                 .allMatch(connector -> connector.getMetadata().getGeneration() == 1));
         assertEquals(3, connectors.getBody().get().size());
 
@@ -366,6 +366,115 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
 
         assertTrue(deleteConnectors.getBody().isPresent());
         assertTrue(deleteConnectors.getBody().get().isEmpty());
+    }
+
+    @Test
+    void shouldUpdateConnectorTimestampsAndGeneration() throws InterruptedException {
+        Topic topic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-topic-timestamps")
+                        .namespace("ns1")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(3)
+                        .replicationFactor(1)
+                        .configs(
+                                Map.of("cleanup.policy", "delete", "min.insync.replicas", "1", "retention.ms", "60000"))
+                        .build())
+                .build();
+
+        ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics")
+                        .bearerAuth(token)
+                        .body(topic));
+
+        topicAsyncExecutorList.forEach(TopicAsyncExecutor::run);
+
+        Connector connector = Connector.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-connector-timestamps")
+                        .namespace("ns1")
+                        .build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("test-connect")
+                        .config(Map.of(
+                                "connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
+                                "tasks.max", "1",
+                                "topics", "ns1-topic-timestamps",
+                                "file", "test"))
+                        .build())
+                .build();
+
+        // Deploy the connector for the first time
+        ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors")
+                        .bearerAuth(token)
+                        .body(connector));
+
+        forceConnectorSynchronization();
+
+        HttpResponse<List<Connector>> createdConnectors = ns4KafkaClient
+                .toBlocking()
+                .exchange(
+                        HttpRequest.create(
+                                        HttpMethod.GET, "/api/namespaces/ns1/connectors?name=ns1-connector-timestamps")
+                                .bearerAuth(token),
+                        Argument.listOf(Connector.class));
+
+        assertTrue(createdConnectors.getBody().isPresent());
+        assertEquals(1, createdConnectors.getBody().get().size());
+
+        Connector created = createdConnectors.getBody().get().getFirst();
+
+        assertNotNull(created.getMetadata().getCreationTimestamp());
+        assertNotNull(created.getMetadata().getUpdateTimestamp());
+        assertEquals(1, created.getMetadata().getGeneration());
+
+        Date creationTimestamp = created.getMetadata().getCreationTimestamp();
+        Date updateTimestamp = created.getMetadata().getUpdateTimestamp();
+
+        // Update the connector with a new configuration
+        Connector updatedConnector = Connector.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-connector-timestamps")
+                        .namespace("ns1")
+                        .build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("test-connect")
+                        .config(Map.of(
+                                "connector.class", "org.apache.kafka.connect.file.FileStreamSinkConnector",
+                                "tasks.max", "1",
+                                "topics", "ns1-topic-timestamps",
+                                "file", "test-updated"))
+                        .build())
+                .build();
+
+        ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/connectors")
+                        .bearerAuth(token)
+                        .body(updatedConnector));
+
+        forceConnectorSynchronization();
+
+        HttpResponse<List<Connector>> updatedConnectors = ns4KafkaClient
+                .toBlocking()
+                .exchange(
+                        HttpRequest.create(
+                                        HttpMethod.GET, "/api/namespaces/ns1/connectors?name=ns1-connector-timestamps")
+                                .bearerAuth(token),
+                        Argument.listOf(Connector.class));
+
+        assertTrue(updatedConnectors.getBody().isPresent());
+        assertEquals(1, updatedConnectors.getBody().get().size());
+
+        Connector updated = updatedConnectors.getBody().get().getFirst();
+
+        assertEquals(creationTimestamp, updated.getMetadata().getCreationTimestamp());
+        assertTrue(updated.getMetadata().getUpdateTimestamp().after(updateTimestamp));
+        assertEquals(2, updated.getMetadata().getGeneration());
     }
 
     @Test

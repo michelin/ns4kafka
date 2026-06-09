@@ -65,8 +65,13 @@ public abstract class NamespacedResourceController extends ResourceController {
      * @param existingResource The existing resource, or null if none
      */
     protected void assignResourceMetadata(Resource resource, Namespace ns, @Nullable Resource existingResource) {
-        resource.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
-        resource.getMetadata().setUpdateTimestamp(resource.getMetadata().getCreationTimestamp());
+        Date now = Date.from(Instant.now());
+        resource.getMetadata()
+                .setCreationTimestamp(
+                        existingResource != null
+                                ? existingResource.getMetadata().getCreationTimestamp()
+                                : now);
+        resource.getMetadata().setUpdateTimestamp(now);
         resource.getMetadata()
                 .setGeneration(
                         existingResource != null
