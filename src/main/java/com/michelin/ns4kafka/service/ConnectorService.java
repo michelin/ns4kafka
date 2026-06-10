@@ -28,6 +28,8 @@ import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.connect.Connector;
 import com.michelin.ns4kafka.repository.ConnectorRepository;
 import com.michelin.ns4kafka.service.client.connect.KafkaConnectClient;
+import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsetsRequest;
+import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsetsResponse;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorSpecs;
 import com.michelin.ns4kafka.service.executor.ConnectorAsyncExecutor;
 import com.michelin.ns4kafka.util.FormatErrorUtils;
@@ -410,6 +412,57 @@ public class ConnectorService {
                             connector.getSpec().getConnectCluster());
 
                     return HttpResponse.accepted();
+                });
+    }
+
+    /**
+     * Reset offsets for a given connector.
+     *
+     * @param namespace The namespace
+     * @param connector The connector
+     * @return An HTTP response
+     */
+    public Mono<HttpResponse<ConnectorOffsetsResponse>> resetOffsets(Namespace namespace, Connector connector) {
+        return kafkaConnectClient
+                .resetOffsets(
+                        namespace.getMetadata().getCluster(),
+                        connector.getSpec().getConnectCluster(),
+                        connector.getMetadata().getName())
+                .map(response -> {
+                    log.info(
+                            "Success resetting offsets for Connector [{}] on Namespace [{}] Connect [{}]",
+                            connector.getMetadata().getName(),
+                            namespace.getMetadata().getName(),
+                            connector.getSpec().getConnectCluster());
+
+                    return HttpResponse.status(response.getStatus()).body(response.body());
+                });
+    }
+
+    /**
+     * Alter offsets for a given connector.
+     *
+     * @param namespace The namespace
+     * @param connector The connector
+     * @param offsetsRequest The offsets payload
+     * @return An HTTP response
+     */
+    public Mono<HttpResponse<ConnectorOffsetsResponse>> alterOffsets(
+            Namespace namespace, Connector connector, ConnectorOffsetsRequest offsetsRequest) {
+        return kafkaConnectClient
+                .alterOffsets(
+                        namespace.getMetadata().getCluster(),
+                        connector.getSpec().getConnectCluster(),
+                        connector.getMetadata().getName(),
+                        offsetsRequest)
+                .map(response -> {
+                    log.info(
+                            "Success altering offsets for Connector [{}] on Namespace [{}] Connect [{}]",
+                            connector.getMetadata().getName(),
+                            namespace.getMetadata().getName(),
+                            connector.getSpec().getConnectCluster());
+
+                    return HttpResponse.status(response.getStatus()).body(response.body());
                 });
     }
 }
