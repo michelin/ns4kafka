@@ -26,6 +26,7 @@ import com.michelin.ns4kafka.property.Ns4KafkaProperties;
 import com.michelin.ns4kafka.repository.TopicRepository;
 import com.michelin.ns4kafka.repository.kafka.KafkaStoreException;
 import com.michelin.ns4kafka.service.NamespaceService;
+import com.michelin.ns4kafka.service.TopicService;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.service.client.schema.entities.GraphQueryResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.TagInfo;
@@ -34,13 +35,11 @@ import com.michelin.ns4kafka.service.client.schema.entities.TopicDescriptionUpda
 import com.michelin.ns4kafka.service.client.schema.entities.TopicDescriptionUpdateBody;
 import com.michelin.ns4kafka.service.client.schema.entities.TopicDescriptionUpdateEntity;
 import com.michelin.ns4kafka.service.client.schema.entities.TopicListResponse;
-import com.michelin.ns4kafka.util.TopicConfigUtils;
 import io.micronaut.context.annotation.EachBean;
 import jakarta.annotation.PreDestroy;
 import jakarta.inject.Singleton;
 import java.time.Instant;
 import java.util.AbstractMap;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -50,7 +49,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -60,14 +58,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AlterConfigOp;
 import org.apache.kafka.clients.admin.AlterConfigsResult;
 import org.apache.kafka.clients.admin.ConfigEntry;
-import org.apache.kafka.clients.admin.CreateTopicsResult;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.admin.RecordsToDelete;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.admin.TopicListing;
+import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.config.ConfigResource;
+import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
 
@@ -78,10 +77,11 @@ import reactor.core.publisher.Mono;
 public class TopicAsyncExecutor {
     public static final String CLUSTER_ID = "cluster.id";
     public static final String TOPIC_ENTITY_TYPE = "kafka_topic";
-    private final Set<String> ignoredTopics = ConcurrentHashMap.newKeySet();
+    public static final String ERROR = "Error";
 
     private final ManagedClusterProperties managedClusterProperties;
     private final NamespaceService namespaceService;
+    private final TopicService topicService;
     private final TopicRepository topicRepository;
     private final SchemaRegistryClient schemaRegistryClient;
     private final Ns4KafkaProperties ns4KafkaProperties;
@@ -100,11 +100,13 @@ public class TopicAsyncExecutor {
     public TopicAsyncExecutor(
             ManagedClusterProperties managedClusterProperties,
             NamespaceService namespaceService,
+            TopicService topicService,
             TopicRepository topicRepository,
             SchemaRegistryClient schemaRegistryClient,
             Ns4KafkaProperties ns4KafkaProperties) {
         this.managedClusterProperties = managedClusterProperties;
         this.namespaceService = namespaceService;
+        this.topicService = topicService;
         this.topicRepository = topicRepository;
         this.schemaRegistryClient = schemaRegistryClient;
         this.ns4KafkaProperties = ns4KafkaProperties;
@@ -122,107 +124,51 @@ public class TopicAsyncExecutor {
         log.debug("Starting topic collection for cluster {}", managedClusterProperties.getName());
 
         try {
-            ignoredTopics.clear();
+            List<Topic> topicsToCreate = topicService.findAllToCreateForCluster(managedClusterProperties.getName());
+            List<Topic> topicsToUpdate = topicService.findAllToUpdateForCluster(managedClusterProperties.getName());
+            List<Topic> topicsToDelete = topicService.findAllToDeleteForCluster(managedClusterProperties.getName());
 
-            Map<String, Topic> brokerTopics = collectBrokerTopics();
-            List<Topic> ns4KafkaTopics = topicRepository.findAllForCluster(managedClusterProperties.getName());
-
-            Map<Boolean, List<Topic>> partitioned = ns4KafkaTopics.stream()
-                    .collect(Collectors.partitioningBy(topic ->
-                            brokerTopics.containsKey(topic.getMetadata().getName())));
-
-            List<Topic> checkTopics = partitioned.get(true);
-            List<Topic> createTopics = partitioned.get(false).stream()
-                    .filter(topic -> !ignoredTopics.contains(topic.getMetadata().getName()))
-                    .toList();
-
-            Map<ConfigResource, Collection<AlterConfigOp>> updateTopics = new HashMap<>();
-            checkTopics.forEach(topic -> {
-                Map<String, String> actualConf = brokerTopics
-                        .get(topic.getMetadata().getName())
-                        .getSpec()
-                        .getConfigs();
-
-                Collection<AlterConfigOp> changes =
-                        computeConfigChanges(topic.getSpec().getConfigs(), actualConf);
-
-                if (!changes.isEmpty()) {
-                    ConfigResource cr = new ConfigResource(
-                            ConfigResource.Type.TOPIC, topic.getMetadata().getName());
-                    updateTopics.put(cr, changes);
-                }
-            });
-
-            if (managedClusterProperties.isSyncKstreamTopics()) {
-                importTopics(collectUnsynchronizedStreamTopic(brokerTopics));
-            }
-
-            if (!createTopics.isEmpty()) {
+            if (!topicsToCreate.isEmpty()) {
                 log.atDebug()
-                        .addArgument(createTopics.stream()
+                        .addArgument(topicsToCreate.stream()
                                 .map(topic -> topic.getMetadata().getName())
                                 .collect(Collectors.joining(",")))
                         .log("Topic(s) to create: {}");
-
-                createTopics(createTopics);
+                createTopics(topicsToCreate);
             }
 
-            if (!updateTopics.isEmpty()) {
+            if (!topicsToUpdate.isEmpty()) {
+                Map<ConfigResource, Collection<AlterConfigOp>> configsToUpdate = new HashMap<>();
+                topicsToUpdate.forEach(topic -> {
+                    Collection<AlterConfigOp> configs =
+                            computeTopicConfig(topic.getSpec().getConfigs());
+                    ConfigResource cr = new ConfigResource(
+                            ConfigResource.Type.TOPIC, topic.getMetadata().getName());
+                    configsToUpdate.put(cr, configs);
+                });
+
                 log.atDebug()
-                        .addArgument(updateTopics.keySet().stream()
-                                .map(ConfigResource::name)
+                        .addArgument(topicsToUpdate.stream()
+                                .map(topic -> topic.getMetadata().getName())
                                 .collect(Collectors.joining(",")))
                         .log("Topic(s) to update: {}");
 
-                alterTopics(updateTopics, checkTopics);
+                alterTopics(configsToUpdate, topicsToUpdate);
             }
 
-            alterCatalogInfo(checkTopics, brokerTopics);
-        } catch (ExecutionException | TimeoutException | CancellationException | KafkaStoreException e) {
+            if (!topicsToDelete.isEmpty()) {
+                log.atDebug()
+                        .addArgument(topicsToDelete.stream()
+                                .map(topic -> topic.getMetadata().getName())
+                                .collect(Collectors.joining(",")))
+                        .log("Topic(s) to delete: {}");
+
+                deleteTopics(topicsToDelete);
+            }
+
+        } catch (CancellationException | KafkaStoreException e) {
             log.error("An error occurred during the topic synchronization", e);
-        } catch (InterruptedException e) {
-            log.error("Thread interrupted during the topic synchronization", e);
-            Thread.currentThread().interrupt();
         }
-    }
-
-    /**
-     * Between broker topics and Ns4Kafka topics, get the unsynchronized Kafka Streams internal topics.
-     *
-     * @param brokerTopics The topics from the broker
-     * @return A list of unsynchronized Kafka Streams internal topics
-     */
-    private List<Topic> collectUnsynchronizedStreamTopic(Map<String, Topic> brokerTopics) {
-        List<Namespace> namespaces = namespaceService.findAll();
-
-        return brokerTopics.values().stream()
-                // Keep only Kafka Streams internal topics that are not already in Ns4Kafka
-                .filter(topic -> topicRepository
-                                .findByName(
-                                        topic.getMetadata().getCluster(),
-                                        topic.getMetadata().getName())
-                                .isEmpty()
-                        && (topic.getMetadata().getName().endsWith("-changelog")
-                                || topic.getMetadata().getName().endsWith("-repartition"))
-                        && !ignoredTopics.contains(topic.getMetadata().getName()))
-                .map(topic -> {
-                    // Ignore internal cluster topics. Only keep topics covered by Ns4Kafka.
-                    Optional<Namespace> namespace = namespaceService.findByTopicName(
-                            namespaces, topic.getMetadata().getName());
-                    if (namespace.isEmpty()) {
-                        log.trace(
-                                "No namespace found for topic {}. Skipping import.",
-                                topic.getMetadata().getName());
-                        return null;
-                    }
-
-                    topic.getMetadata()
-                            .setNamespace(namespace.get().getMetadata().getName());
-
-                    return topic;
-                })
-                .filter(Objects::nonNull)
-                .toList();
     }
 
     /**
@@ -295,43 +241,6 @@ public class TopicAsyncExecutor {
         if (!topicTagsMapping.isEmpty()) {
             tagSyncDisposable = createAndAssociateTags(topicTagsMapping);
         }
-    }
-
-    /**
-     * Delete a list of topics.
-     *
-     * @param topics The topics to delete
-     */
-    public void deleteTopics(List<Topic> topics) throws InterruptedException, ExecutionException, TimeoutException {
-        List<String> topicsNames =
-                topics.stream().map(topic -> topic.getMetadata().getName()).toList();
-
-        managedClusterProperties
-                .getAdminClient()
-                .deleteTopics(topicsNames)
-                .all()
-                .get(managedClusterProperties.getTimeout().getTopic().getDelete(), TimeUnit.MILLISECONDS);
-
-        // Add topics to blacklist so the Kstream internal topics are not imported after deletion
-        // This could happen if such topic is deleted after the broker topics are listed
-        // but before the Ns4Kafka topics are listed during synchronization
-        if (managedClusterProperties.isSyncKstreamTopics()) {
-            ignoredTopics.addAll(topicsNames);
-        }
-
-        log.atInfo()
-                .addArgument(String.join(", ", topicsNames))
-                .addArgument(managedClusterProperties.getName())
-                .log("Success deleting topics {} on cluster {}.");
-    }
-
-    /**
-     * Collect all topics on broker.
-     *
-     * @return All topics by name
-     */
-    public Map<String, Topic> collectBrokerTopics() throws ExecutionException, InterruptedException, TimeoutException {
-        return collectBrokerTopicsFromNames(listBrokerTopicNames());
     }
 
     /**
@@ -561,57 +470,11 @@ public class TopicAsyncExecutor {
     }
 
     /**
-     * Alter topics.
-     *
-     * @param toUpdate The topics to update
-     * @param topics The current topics
-     */
-    private void alterTopics(Map<ConfigResource, Collection<AlterConfigOp>> toUpdate, List<Topic> topics) {
-        AlterConfigsResult alterConfigsResult =
-                managedClusterProperties.getAdminClient().incrementalAlterConfigs(toUpdate);
-        alterConfigsResult.values().forEach((key, value) -> {
-            Topic updatedTopic = topics.stream()
-                    .filter(topic -> topic.getMetadata().getName().equals(key.name()))
-                    .findFirst()
-                    .get();
-
-            try {
-                value.get(managedClusterProperties.getTimeout().getTopic().getAlterConfigs(), TimeUnit.MILLISECONDS);
-                updatedTopic
-                        .getMetadata()
-                        .setGeneration(updatedTopic.getMetadata().getGeneration() + 1);
-                updatedTopic.setStatus(Topic.TopicStatus.ofSuccess("Topic configs updated"));
-
-                log.atInfo()
-                        .addArgument(key.name())
-                        .addArgument(managedClusterProperties.getName())
-                        .addArgument(toUpdate.get(key).stream()
-                                .map(AlterConfigOp::toString)
-                                .collect(Collectors.joining(",")))
-                        .log("Success updating topic configs {} on cluster {}: [{}]");
-            } catch (InterruptedException e) {
-                log.error("Error", e);
-                Thread.currentThread().interrupt();
-            } catch (Exception e) {
-                updatedTopic.setStatus(
-                        Topic.TopicStatus.ofFailed("Error while updating topic configs: " + e.getMessage()));
-                log.error(
-                        "Error while updating topic configs {} on cluster {}",
-                        key.name(),
-                        managedClusterProperties.getName(),
-                        e);
-            }
-
-            topicRepository.create(updatedTopic);
-        });
-    }
-
-    /**
      * Create topics.
      *
      * @param topics The topics to create
      */
-    private void createTopics(List<Topic> topics) {
+    public void createTopics(List<Topic> topics) {
         List<NewTopic> newTopics = topics.stream()
                 .map(topic -> {
                     log.debug(
@@ -626,29 +489,175 @@ public class TopicAsyncExecutor {
                 })
                 .toList();
 
-        CreateTopicsResult createTopicsResult =
-                managedClusterProperties.getAdminClient().createTopics(newTopics);
-        createTopicsResult.values().forEach((key, value) -> {
-            Topic createdTopic = topics.stream()
-                    .filter(t -> t.getMetadata().getName().equals(key))
+        Map<String, KafkaFuture<Void>> createTopicsResult = managedClusterProperties
+                .getAdminClient()
+                .createTopics(newTopics)
+                .values();
+
+        topics.forEach(topicToCreate -> {
+            try {
+                createTopicsResult
+                        .get(topicToCreate.getMetadata().getName())
+                        .get(managedClusterProperties.getTimeout().getTopic().getCreate(), TimeUnit.MILLISECONDS);
+
+                if (isUnchangedSinceLastApply(topicToCreate)) {
+                    topicToCreate.getMetadata().setGeneration(1);
+                    topicToCreate.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
+                    topicRepository.create(topicToCreate);
+                    log.info(
+                            "Success creating topic {} on cluster {}",
+                            topicToCreate.getMetadata().getName(),
+                            managedClusterProperties.getName());
+                }
+            } catch (InterruptedException e) {
+                log.error(ERROR, e);
+                Thread.currentThread().interrupt();
+            } catch (Exception e) {
+                if (isUnchangedSinceLastApply(topicToCreate)) {
+                    topicToCreate
+                            .getMetadata()
+                            .setStatus(Resource.Metadata.Status.ofCreationFailed(
+                                    "Error while creating topic: " + e.getMessage()));
+                    topicRepository.create(topicToCreate);
+                    log.error(
+                            "Error while creating topic {} on cluster {}",
+                            topicToCreate.getMetadata().getName(),
+                            managedClusterProperties.getName(),
+                            e);
+                }
+            }
+        });
+    }
+
+    /**
+     * Alter topics.
+     *
+     * @param toUpdate The topics to update
+     * @param topics The current topics
+     */
+    public void alterTopics(Map<ConfigResource, Collection<AlterConfigOp>> toUpdate, List<Topic> topics) {
+        AlterConfigsResult alterConfigsResult =
+                managedClusterProperties.getAdminClient().incrementalAlterConfigs(toUpdate);
+        alterConfigsResult.values().forEach((key, value) -> {
+            Topic updatedTopic = topics.stream()
+                    .filter(topic -> topic.getMetadata().getName().equals(key.name()))
                     .findFirst()
                     .get();
 
             try {
-                value.get(managedClusterProperties.getTimeout().getTopic().getCreate(), TimeUnit.MILLISECONDS);
-                createdTopic.getMetadata().setGeneration(1);
-                createdTopic.setStatus(Topic.TopicStatus.ofSuccess("Topic created"));
-                log.info("Success creating topic {} on cluster {}", key, managedClusterProperties.getName());
+                value.get(managedClusterProperties.getTimeout().getTopic().getAlterConfigs(), TimeUnit.MILLISECONDS);
+
+                if (isUnchangedSinceLastApply(updatedTopic)) {
+                    updatedTopic
+                            .getMetadata()
+                            .setGeneration(updatedTopic.getMetadata().getGeneration() + 1);
+                    updatedTopic.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
+                    topicRepository.create(updatedTopic);
+
+                    log.atInfo()
+                            .addArgument(key.name())
+                            .addArgument(managedClusterProperties.getName())
+                            .addArgument(toUpdate.get(key).stream()
+                                    .map(AlterConfigOp::toString)
+                                    .collect(Collectors.joining(",")))
+                            .log("Success updating topic configs {} on cluster {}: [{}]");
+                }
             } catch (InterruptedException e) {
-                log.error("Error", e);
+                log.error(ERROR, e);
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
-                createdTopic.setStatus(Topic.TopicStatus.ofFailed("Error while creating topic: " + e.getMessage()));
-                log.error("Error while creating topic {} on cluster {}", key, managedClusterProperties.getName(), e);
+                if (isUnchangedSinceLastApply(updatedTopic)) {
+                    if (e.getCause() instanceof UnknownTopicOrPartitionException) {
+                        createTopics(List.of(updatedTopic));
+                        return;
+                    }
+                    handleUpdateError(updatedTopic, e);
+                }
             }
-
-            topicRepository.create(createdTopic);
         });
+    }
+
+    /**
+     * Handle update error.
+     *
+     * @param topicToUpdate The topic to update
+     * @param e The exception
+     */
+    private void handleUpdateError(Topic topicToUpdate, Exception e) {
+        topicToUpdate
+                .getMetadata()
+                .setStatus(Resource.Metadata.Status.ofFailed("Error while updating topic configs: " + e.getMessage()));
+        topicRepository.create(topicToUpdate);
+
+        log.error(
+                "Error while updating topic configs {} on cluster {}",
+                topicToUpdate.getMetadata().getName(),
+                managedClusterProperties.getName(),
+                e);
+    }
+
+    /**
+     * Delete a list of topics.
+     *
+     * @param topics The topics to delete
+     */
+    public void deleteTopics(List<Topic> topics) {
+        List<String> topicsNames =
+                topics.stream().map(topic -> topic.getMetadata().getName()).toList();
+
+        Map<String, KafkaFuture<Void>> deletedTopicsResult = managedClusterProperties
+                .getAdminClient()
+                .deleteTopics(topicsNames)
+                .topicNameValues();
+
+        topics.forEach(topicToDelete -> {
+            try {
+                deletedTopicsResult
+                        .get(topicToDelete.getMetadata().getName())
+                        .get(managedClusterProperties.getTimeout().getTopic().getDelete(), TimeUnit.MILLISECONDS);
+
+                if (isUnchangedSinceLastApply(topicToDelete)) {
+                    log.atInfo()
+                            .addArgument(topicToDelete.getMetadata().getName())
+                            .addArgument(managedClusterProperties.getName())
+                            .log("Success deleting topic {} on cluster {}.");
+                    topicRepository.delete(topicToDelete);
+                }
+            } catch (InterruptedException e) {
+                log.error(ERROR, e);
+                Thread.currentThread().interrupt();
+            } catch (Exception e) {
+                if (isUnchangedSinceLastApply(topicToDelete)) {
+                    if (e.getCause() instanceof UnknownTopicOrPartitionException) {
+                        log.info(
+                                "Topic {} does not exist on the cluster {}: Topic will be removed from Ns4Kafka.",
+                                topicToDelete.getMetadata().getName(),
+                                managedClusterProperties.getName());
+                        topicRepository.delete(topicToDelete);
+                        return;
+                    }
+                    handleDeleteError(topicToDelete, e);
+                }
+            }
+        });
+    }
+
+    /**
+     * Handle delete error.
+     *
+     * @param topicToDelete The topic to delete
+     * @param e The exception
+     */
+    private void handleDeleteError(Topic topicToDelete, Exception e) {
+        topicToDelete
+                .getMetadata()
+                .setStatus(Resource.Metadata.Status.ofFailed("Error while deleting topic: " + e.getMessage()));
+        topicRepository.create(topicToDelete);
+        log.error(
+                "Error while deleting topic {} on cluster {}",
+                topicToDelete.getMetadata().getName(),
+                managedClusterProperties.getName(),
+                e);
     }
 
     /**
@@ -755,28 +764,16 @@ public class TopicAsyncExecutor {
     }
 
     /**
-     * Compute the configuration changes.
+     * Compute the topic configuration.
      *
-     * @param expected The config from Ns4Kafka
-     * @param actual The config from cluster
+     * @param topicConfig The topic config
      * @return A list of config
      */
-    private Collection<AlterConfigOp> computeConfigChanges(Map<String, String> expected, Map<String, String> actual) {
-        List<AlterConfigOp> changes = new ArrayList<>();
-
-        expected.forEach((key, value) -> {
-            if (!actual.containsKey(key) || !TopicConfigUtils.areEquivalent(key, value, actual.get(key))) {
-                changes.add(new AlterConfigOp(new ConfigEntry(key, value), AlterConfigOp.OpType.SET));
-            }
-        });
-
-        actual.forEach((key, value) -> {
-            if (!expected.containsKey(key)) {
-                changes.add(new AlterConfigOp(new ConfigEntry(key, value), AlterConfigOp.OpType.DELETE));
-            }
-        });
-
-        return changes;
+    Collection<AlterConfigOp> computeTopicConfig(Map<String, String> topicConfig) {
+        return topicConfig.entrySet().stream()
+                .map(entry ->
+                        new AlterConfigOp(new ConfigEntry(entry.getKey(), entry.getValue()), AlterConfigOp.OpType.SET))
+                .toList();
     }
 
     /**
@@ -855,5 +852,28 @@ public class TopicAsyncExecutor {
         if (tagSyncDisposable != null && !tagSyncDisposable.isDisposed()) {
             tagSyncDisposable.dispose();
         }
+    }
+
+    /**
+     * Checks whether the topic has been reapplied since the last deployment. Avoids publishing over a topic that has
+     * already been changed.
+     *
+     * @param topic The topic to deploy
+     * @return True if it has been reapplied, false otherwise
+     */
+    private boolean isUnchangedSinceLastApply(Topic topic) {
+        Optional<Namespace> existingNamespace =
+                namespaceService.findByName(topic.getMetadata().getNamespace());
+        if (existingNamespace.isPresent()) {
+            Optional<Topic> existingTopic = topicService.findByName(
+                    existingNamespace.get(), topic.getMetadata().getName());
+            return existingTopic.isEmpty()
+                    || !existingTopic
+                            .get()
+                            .getMetadata()
+                            .getUpdateTimestamp()
+                            .after(topic.getMetadata().getUpdateTimestamp());
+        }
+        return true;
     }
 }

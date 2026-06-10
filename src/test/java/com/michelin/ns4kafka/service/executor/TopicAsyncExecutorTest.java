@@ -31,11 +31,14 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.property.Ns4KafkaProperties;
 import com.michelin.ns4kafka.repository.TopicRepository;
+import com.michelin.ns4kafka.service.NamespaceService;
+import com.michelin.ns4kafka.service.TopicService;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.service.client.schema.entities.GraphQueryData;
 import com.michelin.ns4kafka.service.client.schema.entities.GraphQueryResponse;
@@ -47,14 +50,25 @@ import com.michelin.ns4kafka.service.client.schema.entities.TopicEntityAttribute
 import com.michelin.ns4kafka.service.client.schema.entities.TopicListResponse;
 import io.micronaut.http.HttpResponse;
 import java.io.IOException;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.clients.admin.AlterConfigOp;
+import org.apache.kafka.clients.admin.AlterConfigsResult;
+import org.apache.kafka.clients.admin.CreateTopicsResult;
 import org.apache.kafka.clients.admin.DeleteTopicsResult;
 import org.apache.kafka.common.KafkaFuture;
+import org.apache.kafka.common.config.ConfigResource;
+import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -89,16 +103,591 @@ class TopicAsyncExecutorTest {
     TopicRepository topicRepository;
 
     @Mock
+    TopicService topicService;
+
+    @Mock
+    NamespaceService namespaceService;
+
+    @Mock
     Admin adminClient;
 
     @Mock
+    CreateTopicsResult createTopicsResult;
+
+    @Mock
     DeleteTopicsResult deleteTopicsResult;
+
+    @Mock
+    AlterConfigsResult alterConfigsResult;
 
     @Mock
     KafkaFuture<Void> kafkaFuture;
 
     @InjectMocks
     TopicAsyncExecutor topicAsyncExecutor;
+
+    @Test
+    void shouldCreateTopics() {
+        when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
+        when(adminClient.createTopics(anyList())).thenReturn(createTopicsResult);
+        when(createTopicsResult.values()).thenReturn(Map.of("topic", kafkaFuture));
+
+        ManagedClusterProperties.TimeoutProperties.TopicProperties topicProperties =
+                new ManagedClusterProperties.TimeoutProperties.TopicProperties();
+        topicProperties.setCreate(1000);
+
+        ManagedClusterProperties.TimeoutProperties timeoutProperties = new ManagedClusterProperties.TimeoutProperties();
+        timeoutProperties.setTopic(topicProperties);
+
+        when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
+
+        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder().namespace("ns").build())
+                .build();
+
+        Topic topic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .namespace("ns")
+                        .name("topic")
+                        .updateTimestamp(Date.from(instant))
+                        .build())
+                .spec(Topic.TopicSpec.builder().build())
+                .build();
+
+        Topic successTopic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .namespace("ns")
+                        .name("topic")
+                        .updateTimestamp(Date.from(instant))
+                        .status(Resource.Metadata.Status.ofSuccess())
+                        .build())
+                .spec(Topic.TopicSpec.builder().build())
+                .build();
+
+        when(namespaceService.findByName("ns")).thenReturn(Optional.of(ns));
+        when(topicService.findByName(ns, "topic")).thenReturn(Optional.of(topic));
+
+        topicAsyncExecutor.createTopics(List.of(topic));
+
+        verify(topicRepository).create(successTopic);
+    }
+
+    @Test
+    void shouldNotCreateTopicWhenChangedSinceLastApply() {
+        when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
+        when(adminClient.createTopics(anyList())).thenReturn(createTopicsResult);
+        when(createTopicsResult.values()).thenReturn(Map.of("topic", kafkaFuture));
+
+        ManagedClusterProperties.TimeoutProperties.TopicProperties topicProperties =
+                new ManagedClusterProperties.TimeoutProperties.TopicProperties();
+        topicProperties.setCreate(1000);
+
+        ManagedClusterProperties.TimeoutProperties timeoutProperties = new ManagedClusterProperties.TimeoutProperties();
+        timeoutProperties.setTopic(topicProperties);
+
+        when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
+
+        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder().namespace("ns").build())
+                .build();
+        Topic topic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .namespace("ns")
+                        .name("topic")
+                        .updateTimestamp(Date.from(instant))
+                        .build())
+                .spec(Topic.TopicSpec.builder().build())
+                .build();
+
+        Topic newTopic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .namespace("ns")
+                        .name("topic")
+                        .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .build())
+                .spec(Topic.TopicSpec.builder().build())
+                .build();
+
+        when(namespaceService.findByName("ns")).thenReturn(Optional.of(ns));
+        when(topicService.findByName(ns, "topic")).thenReturn(Optional.of(newTopic));
+
+        topicAsyncExecutor.createTopics(List.of(topic));
+
+        verify(topicRepository, never()).create(any());
+    }
+
+    @Test
+    void shouldUpdateTopicWhenErrorCreating() throws ExecutionException, InterruptedException, TimeoutException {
+        when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
+        when(adminClient.createTopics(anyList())).thenReturn(createTopicsResult);
+        when(createTopicsResult.values()).thenReturn(Map.of("topic", kafkaFuture));
+
+        ManagedClusterProperties.TimeoutProperties.TopicProperties topicProperties =
+                new ManagedClusterProperties.TimeoutProperties.TopicProperties();
+        topicProperties.setCreate(1000);
+
+        ManagedClusterProperties.TimeoutProperties timeoutProperties = new ManagedClusterProperties.TimeoutProperties();
+        timeoutProperties.setTopic(topicProperties);
+
+        when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
+        when(kafkaFuture.get(1000, TimeUnit.MILLISECONDS)).thenThrow(new ExecutionException("Error", new Throwable()));
+
+        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder().namespace("ns").build())
+                .build();
+        Topic topic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .namespace("ns")
+                        .name("topic")
+                        .updateTimestamp(Date.from(instant))
+                        .build())
+                .spec(Topic.TopicSpec.builder().build())
+                .build();
+
+        Topic failedTopic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .namespace("ns")
+                        .name("topic")
+                        .updateTimestamp(Date.from(instant))
+                        .status(Resource.Metadata.Status.ofCreationFailed("Error while creating topic: Error"))
+                        .build())
+                .spec(Topic.TopicSpec.builder().build())
+                .build();
+
+        when(namespaceService.findByName("ns")).thenReturn(Optional.of(ns));
+        when(topicService.findByName(ns, "topic")).thenReturn(Optional.of(topic));
+
+        topicAsyncExecutor.createTopics(List.of(topic));
+
+        verify(topicRepository).create(failedTopic);
+    }
+
+    @Test
+    void shouldNotCreateTopicWhenErrorCreatingAndChangedSinceLastApply()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
+        when(adminClient.createTopics(anyList())).thenReturn(createTopicsResult);
+        when(createTopicsResult.values()).thenReturn(Map.of("topic", kafkaFuture));
+
+        ManagedClusterProperties.TimeoutProperties.TopicProperties topicProperties =
+                new ManagedClusterProperties.TimeoutProperties.TopicProperties();
+        topicProperties.setCreate(1000);
+
+        ManagedClusterProperties.TimeoutProperties timeoutProperties = new ManagedClusterProperties.TimeoutProperties();
+        timeoutProperties.setTopic(topicProperties);
+
+        when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
+        when(kafkaFuture.get(1000, TimeUnit.MILLISECONDS)).thenThrow(new ExecutionException("Error", new Throwable()));
+
+        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder().namespace("ns").build())
+                .build();
+        Topic topic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .namespace("ns")
+                        .name("topic")
+                        .updateTimestamp(Date.from(instant))
+                        .build())
+                .spec(Topic.TopicSpec.builder().build())
+                .build();
+
+        Topic newTopic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .namespace("ns")
+                        .name("topic")
+                        .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .build())
+                .spec(Topic.TopicSpec.builder().build())
+                .build();
+
+        when(namespaceService.findByName("ns")).thenReturn(Optional.of(ns));
+        when(topicService.findByName(ns, "topic")).thenReturn(Optional.of(newTopic));
+
+        topicAsyncExecutor.createTopics(List.of(topic));
+
+        verify(topicRepository, never()).create(any());
+    }
+
+    @Test
+    void shouldDeleteTopics() {
+        when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
+        when(adminClient.deleteTopics(anyList())).thenReturn(deleteTopicsResult);
+        when(deleteTopicsResult.topicNameValues()).thenReturn(Map.of("topic", kafkaFuture));
+
+        ManagedClusterProperties.TimeoutProperties.TopicProperties topicProperties =
+                new ManagedClusterProperties.TimeoutProperties.TopicProperties();
+        topicProperties.setDelete(1000);
+
+        ManagedClusterProperties.TimeoutProperties timeoutProperties = new ManagedClusterProperties.TimeoutProperties();
+        timeoutProperties.setTopic(topicProperties);
+
+        when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
+
+        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder().namespace("ns").build())
+                .build();
+
+        Topic topic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .namespace("ns")
+                        .name("topic")
+                        .updateTimestamp(Date.from(instant))
+                        .build())
+                .spec(Topic.TopicSpec.builder().build())
+                .build();
+
+        when(namespaceService.findByName("ns")).thenReturn(Optional.of(ns));
+        when(topicService.findByName(ns, "topic")).thenReturn(Optional.of(topic));
+
+        topicAsyncExecutor.deleteTopics(List.of(topic));
+
+        verify(topicRepository).delete(topic);
+        verify(topicRepository, never()).create(topic);
+    }
+
+    @Test
+    void shouldNotDeleteTopicWhenChangedSinceLastApply() {
+        when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
+        when(adminClient.deleteTopics(anyList())).thenReturn(deleteTopicsResult);
+        when(deleteTopicsResult.topicNameValues()).thenReturn(Map.of("topic", kafkaFuture));
+
+        ManagedClusterProperties.TimeoutProperties.TopicProperties topicProperties =
+                new ManagedClusterProperties.TimeoutProperties.TopicProperties();
+        topicProperties.setDelete(1000);
+
+        ManagedClusterProperties.TimeoutProperties timeoutProperties = new ManagedClusterProperties.TimeoutProperties();
+        timeoutProperties.setTopic(topicProperties);
+
+        when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
+
+        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder().namespace("ns").build())
+                .build();
+
+        Topic topic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .namespace("ns")
+                        .name("topic")
+                        .updateTimestamp(Date.from(instant))
+                        .build())
+                .spec(Topic.TopicSpec.builder().build())
+                .build();
+
+        Topic newTopic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .namespace("ns")
+                        .name("topic")
+                        .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .build())
+                .spec(Topic.TopicSpec.builder().build())
+                .build();
+
+        when(namespaceService.findByName("ns")).thenReturn(Optional.of(ns));
+        when(topicService.findByName(ns, "topic")).thenReturn(Optional.of(newTopic));
+
+        topicAsyncExecutor.deleteTopics(List.of(topic));
+
+        verify(topicRepository, never()).delete(any());
+    }
+
+    @Test
+    void shouldNotDeleteTopicWhenExecutionError() throws ExecutionException, InterruptedException, TimeoutException {
+        when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
+        when(adminClient.deleteTopics(anyList())).thenReturn(deleteTopicsResult);
+        when(deleteTopicsResult.topicNameValues()).thenReturn(Map.of("topic", kafkaFuture));
+
+        ManagedClusterProperties.TimeoutProperties.TopicProperties topicProperties =
+                new ManagedClusterProperties.TimeoutProperties.TopicProperties();
+        topicProperties.setDelete(1000);
+
+        ManagedClusterProperties.TimeoutProperties timeoutProperties = new ManagedClusterProperties.TimeoutProperties();
+        timeoutProperties.setTopic(topicProperties);
+
+        when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
+        when(kafkaFuture.get(1000, TimeUnit.MILLISECONDS)).thenThrow(new ExecutionException("Error", new Exception()));
+
+        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder().namespace("ns").build())
+                .build();
+
+        Topic topic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .namespace("ns")
+                        .name("topic")
+                        .updateTimestamp(Date.from(instant))
+                        .build())
+                .spec(Topic.TopicSpec.builder().build())
+                .build();
+
+        Topic failedTopic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .namespace("ns")
+                        .name("topic")
+                        .updateTimestamp(Date.from(instant))
+                        .status(Resource.Metadata.Status.ofFailed("Error while deleting topic: Error"))
+                        .build())
+                .spec(Topic.TopicSpec.builder().build())
+                .build();
+
+        when(namespaceService.findByName("ns")).thenReturn(Optional.of(ns));
+        when(topicService.findByName(ns, "topic")).thenReturn(Optional.of(topic));
+
+        topicAsyncExecutor.deleteTopics(List.of(topic));
+
+        verify(topicRepository).create(failedTopic);
+        verify(topicRepository, never()).delete(any());
+    }
+
+    @Test
+    void shouldDeleteTopicWhenNotExistInCluster() throws ExecutionException, InterruptedException, TimeoutException {
+        when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
+        when(adminClient.deleteTopics(anyList())).thenReturn(deleteTopicsResult);
+        when(deleteTopicsResult.topicNameValues()).thenReturn(Map.of("topic", kafkaFuture));
+
+        ManagedClusterProperties.TimeoutProperties.TopicProperties topicProperties =
+                new ManagedClusterProperties.TimeoutProperties.TopicProperties();
+        topicProperties.setDelete(1000);
+
+        ManagedClusterProperties.TimeoutProperties timeoutProperties = new ManagedClusterProperties.TimeoutProperties();
+        timeoutProperties.setTopic(topicProperties);
+
+        when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
+        when(kafkaFuture.get(1000, TimeUnit.MILLISECONDS))
+                .thenThrow(new ExecutionException("Error", new UnknownTopicOrPartitionException()));
+
+        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder().namespace("ns").build())
+                .build();
+
+        Topic topic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .namespace("ns")
+                        .name("topic")
+                        .updateTimestamp(Date.from(instant))
+                        .build())
+                .spec(Topic.TopicSpec.builder().build())
+                .build();
+
+        when(namespaceService.findByName("ns")).thenReturn(Optional.of(ns));
+        when(topicService.findByName(ns, "topic")).thenReturn(Optional.of(topic));
+
+        topicAsyncExecutor.deleteTopics(List.of(topic));
+
+        verify(topicRepository).delete(topic);
+        verify(topicRepository, never()).create(any());
+    }
+
+    @Test
+    void shouldNotDeleteTopicWhenExecutionErrorAndChangedSinceLastApply()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
+        when(adminClient.deleteTopics(anyList())).thenReturn(deleteTopicsResult);
+        when(deleteTopicsResult.topicNameValues()).thenReturn(Map.of("topic", kafkaFuture));
+
+        ManagedClusterProperties.TimeoutProperties.TopicProperties topicProperties =
+                new ManagedClusterProperties.TimeoutProperties.TopicProperties();
+        topicProperties.setDelete(1000);
+
+        ManagedClusterProperties.TimeoutProperties timeoutProperties = new ManagedClusterProperties.TimeoutProperties();
+        timeoutProperties.setTopic(topicProperties);
+
+        when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
+        when(kafkaFuture.get(1000, TimeUnit.MILLISECONDS)).thenThrow(new ExecutionException("Error", new Exception()));
+
+        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder().namespace("ns").build())
+                .build();
+
+        Topic topic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .namespace("ns")
+                        .name("topic")
+                        .updateTimestamp(Date.from(instant))
+                        .build())
+                .spec(Topic.TopicSpec.builder().build())
+                .build();
+
+        Topic newTopic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .namespace("ns")
+                        .name("topic")
+                        .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .build())
+                .spec(Topic.TopicSpec.builder().build())
+                .build();
+
+        when(namespaceService.findByName("ns")).thenReturn(Optional.of(ns));
+        when(topicService.findByName(ns, "topic")).thenReturn(Optional.of(newTopic));
+
+        topicAsyncExecutor.deleteTopics(List.of(topic));
+
+        verify(topicRepository, never()).delete(any());
+        verify(topicRepository, never()).create(any());
+    }
+
+    @Test
+    void shouldNotUpdateTopicConfigsWhenChangedSinceLastApply() {
+        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
+        Topic topic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .namespace("ns")
+                        .name("topic")
+                        .updateTimestamp(Date.from(instant))
+                        .build())
+                .spec(Topic.TopicSpec.builder().build())
+                .build();
+
+        ConfigResource cr = new ConfigResource(ConfigResource.Type.TOPIC, "topic");
+        Map<ConfigResource, Collection<AlterConfigOp>> configsToUpdate =
+                Map.of(cr, topicAsyncExecutor.computeTopicConfig(topic.getSpec().getConfigs()));
+
+        when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
+        when(adminClient.incrementalAlterConfigs(any())).thenReturn(alterConfigsResult);
+        when(alterConfigsResult.values()).thenReturn(Map.of(cr, kafkaFuture));
+
+        ManagedClusterProperties.TimeoutProperties.TopicProperties topicProperties =
+                new ManagedClusterProperties.TimeoutProperties.TopicProperties();
+        topicProperties.setAlterConfigs(1000);
+
+        ManagedClusterProperties.TimeoutProperties timeoutProperties = new ManagedClusterProperties.TimeoutProperties();
+        timeoutProperties.setTopic(topicProperties);
+
+        when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
+
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder().namespace("ns").build())
+                .build();
+
+        Topic newTopic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .namespace("ns")
+                        .name("topic")
+                        .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .build())
+                .spec(Topic.TopicSpec.builder().build())
+                .build();
+
+        when(namespaceService.findByName("ns")).thenReturn(Optional.of(ns));
+        when(topicService.findByName(ns, "topic")).thenReturn(Optional.of(newTopic));
+
+        topicAsyncExecutor.alterTopics(configsToUpdate, List.of(topic));
+
+        verify(topicRepository, never()).create(any());
+    }
+
+    @Test
+    void shouldNotUpdateTopicConfigsWhenErrorUpdating()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
+        Topic topic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .namespace("ns")
+                        .name("topic")
+                        .updateTimestamp(Date.from(instant))
+                        .build())
+                .spec(Topic.TopicSpec.builder().build())
+                .build();
+
+        ConfigResource cr = new ConfigResource(ConfigResource.Type.TOPIC, "topic");
+        Map<ConfigResource, Collection<AlterConfigOp>> configsToUpdate =
+                Map.of(cr, topicAsyncExecutor.computeTopicConfig(topic.getSpec().getConfigs()));
+
+        when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
+        when(adminClient.incrementalAlterConfigs(any())).thenReturn(alterConfigsResult);
+        when(alterConfigsResult.values()).thenReturn(Map.of(cr, kafkaFuture));
+
+        ManagedClusterProperties.TimeoutProperties.TopicProperties topicProperties =
+                new ManagedClusterProperties.TimeoutProperties.TopicProperties();
+        topicProperties.setAlterConfigs(1000);
+
+        ManagedClusterProperties.TimeoutProperties timeoutProperties = new ManagedClusterProperties.TimeoutProperties();
+        timeoutProperties.setTopic(topicProperties);
+
+        when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
+        when(kafkaFuture.get(1000, TimeUnit.MILLISECONDS)).thenThrow(new ExecutionException("Error", new Exception()));
+
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder().namespace("ns").build())
+                .build();
+
+        Topic failedTopic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .namespace("ns")
+                        .name("topic")
+                        .updateTimestamp(Date.from(instant))
+                        .status(Resource.Metadata.Status.ofFailed("Error while updating topic configs: Error"))
+                        .build())
+                .spec(Topic.TopicSpec.builder().build())
+                .build();
+
+        when(namespaceService.findByName("ns")).thenReturn(Optional.of(ns));
+        when(topicService.findByName(ns, "topic")).thenReturn(Optional.of(topic));
+
+        topicAsyncExecutor.alterTopics(configsToUpdate, List.of(topic));
+
+        verify(topicRepository).create(failedTopic);
+    }
+
+    @Test
+    void shouldNotUpdateTopicConfigsWhenErrorUpdatingAndChangedSinceLastSupply()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
+        Topic topic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .namespace("ns")
+                        .name("topic")
+                        .updateTimestamp(Date.from(instant))
+                        .build())
+                .spec(Topic.TopicSpec.builder().build())
+                .build();
+
+        ConfigResource cr = new ConfigResource(ConfigResource.Type.TOPIC, "topic");
+        Map<ConfigResource, Collection<AlterConfigOp>> configsToUpdate =
+                Map.of(cr, topicAsyncExecutor.computeTopicConfig(topic.getSpec().getConfigs()));
+
+        when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
+        when(adminClient.incrementalAlterConfigs(any())).thenReturn(alterConfigsResult);
+        when(alterConfigsResult.values()).thenReturn(Map.of(cr, kafkaFuture));
+
+        ManagedClusterProperties.TimeoutProperties.TopicProperties topicProperties =
+                new ManagedClusterProperties.TimeoutProperties.TopicProperties();
+        topicProperties.setAlterConfigs(1000);
+
+        ManagedClusterProperties.TimeoutProperties timeoutProperties = new ManagedClusterProperties.TimeoutProperties();
+        timeoutProperties.setTopic(topicProperties);
+
+        when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
+        when(kafkaFuture.get(1000, TimeUnit.MILLISECONDS)).thenThrow(new ExecutionException("Error", new Exception()));
+
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder().namespace("ns").build())
+                .build();
+
+        Topic newTopic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .namespace("ns")
+                        .name("topic")
+                        .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .build())
+                .spec(Topic.TopicSpec.builder().build())
+                .build();
+
+        when(namespaceService.findByName("ns")).thenReturn(Optional.of(ns));
+        when(topicService.findByName(ns, "topic")).thenReturn(Optional.of(newTopic));
+
+        topicAsyncExecutor.alterTopics(configsToUpdate, List.of(topic));
+
+        verify(topicRepository, never()).create(any());
+    }
 
     @Test
     void shouldAlterCatalogInfo() {
@@ -372,89 +961,6 @@ class TopicAsyncExecutorTest {
         topicAsyncExecutor.createAndAssociateTags(topicTagsMapping);
 
         verify(topicRepository).create(topic);
-    }
-
-    @Test
-    void shouldDeleteTopicNoTags() throws ExecutionException, InterruptedException, TimeoutException {
-        when(deleteTopicsResult.all()).thenReturn(kafkaFuture);
-        when(adminClient.deleteTopics(anyList())).thenReturn(deleteTopicsResult);
-        when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
-
-        ManagedClusterProperties.TimeoutProperties.TopicProperties topicProperties =
-                new ManagedClusterProperties.TimeoutProperties.TopicProperties();
-        topicProperties.setDelete(1000);
-
-        ManagedClusterProperties.TimeoutProperties timeoutProperties = new ManagedClusterProperties.TimeoutProperties();
-        timeoutProperties.setTopic(topicProperties);
-
-        when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
-
-        Topic topic = Topic.builder()
-                .metadata(Resource.Metadata.builder().name(TOPIC_NAME).build())
-                .spec(Topic.TopicSpec.builder().build())
-                .build();
-
-        topicAsyncExecutor.deleteTopics(List.of(topic));
-
-        verify(adminClient).deleteTopics(anyList());
-    }
-
-    @Test
-    void shouldDeleteMultipleTopics() throws ExecutionException, InterruptedException, TimeoutException {
-        when(deleteTopicsResult.all()).thenReturn(kafkaFuture);
-        when(adminClient.deleteTopics(anyList())).thenReturn(deleteTopicsResult);
-        when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
-
-        ManagedClusterProperties.TimeoutProperties.TopicProperties topicProperties =
-                new ManagedClusterProperties.TimeoutProperties.TopicProperties();
-        topicProperties.setDelete(1000);
-
-        ManagedClusterProperties.TimeoutProperties timeoutProperties = new ManagedClusterProperties.TimeoutProperties();
-        timeoutProperties.setTopic(topicProperties);
-
-        when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
-
-        Topic topic1 = Topic.builder()
-                .metadata(Resource.Metadata.builder().name("topic1").build())
-                .spec(Topic.TopicSpec.builder().build())
-                .build();
-
-        Topic topic2 = Topic.builder()
-                .metadata(Resource.Metadata.builder().name("topic2").build())
-                .spec(Topic.TopicSpec.builder().build())
-                .build();
-
-        List<Topic> topics = List.of(topic1, topic2);
-
-        topicAsyncExecutor.deleteTopics(topics);
-
-        verify(adminClient).deleteTopics(anyList());
-    }
-
-    @Test
-    void shouldDeleteTopicAndTags() throws ExecutionException, InterruptedException, TimeoutException {
-        when(deleteTopicsResult.all()).thenReturn(kafkaFuture);
-        when(adminClient.deleteTopics(anyList())).thenReturn(deleteTopicsResult);
-        when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
-        when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
-
-        ManagedClusterProperties.TimeoutProperties.TopicProperties topicProperties =
-                new ManagedClusterProperties.TimeoutProperties.TopicProperties();
-        topicProperties.setDelete(1000);
-
-        ManagedClusterProperties.TimeoutProperties timeoutProperties = new ManagedClusterProperties.TimeoutProperties();
-        timeoutProperties.setTopic(topicProperties);
-
-        when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
-
-        Topic topic = Topic.builder()
-                .metadata(Resource.Metadata.builder().name(TOPIC_NAME).build())
-                .spec(Topic.TopicSpec.builder().tags(List.of(TAG1)).build())
-                .build();
-
-        topicAsyncExecutor.deleteTopics(List.of(topic));
-
-        verify(adminClient).deleteTopics(anyList());
     }
 
     @Test

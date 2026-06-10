@@ -26,7 +26,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -854,50 +853,6 @@ class TopicServiceTest {
     }
 
     @Test
-    void shouldDeleteTopic() throws ExecutionException, InterruptedException, TimeoutException {
-        Topic topic = Topic.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("ns-topic1")
-                        .cluster("cluster")
-                        .build())
-                .build();
-
-        when(applicationContext.getBean(eq(TopicAsyncExecutor.class), any())).thenReturn(topicAsyncExecutor);
-
-        topicService.delete(topic);
-
-        verify(topicRepository).delete(topic);
-        verify(topicAsyncExecutor).deleteTopics(List.of(topic));
-    }
-
-    @Test
-    void shouldDeleteMultipleTopics() throws ExecutionException, InterruptedException, TimeoutException {
-        Topic topic1 = Topic.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("ns-topic1")
-                        .cluster("cluster")
-                        .build())
-                .build();
-
-        Topic topic2 = Topic.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("ns-topic2")
-                        .cluster("cluster")
-                        .build())
-                .build();
-
-        List<Topic> topics = List.of(topic1, topic2);
-
-        when(applicationContext.getBean(eq(TopicAsyncExecutor.class), any())).thenReturn(topicAsyncExecutor);
-
-        topicService.deleteTopics(topics);
-
-        verify(topicAsyncExecutor).deleteTopics(topics);
-        verify(topicRepository).delete(topic1);
-        verify(topicRepository).delete(topic2);
-    }
-
-    @Test
     void shouldListUnsynchronizedTopicNames() throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
@@ -1175,21 +1130,5 @@ class TopicServiceTest {
                 "Invalid value \"0TAG-TEST\" for field \"tags\": "
                         + "tags should start with letter and be followed by alphanumeric or _ characters.",
                 validationErrors.getFirst());
-    }
-
-    @Test
-    void deleteTopics_shouldNotCallAnything_whenListIsNull() throws Exception {
-        topicService.deleteTopics(null);
-
-        verify(topicAsyncExecutor, never()).deleteTopics(any());
-        verify(topicRepository, never()).delete(any());
-    }
-
-    @Test
-    void deleteTopics_shouldNotCallAnything_whenListIsEmpty() throws Exception {
-        topicService.deleteTopics(List.of());
-
-        verify(topicAsyncExecutor, never()).deleteTopics(any());
-        verify(topicRepository, never()).delete(any());
     }
 }

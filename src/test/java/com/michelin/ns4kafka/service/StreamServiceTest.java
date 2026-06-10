@@ -23,7 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -311,7 +310,7 @@ class StreamServiceTest {
                         .name("test_stream2")
                         .namespace("test")
                         .cluster("local")
-                        .status(Resource.Metadata.Status.ofPending())
+                        .status(Resource.Metadata.Status.ofCreating())
                         .build())
                 .build();
         KafkaStream stream3 = KafkaStream.builder()
@@ -570,30 +569,13 @@ class StreamServiceTest {
 
         streamService.delete(namespace, stream);
         verify(aceAsyncExecutor).deleteKafkaStreams(namespace, stream);
-        verify(topicService)
-                .deleteTopics(argThat(topics -> topics.stream()
-                                .anyMatch(topic -> topic.getMetadata()
-                                        .getName()
-                                        .equals("prefix1.stream_app_id1-topic1-repartition"))
-                        && topics.stream()
-                                .anyMatch(topic ->
-                                        topic.getMetadata().getName().equals("prefix1.stream_app_id1-topic1-changelog"))
-                        && topics.stream()
-                                .noneMatch(topic -> topic.getMetadata()
-                                        .getName()
-                                        .equals("prefix1.stream_app_id1-topic1-norepartition"))
-                        && topics.stream()
-                                .noneMatch(topic -> topic.getMetadata()
-                                        .getName()
-                                        .equals("prefix1.stream_app_id1-topic1-nochangelog"))
-                        && topics.stream()
-                                .noneMatch(
-                                        topic -> topic.getMetadata().getName().startsWith("prefix2.stream_app_id2"))
-                        && topics.stream()
-                                .noneMatch(topic -> topic.getMetadata()
-                                        .getName()
-                                        .startsWith("prefix1.stream_app_id1-sub-appid-topic1-repartition"))));
-
+        verify(topicService).create(topic1);
+        verify(topicService).create(topic2);
+        verify(topicService, never()).create(topic3);
+        verify(topicService, never()).create(topic4);
+        verify(topicService, never()).create(topic5);
+        verify(topicService, never()).create(topic6);
+        verify(topicService, never()).create(topic7);
         verify(streamRepository).delete(stream);
     }
 
@@ -664,30 +646,12 @@ class StreamServiceTest {
 
         streamService.delete(namespace, stream);
         verify(aceAsyncExecutor).deleteKafkaStreams(namespace, stream);
-        verify(topicService)
-                .deleteTopics(argThat(topics -> topics.stream()
-                                .anyMatch(topic -> topic.getMetadata()
-                                        .getName()
-                                        .equals("prefix1.stream_app_id1-topic1-repartition"))
-                        && topics.stream()
-                                .anyMatch(topic ->
-                                        topic.getMetadata().getName().equals("prefix1.stream_app_id1-topic1-changelog"))
-                        && topics.stream()
-                                .noneMatch(topic -> topic.getMetadata()
-                                        .getName()
-                                        .equals("prefix1.stream_app_id1-topic1-norepartition"))
-                        && topics.stream()
-                                .noneMatch(topic -> topic.getMetadata()
-                                        .getName()
-                                        .equals("prefix1.stream_app_id1-topic1-nochangelog"))
-                        && topics.stream()
-                                .noneMatch(
-                                        topic -> topic.getMetadata().getName().startsWith("prefix2.stream_app_id2"))
-                        && topics.stream()
-                                .noneMatch(topic -> topic.getMetadata()
-                                        .getName()
-                                        .startsWith("prefix1.stream_app_id1-sub-appid-topic1-repartition"))));
-
+        verify(topicService).create(topic1);
+        verify(topicService).create(topic2);
+        verify(topicService, never()).create(topic3);
+        verify(topicService, never()).create(topic4);
+        verify(topicService, never()).create(topic5);
+        verify(topicService, never()).create(topic6);
         verify(streamRepository).delete(stream);
     }
 
@@ -719,7 +683,7 @@ class StreamServiceTest {
 
         streamService.delete(ns, stream);
 
-        verify(topicService, never()).deleteTopics(any());
+        verify(topicService, never()).create(any());
         verify(streamRepository).delete(stream);
     }
 

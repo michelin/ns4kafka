@@ -29,6 +29,7 @@ import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_DELETE;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.TopicRepository;
@@ -83,6 +84,42 @@ public class TopicService {
      */
     public Collection<Topic> findAll() {
         return topicRepository.findAll();
+    }
+
+    /**
+     * Find all topics to create for a cluster.
+     *
+     * @param cluster The cluster
+     * @return A list of topics
+     */
+    public List<Topic> findAllToCreateForCluster(String cluster) {
+        return topicRepository.findAllForCluster(cluster).stream()
+                .filter(Resource::isCreating)
+                .toList();
+    }
+
+    /**
+     * Find all topics to update for a cluster.
+     *
+     * @param cluster The cluster
+     * @return A list of topics
+     */
+    public List<Topic> findAllToUpdateForCluster(String cluster) {
+        return topicRepository.findAllForCluster(cluster).stream()
+                .filter(Resource::isUpdating)
+                .toList();
+    }
+
+    /**
+     * Find all topics to delete for a cluster.
+     *
+     * @param cluster The cluster
+     * @return A list of topics
+     */
+    public List<Topic> findAllToDeleteForCluster(String cluster) {
+        return topicRepository.findAllForCluster(cluster).stream()
+                .filter(Resource::isDeleting)
+                .toList();
     }
 
     /**
@@ -145,37 +182,6 @@ public class TopicService {
      */
     public Topic create(Topic topic) {
         return topicRepository.create(topic);
-    }
-
-    /**
-     * Delete a given topic.
-     *
-     * @param topic The topic
-     */
-    public void delete(Topic topic) throws InterruptedException, ExecutionException, TimeoutException {
-        TopicAsyncExecutor topicAsyncExecutor = applicationContext.getBean(
-                TopicAsyncExecutor.class, Qualifiers.byName(topic.getMetadata().getCluster()));
-        topicAsyncExecutor.deleteTopics(List.of(topic));
-
-        topicRepository.delete(topic);
-    }
-
-    /**
-     * Delete multiple topics.
-     *
-     * @param topics The topics list
-     */
-    public void deleteTopics(List<Topic> topics) throws InterruptedException, ExecutionException, TimeoutException {
-        if (topics == null || topics.isEmpty()) {
-            return;
-        }
-
-        TopicAsyncExecutor topicAsyncExecutor = applicationContext.getBean(
-                TopicAsyncExecutor.class,
-                Qualifiers.byName(topics.getFirst().getMetadata().getCluster()));
-        topicAsyncExecutor.deleteTopics(topics);
-
-        topics.forEach(topicRepository::delete);
     }
 
     /**

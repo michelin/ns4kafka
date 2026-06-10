@@ -79,7 +79,7 @@ public class StreamService {
      */
     public List<KafkaStream> findAllToDeployForCluster(String cluster) {
         return streamRepository.findAllForCluster(cluster).stream()
-                .filter(Resource::isPending)
+                .filter(Resource::isCreating)
                 .toList();
     }
 
@@ -186,7 +186,7 @@ public class StreamService {
         if (streamCluster.isPresent()
                 && streamCluster.get().isConfluentCloud()
                 && streamCluster.get().isManageRbac()) {
-            stream.getMetadata().setStatus(Resource.Metadata.Status.ofPending());
+            stream.getMetadata().setStatus(Resource.Metadata.Status.ofCreating());
         }
         return streamRepository.create(stream);
     }
@@ -241,7 +241,10 @@ public class StreamService {
                         .toList();
 
         if (!kafkaStreamsTopics.isEmpty()) {
-            topicService.deleteTopics(kafkaStreamsTopics);
+            kafkaStreamsTopics.forEach(topic -> {
+                topic.getMetadata().setStatus(Resource.Metadata.Status.ofDeleting());
+                topicService.create(topic);
+            });
         }
 
         Optional<ManagedClusterProperties> streamCluster = managedClusterProperties.stream()

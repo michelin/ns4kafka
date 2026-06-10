@@ -160,7 +160,8 @@ public class ConfluentRoleBindingAsyncExecutor {
                                                 managedClusterProperties.getName(),
                                                 e);
 
-                                        acl.getMetadata().setStatus(Resource.Metadata.Status.ofFailed(e.getMessage()));
+                                        acl.getMetadata()
+                                                .setStatus(Resource.Metadata.Status.ofCreationFailed(e.getMessage()));
                                         aclRepository.create(acl);
                                     }
                                 })));
@@ -216,7 +217,8 @@ public class ConfluentRoleBindingAsyncExecutor {
                                             managedClusterProperties.getName(),
                                             e);
 
-                                    ks.getMetadata().setStatus(Resource.Metadata.Status.ofFailed(e.getMessage()));
+                                    ks.getMetadata()
+                                            .setStatus(Resource.Metadata.Status.ofCreationFailed(e.getMessage()));
                                     kafkaStreamRepository.create(ks);
                                 }
                             });
