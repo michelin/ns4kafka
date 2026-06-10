@@ -105,8 +105,9 @@ public class ConnectClusterService {
      * @return A list of Connect clusters
      */
     public Flux<ConnectCluster> findAll(boolean all, boolean status) {
-        Flux<ConnectCluster> selfHostedConnectClusters =
-                Flux.defer(() -> Flux.fromIterable(connectClusterRepository.findAll()));
+        Flux<ConnectCluster> selfHostedConnectClusters = Flux.defer(
+                        () -> Flux.fromIterable(connectClusterRepository.findAll()))
+                .map(this::buildConnectClusterWithDecryptedSecrets);
 
         Flux<ConnectCluster> managedConnectClusters = all
                 ? Flux.fromIterable(managedClusterProperties)
@@ -422,15 +423,9 @@ public class ConnectClusterService {
                 ConnectCluster.ConnectClusterSpec.builder()
                         .url(connectCluster.getSpec().getUrl())
                         .username(connectCluster.getSpec().getUsername())
-                        .password(EncryptionUtils.decryptAes256Gcm(
-                                connectCluster.getSpec().getPassword(),
-                                ns4KafkaProperties.getSecurity().getAes256EncryptionKey()))
-                        .aes256Key(EncryptionUtils.decryptAes256Gcm(
-                                connectCluster.getSpec().getAes256Key(),
-                                ns4KafkaProperties.getSecurity().getAes256EncryptionKey()))
-                        .aes256Salt(EncryptionUtils.decryptAes256Gcm(
-                                connectCluster.getSpec().getAes256Salt(),
-                                ns4KafkaProperties.getSecurity().getAes256EncryptionKey()))
+                        .password(decryptSecret(connectCluster.getSpec().getPassword()))
+                        .aes256Key(decryptSecret(connectCluster.getSpec().getAes256Key()))
+                        .aes256Salt(decryptSecret(connectCluster.getSpec().getAes256Salt()))
                         .aes256Format(connectCluster.getSpec().getAes256Format())
                         .status(
                                 healthyConnectClusters
@@ -449,5 +444,35 @@ public class ConnectClusterService {
                 .metadata(connectCluster.getMetadata())
                 .spec(builder.build())
                 .build();
+    }
+
+    private ConnectCluster buildConnectClusterWithDecryptedSecrets(ConnectCluster connectCluster) {
+        return ConnectCluster.builder()
+                .metadata(connectCluster.getMetadata())
+                .spec(ConnectCluster.ConnectClusterSpec.builder()
+                        .url(connectCluster.getSpec().getUrl())
+                        .username(connectCluster.getSpec().getUsername())
+                        .password(decryptSecret(connectCluster.getSpec().getPassword()))
+                        .status(connectCluster.getSpec().getStatus())
+                        .statusMessage(connectCluster.getSpec().getStatusMessage())
+                        .aes256Key(decryptSecret(connectCluster.getSpec().getAes256Key()))
+                        .aes256Salt(decryptSecret(connectCluster.getSpec().getAes256Salt()))
+                        .aes256Format(connectCluster.getSpec().getAes256Format())
+                        .build())
+                .build();
+    }
+
+    private String decryptSecret(String encryptedText) {
+        if (!StringUtils.hasText(encryptedText)) {
+            return encryptedText;
+        }
+
+        if (ns4KafkaProperties.getSecurity() == null
+                || !StringUtils.hasText(ns4KafkaProperties.getSecurity().getAes256EncryptionKey())) {
+            return encryptedText;
+        }
+
+        return EncryptionUtils.decryptAes256Gcm(
+                encryptedText, ns4KafkaProperties.getSecurity().getAes256EncryptionKey());
     }
 }
