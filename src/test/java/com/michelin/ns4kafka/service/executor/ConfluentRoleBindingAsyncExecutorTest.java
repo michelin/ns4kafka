@@ -428,12 +428,14 @@ class ConfluentRoleBindingAsyncExecutorTest {
 
         rbAsyncExecutor.createRoleBindingsFromAcls(List.of(acl));
 
-        verify(aclRepository).create(successAcl);
+        verify(aclRepository)
+                .create(argThat(a -> a.getMetadata().getStatus().getPhase() == Resource.Metadata.Phase.SUCCESS
+                        && a.getMetadata().getGeneration() == 1));
         verify(aclRepository, never()).delete(any());
     }
 
     @Test
-    void shouldNotCreateAclWhenChangedSinceLastApply() {
+    void shouldCreateAclButNotUpdateStatusWhenChangedSinceLastApply() {
         Instant instant = Instant.parse("2026-01-01T00:00:00Z");
 
         Namespace namespace = Namespace.builder()
@@ -481,7 +483,9 @@ class ConfluentRoleBindingAsyncExecutorTest {
 
         rbAsyncExecutor.createRoleBindingsFromAcls(List.of(acl));
 
-        verify(aclRepository, never()).create(any());
+        verify(aclRepository)
+                .create(argThat(a -> a.getMetadata().getStatus().getPhase() == Resource.Metadata.Phase.PENDING
+                        && a.getMetadata().getGeneration() == 1));
         verify(aclRepository, never()).delete(any());
     }
 
@@ -850,7 +854,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
     }
 
     @Test
-    void shouldNotCreateKafkaStreamWhenChangedSinceLastApply() {
+    void shouldCreateKafkaStreamButNotUpdateStatusWhenChangedSinceLastApply() {
         Instant instant = Instant.parse("2026-01-01T00:00:00Z");
 
         Namespace namespace = Namespace.builder()
@@ -886,7 +890,9 @@ class ConfluentRoleBindingAsyncExecutorTest {
 
         rbAsyncExecutor.createRoleBindingsFromKafkaStreams(List.of(kafkaStream));
 
-        verify(kafkaStreamRepository, never()).create(any());
+        verify(kafkaStreamRepository)
+                .create(argThat(ks -> ks.getMetadata().getStatus().getPhase() == Resource.Metadata.Phase.PENDING
+                        && ks.getMetadata().getGeneration() == 1));
         verify(kafkaStreamRepository, never()).delete(any());
     }
 
