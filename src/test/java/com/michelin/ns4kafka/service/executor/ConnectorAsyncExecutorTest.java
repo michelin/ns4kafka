@@ -117,7 +117,7 @@ class ConnectorAsyncExecutorTest {
     }
 
     @Test
-    void shouldNotDeployConnectorWhenChangedSinceLastApply() {
+    void shouldDeployConnectorButNotUpdateStatusWhenChangedSinceLastApply() {
         Instant instant = Instant.parse("2026-01-01T00:00:00Z");
 
         Namespace namespace = Namespace.builder()
@@ -163,7 +163,9 @@ class ConnectorAsyncExecutorTest {
 
         StepVerifier.create(connectorAsyncExecutor.run()).expectNextCount(1).verifyComplete();
 
-        verify(connectorRepository, never()).create(any());
+        verify(connectorRepository)
+                .create(argThat(c -> c.getMetadata().getStatus().getPhase() == Resource.Metadata.Phase.PENDING
+                        && c.getMetadata().getGeneration() == 1));
         verify(connectorRepository, never()).delete(any());
     }
 
