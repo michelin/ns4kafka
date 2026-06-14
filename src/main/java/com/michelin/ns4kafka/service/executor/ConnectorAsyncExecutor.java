@@ -124,20 +124,34 @@ public class ConnectorAsyncExecutor {
                                 .config(connector.getSpec().getConfig())
                                 .build())
                 .doOnSuccess(_ -> {
-                    // Do not mark connector as success if it has been marked has pending by another update
-                    if (isUnchangedSinceLastApply(connector)) {
-                        connector
-                                .getMetadata()
-                                .setGeneration(connector.getMetadata().getGeneration() + 1);
-                        connector.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
-                        connectorRepository.create(connector);
+                    Optional<Connector> existingConnector = namespaceService
+                            .findByName(connector.getMetadata().getNamespace())
+                            .flatMap(namespace -> connectorService.findByName(
+                                    namespace, connector.getMetadata().getName()));
 
-                        log.info(
-                                "Success creating connector {} on Kafka Connect {} of Kafka cluster {}.",
-                                connector.getMetadata().getName(),
-                                connector.getSpec().getConnectCluster(),
-                                managedClusterProperties.getName());
+                    Connector lastVersion = existingConnector.orElse(connector);
+                    lastVersion
+                            .getMetadata()
+                            .setGeneration(lastVersion.getMetadata().getGeneration() + 1);
+
+                    // Only mark connector as success if it has not been re-applied since last deployment
+                    boolean unchangedSinceLastApply = existingConnector.isEmpty()
+                            || !existingConnector
+                                    .get()
+                                    .getMetadata()
+                                    .getUpdateTimestamp()
+                                    .after(connector.getMetadata().getUpdateTimestamp());
+                    if (unchangedSinceLastApply) {
+                        lastVersion.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
                     }
+
+                    connectorRepository.create(lastVersion);
+
+                    log.info(
+                            "Success creating connector {} on Kafka Connect {} of Kafka cluster {}.",
+                            lastVersion.getMetadata().getName(),
+                            lastVersion.getSpec().getConnectCluster(),
+                            managedClusterProperties.getName());
                 })
                 .doOnError(httpError -> {
                     // Do not mark connector as failed if it has been marked has pending by another update
@@ -185,6 +199,10 @@ public class ConnectorAsyncExecutor {
                 .defaultIfEmpty(HttpResponse.noContent())
                 .onErrorResume(error -> {
                     // Treat 404 as success, since the connector no longer exists in Kafka Connect.
+                    // This can happen when applying and deleting immediately, before the connector
+                    // has had time to be created in Kafka Connect.
+                    // We could have checked whether the generation was == 0 to delete immediately,
+                    // but generation values are unreliable for connectors before Ns4Kafka 1.21.0.
                     if (error instanceof HttpClientResponseException httpException
                             && httpException.getStatus() == HttpStatus.NOT_FOUND) {
                         return Mono.just(HttpResponse.noContent());

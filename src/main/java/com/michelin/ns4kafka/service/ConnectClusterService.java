@@ -460,22 +460,12 @@ public class ConnectClusterService {
                 .build();
     }
 
-    private ConnectCluster buildConnectClusterWithDecryptedSecrets(ConnectCluster connectCluster) {
-        return ConnectCluster.builder()
-                .metadata(connectCluster.getMetadata())
-                .spec(ConnectCluster.ConnectClusterSpec.builder()
-                        .url(connectCluster.getSpec().getUrl())
-                        .username(connectCluster.getSpec().getUsername())
-                        .password(decryptSecret(connectCluster.getSpec().getPassword()))
-                        .status(connectCluster.getSpec().getStatus())
-                        .statusMessage(connectCluster.getSpec().getStatusMessage())
-                        .aes256Key(decryptSecret(connectCluster.getSpec().getAes256Key()))
-                        .aes256Salt(decryptSecret(connectCluster.getSpec().getAes256Salt()))
-                        .aes256Format(connectCluster.getSpec().getAes256Format())
-                        .build())
-                .build();
-    }
-
+    /**
+     * Decrypt a secret.
+     *
+     * @param encryptedText The encrypted text
+     * @return The decrypted text
+     */
     private String decryptSecret(String encryptedText) {
         if (!StringUtils.hasText(encryptedText)) {
             return encryptedText;
