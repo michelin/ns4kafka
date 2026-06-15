@@ -123,18 +123,34 @@ public class ConfluentRoleBindingAsyncExecutor {
                         .createRoleBinding(managedClusterProperties.getName(), roleBinding)
                         .subscribe(
                                 roleBindingResponse -> {
-                                    if (isUnchangedSinceLastApply(acl)) {
-                                        log.info(
-                                                "Success creating RoleBinding {} for ACL {} on {}.",
-                                                roleBindingResponse.id(),
-                                                acl.getMetadata().getName(),
-                                                managedClusterProperties.getName());
+                                    Optional<AccessControlEntry> existingAcl = aclService.findByName(
+                                            acl.getMetadata().getNamespace(),
+                                            acl.getMetadata().getName());
 
-                                        acl.getMetadata()
-                                                .setGeneration(acl.getMetadata().getGeneration() + 1);
-                                        acl.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
-                                        aclRepository.create(acl);
+                                    AccessControlEntry lastVersion = existingAcl.orElse(acl);
+                                    lastVersion
+                                            .getMetadata()
+                                            .setGeneration(
+                                                    lastVersion.getMetadata().getGeneration() + 1);
+
+                                    // Only mark ACL as success if it has not been re-applied since last deployment
+                                    boolean unchangedSinceLastApply = existingAcl.isEmpty()
+                                            || !existingAcl
+                                                    .get()
+                                                    .getMetadata()
+                                                    .getUpdateTimestamp()
+                                                    .after(acl.getMetadata().getUpdateTimestamp());
+                                    if (unchangedSinceLastApply) {
+                                        lastVersion.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
                                     }
+
+                                    aclRepository.create(lastVersion);
+
+                                    log.info(
+                                            "Success creating RoleBinding {} for ACL {} on {}.",
+                                            roleBindingResponse.id(),
+                                            lastVersion.getMetadata().getName(),
+                                            managedClusterProperties.getName());
                                 },
                                 e -> {
                                     if (isUnchangedSinceLastApply(acl)) {
@@ -163,18 +179,34 @@ public class ConfluentRoleBindingAsyncExecutor {
                     .createRoleBinding(managedClusterProperties.getName(), roleBinding)
                     .subscribe(
                             roleBindingResponse -> {
-                                if (isUnchangedSinceLastApply(ks)) {
-                                    log.info(
-                                            "Success creating RoleBinding {} for KafkaStream {} on {}.",
-                                            roleBindingResponse.id(),
-                                            ks.getMetadata().getName(),
-                                            managedClusterProperties.getName());
+                                Optional<KafkaStream> existingStream = namespaceService
+                                        .findByName(ks.getMetadata().getNamespace())
+                                        .flatMap(namespace -> streamService.findByName(
+                                                namespace, ks.getMetadata().getName()));
 
-                                    ks.getMetadata()
-                                            .setGeneration(ks.getMetadata().getGeneration() + 1);
-                                    ks.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
-                                    kafkaStreamRepository.create(ks);
+                                KafkaStream lastVersion = existingStream.orElse(ks);
+                                lastVersion
+                                        .getMetadata()
+                                        .setGeneration(lastVersion.getMetadata().getGeneration() + 1);
+
+                                // Only mark Kafka stream as success if it has not been re-applied since last deployment
+                                boolean unchangedSinceLastApply = existingStream.isEmpty()
+                                        || !existingStream
+                                                .get()
+                                                .getMetadata()
+                                                .getUpdateTimestamp()
+                                                .after(ks.getMetadata().getUpdateTimestamp());
+                                if (unchangedSinceLastApply) {
+                                    lastVersion.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
                                 }
+
+                                kafkaStreamRepository.create(lastVersion);
+
+                                log.info(
+                                        "Success creating RoleBinding {} for KafkaStream {} on {}.",
+                                        roleBindingResponse.id(),
+                                        lastVersion.getMetadata().getName(),
+                                        managedClusterProperties.getName());
                             },
                             e -> {
                                 if (isUnchangedSinceLastApply(ks)) {
