@@ -141,39 +141,7 @@ class TopicControllerTest {
     }
 
     @Test
-    @SuppressWarnings("deprecation")
-    void shouldGetTopicWhenNotOwner() {
-        when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(false);
-
-        assertThrows(ResourceValidationException.class, () -> topicController.get("test", "topic.notfound"));
-    }
-
-    @Test
-    @SuppressWarnings("deprecation")
-    void shouldGetTopic() {
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
-
-        when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(topicService.findByName(ns, "topic.found"))
-                .thenReturn(Optional.of(Topic.builder()
-                        .metadata(
-                                Resource.Metadata.builder().name("topic.found").build())
-                        .build()));
-
-        Optional<Topic> actual = topicController.get("test", "topic.found");
-
-        assertTrue(actual.isPresent());
-        assertEquals("topic.found", actual.get().getMetadata().getName());
-    }
-
-    @Test
-    void shouldBulkDeleteTopics() throws InterruptedException, ExecutionException, TimeoutException {
+    void shouldDeleteTopics() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test")
@@ -199,12 +167,12 @@ class TopicControllerTest {
         doNothing().when(topicService).deleteTopics(toDelete);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        HttpResponse<List<Topic>> actual = topicController.bulkDelete("test", "prefix1.*", false);
+        HttpResponse<List<Topic>> actual = topicController.delete("test", "prefix1.*", false);
         assertEquals(HttpStatus.OK, actual.getStatus());
     }
 
     @Test
-    void shouldNotBulkDeleteTopicsWhenNotFound() throws InterruptedException, ExecutionException, TimeoutException {
+    void shouldNotDeleteTopicsWhenNotFound() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test")
@@ -216,14 +184,14 @@ class TopicControllerTest {
 
         when(topicService.findByWildcardName(ns, "topic*")).thenReturn(List.of());
 
-        HttpResponse<List<Topic>> actual = topicController.bulkDelete("test", "topic*", false);
+        HttpResponse<List<Topic>> actual = topicController.delete("test", "topic*", false);
 
         assertEquals(HttpStatus.NOT_FOUND, actual.getStatus());
-        verify(topicService, never()).delete(any());
+        verify(topicService, never()).deleteTopics(any());
     }
 
     @Test
-    void shouldNotBulkDeleteTopicsInDryRunMode() throws InterruptedException, ExecutionException, TimeoutException {
+    void shouldNotDeleteTopicsInDryRunMode() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test")
@@ -239,75 +207,9 @@ class TopicControllerTest {
 
         when(topicService.findByWildcardName(ns, "prefix.topic")).thenReturn(toDelete);
 
-        HttpResponse<List<Topic>> actual = topicController.bulkDelete("test", "prefix.topic", true);
+        HttpResponse<List<Topic>> actual = topicController.delete("test", "prefix.topic", true);
         assertEquals(HttpStatus.OK, actual.getStatus());
-        verify(topicService, never()).delete(any());
-    }
-
-    @Test
-    @SuppressWarnings("deprecation")
-    void shouldDeleteTopic() throws InterruptedException, ExecutionException, TimeoutException {
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
-
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        Optional<Topic> toDelete = Optional.of(Topic.builder()
-                .metadata(Resource.Metadata.builder().name("topic.delete").build())
-                .build());
-        when(topicService.findByName(ns, "topic.delete")).thenReturn(toDelete);
-        when(topicService.isNamespaceOwnerOfTopic("test", "topic.delete")).thenReturn(true);
-        when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
-        doNothing().when(topicService).delete(toDelete.get());
-        doNothing().when(applicationEventPublisher).publishEvent(any());
-
-        HttpResponse<Void> actual = topicController.delete("test", "topic.delete", false);
-
-        assertEquals(HttpStatus.NO_CONTENT, actual.getStatus());
-    }
-
-    @Test
-    @SuppressWarnings("deprecation")
-    void shouldNotDeleteTopicInDryRunMode() throws InterruptedException, ExecutionException, TimeoutException {
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
-
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-
-        Optional<Topic> toDelete = Optional.of(Topic.builder()
-                .metadata(Resource.Metadata.builder().name("topic.delete").build())
-                .build());
-
-        when(topicService.findByName(ns, "topic.delete")).thenReturn(toDelete);
-        when(topicService.isNamespaceOwnerOfTopic("test", "topic.delete")).thenReturn(true);
-
-        topicController.delete("test", "topic.delete", true);
-
-        verify(topicService, never()).delete(any());
-    }
-
-    @Test
-    @SuppressWarnings("deprecation")
-    void shouldNotDeleteTopicWhenUnauthorized() {
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
-
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(topicService.isNamespaceOwnerOfTopic("test", "topic.delete")).thenReturn(false);
-
-        assertThrows(ResourceValidationException.class, () -> topicController.delete("test", "topic.delete", false));
+        verify(topicService, never()).deleteTopics(any());
     }
 
     @Test

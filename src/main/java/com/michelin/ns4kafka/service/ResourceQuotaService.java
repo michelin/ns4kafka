@@ -105,19 +105,6 @@ public class ResourceQuotaService {
     }
 
     /**
-     * Find a resource quota by namespace and name.
-     *
-     * @param namespace The namespace
-     * @param quota The quota name
-     * @return The researched resource quota
-     */
-    public Optional<ResourceQuota> findByName(String namespace, String quota) {
-        return findByNamespace(namespace).stream()
-                .filter(resourceQuota -> resourceQuota.getMetadata().getName().equals(quota))
-                .findFirst();
-    }
-
-    /**
      * Create a resource quota.
      *
      * @param resourceQuota The resource quota to create

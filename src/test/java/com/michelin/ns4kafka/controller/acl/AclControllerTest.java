@@ -277,70 +277,6 @@ class AclControllerTest {
     }
 
     @Test
-    @SuppressWarnings("deprecation")
-    void shouldGetAcl() {
-        Namespace namespace = Namespace.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
-
-        AccessControlEntry aceTopicPrefixedReadTestToNamespaceOther = AccessControlEntry.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("ace3")
-                        .namespace("test")
-                        .cluster("local")
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.READ)
-                        .resource("prefix")
-                        .grantedTo("namespace-other")
-                        .build())
-                .build();
-
-        AccessControlEntry aceTopicPrefixedReadNamespaceOtherToTest = AccessControlEntry.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("ace5")
-                        .namespace("namespace-other")
-                        .cluster("local")
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.READ)
-                        .resource("other-prefix")
-                        .grantedTo("test")
-                        .build())
-                .build();
-
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(namespace));
-        when(aclService.findAllRelatedToNamespace(namespace))
-                .thenReturn(
-                        List.of(aceTopicPrefixedReadTestToNamespaceOther, aceTopicPrefixedReadNamespaceOtherToTest));
-
-        // Name not in list
-        assertTrue(accessControlListController.get("test", "ace6").isEmpty());
-
-        // Not granted to or assigned by me
-        assertTrue(accessControlListController.get("test", "ace4").isEmpty());
-
-        // Assigned by me
-        Optional<AccessControlEntry> result3 = accessControlListController.get("test", "ace3");
-
-        assertTrue(result3.isPresent());
-        assertEquals(aceTopicPrefixedReadTestToNamespaceOther, result3.get());
-
-        // Granted to me
-        Optional<AccessControlEntry> result4 = accessControlListController.get("test", "ace5");
-
-        assertTrue(result4.isPresent());
-        assertEquals(aceTopicPrefixedReadNamespaceOtherToTest, result4.get());
-    }
-
-    @Test
     void shouldApplyFailsAsAdmin() {
         Namespace namespace = Namespace.builder()
                 .spec(Namespace.NamespaceSpec.builder()
@@ -895,139 +831,7 @@ class AclControllerTest {
     }
 
     @Test
-    @SuppressWarnings("deprecation")
-    void shouldNotDeleteAclWhenNotFound() {
-        Authentication authentication = Authentication.build("user", Map.of("roles", List.of()));
-
-        when(aclService.findByName("test", "ace1")).thenReturn(Optional.empty());
-
-        ResourceValidationException actual = assertThrows(
-                ResourceValidationException.class,
-                () -> accessControlListController.delete(authentication, "test", "ace1", false));
-
-        assertEquals(
-                "Invalid value \"ace1\" for field \"name\": resource not found.",
-                actual.getValidationErrors().getFirst());
-    }
-
-    @Test
-    @SuppressWarnings("deprecation")
-    void shouldNotDeleteSelfAssignedAclWhenNotAdmin() {
-        AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("ace1")
-                        .namespace("test")
-                        .cluster("local")
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.READ)
-                        .resource("prefix")
-                        .grantedTo("test")
-                        .build())
-                .build();
-
-        Authentication authentication = Authentication.build("user", Map.of("roles", List.of()));
-
-        when(aclService.findByName("test", "ace1")).thenReturn(Optional.of(accessControlEntry));
-
-        ResourceValidationException actual = assertThrows(
-                ResourceValidationException.class,
-                () -> accessControlListController.delete(authentication, "test", "ace1", false));
-
-        assertEquals(
-                "Invalid value \"ace1\" for field \"name\": only administrators can delete this ACL.",
-                actual.getValidationErrors().getFirst());
-    }
-
-    @Test
-    @SuppressWarnings("deprecation")
-    void shouldDeleteSelfAssignedAclAsAdmin() {
-        AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("ace1")
-                        .namespace("test")
-                        .cluster("local")
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.READ)
-                        .resource("prefix")
-                        .grantedTo("test")
-                        .build())
-                .build();
-
-        Authentication authentication =
-                Authentication.build("user", List.of("isAdmin()"), Map.of("roles", List.of("isAdmin()")));
-
-        when(aclService.findByName("test", "ace1")).thenReturn(Optional.of(accessControlEntry));
-
-        HttpResponse<Void> actual = accessControlListController.delete(authentication, "test", "ace1", false);
-
-        assertEquals(HttpStatus.NO_CONTENT, actual.status());
-    }
-
-    @Test
-    @SuppressWarnings("deprecation")
-    void shouldDeleteAcl() {
-        AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("ace1")
-                        .namespace("test")
-                        .cluster("local")
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.READ)
-                        .resource("prefix")
-                        .grantedTo("namespace-other")
-                        .build())
-                .build();
-
-        Authentication authentication = Authentication.build("user", Map.of("roles", List.of()));
-
-        when(aclService.findByName("test", "ace1")).thenReturn(Optional.of(accessControlEntry));
-        when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
-        doNothing().when(applicationEventPublisher).publishEvent(any());
-
-        HttpResponse<Void> actual = accessControlListController.delete(authentication, "test", "ace1", false);
-
-        assertEquals(HttpStatus.NO_CONTENT, actual.status());
-    }
-
-    @Test
-    @SuppressWarnings("deprecation")
-    void shouldNotDeleteInDryRunMode() {
-        AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("ace1")
-                        .namespace("test")
-                        .cluster("local")
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.READ)
-                        .resource("prefix")
-                        .grantedTo("namespace-other")
-                        .build())
-                .build();
-
-        Authentication authentication = Authentication.build("user", Map.of("roles", List.of()));
-
-        when(aclService.findByName("test", "ace1")).thenReturn(Optional.of(accessControlEntry));
-        HttpResponse<Void> actual = accessControlListController.delete(authentication, "test", "ace1", true);
-
-        verify(aclService, never()).delete(any());
-        assertEquals(HttpStatus.NO_CONTENT, actual.status());
-    }
-
-    @Test
-    void shouldNotBulkDeleteAclsWhenNotFound() {
+    void shouldNotDeleteAclsWhenNotFound() {
         Authentication authentication = Authentication.build("user", Map.of("roles", List.of()));
         Namespace namespace = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
@@ -1041,12 +845,12 @@ class AclControllerTest {
                 .thenReturn(List.of());
 
         HttpResponse<List<AccessControlEntry>> actual =
-                accessControlListController.bulkDelete(authentication, "test", "ace1", false);
+                accessControlListController.delete(authentication, "test", "ace1", false);
         assertEquals(HttpStatus.NOT_FOUND, actual.status());
     }
 
     @Test
-    void shouldNotBulkDeleteSelfAssignedAclsWhenNotAdmin() {
+    void shouldNotDeleteSelfAssignedAclsWhenNotAdmin() {
         Namespace namespace = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test")
@@ -1091,7 +895,7 @@ class AclControllerTest {
 
         ResourceValidationException actual = assertThrows(
                 ResourceValidationException.class,
-                () -> accessControlListController.bulkDelete(authentication, "test", "ace*", false));
+                () -> accessControlListController.delete(authentication, "test", "ace*", false));
 
         assertEquals(
                 "Invalid value \"ace*\" for field \"name\":"
@@ -1100,7 +904,7 @@ class AclControllerTest {
     }
 
     @Test
-    void shouldBulkDeleteSelfAssignedAclsAsAdmin() {
+    void shouldDeleteSelfAssignedAclsAsAdmin() {
         Namespace namespace = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test")
@@ -1130,13 +934,13 @@ class AclControllerTest {
                 .thenReturn(List.of(accessControlEntry));
 
         HttpResponse<List<AccessControlEntry>> actual =
-                accessControlListController.bulkDelete(authentication, "test", "ace1", false);
+                accessControlListController.delete(authentication, "test", "ace1", false);
 
         assertEquals(HttpStatus.OK, actual.status());
     }
 
     @Test
-    void shouldBulkDeleteAcls() {
+    void shouldDeleteAcls() {
         Namespace namespace = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test")
@@ -1183,13 +987,13 @@ class AclControllerTest {
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         HttpResponse<List<AccessControlEntry>> actual =
-                accessControlListController.bulkDelete(authentication, "test", "ace*", false);
+                accessControlListController.delete(authentication, "test", "ace*", false);
 
         assertEquals(HttpStatus.OK, actual.status());
     }
 
     @Test
-    void shouldNotBulkDeleteAclsInDryRunMode() {
+    void shouldNotDeleteAclsInDryRunMode() {
         Namespace namespace = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test")
@@ -1217,7 +1021,7 @@ class AclControllerTest {
         when(aclService.findAllGrantedByNamespaceByWildcardName(namespace, "ace1"))
                 .thenReturn(List.of(accessControlEntry));
         HttpResponse<List<AccessControlEntry>> actual =
-                accessControlListController.bulkDelete(authentication, "test", "ace1", true);
+                accessControlListController.delete(authentication, "test", "ace1", true);
 
         verify(aclService, never()).delete(any());
         assertEquals(HttpStatus.OK, actual.status());
