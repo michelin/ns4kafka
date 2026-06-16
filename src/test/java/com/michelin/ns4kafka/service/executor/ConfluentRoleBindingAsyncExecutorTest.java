@@ -393,6 +393,8 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .name("ns1-write")
                         .namespace("ns1")
                         .status(Resource.Metadata.Status.ofPending())
+                        .updateTimestamp(Date.from(Instant.now()))
+                        .generation(0)
                         .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
@@ -412,9 +414,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
 
         rbAsyncExecutor.createRoleBindingsFromAcls(List.of(acl));
 
-        verify(aclRepository)
-                .create(argThat(a -> a.getMetadata().getStatus().getPhase() == Resource.Metadata.Phase.SUCCESS
-                        && a.getMetadata().getGeneration() == 1));
+        verify(aclRepository).create(argThat(a -> a.equals(acl) && a.isSuccess() && a.isCreated()));
         verify(aclRepository, never()).delete(any());
     }
 
@@ -433,6 +433,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .namespace("ns1")
                         .status(Resource.Metadata.Status.ofPending())
                         .updateTimestamp(Date.from(instant))
+                        .generation(0)
                         .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
@@ -449,6 +450,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .namespace("ns1")
                         .status(Resource.Metadata.Status.ofPending())
                         .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .generation(0)
                         .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
@@ -464,12 +466,11 @@ class ConfluentRoleBindingAsyncExecutorTest {
         when(confluentCloudClient.createRoleBinding(any(), any())).thenReturn(Mono.just(response));
         when(namespaceService.findByName("ns1")).thenReturn(Optional.of(namespace));
         when(aclService.findByName("ns1", "ns1-write")).thenReturn(Optional.of(newAcl));
+        when(aclRepository.create(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         rbAsyncExecutor.createRoleBindingsFromAcls(List.of(acl));
 
-        verify(aclRepository)
-                .create(argThat(a -> a.getMetadata().getStatus().getPhase() == Resource.Metadata.Phase.PENDING
-                        && a.getMetadata().getGeneration() == 1));
+        verify(aclRepository).create(argThat(a -> a.equals(newAcl) && a.isPending() && a.isCreated()));
         verify(aclRepository, never()).delete(any());
     }
 
@@ -485,6 +486,8 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .name("ns1-write")
                         .namespace("ns1")
                         .status(Resource.Metadata.Status.ofPending())
+                        .updateTimestamp(Date.from(Instant.now()))
+                        .generation(0)
                         .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
@@ -504,7 +507,8 @@ class ConfluentRoleBindingAsyncExecutorTest {
         rbAsyncExecutor.createRoleBindingsFromAcls(List.of(acl));
 
         verify(aclRepository)
-                .create(argThat(a -> a.getMetadata().getStatus().getPhase() == Resource.Metadata.Phase.FAIL
+                .create(argThat(a -> a.isFailed()
+                        && !a.isCreated()
                         && "error".equals(a.getMetadata().getStatus().getMessage())));
         verify(aclRepository, never()).delete(any());
     }
@@ -524,6 +528,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .namespace("ns1")
                         .status(Resource.Metadata.Status.ofPending())
                         .updateTimestamp(Date.from(instant))
+                        .generation(0)
                         .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
@@ -540,6 +545,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .namespace("ns1")
                         .status(Resource.Metadata.Status.ofPending())
                         .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .generation(0)
                         .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
@@ -574,6 +580,8 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .name("ns1-read")
                         .namespace("ns1")
                         .status(Resource.Metadata.Status.ofDeleting())
+                        .updateTimestamp(Date.from(Instant.now()))
+                        .generation(1)
                         .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
@@ -590,6 +598,8 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .name("ns1-read-empty")
                         .namespace("ns1")
                         .status(Resource.Metadata.Status.ofDeleting())
+                        .updateTimestamp(Date.from(Instant.now()))
+                        .generation(1)
                         .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
@@ -636,6 +646,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .namespace("ns1")
                         .status(Resource.Metadata.Status.ofDeleting())
                         .updateTimestamp(Date.from(instant))
+                        .generation(1)
                         .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
@@ -653,6 +664,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .namespace("ns1")
                         .status(Resource.Metadata.Status.ofPending())
                         .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .generation(1)
                         .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
@@ -690,6 +702,8 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .name("ns1-write")
                         .namespace("ns1")
                         .status(Resource.Metadata.Status.ofDeleting())
+                        .updateTimestamp(Date.from(Instant.now()))
+                        .generation(1)
                         .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
@@ -713,7 +727,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
         rbAsyncExecutor.deleteRoleBindingsFromAcls(List.of(acl));
 
         verify(aclRepository)
-                .create(argThat(a -> a.getMetadata().getStatus().getPhase() == Resource.Metadata.Phase.FAIL
+                .create(argThat(a -> a.isFailed()
                         && "error".equals(a.getMetadata().getStatus().getMessage())));
         verify(aclRepository, never()).delete(any());
     }
@@ -734,6 +748,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .namespace("ns1")
                         .status(Resource.Metadata.Status.ofDeleting())
                         .updateTimestamp(Date.from(instant))
+                        .generation(1)
                         .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
@@ -751,6 +766,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .namespace("ns1")
                         .status(Resource.Metadata.Status.ofPending())
                         .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .generation(1)
                         .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
@@ -789,6 +805,8 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .namespace("ns1")
                         .name("ns1-stream")
                         .status(Resource.Metadata.Status.ofPending())
+                        .updateTimestamp(Date.from(Instant.now()))
+                        .generation(0)
                         .build())
                 .build();
 
@@ -803,11 +821,11 @@ class ConfluentRoleBindingAsyncExecutorTest {
         when(confluentCloudClient.createRoleBinding(any(), any())).thenReturn(Mono.just(response));
         when(namespaceService.findByName("ns1")).thenReturn(Optional.of(namespace));
         when(streamService.findByName(namespace, "ns1-stream")).thenReturn(Optional.empty());
-        when(kafkaStreamRepository.create(kafkaStream)).thenReturn(kafkaStream);
+        when(kafkaStreamRepository.create(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         rbAsyncExecutor.createRoleBindingsFromKafkaStreams(List.of(kafkaStream));
 
-        verify(kafkaStreamRepository).create(kafkaStream);
+        verify(kafkaStreamRepository).create(argThat(ks -> ks.equals(kafkaStream) && ks.isSuccess() && ks.isCreated()));
         verify(kafkaStreamRepository, never()).delete(any());
     }
 
@@ -827,6 +845,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .name("ns1-stream")
                         .status(Resource.Metadata.Status.ofPending())
                         .updateTimestamp(Date.from(instant))
+                        .generation(0)
                         .build())
                 .build();
 
@@ -837,6 +856,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .name("ns1-stream")
                         .status(Resource.Metadata.Status.ofPending())
                         .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .generation(0)
                         .build())
                 .build();
 
@@ -845,12 +865,12 @@ class ConfluentRoleBindingAsyncExecutorTest {
         when(confluentCloudClient.createRoleBinding(any(), any())).thenReturn(Mono.just(response));
         when(namespaceService.findByName("ns1")).thenReturn(Optional.of(namespace));
         when(streamService.findByName(namespace, "ns1-stream")).thenReturn(Optional.of(newKafkaStream));
+        when(kafkaStreamRepository.create(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         rbAsyncExecutor.createRoleBindingsFromKafkaStreams(List.of(kafkaStream));
 
         verify(kafkaStreamRepository)
-                .create(argThat(ks -> ks.getMetadata().getStatus().getPhase() == Resource.Metadata.Phase.PENDING
-                        && ks.getMetadata().getGeneration() == 1));
+                .create(argThat(ks -> ks.equals(newKafkaStream) && ks.isPending() && ks.isCreated()));
         verify(kafkaStreamRepository, never()).delete(any());
     }
 
@@ -867,15 +887,8 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .namespace("ns1")
                         .name("ns1-stream")
                         .status(Resource.Metadata.Status.ofPending())
-                        .build())
-                .build();
-
-        KafkaStream failedKafkaStream = KafkaStream.builder()
-                .metadata(Resource.Metadata.builder()
-                        .cluster("cluster")
-                        .namespace("ns1")
-                        .name("ns1-stream")
-                        .status(Resource.Metadata.Status.ofFailed("error"))
+                        .updateTimestamp(Date.from(Instant.now()))
+                        .generation(0)
                         .build())
                 .build();
 
@@ -883,11 +896,11 @@ class ConfluentRoleBindingAsyncExecutorTest {
                 .thenReturn(Mono.error(new RuntimeException("error")));
         when(namespaceService.findByName("ns1")).thenReturn(Optional.of(namespace));
         when(streamService.findByName(namespace, "ns1-stream")).thenReturn(Optional.empty());
-        when(kafkaStreamRepository.create(failedKafkaStream)).thenReturn(failedKafkaStream);
+        when(kafkaStreamRepository.create(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         rbAsyncExecutor.createRoleBindingsFromKafkaStreams(List.of(kafkaStream));
 
-        verify(kafkaStreamRepository).create(failedKafkaStream);
+        verify(kafkaStreamRepository).create(argThat(ks -> ks.equals(kafkaStream) && ks.isFailed() && !ks.isCreated()));
         verify(kafkaStreamRepository, never()).delete(any());
     }
 
@@ -907,6 +920,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .name("ns1-stream")
                         .status(Resource.Metadata.Status.ofPending())
                         .updateTimestamp(Date.from(instant))
+                        .generation(0)
                         .build())
                 .build();
 
@@ -917,6 +931,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .name("ns1-stream")
                         .status(Resource.Metadata.Status.ofPending())
                         .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .generation(0)
                         .build())
                 .build();
 
@@ -944,6 +959,8 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .namespace("ns1")
                         .name("ns1-stream")
                         .status(Resource.Metadata.Status.ofDeleting())
+                        .updateTimestamp(Date.from(Instant.now()))
+                        .generation(1)
                         .build())
                 .build();
 
@@ -953,6 +970,8 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .namespace("ns1")
                         .name("ns1-stream-empty")
                         .status(Resource.Metadata.Status.ofDeleting())
+                        .updateTimestamp(Date.from(Instant.now()))
+                        .generation(1)
                         .build())
                 .build();
 
@@ -994,6 +1013,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .name("ns1-stream")
                         .status(Resource.Metadata.Status.ofDeleting())
                         .updateTimestamp(Date.from(instant))
+                        .generation(1)
                         .build())
                 .build();
 
@@ -1004,6 +1024,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .name("ns1-stream")
                         .status(Resource.Metadata.Status.ofPending())
                         .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .generation(1)
                         .build())
                 .build();
 
@@ -1036,15 +1057,8 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .namespace("ns1")
                         .name("ns1-stream")
                         .status(Resource.Metadata.Status.ofDeleting())
-                        .build())
-                .build();
-
-        KafkaStream failedKafkaStream = KafkaStream.builder()
-                .metadata(Resource.Metadata.builder()
-                        .cluster("cluster")
-                        .namespace("ns1")
-                        .name("ns1-stream")
-                        .status(Resource.Metadata.Status.ofFailed("error"))
+                        .updateTimestamp(Date.from(Instant.now()))
+                        .generation(1)
                         .build())
                 .build();
 
@@ -1055,11 +1069,11 @@ class ConfluentRoleBindingAsyncExecutorTest {
         when(namespaceService.findByName("ns1")).thenReturn(Optional.of(namespace));
         when(confluentCloudClient.deleteRoleBinding("cluster", manageTopicRoleBinding))
                 .thenReturn(Mono.error(new RuntimeException("error")));
-        when(kafkaStreamRepository.create(failedKafkaStream)).thenReturn(failedKafkaStream);
+        when(kafkaStreamRepository.create(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         rbAsyncExecutor.deleteRoleBindingsFromKafkaStreams(List.of(kafkaStream));
 
-        verify(kafkaStreamRepository).create(failedKafkaStream);
+        verify(kafkaStreamRepository).create(argThat(ks -> ks.equals(kafkaStream) && ks.isFailed()));
         verify(kafkaStreamRepository, never()).delete(any());
     }
 
@@ -1079,6 +1093,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .name("ns1-stream")
                         .status(Resource.Metadata.Status.ofDeleting())
                         .updateTimestamp(Date.from(instant))
+                        .generation(1)
                         .build())
                 .build();
 
@@ -1089,6 +1104,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .name("ns1-stream")
                         .status(Resource.Metadata.Status.ofPending())
                         .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .generation(1)
                         .build())
                 .build();
 

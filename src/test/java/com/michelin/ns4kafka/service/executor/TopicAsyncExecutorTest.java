@@ -143,7 +143,9 @@ class TopicAsyncExecutorTest {
                 .metadata(Resource.Metadata.builder()
                         .cluster("local")
                         .name("topic")
+                        .status(Resource.Metadata.Status.ofPending())
                         .updateTimestamp(Date.from(instant))
+                        .generation(0)
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
@@ -176,7 +178,9 @@ class TopicAsyncExecutorTest {
                 .metadata(Resource.Metadata.builder()
                         .cluster("local")
                         .name("topic")
+                        .status(Resource.Metadata.Status.ofPending())
                         .updateTimestamp(Date.from(instant))
+                        .generation(0)
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
@@ -185,9 +189,9 @@ class TopicAsyncExecutorTest {
                 .metadata(Resource.Metadata.builder()
                         .cluster("local")
                         .name("topic")
-                        .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
                         .status(Resource.Metadata.Status.ofPending())
-                        .generation(1)
+                        .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .generation(0)
                         .build())
                 .spec(Topic.TopicSpec.builder().configs(Map.of("key", "value")).build())
                 .build();
@@ -221,7 +225,9 @@ class TopicAsyncExecutorTest {
                 .metadata(Resource.Metadata.builder()
                         .cluster("local")
                         .name("topic")
+                        .status(Resource.Metadata.Status.ofPending())
                         .updateTimestamp(Date.from(instant))
+                        .generation(0)
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
@@ -230,7 +236,7 @@ class TopicAsyncExecutorTest {
 
         topicAsyncExecutor.createTopics(List.of(topic));
 
-        verify(topicRepository).create(argThat(a -> a.equals(topic) && a.isFailed()));
+        verify(topicRepository).create(argThat(a -> a.equals(topic) && a.isFailed() && !a.isCreated()));
     }
 
     @Test
@@ -256,7 +262,9 @@ class TopicAsyncExecutorTest {
                 .metadata(Resource.Metadata.builder()
                         .cluster("local")
                         .name("topic")
+                        .status(Resource.Metadata.Status.ofPending())
                         .updateTimestamp(Date.from(instant))
+                        .generation(0)
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
@@ -265,7 +273,9 @@ class TopicAsyncExecutorTest {
                 .metadata(Resource.Metadata.builder()
                         .cluster("local")
                         .name("topic")
+                        .status(Resource.Metadata.Status.ofPending())
                         .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .generation(0)
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
@@ -298,7 +308,9 @@ class TopicAsyncExecutorTest {
                 .metadata(Resource.Metadata.builder()
                         .cluster("local")
                         .name("topic")
+                        .status(Resource.Metadata.Status.ofDeleting())
                         .updateTimestamp(Date.from(instant))
+                        .generation(1)
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
@@ -332,7 +344,9 @@ class TopicAsyncExecutorTest {
                 .metadata(Resource.Metadata.builder()
                         .cluster("local")
                         .name("topic")
+                        .status(Resource.Metadata.Status.ofDeleting())
                         .updateTimestamp(Date.from(instant))
+                        .generation(1)
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
@@ -341,7 +355,9 @@ class TopicAsyncExecutorTest {
                 .metadata(Resource.Metadata.builder()
                         .cluster("local")
                         .name("topic")
+                        .status(Resource.Metadata.Status.ofPending())
                         .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .generation(1)
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
@@ -377,7 +393,9 @@ class TopicAsyncExecutorTest {
                 .metadata(Resource.Metadata.builder()
                         .cluster("local")
                         .name("topic")
+                        .status(Resource.Metadata.Status.ofDeleting())
                         .updateTimestamp(Date.from(instant))
+                        .generation(1)
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
@@ -413,7 +431,9 @@ class TopicAsyncExecutorTest {
                 .metadata(Resource.Metadata.builder()
                         .cluster("local")
                         .name("topic")
+                        .status(Resource.Metadata.Status.ofDeleting())
                         .updateTimestamp(Date.from(instant))
+                        .generation(1)
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
@@ -449,7 +469,9 @@ class TopicAsyncExecutorTest {
                 .metadata(Resource.Metadata.builder()
                         .cluster("local")
                         .name("topic")
+                        .status(Resource.Metadata.Status.ofDeleting())
                         .updateTimestamp(Date.from(instant))
+                        .generation(1)
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
@@ -458,7 +480,9 @@ class TopicAsyncExecutorTest {
                 .metadata(Resource.Metadata.builder()
                         .cluster("local")
                         .name("topic")
+                        .status(Resource.Metadata.Status.ofPending())
                         .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .generation(1)
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
@@ -478,7 +502,9 @@ class TopicAsyncExecutorTest {
                 .metadata(Resource.Metadata.builder()
                         .cluster("local")
                         .name("topic")
+                        .status(Resource.Metadata.Status.ofPending())
                         .updateTimestamp(Date.from(instant))
+                        .generation(1)
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
@@ -504,7 +530,9 @@ class TopicAsyncExecutorTest {
                 .metadata(Resource.Metadata.builder()
                         .cluster("local")
                         .name("topic")
+                        .status(Resource.Metadata.Status.ofPending())
                         .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .generation(1)
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
@@ -524,7 +552,9 @@ class TopicAsyncExecutorTest {
                 .metadata(Resource.Metadata.builder()
                         .cluster("local")
                         .name("topic")
+                        .status(Resource.Metadata.Status.ofPending())
                         .updateTimestamp(Date.from(instant))
+                        .generation(1)
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
@@ -562,7 +592,9 @@ class TopicAsyncExecutorTest {
                 .metadata(Resource.Metadata.builder()
                         .cluster("local")
                         .name("topic")
+                        .status(Resource.Metadata.Status.ofPending())
                         .updateTimestamp(Date.from(instant))
+                        .generation(1)
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
@@ -589,7 +621,9 @@ class TopicAsyncExecutorTest {
                 .metadata(Resource.Metadata.builder()
                         .cluster("local")
                         .name("topic")
+                        .status(Resource.Metadata.Status.ofPending())
                         .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .generation(1)
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();

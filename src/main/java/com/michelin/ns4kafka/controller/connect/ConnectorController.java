@@ -145,11 +145,8 @@ public class ConnectorController extends NamespacedResourceController {
                     return Mono.error(new ResourceValidationException(connector, remoteValidationErrors));
                 }
 
-                // Treat a connector in "deleting" state as non-existent,
-                // so that an apply-delete-apply flow transparently returns "created".
-                Optional<Connector> existingConnector = connectorService
-                        .findByName(ns, connector.getMetadata().getName())
-                        .filter(c -> !c.isDeleting());
+                Optional<Connector> existingConnector =
+                        connectorService.findByName(ns, connector.getMetadata().getName());
 
                 assignResourceMetadata(connector, ns, existingConnector.orElse(null));
                 connector.setStatus(Connector.ConnectorStatus.builder()
@@ -158,11 +155,15 @@ public class ConnectorController extends NamespacedResourceController {
 
                 if (existingConnector.isPresent()
                         && !existingConnector.get().isFailed()
+                        && !existingConnector.get().isDeleting()
                         && existingConnector.get().equals(connector)) {
                     return Mono.just(formatHttpResponse(existingConnector.get(), ApplyStatus.UNCHANGED, warnings));
                 }
 
-                ApplyStatus status = existingConnector.isPresent() ? ApplyStatus.CHANGED : ApplyStatus.CREATED;
+                ApplyStatus status =
+                        existingConnector.isPresent() && existingConnector.get().isCreated()
+                                ? ApplyStatus.CHANGED
+                                : ApplyStatus.CREATED;
 
                 if (status.equals(ApplyStatus.CREATED)) {
                     // Skip quota check if we are replacing a connector that is being deleted,

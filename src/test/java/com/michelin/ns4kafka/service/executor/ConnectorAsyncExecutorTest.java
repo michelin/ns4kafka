@@ -93,6 +93,8 @@ class ConnectorAsyncExecutorTest {
                         .name("connect1")
                         .namespace("namespace")
                         .status(Resource.Metadata.Status.ofPending())
+                        .updateTimestamp(Date.from(Instant.now()))
+                        .generation(0)
                         .build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("connect-cluster")
@@ -110,9 +112,7 @@ class ConnectorAsyncExecutorTest {
 
         StepVerifier.create(connectorAsyncExecutor.run()).expectNextCount(1).verifyComplete();
 
-        verify(connectorRepository)
-                .create(argThat(c -> c.getMetadata().getStatus().getPhase() == Resource.Metadata.Phase.SUCCESS
-                        && c.getMetadata().getGeneration() == 1));
+        verify(connectorRepository).create(argThat(c -> c.equals(connector) && c.isSuccess() && c.isCreated()));
         verify(connectorRepository, never()).delete(any());
     }
 
@@ -133,6 +133,7 @@ class ConnectorAsyncExecutorTest {
                         .namespace("namespace")
                         .status(Resource.Metadata.Status.ofPending())
                         .updateTimestamp(Date.from(instant))
+                        .generation(0)
                         .build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("connect-cluster")
@@ -146,6 +147,7 @@ class ConnectorAsyncExecutorTest {
                         .namespace("namespace")
                         .status(Resource.Metadata.Status.ofPending())
                         .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .generation(0)
                         .build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("connect-cluster")
@@ -163,9 +165,7 @@ class ConnectorAsyncExecutorTest {
 
         StepVerifier.create(connectorAsyncExecutor.run()).expectNextCount(1).verifyComplete();
 
-        verify(connectorRepository)
-                .create(argThat(c -> c.getMetadata().getStatus().getPhase() == Resource.Metadata.Phase.PENDING
-                        && c.getMetadata().getGeneration() == 1));
+        verify(connectorRepository).create(argThat(c -> c.equals(newConnector) && c.isPending() && c.isCreated()));
         verify(connectorRepository, never()).delete(any());
     }
 
@@ -183,6 +183,8 @@ class ConnectorAsyncExecutorTest {
                         .name("connect1")
                         .namespace("namespace")
                         .status(Resource.Metadata.Status.ofPending())
+                        .updateTimestamp(Date.from(Instant.now()))
+                        .generation(0)
                         .build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("connect-cluster")
@@ -201,7 +203,7 @@ class ConnectorAsyncExecutorTest {
         StepVerifier.create(connectorAsyncExecutor.run()).verifyError();
 
         verify(connectorRepository)
-                .create(argThat(c -> c.getMetadata().getStatus().getPhase() == Resource.Metadata.Phase.FAIL
+                .create(argThat(c -> c.isFailed()
                         && "error".equals(c.getMetadata().getStatus().getMessage())));
         verify(connectorRepository, never()).delete(any());
     }
@@ -222,7 +224,8 @@ class ConnectorAsyncExecutorTest {
                         .name("connect1")
                         .namespace("namespace")
                         .status(Resource.Metadata.Status.ofPending())
-                        .creationTimestamp(Date.from(instant))
+                        .updateTimestamp(Date.from(instant))
+                        .generation(0)
                         .build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("connect-cluster")
@@ -235,7 +238,8 @@ class ConnectorAsyncExecutorTest {
                         .name("connect1")
                         .namespace("namespace")
                         .status(Resource.Metadata.Status.ofPending())
-                        .creationTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .generation(0)
                         .build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("connect-cluster")
@@ -271,6 +275,8 @@ class ConnectorAsyncExecutorTest {
                         .name("connect1")
                         .namespace("namespace")
                         .status(Resource.Metadata.Status.ofDeleting())
+                        .updateTimestamp(Date.from(Instant.now()))
+                        .generation(1)
                         .build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("connect-cluster")
@@ -310,6 +316,7 @@ class ConnectorAsyncExecutorTest {
                         .namespace("namespace")
                         .status(Resource.Metadata.Status.ofDeleting())
                         .updateTimestamp(Date.from(instant))
+                        .generation(1)
                         .build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("connect-cluster")
@@ -323,6 +330,7 @@ class ConnectorAsyncExecutorTest {
                         .namespace("namespace")
                         .status(Resource.Metadata.Status.ofPending())
                         .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .generation(1)
                         .build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("connect-cluster")
@@ -358,6 +366,8 @@ class ConnectorAsyncExecutorTest {
                         .name("connect1")
                         .namespace("namespace")
                         .status(Resource.Metadata.Status.ofDeleting())
+                        .updateTimestamp(Date.from(Instant.now()))
+                        .generation(1)
                         .build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("connect-cluster")
@@ -376,7 +386,7 @@ class ConnectorAsyncExecutorTest {
         StepVerifier.create(connectorAsyncExecutor.run()).verifyError();
 
         verify(connectorRepository)
-                .create(argThat(c -> c.getMetadata().getStatus().getPhase() == Resource.Metadata.Phase.FAIL
+                .create(argThat(c -> c.isFailed()
                         && "error".equals(c.getMetadata().getStatus().getMessage())));
         verify(connectorRepository, never()).delete(any());
     }
@@ -395,6 +405,8 @@ class ConnectorAsyncExecutorTest {
                         .name("connect1")
                         .namespace("namespace")
                         .status(Resource.Metadata.Status.ofDeleting())
+                        .updateTimestamp(Date.from(Instant.now()))
+                        .generation(1)
                         .build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("connect-cluster")
@@ -407,6 +419,8 @@ class ConnectorAsyncExecutorTest {
                         .name("connect-cluster")
                         .cluster("local")
                         .status(Resource.Metadata.Status.ofDeleting())
+                        .updateTimestamp(Date.from(Instant.now()))
+                        .generation(1)
                         .build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .url("https://connect-cluster")
@@ -448,7 +462,8 @@ class ConnectorAsyncExecutorTest {
                         .name("connect1")
                         .namespace("namespace")
                         .status(Resource.Metadata.Status.ofDeleting())
-                        .creationTimestamp(Date.from(instant))
+                        .updateTimestamp(Date.from(instant))
+                        .generation(1)
                         .build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("connect-cluster")
@@ -461,7 +476,8 @@ class ConnectorAsyncExecutorTest {
                         .name("connect1")
                         .namespace("namespace")
                         .status(Resource.Metadata.Status.ofPending())
-                        .creationTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .generation(1)
                         .build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("connect-cluster")
@@ -497,6 +513,8 @@ class ConnectorAsyncExecutorTest {
                         .name("connect1")
                         .namespace("namespace")
                         .status(Resource.Metadata.Status.ofDeleting())
+                        .updateTimestamp(Date.from(Instant.now()))
+                        .generation(1)
                         .build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("connect-cluster")
@@ -509,6 +527,8 @@ class ConnectorAsyncExecutorTest {
                         .name("connect2")
                         .namespace("namespace")
                         .status(Resource.Metadata.Status.ofSuccess())
+                        .updateTimestamp(Date.from(Instant.now()))
+                        .generation(1)
                         .build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("connect-cluster")
@@ -521,6 +541,8 @@ class ConnectorAsyncExecutorTest {
                         .name("connect-cluster")
                         .cluster("local")
                         .status(Resource.Metadata.Status.ofDeleting())
+                        .updateTimestamp(Date.from(Instant.now()))
+                        .generation(1)
                         .build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .url("https://connect-cluster")
@@ -558,6 +580,8 @@ class ConnectorAsyncExecutorTest {
                         .name("connect1")
                         .namespace("namespace")
                         .status(Resource.Metadata.Status.ofDeleting())
+                        .updateTimestamp(Date.from(Instant.now()))
+                        .generation(1)
                         .build())
                 .spec(Connector.ConnectorSpec.builder()
                         .connectCluster("connect-cluster")
@@ -570,6 +594,8 @@ class ConnectorAsyncExecutorTest {
                         .name("connect-cluster")
                         .cluster("local")
                         .status(Resource.Metadata.Status.ofDeleting())
+                        .updateTimestamp(Date.from(Instant.now()))
+                        .generation(1)
                         .build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
                         .url("https://connect-cluster")

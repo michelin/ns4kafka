@@ -180,8 +180,9 @@ public class TopicController extends NamespacedResourceController {
             throw new ResourceValidationException(topic, validationErrors);
         }
 
-        boolean topicExists = existingTopic.isPresent() && existingTopic.get().isCreated();
-        ApplyStatus status = topicExists ? ApplyStatus.CHANGED : ApplyStatus.CREATED;
+        ApplyStatus status = existingTopic.isPresent() && existingTopic.get().isCreated()
+                ? ApplyStatus.CHANGED
+                : ApplyStatus.CREATED;
 
         if (dryrun) {
             return formatHttpResponse(topic, status, validationWarnings);
