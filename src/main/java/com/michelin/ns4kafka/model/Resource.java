@@ -31,7 +31,6 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
-import java.time.Instant;
 import java.util.Date;
 import java.util.Map;
 import lombok.AllArgsConstructor;
@@ -86,25 +85,15 @@ public class Resource {
             private Phase phase;
             private String message;
 
-            @JsonFormat(shape = JsonFormat.Shape.STRING)
-            private Date deployTimestamp;
-
             @JsonInclude(JsonInclude.Include.NON_NULL)
             private Map<String, String> options;
 
             public static Status ofSuccess() {
-                return Status.builder()
-                        .phase(Phase.SUCCESS)
-                        .deployTimestamp(Date.from(Instant.now()))
-                        .build();
+                return Status.builder().phase(Phase.SUCCESS).build();
             }
 
             public static Status ofFailed(String message) {
-                return Status.builder()
-                        .phase(Phase.FAIL)
-                        .message(message)
-                        .deployTimestamp(Date.from(Instant.now()))
-                        .build();
+                return Status.builder().phase(Phase.FAIL).message(message).build();
             }
 
             public static Status ofPending() {
@@ -118,7 +107,6 @@ public class Resource {
                 return Status.builder()
                         .phase(Phase.DELETING)
                         .message("Awaiting deletion by executor")
-                        .deployTimestamp(Date.from(Instant.now()))
                         .options(options)
                         .build();
             }

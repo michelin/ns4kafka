@@ -184,16 +184,16 @@ class NamespaceIntegrationTest extends KafkaIntegrationTest {
                         .bearerAuth(token)
                         .body(topic));
 
-        Topic responseGetTopic = ns4KafkaClient
+        List<Topic> responseGetTopic = ns4KafkaClient
                 .toBlocking()
                 .retrieve(
                         HttpRequest.create(
                                         HttpMethod.GET,
-                                        "/api/namespaces/accepted.namespace/topics/accepted.namespace.topic")
+                                        "/api/namespaces/accepted.namespace/topics?name=accepted.namespace.topic")
                                 .bearerAuth(token),
-                        Topic.class);
+                        Argument.listOf(Topic.class));
 
-        assertEquals(topic.getSpec(), responseGetTopic.getSpec());
+        assertEquals(topic.getSpec(), responseGetTopic.getFirst().getSpec());
     }
 
     @Test
