@@ -153,7 +153,7 @@ public class AclController extends NamespacedResourceController {
 
         Optional<AccessControlEntry> existingAcl = aclService
                 .findByName(namespace, accessControlEntry.getMetadata().getName())
-                .filter(existing -> !(aclService.isClusterManagingRbac(existing)));
+                .filter(existing -> !aclService.isClusterManagingRbac(existing));
 
         // Spec is immutable to prevent accidental updates to ACLs already declared with the same name
         if (existingAcl.isPresent() && !existingAcl.get().getSpec().equals(accessControlEntry.getSpec())) {
