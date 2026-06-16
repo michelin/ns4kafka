@@ -570,7 +570,7 @@ class AclControllerTest {
                         .name("ace1")
                         .namespace("test")
                         .cluster("local")
-                        .status(Resource.Metadata.Status.ofCreationFailed("Role binding creation failed"))
+                        .status(Resource.Metadata.Status.ofFailed("Role binding creation failed"))
                         .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)

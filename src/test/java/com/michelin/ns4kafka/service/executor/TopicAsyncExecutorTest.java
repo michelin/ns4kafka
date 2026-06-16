@@ -27,17 +27,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.property.Ns4KafkaProperties;
 import com.michelin.ns4kafka.repository.TopicRepository;
-import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.TopicService;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.service.client.schema.entities.GraphQueryData;
@@ -106,9 +105,6 @@ class TopicAsyncExecutorTest {
     TopicService topicService;
 
     @Mock
-    NamespaceService namespaceService;
-
-    @Mock
     Admin adminClient;
 
     @Mock
@@ -142,39 +138,25 @@ class TopicAsyncExecutorTest {
         when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
 
         Instant instant = Instant.parse("2026-01-01T00:00:00Z");
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder().namespace("ns").build())
-                .build();
 
         Topic topic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
-                        .namespace("ns")
+                        .cluster("local")
                         .name("topic")
                         .updateTimestamp(Date.from(instant))
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
 
-        Topic successTopic = Topic.builder()
-                .metadata(Resource.Metadata.builder()
-                        .namespace("ns")
-                        .name("topic")
-                        .updateTimestamp(Date.from(instant))
-                        .status(Resource.Metadata.Status.ofSuccess())
-                        .build())
-                .spec(Topic.TopicSpec.builder().build())
-                .build();
-
-        when(namespaceService.findByName("ns")).thenReturn(Optional.of(ns));
-        when(topicService.findByName(ns, "topic")).thenReturn(Optional.of(topic));
+        when(topicService.findByName("local", "topic")).thenReturn(Optional.of(topic));
 
         topicAsyncExecutor.createTopics(List.of(topic));
 
-        verify(topicRepository).create(successTopic);
+        verify(topicRepository).create(argThat(a -> a.equals(topic) && a.isSuccess() && a.isCreated()));
     }
 
     @Test
-    void shouldNotCreateTopicWhenChangedSinceLastApply() {
+    void shouldCreateTopicButNotUpdateStatusWhenChangedSinceLastApply() {
         when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
         when(adminClient.createTopics(anyList())).thenReturn(createTopicsResult);
         when(createTopicsResult.values()).thenReturn(Map.of("topic", kafkaFuture));
@@ -189,12 +171,10 @@ class TopicAsyncExecutorTest {
         when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
 
         Instant instant = Instant.parse("2026-01-01T00:00:00Z");
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder().namespace("ns").build())
-                .build();
+
         Topic topic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
-                        .namespace("ns")
+                        .cluster("local")
                         .name("topic")
                         .updateTimestamp(Date.from(instant))
                         .build())
@@ -203,23 +183,24 @@ class TopicAsyncExecutorTest {
 
         Topic newTopic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
-                        .namespace("ns")
+                        .cluster("local")
                         .name("topic")
                         .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .status(Resource.Metadata.Status.ofPending())
+                        .generation(1)
                         .build())
-                .spec(Topic.TopicSpec.builder().build())
+                .spec(Topic.TopicSpec.builder().configs(Map.of("key", "value")).build())
                 .build();
 
-        when(namespaceService.findByName("ns")).thenReturn(Optional.of(ns));
-        when(topicService.findByName(ns, "topic")).thenReturn(Optional.of(newTopic));
+        when(topicService.findByName("local", "topic")).thenReturn(Optional.of(newTopic));
 
         topicAsyncExecutor.createTopics(List.of(topic));
 
-        verify(topicRepository, never()).create(any());
+        verify(topicRepository).create(argThat(a -> a.equals(newTopic) && a.isPending() && a.isCreated()));
     }
 
     @Test
-    void shouldUpdateTopicWhenErrorCreating() throws ExecutionException, InterruptedException, TimeoutException {
+    void shouldUpdateStatusWhenErrorCreating() throws ExecutionException, InterruptedException, TimeoutException {
         when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
         when(adminClient.createTopics(anyList())).thenReturn(createTopicsResult);
         when(createTopicsResult.values()).thenReturn(Map.of("topic", kafkaFuture));
@@ -235,34 +216,21 @@ class TopicAsyncExecutorTest {
         when(kafkaFuture.get(1000, TimeUnit.MILLISECONDS)).thenThrow(new ExecutionException("Error", new Throwable()));
 
         Instant instant = Instant.parse("2026-01-01T00:00:00Z");
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder().namespace("ns").build())
-                .build();
+
         Topic topic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
-                        .namespace("ns")
+                        .cluster("local")
                         .name("topic")
                         .updateTimestamp(Date.from(instant))
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
 
-        Topic failedTopic = Topic.builder()
-                .metadata(Resource.Metadata.builder()
-                        .namespace("ns")
-                        .name("topic")
-                        .updateTimestamp(Date.from(instant))
-                        .status(Resource.Metadata.Status.ofCreationFailed("Error while creating topic: Error"))
-                        .build())
-                .spec(Topic.TopicSpec.builder().build())
-                .build();
-
-        when(namespaceService.findByName("ns")).thenReturn(Optional.of(ns));
-        when(topicService.findByName(ns, "topic")).thenReturn(Optional.of(topic));
+        when(topicService.findByName("local", "topic")).thenReturn(Optional.of(topic));
 
         topicAsyncExecutor.createTopics(List.of(topic));
 
-        verify(topicRepository).create(failedTopic);
+        verify(topicRepository).create(argThat(a -> a.equals(topic) && a.isFailed()));
     }
 
     @Test
@@ -283,12 +251,10 @@ class TopicAsyncExecutorTest {
         when(kafkaFuture.get(1000, TimeUnit.MILLISECONDS)).thenThrow(new ExecutionException("Error", new Throwable()));
 
         Instant instant = Instant.parse("2026-01-01T00:00:00Z");
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder().namespace("ns").build())
-                .build();
+
         Topic topic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
-                        .namespace("ns")
+                        .cluster("local")
                         .name("topic")
                         .updateTimestamp(Date.from(instant))
                         .build())
@@ -297,15 +263,14 @@ class TopicAsyncExecutorTest {
 
         Topic newTopic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
-                        .namespace("ns")
+                        .cluster("local")
                         .name("topic")
                         .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
 
-        when(namespaceService.findByName("ns")).thenReturn(Optional.of(ns));
-        when(topicService.findByName(ns, "topic")).thenReturn(Optional.of(newTopic));
+        when(topicService.findByName("local", "topic")).thenReturn(Optional.of(newTopic));
 
         topicAsyncExecutor.createTopics(List.of(topic));
 
@@ -328,21 +293,17 @@ class TopicAsyncExecutorTest {
         when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
 
         Instant instant = Instant.parse("2026-01-01T00:00:00Z");
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder().namespace("ns").build())
-                .build();
 
         Topic topic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
-                        .namespace("ns")
+                        .cluster("local")
                         .name("topic")
                         .updateTimestamp(Date.from(instant))
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
 
-        when(namespaceService.findByName("ns")).thenReturn(Optional.of(ns));
-        when(topicService.findByName(ns, "topic")).thenReturn(Optional.of(topic));
+        when(topicService.findByName("local", "topic")).thenReturn(Optional.of(topic));
 
         topicAsyncExecutor.deleteTopics(List.of(topic));
 
@@ -366,13 +327,10 @@ class TopicAsyncExecutorTest {
         when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
 
         Instant instant = Instant.parse("2026-01-01T00:00:00Z");
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder().namespace("ns").build())
-                .build();
 
         Topic topic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
-                        .namespace("ns")
+                        .cluster("local")
                         .name("topic")
                         .updateTimestamp(Date.from(instant))
                         .build())
@@ -381,23 +339,24 @@ class TopicAsyncExecutorTest {
 
         Topic newTopic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
-                        .namespace("ns")
+                        .cluster("local")
                         .name("topic")
                         .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
 
-        when(namespaceService.findByName("ns")).thenReturn(Optional.of(ns));
-        when(topicService.findByName(ns, "topic")).thenReturn(Optional.of(newTopic));
+        when(topicService.findByName("local", "topic")).thenReturn(Optional.of(newTopic));
 
         topicAsyncExecutor.deleteTopics(List.of(topic));
 
+        verify(topicRepository, never()).create(any());
         verify(topicRepository, never()).delete(any());
     }
 
     @Test
-    void shouldNotDeleteTopicWhenExecutionError() throws ExecutionException, InterruptedException, TimeoutException {
+    void shouldNotDeleteTopicAndUpdateStatusWhenExecutionError()
+            throws ExecutionException, InterruptedException, TimeoutException {
         when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
         when(adminClient.deleteTopics(anyList())).thenReturn(deleteTopicsResult);
         when(deleteTopicsResult.topicNameValues()).thenReturn(Map.of("topic", kafkaFuture));
@@ -413,35 +372,21 @@ class TopicAsyncExecutorTest {
         when(kafkaFuture.get(1000, TimeUnit.MILLISECONDS)).thenThrow(new ExecutionException("Error", new Exception()));
 
         Instant instant = Instant.parse("2026-01-01T00:00:00Z");
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder().namespace("ns").build())
-                .build();
 
         Topic topic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
-                        .namespace("ns")
+                        .cluster("local")
                         .name("topic")
                         .updateTimestamp(Date.from(instant))
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
 
-        Topic failedTopic = Topic.builder()
-                .metadata(Resource.Metadata.builder()
-                        .namespace("ns")
-                        .name("topic")
-                        .updateTimestamp(Date.from(instant))
-                        .status(Resource.Metadata.Status.ofFailed("Error while deleting topic: Error"))
-                        .build())
-                .spec(Topic.TopicSpec.builder().build())
-                .build();
-
-        when(namespaceService.findByName("ns")).thenReturn(Optional.of(ns));
-        when(topicService.findByName(ns, "topic")).thenReturn(Optional.of(topic));
+        when(topicService.findByName("local", "topic")).thenReturn(Optional.of(topic));
 
         topicAsyncExecutor.deleteTopics(List.of(topic));
 
-        verify(topicRepository).create(failedTopic);
+        verify(topicRepository).create(argThat(a -> a.equals(topic) && a.isFailed()));
         verify(topicRepository, never()).delete(any());
     }
 
@@ -463,21 +408,17 @@ class TopicAsyncExecutorTest {
                 .thenThrow(new ExecutionException("Error", new UnknownTopicOrPartitionException()));
 
         Instant instant = Instant.parse("2026-01-01T00:00:00Z");
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder().namespace("ns").build())
-                .build();
 
         Topic topic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
-                        .namespace("ns")
+                        .cluster("local")
                         .name("topic")
                         .updateTimestamp(Date.from(instant))
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
 
-        when(namespaceService.findByName("ns")).thenReturn(Optional.of(ns));
-        when(topicService.findByName(ns, "topic")).thenReturn(Optional.of(topic));
+        when(topicService.findByName("local", "topic")).thenReturn(Optional.of(topic));
 
         topicAsyncExecutor.deleteTopics(List.of(topic));
 
@@ -486,7 +427,7 @@ class TopicAsyncExecutorTest {
     }
 
     @Test
-    void shouldNotDeleteTopicWhenExecutionErrorAndChangedSinceLastApply()
+    void shouldNotDeleteTopicAndNotUpdateStatusWhenExecutionErrorAndChangedSinceLastApply()
             throws ExecutionException, InterruptedException, TimeoutException {
         when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
         when(adminClient.deleteTopics(anyList())).thenReturn(deleteTopicsResult);
@@ -503,13 +444,10 @@ class TopicAsyncExecutorTest {
         when(kafkaFuture.get(1000, TimeUnit.MILLISECONDS)).thenThrow(new ExecutionException("Error", new Exception()));
 
         Instant instant = Instant.parse("2026-01-01T00:00:00Z");
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder().namespace("ns").build())
-                .build();
 
         Topic topic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
-                        .namespace("ns")
+                        .cluster("local")
                         .name("topic")
                         .updateTimestamp(Date.from(instant))
                         .build())
@@ -518,15 +456,14 @@ class TopicAsyncExecutorTest {
 
         Topic newTopic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
-                        .namespace("ns")
+                        .cluster("local")
                         .name("topic")
                         .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
 
-        when(namespaceService.findByName("ns")).thenReturn(Optional.of(ns));
-        when(topicService.findByName(ns, "topic")).thenReturn(Optional.of(newTopic));
+        when(topicService.findByName("local", "topic")).thenReturn(Optional.of(newTopic));
 
         topicAsyncExecutor.deleteTopics(List.of(topic));
 
@@ -539,7 +476,7 @@ class TopicAsyncExecutorTest {
         Instant instant = Instant.parse("2026-01-01T00:00:00Z");
         Topic topic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
-                        .namespace("ns")
+                        .cluster("local")
                         .name("topic")
                         .updateTimestamp(Date.from(instant))
                         .build())
@@ -563,21 +500,16 @@ class TopicAsyncExecutorTest {
 
         when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
 
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder().namespace("ns").build())
-                .build();
-
         Topic newTopic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
-                        .namespace("ns")
+                        .cluster("local")
                         .name("topic")
                         .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
 
-        when(namespaceService.findByName("ns")).thenReturn(Optional.of(ns));
-        when(topicService.findByName(ns, "topic")).thenReturn(Optional.of(newTopic));
+        when(topicService.findByName("local", "topic")).thenReturn(Optional.of(newTopic));
 
         topicAsyncExecutor.alterTopics(configsToUpdate, List.of(topic));
 
@@ -590,7 +522,7 @@ class TopicAsyncExecutorTest {
         Instant instant = Instant.parse("2026-01-01T00:00:00Z");
         Topic topic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
-                        .namespace("ns")
+                        .cluster("local")
                         .name("topic")
                         .updateTimestamp(Date.from(instant))
                         .build())
@@ -615,26 +547,11 @@ class TopicAsyncExecutorTest {
         when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
         when(kafkaFuture.get(1000, TimeUnit.MILLISECONDS)).thenThrow(new ExecutionException("Error", new Exception()));
 
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder().namespace("ns").build())
-                .build();
-
-        Topic failedTopic = Topic.builder()
-                .metadata(Resource.Metadata.builder()
-                        .namespace("ns")
-                        .name("topic")
-                        .updateTimestamp(Date.from(instant))
-                        .status(Resource.Metadata.Status.ofFailed("Error while updating topic configs: Error"))
-                        .build())
-                .spec(Topic.TopicSpec.builder().build())
-                .build();
-
-        when(namespaceService.findByName("ns")).thenReturn(Optional.of(ns));
-        when(topicService.findByName(ns, "topic")).thenReturn(Optional.of(topic));
+        when(topicService.findByName("local", "topic")).thenReturn(Optional.of(topic));
 
         topicAsyncExecutor.alterTopics(configsToUpdate, List.of(topic));
 
-        verify(topicRepository).create(failedTopic);
+        verify(topicRepository).create(argThat(a -> a.equals(topic) && a.isFailed()));
     }
 
     @Test
@@ -643,7 +560,7 @@ class TopicAsyncExecutorTest {
         Instant instant = Instant.parse("2026-01-01T00:00:00Z");
         Topic topic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
-                        .namespace("ns")
+                        .cluster("local")
                         .name("topic")
                         .updateTimestamp(Date.from(instant))
                         .build())
@@ -668,21 +585,16 @@ class TopicAsyncExecutorTest {
         when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
         when(kafkaFuture.get(1000, TimeUnit.MILLISECONDS)).thenThrow(new ExecutionException("Error", new Exception()));
 
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder().namespace("ns").build())
-                .build();
-
         Topic newTopic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
-                        .namespace("ns")
+                        .cluster("local")
                         .name("topic")
                         .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
 
-        when(namespaceService.findByName("ns")).thenReturn(Optional.of(ns));
-        when(topicService.findByName(ns, "topic")).thenReturn(Optional.of(newTopic));
+        when(topicService.findByName("local", "topic")).thenReturn(Optional.of(newTopic));
 
         topicAsyncExecutor.alterTopics(configsToUpdate, List.of(topic));
 

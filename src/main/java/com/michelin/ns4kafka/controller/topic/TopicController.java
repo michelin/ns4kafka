@@ -47,10 +47,8 @@ import io.micronaut.http.annotation.QueryValue;
 import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -173,7 +171,7 @@ public class TopicController extends NamespacedResourceController {
 
         if (existingTopic.isPresent()
                 && existingTopic.get().equals(topic)
-                && existingTopic.get().isSuccess()) {
+                && !existingTopic.get().isDeleting()) {
             return formatHttpResponse(existingTopic.get(), ApplyStatus.UNCHANGED, validationWarnings);
         }
 
@@ -182,9 +180,7 @@ public class TopicController extends NamespacedResourceController {
             throw new ResourceValidationException(topic, validationErrors);
         }
 
-        boolean topicExists = existingTopic.isPresent()
-                && !existingTopic.get().isCreating()
-                && !existingTopic.get().isCreationFailed();
+        boolean topicExists = existingTopic.isPresent() && existingTopic.get().isCreated();
         ApplyStatus status = topicExists ? ApplyStatus.CHANGED : ApplyStatus.CREATED;
 
         if (dryrun) {
@@ -194,8 +190,7 @@ public class TopicController extends NamespacedResourceController {
         sendEventLog(
                 topic, status, existingTopic.<Object>map(Topic::getSpec).orElse(null), topic.getSpec(), EMPTY_STRING);
 
-        topic.getMetadata()
-                .setStatus(topicExists ? Resource.Metadata.Status.ofUpdating() : Resource.Metadata.Status.ofCreating());
+        topic.getMetadata().setStatus(Resource.Metadata.Status.ofPending());
 
         return formatHttpResponse(topicService.create(topic), status, validationWarnings);
     }
@@ -294,14 +289,12 @@ public class TopicController extends NamespacedResourceController {
         }
 
         unsynchronizedTopics.forEach(topic -> {
-            topic.getMetadata().setUpdateTimestamp(Date.from(Instant.now()));
-            topic.getMetadata().setCluster(ns.getMetadata().getCluster());
-            topic.getMetadata().setNamespace(ns.getMetadata().getName());
-            topic.setStatus(Topic.TopicStatus.ofSuccess("Imported from cluster"));
+            assignResourceMetadata(topic, ns, null);
+            topic.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
+            topic.getMetadata().setGeneration(1);
+            topicService.create(topic);
             sendEventLog(topic, ApplyStatus.CREATED, null, topic.getSpec(), EMPTY_STRING);
         });
-
-        topicService.importTopics(ns, unsynchronizedTopics);
 
         return unsynchronizedTopics;
     }

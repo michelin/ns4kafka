@@ -329,7 +329,7 @@ public class AclService {
                 .setStatus(
                         RESOURCE_TYPES_TO_DEPLOY.contains(
                                         accessControlEntry.getSpec().getResourceType())
-                                ? Resource.Metadata.Status.ofCreating()
+                                ? Resource.Metadata.Status.ofPending()
                                 : Resource.Metadata.Status.ofSuccess());
         return accessControlEntryRepository.create(accessControlEntry);
     }
@@ -573,7 +573,7 @@ public class AclService {
     public List<AccessControlEntry> findNonPublicToDeployForCluster(String cluster) {
         return accessControlEntryRepository.findAll().stream()
                 .filter(acl -> acl.getMetadata().getCluster().equals(cluster) && !isPublicAcl(acl))
-                .filter(Resource::isCreating)
+                .filter(Resource::isPending)
                 .toList();
     }
 

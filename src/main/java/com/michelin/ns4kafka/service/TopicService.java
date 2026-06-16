@@ -92,21 +92,9 @@ public class TopicService {
      * @param cluster The cluster
      * @return A list of topics
      */
-    public List<Topic> findAllToCreateForCluster(String cluster) {
+    public List<Topic> findAllToDeployForCluster(String cluster) {
         return topicRepository.findAllForCluster(cluster).stream()
-                .filter(Resource::isCreating)
-                .toList();
-    }
-
-    /**
-     * Find all topics to update for a cluster.
-     *
-     * @param cluster The cluster
-     * @return A list of topics
-     */
-    public List<Topic> findAllToUpdateForCluster(String cluster) {
-        return topicRepository.findAllForCluster(cluster).stream()
-                .filter(Resource::isUpdating)
+                .filter(Resource::isPending)
                 .toList();
     }
 
@@ -161,6 +149,17 @@ public class TopicService {
      */
     public Optional<Topic> findByName(Namespace namespace, String topicName) {
         return topicRepository.findByName(namespace.getMetadata().getCluster(), topicName);
+    }
+
+    /**
+     * Find a topic by cluster.
+     *
+     * @param cluster The cluster
+     * @param topicName The topic name
+     * @return An optional topic
+     */
+    public Optional<Topic> findByName(String cluster, String topicName) {
+        return topicRepository.findByName(cluster, topicName);
     }
 
     /**
@@ -304,20 +303,6 @@ public class TopicService {
     }
 
     /**
-     * Import topics from broker to Ns4Kafka storage.
-     *
-     * @param namespace The namespace
-     * @param topics The list of topics to import
-     */
-    public void importTopics(Namespace namespace, List<Topic> topics) {
-        TopicAsyncExecutor topicAsyncExecutor = applicationContext.getBean(
-                TopicAsyncExecutor.class,
-                Qualifiers.byName(namespace.getMetadata().getCluster()));
-
-        topicAsyncExecutor.importTopics(topics);
-    }
-
-    /**
      * Validate if a topic can be eligible for records deletion.
      *
      * @param topic The topic to delete records
@@ -380,6 +365,27 @@ public class TopicService {
             Thread.currentThread().interrupt();
             throw new InterruptedException(e.getMessage());
         }
+    }
+
+    /**
+     * Delete Kafka Stream internal topics, excluding overlapping topics.
+     *
+     * @param namespace The namespace
+     * @param stream The stream name
+     * @param overlapKafkaStreams The list of Kafka Stream overlapping topics
+     */
+    public void deleteKafkaStream(Namespace namespace, String stream, List<String> overlapKafkaStreams) {
+        findByWildcardName(namespace, stream.concat("-*")).stream()
+                .filter(topic -> topic.getMetadata().getName().endsWith("-repartition")
+                        || topic.getMetadata().getName().endsWith("-changelog"))
+                // Exclude topics covered by other Kafka Streams
+                // (E.g., When deleting "abc.appId", avoid deleting "abc.appId-1234")
+                .filter(topic -> overlapKafkaStreams.stream()
+                        .noneMatch(kafkaStream -> topic.getMetadata().getName().startsWith(kafkaStream)))
+                .forEach(topic -> {
+                    topic.getMetadata().setStatus(Resource.Metadata.Status.ofDeleting());
+                    topicRepository.create(topic);
+                });
     }
 
     /**

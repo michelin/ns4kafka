@@ -63,7 +63,8 @@ public class Resource {
         private Map<String, String> labels;
 
         @EqualsAndHashCode.Exclude
-        private int generation;
+        @Builder.Default
+        private int generation = 1;
 
         @EqualsAndHashCode.Exclude
         @JsonFormat(shape = JsonFormat.Shape.STRING)
@@ -167,6 +168,20 @@ public class Resource {
     }
 
     /**
+     * Indicates whether the resource deployment was successful.
+     *
+     * @return {@code true} if it has, {@code false} otherwise
+     */
+    @JsonIgnore
+    public boolean isSuccess() {
+        if (metadata == null || metadata.getStatus() == null) {
+            return false;
+        }
+
+        return metadata.getStatus().getPhase().equals(Metadata.Phase.SUCCESS);
+    }
+
+    /**
      * Indicates whether the resource deployment has failed.
      *
      * @return {@code true} if it has, {@code false} otherwise
@@ -178,5 +193,15 @@ public class Resource {
         }
 
         return metadata.getStatus().getPhase().equals(Metadata.Phase.FAIL);
+    }
+
+    /**
+     * Indicates whether the resource is created.
+     *
+     * @return {@code true} if it is, {@code false} otherwise
+     */
+    @JsonIgnore
+    public boolean isCreated() {
+        return (metadata != null && metadata.getGeneration() > 0);
     }
 }

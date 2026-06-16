@@ -297,7 +297,7 @@ class StreamControllerTest {
                 .metadata(Resource.Metadata.builder()
                         .name("test_stream1")
                         .cluster("local")
-                        .status(Resource.Metadata.Status.ofCreationFailed("Role binding creation failed"))
+                        .status(Resource.Metadata.Status.ofFailed("Role binding creation failed"))
                         .build())
                 .build();
 

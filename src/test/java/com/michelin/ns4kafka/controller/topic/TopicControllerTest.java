@@ -24,7 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.anyMap;
 import static org.mockito.Mockito.doNothing;
@@ -58,7 +57,6 @@ import java.util.concurrent.TimeoutException;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -616,7 +614,7 @@ class TopicControllerTest {
         HttpResponse<Topic> response = topicController.apply("test", topic, false);
         Topic actual = response.body();
         assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
-        verify(topicService, never()).create(ArgumentMatchers.any());
+        verify(topicService, never()).create(any());
         assertEquals(existing, actual);
     }
 
@@ -712,7 +710,7 @@ class TopicControllerTest {
 
         HttpResponse<Topic> response = topicController.apply("test", topic, true);
         assertEquals("created", response.header("X-Ns4kafka-Result"));
-        verify(topicService, never()).create(ArgumentMatchers.any());
+        verify(topicService, never()).create(any());
     }
 
     @Test
@@ -744,7 +742,7 @@ class TopicControllerTest {
 
         HttpResponse<Topic> response = topicController.apply("test", topic, true);
         assertEquals("created", response.header("X-Ns4kafka-Result"));
-        verify(topicService, never()).create(ArgumentMatchers.any());
+        verify(topicService, never()).create(any());
     }
 
     @Test
@@ -815,27 +813,16 @@ class TopicControllerTest {
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(topicService.listUnsynchronizedTopicsByWildcardName(ns, "*")).thenReturn(List.of(topic1, topic2));
-        doNothing().when(topicService).importTopics(any(), any());
+        when(topicService.create(topic1)).thenReturn(topic1);
+        when(topicService.create(topic2)).thenReturn(topic2);
 
         List<Topic> actual = topicController.importResources("test", "*", false);
 
-        assertTrue(actual.stream()
-                .anyMatch(t -> t.getMetadata().getName().equals("test.topic1")
-                        && t.getStatus().getMessage().equals("Imported from cluster")
-                        && t.getStatus().getPhase().equals(Topic.TopicPhase.Success)));
+        assertTrue(actual.stream().anyMatch(t -> t.getMetadata().getName().equals("test.topic1")));
+        assertTrue(actual.stream().anyMatch(t -> t.getMetadata().getName().equals("test.topic2")));
 
-        assertTrue(actual.stream()
-                .anyMatch(t -> t.getMetadata().getName().equals("test.topic2")
-                        && t.getStatus().getMessage().equals("Imported from cluster")
-                        && t.getStatus().getPhase().equals(Topic.TopicPhase.Success)));
-
-        verify(topicService)
-                .importTopics(
-                        eq(ns),
-                        argThat(topics -> topics.stream()
-                                        .anyMatch(t -> t.getMetadata().getName().equals("test.topic1"))
-                                || topics.stream()
-                                        .anyMatch(t -> t.getMetadata().getName().equals("test.topic2"))));
+        verify(topicService).create(topic1);
+        verify(topicService).create(topic2);
     }
 
     @Test
@@ -876,8 +863,8 @@ class TopicControllerTest {
         List<Topic> actual = topicController.importResources("test", "*", true);
 
         assertTrue(actual.stream().anyMatch(t -> t.getMetadata().getName().equals("test.topic1")));
-
         assertTrue(actual.stream().anyMatch(t -> t.getMetadata().getName().equals("test.topic2")));
+        verify(topicService, never()).create(any());
     }
 
     @Test
@@ -905,20 +892,12 @@ class TopicControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(topicService.listUnsynchronizedTopicsByWildcardName(ns, "test.topic1"))
                 .thenReturn(List.of(topic1));
-        doNothing().when(topicService).importTopics(any(), any());
+        when(topicService.create(topic1)).thenReturn(topic1);
 
         List<Topic> actual = topicController.importResources("test", "test.topic1", false);
 
-        assertTrue(actual.stream()
-                .anyMatch(t -> t.getMetadata().getName().equals("test.topic1")
-                        && t.getStatus().getMessage().equals("Imported from cluster")
-                        && t.getStatus().getPhase().equals(Topic.TopicPhase.Success)));
-
-        verify(topicService)
-                .importTopics(
-                        eq(ns),
-                        argThat(topics -> topics.stream()
-                                .anyMatch(t -> t.getMetadata().getName().equals("test.topic1"))));
+        assertTrue(actual.stream().anyMatch(t -> t.getMetadata().getName().equals("test.topic1")));
+        verify(topicService).create(topic1);
     }
 
     @Test
