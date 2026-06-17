@@ -105,7 +105,7 @@ class AkhqControllerV3Test {
                 .thenReturn(
                         Stream.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2")));
         when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1));
-        when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Ns1Cluster1));
+        when(aclService.findNonTransactionalGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Ns1Cluster1));
 
         AkhqController.AkhqClaimRequest request = AkhqController.AkhqClaimRequest.builder()
                 .groups(List.of("GP-PROJECT1-SUPPORT"))
@@ -161,7 +161,8 @@ class AkhqControllerV3Test {
         when(ns4KafkaProperties.getAkhq()).thenReturn(buildAkhqProperties());
         when(managedClusters.stream()).thenReturn(Stream.of(new ManagedClusterProperties("cluster2")));
         when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1));
-        when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Ns1Cluster1, ace2Ns1Cluster1));
+        when(aclService.findNonTransactionalGrantedToNamespace(ns1Cluster1))
+                .thenReturn(List.of(ace1Ns1Cluster1, ace2Ns1Cluster1));
 
         AkhqController.AkhqClaimRequest request = AkhqController.AkhqClaimRequest.builder()
                 .groups(List.of("GP-PROJECT1-SUPPORT"))
@@ -208,7 +209,7 @@ class AkhqControllerV3Test {
                 .thenReturn(
                         Stream.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2")));
         when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1));
-        when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Ns1Cluster1));
+        when(aclService.findNonTransactionalGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Ns1Cluster1));
 
         AkhqController.AkhqClaimRequest request = AkhqController.AkhqClaimRequest.builder()
                 .groups(List.of("GP-PROJECT1-SUPPORT"))
@@ -257,7 +258,7 @@ class AkhqControllerV3Test {
                 .thenReturn(
                         Stream.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2")));
         when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1));
-        when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Ns1Cluster1));
+        when(aclService.findNonTransactionalGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Ns1Cluster1));
 
         AkhqController.AkhqClaimRequest request = AkhqController.AkhqClaimRequest.builder()
                 .groups(List.of("GP-PROJECT1-SUPPORT"))
@@ -336,7 +337,7 @@ class AkhqControllerV3Test {
 
         Namespace ns1Cluster2 = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
-                        .name("ns1")
+                        .name("ns2")
                         .cluster("cluster2")
                         .labels(Map.of("support-group", "GP-PROJECT1-SUPPORT"))
                         .build())
@@ -351,6 +352,7 @@ class AkhqControllerV3Test {
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                         .resource("project1_t.")
+                        .grantedTo("ns1")
                         .build())
                 .build();
 
@@ -359,7 +361,7 @@ class AkhqControllerV3Test {
                 .thenReturn(
                         Stream.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2")));
         when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1, ns1Cluster2));
-        when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Ns1Cluster1));
+        when(aclService.findNonTransactionalGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Ns1Cluster1));
 
         AccessControlEntry ace1Ns1Cluster2 = AccessControlEntry.builder()
                 .metadata(Resource.Metadata.builder()
@@ -370,10 +372,11 @@ class AkhqControllerV3Test {
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                         .resource("project1_t.")
+                        .grantedTo("ns2")
                         .build())
                 .build();
 
-        when(aclService.findAllGrantedToNamespace(ns1Cluster2)).thenReturn(List.of(ace1Ns1Cluster2));
+        when(aclService.findNonTransactionalGrantedToNamespace(ns1Cluster2)).thenReturn(List.of(ace1Ns1Cluster2));
 
         AkhqController.AkhqClaimRequest request = AkhqController.AkhqClaimRequest.builder()
                 .groups(List.of("GP-PROJECT1-SUPPORT"))
@@ -419,6 +422,7 @@ class AkhqControllerV3Test {
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                         .resource("project1_t.")
+                        .grantedTo("ns1")
                         .build())
                 .build();
 
@@ -427,7 +431,7 @@ class AkhqControllerV3Test {
                 .thenReturn(
                         Stream.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2")));
         when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1, ns2Cluster1));
-        when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Ns1Cluster1));
+        when(aclService.findNonTransactionalGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Ns1Cluster1));
 
         AccessControlEntry ace2Ns2Cluster1 = AccessControlEntry.builder()
                 .metadata(Resource.Metadata.builder()
@@ -438,10 +442,11 @@ class AkhqControllerV3Test {
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                         .resource("project2_t.")
+                        .grantedTo("ns2")
                         .build())
                 .build();
 
-        when(aclService.findAllGrantedToNamespace(ns2Cluster1)).thenReturn(List.of(ace2Ns2Cluster1));
+        when(aclService.findNonTransactionalGrantedToNamespace(ns2Cluster1)).thenReturn(List.of(ace2Ns2Cluster1));
 
         AkhqController.AkhqClaimRequest request = AkhqController.AkhqClaimRequest.builder()
                 .groups(List.of("GP-PROJECT1&2-SUPPORT"))
@@ -474,7 +479,7 @@ class AkhqControllerV3Test {
 
         Namespace ns1Cluster2 = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
-                        .name("ns1")
+                        .name("ns2")
                         .cluster("cluster2")
                         .labels(Map.of("support-group", "GP-PROJECT1-SUPPORT"))
                         .build())
@@ -497,7 +502,7 @@ class AkhqControllerV3Test {
                 .thenReturn(
                         Stream.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2")));
         when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1, ns1Cluster2));
-        when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Cluster1));
+        when(aclService.findNonTransactionalGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Cluster1));
 
         AccessControlEntry ace1Cluster2 = AccessControlEntry.builder()
                 .metadata(Resource.Metadata.builder()
@@ -511,7 +516,7 @@ class AkhqControllerV3Test {
                         .build())
                 .build();
 
-        when(aclService.findAllGrantedToNamespace(ns1Cluster2)).thenReturn(List.of(ace1Cluster2));
+        when(aclService.findNonTransactionalGrantedToNamespace(ns1Cluster2)).thenReturn(List.of(ace1Cluster2));
 
         AkhqController.AkhqClaimRequest request = AkhqController.AkhqClaimRequest.builder()
                 .groups(List.of("GP-PROJECT1-SUPPORT"))
@@ -557,6 +562,7 @@ class AkhqControllerV3Test {
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                         .resource("project1_t.")
+                        .grantedTo("ns1")
                         .build())
                 .build();
 
@@ -565,7 +571,7 @@ class AkhqControllerV3Test {
                 .thenReturn(
                         Stream.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2")));
         when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1, ns2Cluster2));
-        when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Ns1Cluster1));
+        when(aclService.findNonTransactionalGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Ns1Cluster1));
 
         AccessControlEntry ace1Ns2Cluster2 = AccessControlEntry.builder()
                 .metadata(Resource.Metadata.builder()
@@ -576,10 +582,11 @@ class AkhqControllerV3Test {
                         .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
                         .resource("project2_t.")
+                        .grantedTo("ns2")
                         .build())
                 .build();
 
-        when(aclService.findAllGrantedToNamespace(ns2Cluster2)).thenReturn(List.of(ace1Ns2Cluster2));
+        when(aclService.findNonTransactionalGrantedToNamespace(ns2Cluster2)).thenReturn(List.of(ace1Ns2Cluster2));
 
         AkhqController.AkhqClaimRequest request = AkhqController.AkhqClaimRequest.builder()
                 .groups(List.of("GP-PROJECT1&2-SUPPORT"))
@@ -733,7 +740,7 @@ class AkhqControllerV3Test {
                 .thenReturn(
                         Stream.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2")));
         when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1));
-        when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(inputAcls);
+        when(aclService.findNonTransactionalGrantedToNamespace(ns1Cluster1)).thenReturn(inputAcls);
 
         AkhqController.AkhqClaimRequest request = AkhqController.AkhqClaimRequest.builder()
                 .groups(List.of("GP-PROJECT1&2-SUPPORT"))
@@ -853,7 +860,7 @@ class AkhqControllerV3Test {
                         new ManagedClusterProperties("cluster3"),
                         new ManagedClusterProperties("cluster4")));
         when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1));
-        when(aclService.findAllGrantedToNamespace(ns1Cluster1)).thenReturn(inputAcls);
+        when(aclService.findNonTransactionalGrantedToNamespace(ns1Cluster1)).thenReturn(inputAcls);
 
         AkhqController.AkhqClaimRequest request = AkhqController.AkhqClaimRequest.builder()
                 .groups(List.of("GP-PROJECT1&2-SUPPORT"))
@@ -938,7 +945,7 @@ class AkhqControllerV3Test {
                 .thenReturn(
                         Stream.of(new ManagedClusterProperties("cluster"), new ManagedClusterProperties("cluster2")));
         when(namespaceService.findAll()).thenReturn(List.of(ns));
-        when(aclService.findAllGrantedToNamespace(ns)).thenReturn(inputAcls);
+        when(aclService.findNonTransactionalGrantedToNamespace(ns)).thenReturn(inputAcls);
 
         AkhqController.AkhqClaimRequest request = AkhqController.AkhqClaimRequest.builder()
                 .groups(List.of("GP-PROJECT-SUPPORT"))
@@ -1002,8 +1009,8 @@ class AkhqControllerV3Test {
         when(ns4KafkaProperties.getAkhq()).thenReturn(buildAkhqProperties());
         when(managedClusters.stream()).thenReturn(Stream.of(new ManagedClusterProperties("cluster")));
         when(namespaceService.findAll()).thenReturn(List.of(ns1, ns2));
-        when(aclService.findAllGrantedToNamespace(ns1)).thenReturn(acls1);
-        when(aclService.findAllGrantedToNamespace(ns2)).thenReturn(acls2);
+        when(aclService.findNonTransactionalGrantedToNamespace(ns1)).thenReturn(acls1);
+        when(aclService.findNonTransactionalGrantedToNamespace(ns2)).thenReturn(acls2);
 
         AkhqController.AkhqClaimRequest request = AkhqController.AkhqClaimRequest.builder()
                 .groups(List.of("GP-PROJECT-SUPPORT"))

@@ -219,9 +219,9 @@ class AkhqControllerTest {
 
         when(ns4KafkaProperties.getAkhq()).thenReturn(buildAkhqProperties());
         when(namespaceService.findAll()).thenReturn(List.of(ns1, ns2, ns3, ns4, ns5));
-        when(aclService.findAllGrantedToNamespace(ns1)).thenReturn(List.of(ns1Ace1, ns1Ace2, pubAce1));
-        when(aclService.findAllGrantedToNamespace(ns2)).thenReturn(List.of(ns2Ace1, ns2Ace2, pubAce1));
-        when(aclService.findAllGrantedToNamespace(ns3)).thenReturn(List.of(ns3Ace1, pubAce1));
+        when(aclService.findNonTransactionalGrantedToNamespace(ns1)).thenReturn(List.of(ns1Ace1, ns1Ace2, pubAce1));
+        when(aclService.findNonTransactionalGrantedToNamespace(ns2)).thenReturn(List.of(ns2Ace1, ns2Ace2, pubAce1));
+        when(aclService.findNonTransactionalGrantedToNamespace(ns3)).thenReturn(List.of(ns3Ace1, pubAce1));
 
         AkhqController.AkhqClaimRequest request = AkhqController.AkhqClaimRequest.builder()
                 .groups(List.of("GP-PROJECT1-SUPPORT", "GP-PROJECT2-SUPPORT"))
@@ -247,12 +247,11 @@ class AkhqControllerTest {
                         "^\\Qproject3_topic\\E$"),
                 actual.getTopicsFilterRegexp());
 
-        verify(aclService).findAllGrantedToNamespace(ns1);
-        verify(aclService).findAllGrantedToNamespace(ns2);
-        verify(aclService).findAllGrantedToNamespace(ns3);
-        verify(aclService, never()).findAllGrantedToNamespace(ns4);
-        verify(aclService, never()).findAllGrantedToNamespace(ns5);
-        verify(aclService).findAllPublicGrantedTo();
+        verify(aclService).findNonTransactionalGrantedToNamespace(ns1);
+        verify(aclService).findNonTransactionalGrantedToNamespace(ns2);
+        verify(aclService).findNonTransactionalGrantedToNamespace(ns3);
+        verify(aclService, never()).findNonTransactionalGrantedToNamespace(ns4);
+        verify(aclService, never()).findNonTransactionalGrantedToNamespace(ns5);
     }
 
     @Test
