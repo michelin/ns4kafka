@@ -50,7 +50,6 @@ import com.michelin.ns4kafka.service.client.schema.entities.TopicListResponse;
 import io.micronaut.http.HttpResponse;
 import java.io.IOException;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
@@ -88,6 +87,7 @@ class TopicAsyncExecutorTest {
     private static final String TAG3 = "TAG3";
     private static final String DESCRIPTION1 = "My topic description";
     private static final String DESCRIPTION2 = "Another description";
+    private static final Instant instant = Instant.parse("2026-01-01T00:00:00Z");
 
     @Mock
     SchemaRegistryClient schemaRegistryClient;
@@ -137,8 +137,6 @@ class TopicAsyncExecutorTest {
 
         when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
 
-        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
-
         Topic topic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
                         .cluster("local")
@@ -172,8 +170,6 @@ class TopicAsyncExecutorTest {
 
         when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
 
-        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
-
         Topic topic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
                         .cluster("local")
@@ -190,7 +186,7 @@ class TopicAsyncExecutorTest {
                         .cluster("local")
                         .name("topic")
                         .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .updateTimestamp(Date.from(instant.plusSeconds(1)))
                         .generation(0)
                         .build())
                 .spec(Topic.TopicSpec.builder().configs(Map.of("key", "value")).build())
@@ -218,8 +214,6 @@ class TopicAsyncExecutorTest {
 
         when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
         when(kafkaFuture.get(1000, TimeUnit.MILLISECONDS)).thenThrow(new ExecutionException("Error", new Throwable()));
-
-        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
 
         Topic topic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
@@ -256,8 +250,6 @@ class TopicAsyncExecutorTest {
         when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
         when(kafkaFuture.get(1000, TimeUnit.MILLISECONDS)).thenThrow(new ExecutionException("Error", new Throwable()));
 
-        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
-
         Topic topic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
                         .cluster("local")
@@ -274,7 +266,7 @@ class TopicAsyncExecutorTest {
                         .cluster("local")
                         .name("topic")
                         .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .updateTimestamp(Date.from(instant.plusSeconds(1)))
                         .generation(0)
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
@@ -301,8 +293,6 @@ class TopicAsyncExecutorTest {
         timeoutProperties.setTopic(topicProperties);
 
         when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
-
-        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
 
         Topic topic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
@@ -338,8 +328,6 @@ class TopicAsyncExecutorTest {
 
         when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
 
-        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
-
         Topic topic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
                         .cluster("local")
@@ -356,7 +344,7 @@ class TopicAsyncExecutorTest {
                         .cluster("local")
                         .name("topic")
                         .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .updateTimestamp(Date.from(instant.plusSeconds(1)))
                         .generation(1)
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
@@ -386,8 +374,6 @@ class TopicAsyncExecutorTest {
 
         when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
         when(kafkaFuture.get(1000, TimeUnit.MILLISECONDS)).thenThrow(new ExecutionException("Error", new Exception()));
-
-        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
 
         Topic topic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
@@ -425,8 +411,6 @@ class TopicAsyncExecutorTest {
         when(kafkaFuture.get(1000, TimeUnit.MILLISECONDS))
                 .thenThrow(new ExecutionException("Error", new UnknownTopicOrPartitionException()));
 
-        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
-
         Topic topic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
                         .cluster("local")
@@ -463,8 +447,6 @@ class TopicAsyncExecutorTest {
         when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
         when(kafkaFuture.get(1000, TimeUnit.MILLISECONDS)).thenThrow(new ExecutionException("Error", new Exception()));
 
-        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
-
         Topic topic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
                         .cluster("local")
@@ -481,7 +463,7 @@ class TopicAsyncExecutorTest {
                         .cluster("local")
                         .name("topic")
                         .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .updateTimestamp(Date.from(instant.plusSeconds(1)))
                         .generation(1)
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
@@ -497,7 +479,6 @@ class TopicAsyncExecutorTest {
 
     @Test
     void shouldNotUpdateTopicConfigsWhenChangedSinceLastApply() {
-        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
         Topic topic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
                         .cluster("local")
@@ -531,7 +512,7 @@ class TopicAsyncExecutorTest {
                         .cluster("local")
                         .name("topic")
                         .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .updateTimestamp(Date.from(instant.plusSeconds(1)))
                         .generation(1)
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
@@ -547,7 +528,6 @@ class TopicAsyncExecutorTest {
     @Test
     void shouldNotUpdateTopicConfigsWhenErrorUpdating()
             throws ExecutionException, InterruptedException, TimeoutException {
-        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
         Topic topic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
                         .cluster("local")
@@ -587,7 +567,6 @@ class TopicAsyncExecutorTest {
     @Test
     void shouldNotUpdateTopicConfigsWhenErrorUpdatingAndChangedSinceLastSupply()
             throws ExecutionException, InterruptedException, TimeoutException {
-        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
         Topic topic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
                         .cluster("local")
@@ -622,7 +601,7 @@ class TopicAsyncExecutorTest {
                         .cluster("local")
                         .name("topic")
                         .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .updateTimestamp(Date.from(instant.plusSeconds(1)))
                         .generation(1)
                         .build())
                 .spec(Topic.TopicSpec.builder().build())

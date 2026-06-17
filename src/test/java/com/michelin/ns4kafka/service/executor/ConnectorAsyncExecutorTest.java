@@ -40,7 +40,6 @@ import com.michelin.ns4kafka.service.client.connect.entities.ConnectorInfo;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorSpecs;
 import io.micronaut.http.HttpResponse;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -55,6 +54,8 @@ import reactor.test.StepVerifier;
 
 @ExtendWith(MockitoExtension.class)
 class ConnectorAsyncExecutorTest {
+    private static final Instant instant = Instant.parse("2026-01-01T00:00:00Z");
+
     @Mock
     ManagedClusterProperties managedClusterProperties;
 
@@ -93,7 +94,7 @@ class ConnectorAsyncExecutorTest {
                         .name("connect1")
                         .namespace("namespace")
                         .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(Instant.now()))
+                        .updateTimestamp(Date.from(instant))
                         .generation(0)
                         .build())
                 .spec(Connector.ConnectorSpec.builder()
@@ -118,8 +119,6 @@ class ConnectorAsyncExecutorTest {
 
     @Test
     void shouldDeployConnectorButNotUpdateStatusWhenChangedSinceLastApply() {
-        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
-
         Namespace namespace = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("namespace")
@@ -146,7 +145,7 @@ class ConnectorAsyncExecutorTest {
                         .name("connect1")
                         .namespace("namespace")
                         .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .updateTimestamp(Date.from(instant.plusSeconds(1)))
                         .generation(0)
                         .build())
                 .spec(Connector.ConnectorSpec.builder()
@@ -183,7 +182,7 @@ class ConnectorAsyncExecutorTest {
                         .name("connect1")
                         .namespace("namespace")
                         .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(Instant.now()))
+                        .updateTimestamp(Date.from(instant))
                         .generation(0)
                         .build())
                 .spec(Connector.ConnectorSpec.builder()
@@ -210,8 +209,6 @@ class ConnectorAsyncExecutorTest {
 
     @Test
     void shouldNotUpdateConnectorWhenErrorCreatingAndChangedSinceLastApply() {
-        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
-
         Namespace namespace = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("namespace")
@@ -238,7 +235,7 @@ class ConnectorAsyncExecutorTest {
                         .name("connect1")
                         .namespace("namespace")
                         .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .updateTimestamp(Date.from(instant.plusSeconds(1)))
                         .generation(0)
                         .build())
                 .spec(Connector.ConnectorSpec.builder()
@@ -275,7 +272,7 @@ class ConnectorAsyncExecutorTest {
                         .name("connect1")
                         .namespace("namespace")
                         .status(Resource.Metadata.Status.ofDeleting())
-                        .updateTimestamp(Date.from(Instant.now()))
+                        .updateTimestamp(Date.from(instant))
                         .generation(1)
                         .build())
                 .spec(Connector.ConnectorSpec.builder()
@@ -301,8 +298,6 @@ class ConnectorAsyncExecutorTest {
 
     @Test
     void shouldNotDeleteConnectorWhenChangedSinceLastApply() {
-        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
-
         Namespace namespace = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("namespace")
@@ -329,7 +324,7 @@ class ConnectorAsyncExecutorTest {
                         .name("connect1")
                         .namespace("namespace")
                         .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .updateTimestamp(Date.from(instant.plusSeconds(1)))
                         .generation(1)
                         .build())
                 .spec(Connector.ConnectorSpec.builder()
@@ -366,7 +361,7 @@ class ConnectorAsyncExecutorTest {
                         .name("connect1")
                         .namespace("namespace")
                         .status(Resource.Metadata.Status.ofDeleting())
-                        .updateTimestamp(Date.from(Instant.now()))
+                        .updateTimestamp(Date.from(instant))
                         .generation(1)
                         .build())
                 .spec(Connector.ConnectorSpec.builder()
@@ -405,7 +400,7 @@ class ConnectorAsyncExecutorTest {
                         .name("connect1")
                         .namespace("namespace")
                         .status(Resource.Metadata.Status.ofDeleting())
-                        .updateTimestamp(Date.from(Instant.now()))
+                        .updateTimestamp(Date.from(instant))
                         .generation(1)
                         .build())
                 .spec(Connector.ConnectorSpec.builder()
@@ -419,7 +414,7 @@ class ConnectorAsyncExecutorTest {
                         .name("connect-cluster")
                         .cluster("local")
                         .status(Resource.Metadata.Status.ofDeleting())
-                        .updateTimestamp(Date.from(Instant.now()))
+                        .updateTimestamp(Date.from(instant))
                         .generation(1)
                         .build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
@@ -448,8 +443,6 @@ class ConnectorAsyncExecutorTest {
 
     @Test
     void shouldNotUpdateConnectorWhenErrorDeletingAndChangedSinceLastApply() {
-        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
-
         Namespace namespace = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("namespace")
@@ -476,7 +469,7 @@ class ConnectorAsyncExecutorTest {
                         .name("connect1")
                         .namespace("namespace")
                         .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .updateTimestamp(Date.from(instant.plusSeconds(1)))
                         .generation(1)
                         .build())
                 .spec(Connector.ConnectorSpec.builder()
@@ -513,7 +506,7 @@ class ConnectorAsyncExecutorTest {
                         .name("connect1")
                         .namespace("namespace")
                         .status(Resource.Metadata.Status.ofDeleting())
-                        .updateTimestamp(Date.from(Instant.now()))
+                        .updateTimestamp(Date.from(instant))
                         .generation(1)
                         .build())
                 .spec(Connector.ConnectorSpec.builder()
@@ -527,7 +520,7 @@ class ConnectorAsyncExecutorTest {
                         .name("connect2")
                         .namespace("namespace")
                         .status(Resource.Metadata.Status.ofSuccess())
-                        .updateTimestamp(Date.from(Instant.now()))
+                        .updateTimestamp(Date.from(instant))
                         .generation(1)
                         .build())
                 .spec(Connector.ConnectorSpec.builder()
@@ -541,7 +534,7 @@ class ConnectorAsyncExecutorTest {
                         .name("connect-cluster")
                         .cluster("local")
                         .status(Resource.Metadata.Status.ofDeleting())
-                        .updateTimestamp(Date.from(Instant.now()))
+                        .updateTimestamp(Date.from(instant))
                         .generation(1)
                         .build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()
@@ -580,7 +573,7 @@ class ConnectorAsyncExecutorTest {
                         .name("connect1")
                         .namespace("namespace")
                         .status(Resource.Metadata.Status.ofDeleting())
-                        .updateTimestamp(Date.from(Instant.now()))
+                        .updateTimestamp(Date.from(instant))
                         .generation(1)
                         .build())
                 .spec(Connector.ConnectorSpec.builder()
@@ -594,7 +587,7 @@ class ConnectorAsyncExecutorTest {
                         .name("connect-cluster")
                         .cluster("local")
                         .status(Resource.Metadata.Status.ofDeleting())
-                        .updateTimestamp(Date.from(Instant.now()))
+                        .updateTimestamp(Date.from(instant))
                         .generation(1)
                         .build())
                 .spec(ConnectCluster.ConnectClusterSpec.builder()

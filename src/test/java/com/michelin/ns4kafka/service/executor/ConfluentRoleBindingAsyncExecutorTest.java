@@ -50,7 +50,6 @@ import com.michelin.ns4kafka.service.client.confluent.entities.RoleBinding;
 import com.michelin.ns4kafka.service.client.confluent.entities.RoleBindingRequest;
 import com.michelin.ns4kafka.service.client.confluent.entities.RoleBindingResponse;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -63,6 +62,8 @@ import reactor.core.publisher.Mono;
 
 @ExtendWith(MockitoExtension.class)
 class ConfluentRoleBindingAsyncExecutorTest {
+    private static final Instant instant = Instant.parse("2026-01-01T00:00:00Z");
+
     @Mock
     ConfluentCloudClient confluentCloudClient;
 
@@ -393,7 +394,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .name("ns1-write")
                         .namespace("ns1")
                         .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(Instant.now()))
+                        .updateTimestamp(Date.from(instant))
                         .generation(0)
                         .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -420,8 +421,6 @@ class ConfluentRoleBindingAsyncExecutorTest {
 
     @Test
     void shouldCreateAclButNotUpdateStatusWhenChangedSinceLastApply() {
-        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
-
         Namespace namespace = Namespace.builder()
                 .metadata(Resource.Metadata.builder().name("ns1").build())
                 .spec(Namespace.NamespaceSpec.builder().kafkaUser("user1").build())
@@ -449,7 +448,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .name("ns1-write")
                         .namespace("ns1")
                         .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .updateTimestamp(Date.from(instant.plusSeconds(1)))
                         .generation(0)
                         .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -486,7 +485,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .name("ns1-write")
                         .namespace("ns1")
                         .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(Instant.now()))
+                        .updateTimestamp(Date.from(instant))
                         .generation(0)
                         .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -515,8 +514,6 @@ class ConfluentRoleBindingAsyncExecutorTest {
 
     @Test
     void shouldNotUpdateAclWhenErrorCreatingAndChangedSinceLastApply() {
-        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
-
         Namespace namespace = Namespace.builder()
                 .metadata(Resource.Metadata.builder().name("ns1").build())
                 .spec(Namespace.NamespaceSpec.builder().kafkaUser("user1").build())
@@ -544,7 +541,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .name("ns1-write")
                         .namespace("ns1")
                         .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .updateTimestamp(Date.from(instant.plusSeconds(1)))
                         .generation(0)
                         .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -580,7 +577,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .name("ns1-read")
                         .namespace("ns1")
                         .status(Resource.Metadata.Status.ofDeleting())
-                        .updateTimestamp(Date.from(Instant.now()))
+                        .updateTimestamp(Date.from(instant))
                         .generation(1)
                         .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -598,7 +595,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .name("ns1-read-empty")
                         .namespace("ns1")
                         .status(Resource.Metadata.Status.ofDeleting())
-                        .updateTimestamp(Date.from(Instant.now()))
+                        .updateTimestamp(Date.from(instant))
                         .generation(1)
                         .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -632,8 +629,6 @@ class ConfluentRoleBindingAsyncExecutorTest {
 
     @Test
     void shouldNotDeleteAclWhenChangedSinceLastApply() {
-        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
-
         Namespace namespace = Namespace.builder()
                 .metadata(Resource.Metadata.builder().name("ns1").build())
                 .spec(Namespace.NamespaceSpec.builder().kafkaUser("user1").build())
@@ -663,7 +658,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .name("ns1-read")
                         .namespace("ns1")
                         .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .updateTimestamp(Date.from(instant.plusSeconds(1)))
                         .generation(1)
                         .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -702,7 +697,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .name("ns1-write")
                         .namespace("ns1")
                         .status(Resource.Metadata.Status.ofDeleting())
-                        .updateTimestamp(Date.from(Instant.now()))
+                        .updateTimestamp(Date.from(instant))
                         .generation(1)
                         .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -734,8 +729,6 @@ class ConfluentRoleBindingAsyncExecutorTest {
 
     @Test
     void shouldNotUpdateAclWhenErrorDeletingAndChangedSinceLastApply() {
-        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
-
         Namespace namespace = Namespace.builder()
                 .metadata(Resource.Metadata.builder().name("ns1").build())
                 .spec(Namespace.NamespaceSpec.builder().kafkaUser("user1").build())
@@ -765,7 +758,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .name("ns1-read")
                         .namespace("ns1")
                         .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .updateTimestamp(Date.from(instant.plusSeconds(1)))
                         .generation(1)
                         .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -805,7 +798,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .namespace("ns1")
                         .name("ns1-stream")
                         .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(Instant.now()))
+                        .updateTimestamp(Date.from(instant))
                         .generation(0)
                         .build())
                 .build();
@@ -831,8 +824,6 @@ class ConfluentRoleBindingAsyncExecutorTest {
 
     @Test
     void shouldCreateKafkaStreamButNotUpdateStatusWhenChangedSinceLastApply() {
-        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
-
         Namespace namespace = Namespace.builder()
                 .metadata(Resource.Metadata.builder().name("ns1").build())
                 .spec(Namespace.NamespaceSpec.builder().kafkaUser("user1").build())
@@ -855,7 +846,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .namespace("ns1")
                         .name("ns1-stream")
                         .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .updateTimestamp(Date.from(instant.plusSeconds(1)))
                         .generation(0)
                         .build())
                 .build();
@@ -887,7 +878,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .namespace("ns1")
                         .name("ns1-stream")
                         .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(Instant.now()))
+                        .updateTimestamp(Date.from(instant))
                         .generation(0)
                         .build())
                 .build();
@@ -906,8 +897,6 @@ class ConfluentRoleBindingAsyncExecutorTest {
 
     @Test
     void shouldNotUpdateKafkaStreamsWhenErrorCreatingAndChangedSinceLastApply() {
-        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
-
         Namespace namespace = Namespace.builder()
                 .metadata(Resource.Metadata.builder().name("ns1").build())
                 .spec(Namespace.NamespaceSpec.builder().kafkaUser("user1").build())
@@ -930,7 +919,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .namespace("ns1")
                         .name("ns1-stream")
                         .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .updateTimestamp(Date.from(instant.plusSeconds(1)))
                         .generation(0)
                         .build())
                 .build();
@@ -959,7 +948,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .namespace("ns1")
                         .name("ns1-stream")
                         .status(Resource.Metadata.Status.ofDeleting())
-                        .updateTimestamp(Date.from(Instant.now()))
+                        .updateTimestamp(Date.from(instant))
                         .generation(1)
                         .build())
                 .build();
@@ -970,7 +959,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .namespace("ns1")
                         .name("ns1-stream-empty")
                         .status(Resource.Metadata.Status.ofDeleting())
-                        .updateTimestamp(Date.from(Instant.now()))
+                        .updateTimestamp(Date.from(instant))
                         .generation(1)
                         .build())
                 .build();
@@ -1000,7 +989,6 @@ class ConfluentRoleBindingAsyncExecutorTest {
 
     @Test
     void shouldNotDeleteKafkaStreamWhenChangedSinceLastUpdate() {
-        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
         Namespace namespace = Namespace.builder()
                 .metadata(Resource.Metadata.builder().name("ns1").build())
                 .spec(Namespace.NamespaceSpec.builder().kafkaUser("user1").build())
@@ -1023,7 +1011,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .namespace("ns1")
                         .name("ns1-stream")
                         .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .updateTimestamp(Date.from(instant.plusSeconds(1)))
                         .generation(1)
                         .build())
                 .build();
@@ -1057,7 +1045,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .namespace("ns1")
                         .name("ns1-stream")
                         .status(Resource.Metadata.Status.ofDeleting())
-                        .updateTimestamp(Date.from(Instant.now()))
+                        .updateTimestamp(Date.from(instant))
                         .generation(1)
                         .build())
                 .build();
@@ -1079,8 +1067,6 @@ class ConfluentRoleBindingAsyncExecutorTest {
 
     @Test
     void shouldNotUpdateKafkaStreamsWhenErrorDeletingAndChangedSinceLastApply() {
-        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
-
         Namespace namespace = Namespace.builder()
                 .metadata(Resource.Metadata.builder().name("ns1").build())
                 .spec(Namespace.NamespaceSpec.builder().kafkaUser("user1").build())
@@ -1103,7 +1089,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .namespace("ns1")
                         .name("ns1-stream")
                         .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(instant.plus(1, ChronoUnit.SECONDS)))
+                        .updateTimestamp(Date.from(instant.plusSeconds(1)))
                         .generation(1)
                         .build())
                 .build();
