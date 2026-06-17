@@ -526,7 +526,7 @@ public class AclService {
     }
 
     /**
-     * Find all ACLs granted to a given namespace. Will also return public granted ACLs.
+     * Find non-transactional ID ACLs granted to a given namespace, including public granted ACLs.
      *
      * @param namespace The namespace
      * @return A list of ACLs

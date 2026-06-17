@@ -335,7 +335,7 @@ class AkhqControllerV3Test {
                         .build())
                 .build();
 
-        Namespace ns1Cluster2 = Namespace.builder()
+        Namespace ns2Cluster2 = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("ns2")
                         .cluster("cluster2")
@@ -343,7 +343,7 @@ class AkhqControllerV3Test {
                         .build())
                 .build();
 
-        AccessControlEntry ace1Ns1Cluster1 = AccessControlEntry.builder()
+        AccessControlEntry acl1 = AccessControlEntry.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("acl")
                         .cluster("cluster1")
@@ -360,10 +360,10 @@ class AkhqControllerV3Test {
         when(managedClusters.stream())
                 .thenReturn(
                         Stream.of(new ManagedClusterProperties("cluster1"), new ManagedClusterProperties("cluster2")));
-        when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1, ns1Cluster2));
-        when(aclService.findNonTransactionalGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(ace1Ns1Cluster1));
+        when(namespaceService.findAll()).thenReturn(List.of(ns1Cluster1, ns2Cluster2));
+        when(aclService.findNonTransactionalGrantedToNamespace(ns1Cluster1)).thenReturn(List.of(acl1));
 
-        AccessControlEntry ace1Ns1Cluster2 = AccessControlEntry.builder()
+        AccessControlEntry acl2 = AccessControlEntry.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("acl")
                         .cluster("cluster2")
@@ -376,7 +376,7 @@ class AkhqControllerV3Test {
                         .build())
                 .build();
 
-        when(aclService.findNonTransactionalGrantedToNamespace(ns1Cluster2)).thenReturn(List.of(ace1Ns1Cluster2));
+        when(aclService.findNonTransactionalGrantedToNamespace(ns2Cluster2)).thenReturn(List.of(acl2));
 
         AkhqController.AkhqClaimRequest request = AkhqController.AkhqClaimRequest.builder()
                 .groups(List.of("GP-PROJECT1-SUPPORT"))
