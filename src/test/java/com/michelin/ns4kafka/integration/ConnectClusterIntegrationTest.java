@@ -185,7 +185,7 @@ class ConnectClusterIntegrationTest extends KafkaConnectIntegrationTest {
     }
 
     @Test
-    void shouldCreateConnectCluster() {
+    void shouldCreateAndDeleteConnectClusterSynchronously() {
         ConnectCluster connectCluster = ConnectCluster.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("ns1-connectCluster")

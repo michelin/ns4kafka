@@ -25,6 +25,7 @@ import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.connect.ChangeConnectorState;
 import com.michelin.ns4kafka.model.connect.Connector;
 import com.michelin.ns4kafka.service.ConnectorService;
@@ -52,6 +53,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -152,14 +154,6 @@ public class ConnectorController extends NamespacedResourceController {
                     connector, invalidOwner(connector.getMetadata().getName())));
         }
 
-        // Set / Override name in spec.config.name, required for several Kafka Connect API calls
-        // This is a response to projects setting a value A in metadata.name, and a value B in spec.config.name
-        // I have considered alternatives :
-        // - Make name in spec.config forbidden, and set it only when necessary (API calls)
-        // - Mask it in the resulting list connectors so that the synchronization process doesn't see changes
-        // I prefer to go this way for 2 reasons:
-        // - It is backward compatible with teams that already define name in spec.config.name
-        // - It doesn't impact the code as much (single line vs 10+ lines)
         connector.getSpec().getConfig().put("name", connector.getMetadata().getName());
 
         return connectorService.validateLocally(ns, connector).flatMap(localResult -> {
@@ -175,27 +169,38 @@ public class ConnectorController extends NamespacedResourceController {
                     return Mono.error(new ResourceValidationException(connector, remoteValidationErrors));
                 }
 
-                // Augment with server side fields
-                connector.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
-                connector.getMetadata().setCluster(ns.getMetadata().getCluster());
-                connector.getMetadata().setNamespace(ns.getMetadata().getName());
+                // Treat a connector in "deleting" state as non-existent,
+                // so that an apply-delete-apply flow transparently returns "created".
+                Optional<Connector> existingConnector = connectorService
+                        .findByName(ns, connector.getMetadata().getName())
+                        .filter(c -> !c.isDeleting());
+
+                assignResourceMetadata(connector, ns, existingConnector.orElse(null));
                 connector.setStatus(Connector.ConnectorStatus.builder()
                         .state(Connector.TaskState.UNASSIGNED)
                         .build());
 
-                Optional<Connector> existingConnector =
-                        connectorService.findByName(ns, connector.getMetadata().getName());
-                if (existingConnector.isPresent() && existingConnector.get().equals(connector)) {
+                if (existingConnector.isPresent()
+                        && !existingConnector.get().isFailed()
+                        && existingConnector.get().equals(connector)) {
                     return Mono.just(formatHttpResponse(existingConnector.get(), ApplyStatus.UNCHANGED, warnings));
                 }
 
                 ApplyStatus status = existingConnector.isPresent() ? ApplyStatus.CHANGED : ApplyStatus.CREATED;
 
-                // Only check quota on connector creation
                 if (status.equals(ApplyStatus.CREATED)) {
-                    List<String> quotaErrors = resourceQuotaService.validateConnectorQuota(ns);
-                    if (!quotaErrors.isEmpty()) {
-                        return Mono.error(new ResourceValidationException(connector, quotaErrors));
+                    // Skip quota check if we are replacing a connector that is being deleted,
+                    // since it is already counted in the quota.
+                    boolean replacingDeletingConnector = connectorService
+                            .findByName(ns, connector.getMetadata().getName())
+                            .map(Resource::isDeleting)
+                            .orElse(false);
+
+                    if (!replacingDeletingConnector) {
+                        List<String> quotaErrors = resourceQuotaService.validateConnectorQuota(ns);
+                        if (!quotaErrors.isEmpty()) {
+                            return Mono.error(new ResourceValidationException(connector, quotaErrors));
+                        }
                     }
                 }
 
@@ -203,9 +208,7 @@ public class ConnectorController extends NamespacedResourceController {
                     return Mono.just(formatHttpResponse(connector, status, warnings));
                 }
 
-                // Set a toDeploy flag
-                // Without this trick, if only sensitive fields were updated, the executor wouldn't apply the difference
-                connector.getStatus().setToDeploy(true);
+                connector.getMetadata().setStatus(Resource.Metadata.Status.ofPending());
 
                 sendEventLog(
                         connector,
@@ -214,7 +217,7 @@ public class ConnectorController extends NamespacedResourceController {
                         connector.getSpec(),
                         EMPTY_STRING);
 
-                return Mono.just(formatHttpResponse(connectorService.createOrUpdate(connector), status, warnings));
+                return Mono.just(formatHttpResponse(connectorService.create(connector), status, warnings));
             });
         });
     }
@@ -226,7 +229,7 @@ public class ConnectorController extends NamespacedResourceController {
      * @param connector The current connector name to delete
      * @param dryrun Is dry run mode or not?
      * @return A HTTP response
-     * @deprecated use {@link #bulkDelete(String, String, boolean, boolean)} instead.
+     * @deprecated use {@link #delete(String, String, boolean, boolean)} instead.
      */
     @Delete("/{connector}{?dryrun}")
     @Deprecated(since = "1.13.0")
@@ -249,10 +252,11 @@ public class ConnectorController extends NamespacedResourceController {
         }
 
         Connector connectorToDelete = optionalConnector.get();
-
         sendEventLog(connectorToDelete, ApplyStatus.DELETED, connectorToDelete.getSpec(), null, EMPTY_STRING);
+        connectorToDelete.getMetadata().setStatus(Resource.Metadata.Status.ofDeleting(Map.of()));
+        connectorService.create(connectorToDelete);
 
-        return connectorService.delete(ns, optionalConnector.get(), false).map(_ -> HttpResponse.noContent());
+        return Mono.just(HttpResponse.noContent());
     }
 
     /**
@@ -265,7 +269,7 @@ public class ConnectorController extends NamespacedResourceController {
      * @return A HTTP response
      */
     @Delete
-    public Mono<HttpResponse<List<Connector>>> bulkDelete(
+    public Mono<HttpResponse<List<Connector>>> delete(
             String namespace,
             @QueryValue(defaultValue = "*") String name,
             @QueryValue(defaultValue = "false") boolean dryrun,
@@ -274,7 +278,6 @@ public class ConnectorController extends NamespacedResourceController {
 
         List<Connector> connectors = connectorService.findByWildcardName(ns, name);
 
-        // Validate ownership
         List<String> validationErrors = connectors.stream()
                 .filter(connector -> !connectorService.isNamespaceOwnerOfConnect(
                         ns, connector.getMetadata().getName()))
@@ -294,9 +297,13 @@ public class ConnectorController extends NamespacedResourceController {
         }
 
         return Flux.fromIterable(connectors)
-                .flatMap(connector -> {
+                .doOnNext(connector -> {
+                    connector.getMetadata().setUpdateTimestamp(Date.from(Instant.now()));
+                    connector
+                            .getMetadata()
+                            .setStatus(Resource.Metadata.Status.ofDeleting(Map.of("force", String.valueOf(force))));
                     sendEventLog(connector, ApplyStatus.DELETED, connector.getSpec(), null, EMPTY_STRING);
-                    return connectorService.delete(ns, connector, force);
+                    connectorService.create(connector);
                 })
                 .then(Mono.just(HttpResponse.ok(connectors)));
     }
@@ -392,7 +399,7 @@ public class ConnectorController extends NamespacedResourceController {
                             unsynchronizedConnector.getSpec(),
                             EMPTY_STRING);
 
-                    return connectorService.createOrUpdate(unsynchronizedConnector);
+                    return connectorService.create(unsynchronizedConnector);
                 });
     }
 }
