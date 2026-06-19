@@ -26,6 +26,7 @@ import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.connect.ConnectCluster;
 import com.michelin.ns4kafka.model.connect.Connector;
 import com.michelin.ns4kafka.model.connect.VaultResponse;
@@ -37,14 +38,12 @@ import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpResponse;
-import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Delete;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
-import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.micronaut.security.utils.SecurityService;
@@ -96,8 +95,8 @@ public class ConnectClusterController extends NamespacedResourceController {
      * @return A list of Kafka Connect clusters
      */
     @Get
-    public List<ConnectCluster> list(String namespace, @QueryValue(defaultValue = "*") String name) {
-        return connectClusterService.findByWildcardNameWithOwnerPermission(getNamespace(namespace), name);
+    public Flux<ConnectCluster> list(String namespace, @QueryValue(defaultValue = "*") String name) {
+        return connectClusterService.findByWildcardNameWithOwnerPermissionAndStatus(getNamespace(namespace), name);
     }
 
     /**
@@ -143,13 +142,20 @@ public class ConnectClusterController extends NamespacedResourceController {
                         return Mono.error(new ResourceValidationException(connectCluster, validationErrors));
                     }
 
-                    connectCluster.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
-                    connectCluster.getMetadata().setCluster(ns.getMetadata().getCluster());
-                    connectCluster.getMetadata().setNamespace(ns.getMetadata().getName());
-
                     Optional<ConnectCluster> existingConnectCluster =
                             connectClusterService.findByNameWithOwnerPermission(
                                     ns, connectCluster.getMetadata().getName());
+
+                    connectCluster.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
+                    connectCluster
+                            .getMetadata()
+                            .setGeneration(existingConnectCluster
+                                    .map(oldConnectCluster ->
+                                            oldConnectCluster.getMetadata().getGeneration())
+                                    .orElse(0));
+                    connectCluster.getMetadata().setCluster(ns.getMetadata().getCluster());
+                    connectCluster.getMetadata().setNamespace(ns.getMetadata().getName());
+
                     if (existingConnectCluster.isPresent()
                             && existingConnectCluster.get().equals(connectCluster)) {
                         return Mono.just(formatHttpResponse(existingConnectCluster.get(), ApplyStatus.UNCHANGED));
@@ -243,7 +249,6 @@ public class ConnectClusterController extends NamespacedResourceController {
             @QueryValue(defaultValue = "false") boolean force,
             @QueryValue(defaultValue = "false") boolean cascade) {
         Namespace ns = getNamespace(namespace);
-
         List<ConnectCluster> connectClusters = connectClusterService.findByWildcardNameWithOwnerPermission(ns, name);
 
         if (connectClusters.isEmpty()) {
@@ -252,17 +257,17 @@ public class ConnectClusterController extends NamespacedResourceController {
 
         Map<String, List<Connector>> connectorsByConnectCluster = connectClusters.stream()
                 .collect(Collectors.toMap(
-                        cc -> cc.getMetadata().getName(),
-                        cc -> connectorService.findAllByConnectCluster(
-                                ns, cc.getMetadata().getName())));
+                        connectCluster -> connectCluster.getMetadata().getName(),
+                        connectCluster -> connectorService.findAllByConnectCluster(
+                                ns, connectCluster.getMetadata().getName())));
 
         List<String> validationErrors = new ArrayList<>();
-        connectClusters.forEach(cc -> {
-            List<Connector> connectors =
-                    connectorsByConnectCluster.getOrDefault(cc.getMetadata().getName(), List.of());
+        connectClusters.forEach(connectCluster -> {
+            List<Connector> connectors = connectorsByConnectCluster.getOrDefault(
+                    connectCluster.getMetadata().getName(), List.of());
             if (!connectors.isEmpty() && !force && !cascade) {
-                validationErrors.add(
-                        invalidConnectClusterDeleteOperation(cc.getMetadata().getName(), connectors));
+                validationErrors.add(invalidConnectClusterDeleteOperation(
+                        connectCluster.getMetadata().getName(), connectors));
             }
         });
 
@@ -275,34 +280,40 @@ public class ConnectClusterController extends NamespacedResourceController {
         }
 
         return Flux.fromIterable(connectClusters)
-                .flatMap(cc -> {
+                .flatMap(connectCluster -> {
                     List<Connector> connectors = connectorsByConnectCluster.getOrDefault(
-                            cc.getMetadata().getName(), List.of());
+                            connectCluster.getMetadata().getName(), List.of());
 
-                    return (cascade
-                                    ? Flux.fromIterable(connectors)
-                                            .flatMap(connector -> connectorService
-                                                    .delete(ns, connector, force)
-                                                    .doOnSuccess(_ -> sendEventLog(
-                                                            connector,
-                                                            ApplyStatus.DELETED,
-                                                            connector.getSpec(),
-                                                            null,
-                                                            EMPTY_STRING)))
-                                            .onErrorMap(
-                                                    error -> new HttpStatusException(
-                                                            HttpStatus.BAD_GATEWAY,
-                                                            "Failed to delete connectors from Connect cluster [%s]: %s. "
-                                                                            .formatted(
-                                                                                    cc.getMetadata()
-                                                                                            .getName(),
-                                                                                    error.getMessage())
-                                                                    + "Please use cascade and force option to bypass the error and remove from Ns4kafka"))
-                                    : Flux.empty())
-                            .doOnComplete(() -> {
-                                sendEventLog(cc, ApplyStatus.DELETED, cc.getSpec(), null, EMPTY_STRING);
-                                connectClusterService.delete(cc);
-                            });
+                    if (cascade) {
+                        return Flux.fromIterable(connectors)
+                                .doOnNext(connector -> {
+                                    sendEventLog(
+                                            connector, ApplyStatus.DELETED, connector.getSpec(), null, EMPTY_STRING);
+                                    connector
+                                            .getMetadata()
+                                            .setStatus(Resource.Metadata.Status.ofDeleting(
+                                                    Map.of("force", String.valueOf(force))));
+                                    connectorService.create(connector);
+                                })
+                                .doOnComplete(() -> {
+                                    sendEventLog(
+                                            connectCluster,
+                                            ApplyStatus.DELETED,
+                                            connectCluster.getSpec(),
+                                            null,
+                                            EMPTY_STRING);
+                                    connectCluster.getMetadata().setUpdateTimestamp(Date.from(Instant.now()));
+                                    connectCluster
+                                            .getMetadata()
+                                            .setStatus(Resource.Metadata.Status.ofDeleting(
+                                                    Map.of("force", String.valueOf(force))));
+                                    connectClusterService.create(connectCluster);
+                                });
+                    }
+
+                    sendEventLog(connectCluster, ApplyStatus.DELETED, connectCluster.getSpec(), null, EMPTY_STRING);
+                    connectClusterService.delete(connectCluster);
+                    return Flux.empty();
                 })
                 .then(Mono.just(HttpResponse.ok(connectClusters)));
     }

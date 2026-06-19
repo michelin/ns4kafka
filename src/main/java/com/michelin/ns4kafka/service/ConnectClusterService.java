@@ -40,14 +40,10 @@ import io.micronaut.core.util.StringUtils;
 import jakarta.inject.Singleton;
 import java.util.ArrayList;
 import java.util.EnumSet;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
-import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -70,10 +66,6 @@ public class ConnectClusterService {
     private final ConnectClusterRepository connectClusterRepository;
     private final List<ManagedClusterProperties> managedClusterProperties;
     private final Ns4KafkaProperties ns4KafkaProperties;
-
-    @Getter
-    @Setter
-    private Map<String, Set<String>> healthyConnectClusters = new HashMap<>();
 
     /**
      * Constructor.
@@ -106,7 +98,9 @@ public class ConnectClusterService {
      */
     public Flux<ConnectCluster> findAll(boolean all, boolean status) {
         Flux<ConnectCluster> selfHostedConnectClusters =
-                Flux.defer(() -> Flux.fromIterable(connectClusterRepository.findAll()));
+                Flux.defer(() -> Flux.fromIterable(connectClusterRepository.findAll().stream()
+                        .map(this::buildConnectClusterWithDecryptedInformation)
+                        .toList()));
 
         Flux<ConnectCluster> managedConnectClusters = all
                 ? Flux.fromIterable(managedClusterProperties)
@@ -133,9 +127,11 @@ public class ConnectClusterService {
         }
 
         return combinedFlux.flatMap(connectCluster -> kafkaConnectClient
-                .version(
-                        connectCluster.getMetadata().getCluster(),
-                        connectCluster.getMetadata().getName())
+                .version(KafkaConnectHttpConfig.builder()
+                        .username(connectCluster.getSpec().getUsername())
+                        .password(connectCluster.getSpec().getPassword())
+                        .url(connectCluster.getSpec().getUrl())
+                        .build())
                 .doOnError(error -> {
                     connectCluster.getSpec().setStatus(ConnectCluster.Status.IDLE);
                     connectCluster.getSpec().setStatusMessage(error.getMessage());
@@ -179,6 +175,37 @@ public class ConnectClusterService {
     public List<ConnectCluster> findAllForNamespaceWithOwnerPermission(Namespace namespace) {
         return findAllForNamespaceByPermissions(namespace, OWNER_PERMISSIONS).stream()
                 .toList();
+    }
+
+    /**
+     * Find all self deployed Connect clusters whose namespace is owner, filtered by name parameter.
+     *
+     * @param namespace The namespace
+     * @param name The name parameter
+     * @return The list of owned Connect cluster
+     */
+    public Flux<ConnectCluster> findByWildcardNameWithOwnerPermissionAndStatus(Namespace namespace, String name) {
+        List<String> nameFilterPatterns = RegexUtils.convertWildcardStringsToRegex(List.of(name));
+        return Flux.fromIterable(findAllForNamespaceWithOwnerPermission(namespace))
+                .filter(cc ->
+                        RegexUtils.isResourceCoveredByRegex(cc.getMetadata().getName(), nameFilterPatterns))
+                .map(this::buildConnectClusterWithDecryptedInformation)
+                .flatMap(connectCluster -> kafkaConnectClient
+                        .version(KafkaConnectHttpConfig.builder()
+                                .username(connectCluster.getSpec().getUsername())
+                                .password(connectCluster.getSpec().getPassword())
+                                .url(connectCluster.getSpec().getUrl())
+                                .build())
+                        .doOnError(error -> {
+                            connectCluster.getSpec().setStatus(ConnectCluster.Status.IDLE);
+                            connectCluster.getSpec().setStatusMessage(error.getMessage());
+                        })
+                        .doOnSuccess(_ -> {
+                            connectCluster.getSpec().setStatus(ConnectCluster.Status.HEALTHY);
+                            connectCluster.getSpec().setStatusMessage(null);
+                        })
+                        .map(_ -> connectCluster)
+                        .onErrorReturn(connectCluster));
     }
 
     /**
@@ -269,6 +296,8 @@ public class ConnectClusterService {
                             connectCluster.getSpec().getAes256Salt(),
                             ns4KafkaProperties.getSecurity().getAes256EncryptionKey()));
         }
+
+        connectCluster.getMetadata().setGeneration(connectCluster.getMetadata().getGeneration() + 1);
 
         return connectClusterRepository.create(connectCluster);
     }
@@ -418,36 +447,36 @@ public class ConnectClusterService {
      * @return The connect cluster with decrypted information.
      */
     public ConnectCluster buildConnectClusterWithDecryptedInformation(ConnectCluster connectCluster) {
-        ConnectCluster.ConnectClusterSpec.ConnectClusterSpecBuilder builder =
-                ConnectCluster.ConnectClusterSpec.builder()
-                        .url(connectCluster.getSpec().getUrl())
-                        .username(connectCluster.getSpec().getUsername())
-                        .password(EncryptionUtils.decryptAes256Gcm(
-                                connectCluster.getSpec().getPassword(),
-                                ns4KafkaProperties.getSecurity().getAes256EncryptionKey()))
-                        .aes256Key(EncryptionUtils.decryptAes256Gcm(
-                                connectCluster.getSpec().getAes256Key(),
-                                ns4KafkaProperties.getSecurity().getAes256EncryptionKey()))
-                        .aes256Salt(EncryptionUtils.decryptAes256Gcm(
-                                connectCluster.getSpec().getAes256Salt(),
-                                ns4KafkaProperties.getSecurity().getAes256EncryptionKey()))
-                        .aes256Format(connectCluster.getSpec().getAes256Format())
-                        .status(
-                                healthyConnectClusters
-                                                .getOrDefault(
-                                                        connectCluster
-                                                                .getMetadata()
-                                                                .getCluster(),
-                                                        Set.of())
-                                                .contains(connectCluster
-                                                        .getMetadata()
-                                                        .getName())
-                                        ? ConnectCluster.Status.HEALTHY
-                                        : ConnectCluster.Status.IDLE);
-
         return ConnectCluster.builder()
                 .metadata(connectCluster.getMetadata())
-                .spec(builder.build())
+                .spec(ConnectCluster.ConnectClusterSpec.builder()
+                        .url(connectCluster.getSpec().getUrl())
+                        .username(connectCluster.getSpec().getUsername())
+                        .password(decryptSecret(connectCluster.getSpec().getPassword()))
+                        .aes256Key(decryptSecret(connectCluster.getSpec().getAes256Key()))
+                        .aes256Salt(decryptSecret(connectCluster.getSpec().getAes256Salt()))
+                        .aes256Format(connectCluster.getSpec().getAes256Format())
+                        .build())
                 .build();
+    }
+
+    /**
+     * Decrypt a secret.
+     *
+     * @param encryptedText The encrypted text
+     * @return The decrypted text
+     */
+    private String decryptSecret(String encryptedText) {
+        if (!StringUtils.hasText(encryptedText)) {
+            return encryptedText;
+        }
+
+        if (ns4KafkaProperties.getSecurity() == null
+                || !StringUtils.hasText(ns4KafkaProperties.getSecurity().getAes256EncryptionKey())) {
+            return encryptedText;
+        }
+
+        return EncryptionUtils.decryptAes256Gcm(
+                encryptedText, ns4KafkaProperties.getSecurity().getAes256EncryptionKey());
     }
 }

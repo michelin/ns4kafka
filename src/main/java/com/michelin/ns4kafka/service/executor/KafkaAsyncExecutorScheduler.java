@@ -42,9 +42,7 @@ public class KafkaAsyncExecutorScheduler {
     private final List<ConnectorAsyncExecutor> connectorAsyncExecutors;
     private final List<UserAsyncExecutor> userAsyncExecutors;
     private final Ns4KafkaProperties.SchedulerProperties schedulerProperties;
-
     private Disposable connectorSyncDisposable;
-    private Disposable connectHealthCheckDisposable;
 
     /**
      * Constructor.
@@ -78,7 +76,6 @@ public class KafkaAsyncExecutorScheduler {
     @EventListener
     public void onStartupEvent(ApplicationStartupEvent event) {
         ready.compareAndSet(false, true);
-        connectHealthCheckDisposable = scheduleConnectHealthCheck();
         connectorSyncDisposable = scheduleConnectorSynchronization();
     }
 
@@ -90,9 +87,10 @@ public class KafkaAsyncExecutorScheduler {
             accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
             confluentRoleBindingAsyncExecutors.forEach(ConfluentRoleBindingAsyncExecutor::run);
             userAsyncExecutors.forEach(UserAsyncExecutor::run);
-        } else {
-            log.warn("Scheduled jobs did not start because Micronaut is not ready yet.");
+            return;
         }
+
+        log.warn("Scheduled jobs did not start because Micronaut is not ready yet.");
     }
 
     /**
@@ -102,7 +100,7 @@ public class KafkaAsyncExecutorScheduler {
      */
     public Disposable scheduleConnectorSynchronization() {
         return Flux.interval(
-                        Duration.ofSeconds(12),
+                        Duration.ofSeconds(10),
                         Duration.ofMillis(schedulerProperties.getConnector().getIntervalMs()))
                 .onBackpressureDrop(
                         _ -> log.debug("Skipping next connector synchronization. The previous one is still running."))
@@ -114,35 +112,11 @@ public class KafkaAsyncExecutorScheduler {
                         log.trace("Synchronization completed for connector \"{}\".", connectorInfo.name()));
     }
 
-    /**
-     * Schedule connector synchronization.
-     *
-     * @return A disposable to manage the scheduled task
-     */
-    public Disposable scheduleConnectHealthCheck() {
-        return Flux.interval(
-                        Duration.ofSeconds(5),
-                        Duration.ofMillis(schedulerProperties.getConnect().getIntervalMs()))
-                .onBackpressureDrop(_ ->
-                        log.debug("Skipping next Connect cluster health check. The previous one is still running."))
-                .concatMap(_ -> Flux.fromIterable(connectorAsyncExecutors)
-                        .flatMap(ConnectorAsyncExecutor::runHealthCheck, connectorAsyncExecutors.size()))
-                .onErrorContinue((error, _) ->
-                        log.trace("Continue Connect cluster health check after error: {}.", error.getMessage()))
-                .subscribe(connectCluster -> log.trace(
-                        "Health check completed for Connect cluster \"{}\".",
-                        connectCluster.getMetadata().getName()));
-    }
-
     /** Dispose the schedulers when the application is shutting down. */
     @PreDestroy
     public void onDestroy() {
         if (connectorSyncDisposable != null && !connectorSyncDisposable.isDisposed()) {
             connectorSyncDisposable.dispose();
-        }
-
-        if (connectHealthCheckDisposable != null && !connectHealthCheckDisposable.isDisposed()) {
-            connectHealthCheckDisposable.dispose();
         }
     }
 }
