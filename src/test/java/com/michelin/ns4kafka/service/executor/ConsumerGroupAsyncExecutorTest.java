@@ -64,18 +64,26 @@ class ConsumerGroupAsyncExecutorTest {
                 "streams-group", Optional.of(GroupType.STREAMS), "stream", Optional.of(GroupState.STABLE));
         GroupListing shareGroup =
                 new GroupListing("share-group", Optional.of(GroupType.SHARE), "share", Optional.of(GroupState.STABLE));
+        GroupListing emptyProtocolGroup =
+                new GroupListing("empty-protocol-group", Optional.empty(), "", Optional.empty());
 
         when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
         when(adminClient.listGroups()).thenReturn(listGroupsResult);
         when(listGroupsResult.all())
-                .thenReturn(KafkaFuture.completedFuture(
-                        List.of(classicConsumerGroup, newConsumerGroup, connectGroup, streamsGroup, shareGroup)));
+                .thenReturn(KafkaFuture.completedFuture(List.of(
+                        classicConsumerGroup,
+                        newConsumerGroup,
+                        connectGroup,
+                        streamsGroup,
+                        shareGroup,
+                        emptyProtocolGroup)));
 
         List<String> result = consumerGroupAsyncExecutor.listConsumerGroupIds();
 
-        assertEquals(2, result.size());
+        assertEquals(3, result.size());
         assertTrue(result.contains("classic-consumer-group"));
         assertTrue(result.contains("new-consumer-group"));
+        assertTrue(result.contains("empty-protocol-group"));
     }
 
     @Test
@@ -93,22 +101,6 @@ class ConsumerGroupAsyncExecutorTest {
 
         assertEquals(1, result.size());
         assertEquals("my-consumer-group", result.getFirst());
-    }
-
-    @Test
-    void shouldFilterOutGroupsWithEmptyType() throws ExecutionException, InterruptedException {
-        GroupListing emptyTypeGroup = new GroupListing("empty-type-group", Optional.empty(), "", Optional.empty());
-        GroupListing classicGroup = new GroupListing(
-                "classic-group", Optional.of(GroupType.CLASSIC), "consumer", Optional.of(GroupState.STABLE));
-
-        when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
-        when(adminClient.listGroups()).thenReturn(listGroupsResult);
-        when(listGroupsResult.all()).thenReturn(KafkaFuture.completedFuture(List.of(emptyTypeGroup, classicGroup)));
-
-        List<String> result = consumerGroupAsyncExecutor.listConsumerGroupIds();
-
-        assertEquals(1, result.size());
-        assertEquals("classic-group", result.getFirst());
     }
 
     @Test

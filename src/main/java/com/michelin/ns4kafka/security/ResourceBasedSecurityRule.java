@@ -101,7 +101,7 @@ public class ResourceBasedSecurityRule implements SecurityRule<HttpRequest<?>> {
         String resourceSubtype = matcher.group("resourceSubtype");
         String resourceType;
 
-        // Subresource handling ie. connects/restart or groups/reset
+        // Subresource handling i.e. connects/restart or groups/reset
         if (StringUtils.isNotEmpty(resourceSubtype)) {
             resourceType = matcher.group("resourceType") + "/" + resourceSubtype;
         } else {
