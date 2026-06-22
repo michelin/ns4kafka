@@ -107,7 +107,7 @@ public class ConsumerGroupController extends NamespacedResourceController {
      * @throws ExecutionException Any execution exception
      * @throws InterruptedException Any interrupted exception
      */
-    @Get("/external")
+    @Get("/_/external")
     public List<ConsumerGroup> listExternal(String namespace, @QueryValue(defaultValue = "*") String name)
             throws ExecutionException, InterruptedException {
         return consumerGroupService.findExternalByWildcardName(getNamespace(namespace), name);

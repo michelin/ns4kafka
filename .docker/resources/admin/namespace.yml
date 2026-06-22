@@ -76,7 +76,9 @@ spec:
     - "connect-clusters"
     - "connect-clusters/vaults"
     - "acls"
+    - "consumer-groups"
     - "consumer-groups/reset"
+    - "consumer-groups/external"
     - "streams"
     verbs:
     - "GET"
