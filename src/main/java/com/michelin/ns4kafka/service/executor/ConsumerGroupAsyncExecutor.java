@@ -72,7 +72,10 @@ public class ConsumerGroupAsyncExecutor {
     public List<String> listConsumerGroupIds() throws ExecutionException, InterruptedException {
         return getAdminClient().listGroups().all().get().stream()
                 .filter(groupListing -> groupListing.type().orElse(null) == GroupType.CONSUMER
-                        || "consumer".equals(groupListing.protocol()))
+                        || "consumer".equals(groupListing.protocol())
+                        // Simple groups created through an offset commit (e.g. reset offsets) have an empty
+                        // protocol type until a consumer joins, yet they are consumer groups
+                        || groupListing.protocol().isEmpty())
                 .map(GroupListing::groupId)
                 .toList();
     }

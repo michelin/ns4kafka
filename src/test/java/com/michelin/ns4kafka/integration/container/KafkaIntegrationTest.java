@@ -21,8 +21,11 @@ package com.michelin.ns4kafka.integration.container;
 import static org.apache.kafka.clients.CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG;
 
 import io.micronaut.test.support.TestPropertyProvider;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.clients.admin.NewTopic;
 import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.TestInstance;
 import org.testcontainers.containers.Network;
@@ -75,6 +78,19 @@ public abstract class KafkaIntegrationTest implements TestPropertyProvider {
     private static String getSaslPlainJaasConfig() {
         return "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"admin\" password=\"admin\""
                 + "user_admin=\"admin\";";
+    }
+
+    /**
+     * Create topics on the broker and wait for their creation to complete.
+     *
+     * @param adminClient The admin client
+     * @param newTopics The topics to create
+     * @throws ExecutionException Any execution exception during topics creation
+     * @throws InterruptedException Any interrupted exception during topics creation
+     */
+    public static void createTopics(Admin adminClient, NewTopic... newTopics)
+            throws ExecutionException, InterruptedException {
+        adminClient.createTopics(List.of(newTopics)).all().get();
     }
 
     /**
