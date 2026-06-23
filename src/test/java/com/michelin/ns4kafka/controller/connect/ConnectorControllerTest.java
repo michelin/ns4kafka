@@ -37,6 +37,7 @@ import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.service.ConnectorService;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.ResourceQuotaService;
+import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsetsResponse;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import com.michelin.ns4kafka.validation.ValidationResult;
 import io.micronaut.context.event.ApplicationEventPublisher;
@@ -1176,6 +1177,120 @@ class ConnectorControllerTest {
                     assertEquals(
                             HttpStatus.NO_CONTENT, response.body().getStatus().getCode());
                     assertEquals("connect1", response.body().getMetadata().getName());
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void shouldStopConnector() {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Connector connector = Connector.builder()
+                .metadata(Resource.Metadata.builder().name("connect1").build())
+                .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1")).thenReturn(true);
+        when(connectorService.findByName(ns, "connect1")).thenReturn(Optional.of(connector));
+        when(connectorService.stop(ArgumentMatchers.any(), ArgumentMatchers.any()))
+                .thenReturn(Mono.just(HttpResponse.accepted()));
+
+        ChangeConnectorState changeConnectorState = ChangeConnectorState.builder()
+                .metadata(Resource.Metadata.builder().name("connect1").build())
+                .spec(ChangeConnectorState.ChangeConnectorStateSpec.builder()
+                        .action(ChangeConnectorState.ConnectorAction.STOP)
+                        .build())
+                .build();
+
+        StepVerifier.create(connectorController.changeState("test", "connect1", changeConnectorState))
+                .consumeNextWith(response -> {
+                    assertTrue(response.getBody().isPresent());
+                    assertTrue(response.getBody().get().getStatus().isSuccess());
+                    assertEquals(
+                            HttpStatus.ACCEPTED, response.body().getStatus().getCode());
+                    assertEquals("connect1", response.body().getMetadata().getName());
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void shouldNotResetConnectorOffsetsWhenNotOwned() {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1")).thenReturn(false);
+
+        StepVerifier.create(connectorController.resetOffsets("test", "connect1"))
+                .consumeErrorWith(error -> {
+                    assertEquals(ResourceValidationException.class, error.getClass());
+                    assertEquals(
+                            1,
+                            ((ResourceValidationException) error)
+                                    .getValidationErrors()
+                                    .size());
+                    assertEquals(
+                            "Invalid value \"connect1\" for field \"name\": namespace is not owner of the resource.",
+                            ((ResourceValidationException) error)
+                                    .getValidationErrors()
+                                    .getFirst());
+                })
+                .verify();
+    }
+
+    @Test
+    void shouldNotResetConnectorOffsetsWhenNotFound() {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1")).thenReturn(true);
+        when(connectorService.findByName(ns, "connect1")).thenReturn(Optional.empty());
+
+        StepVerifier.create(connectorController.resetOffsets("test", "connect1"))
+                .consumeNextWith(response -> assertEquals(HttpStatus.NOT_FOUND, response.getStatus()))
+                .verifyComplete();
+
+        verify(connectorService, never()).resetOffsets(any(), any());
+    }
+
+    @Test
+    void shouldFullyResetConnectorOffsets() {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Connector connector = Connector.builder()
+                .metadata(Resource.Metadata.builder().name("connect1").build())
+                .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1")).thenReturn(true);
+        when(connectorService.findByName(ns, "connect1")).thenReturn(Optional.of(connector));
+        when(connectorService.resetOffsets(ns, connector))
+                .thenReturn(Mono.just(HttpResponse.ok(new ConnectorOffsetsResponse("reset ok"))));
+
+        StepVerifier.create(connectorController.resetOffsets("test", "connect1"))
+                .consumeNextWith(response -> {
+                    assertEquals(HttpStatus.OK, response.getStatus());
+                    assertTrue(response.getBody().isPresent());
+                    assertEquals("reset ok", response.body().message());
                 })
                 .verifyComplete();
     }
