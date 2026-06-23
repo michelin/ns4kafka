@@ -201,7 +201,9 @@ The delivered JWT token will have the following format:
         "connectors",
         "connectors/change-state",
         "acls",
+        "consumer-groups",
         "consumer-groups/reset",
+        "consumer-groups/external",
         "streams",
         "connect-clusters",
         "connect-clusters/vaults"
