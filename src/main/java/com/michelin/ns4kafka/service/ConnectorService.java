@@ -29,6 +29,7 @@ import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.connect.Connector;
 import com.michelin.ns4kafka.repository.ConnectorRepository;
 import com.michelin.ns4kafka.service.client.connect.KafkaConnectClient;
+import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsets;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorSpecs;
 import com.michelin.ns4kafka.util.FormatErrorUtils;
 import com.michelin.ns4kafka.util.RegexUtils;
@@ -273,6 +274,20 @@ public class ConnectorService {
                                         // ...and match the name parameter
                                         && RegexUtils.isResourceCoveredByRegex(
                                                 connector.getMetadata().getName(), nameFilterPatterns)));
+    }
+
+    /**
+     * List the offsets of a given connector.
+     *
+     * @param namespace The namespace
+     * @param connector The connector
+     * @return The connector offsets
+     */
+    public Mono<ConnectorOffsets> listOffsets(Namespace namespace, Connector connector) {
+        return kafkaConnectClient.listOffsets(
+                namespace.getMetadata().getCluster(),
+                connector.getSpec().getConnectCluster(),
+                connector.getMetadata().getName());
     }
 
     /**
