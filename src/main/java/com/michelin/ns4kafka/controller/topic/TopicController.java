@@ -48,7 +48,6 @@ import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -157,11 +156,6 @@ public class TopicController extends NamespacedResourceController {
         }
 
         topic.getSpec().getTags().replaceAll(String::toUpperCase);
-        List<String> existingTags =
-                existingTopic.map(oldTopic -> oldTopic.getSpec().getTags()).orElse(Collections.emptyList());
-        if (topic.getSpec().getTags().stream().anyMatch(newTag -> !existingTags.contains(newTag))) {
-            validationErrors.addAll(topicService.validateTags(ns, topic));
-        }
 
         if (!validationErrors.isEmpty()) {
             throw new ResourceValidationException(topic, validationErrors);

@@ -50,7 +50,6 @@ import com.michelin.ns4kafka.service.client.schema.entities.TopicListResponse;
 import io.micronaut.http.HttpResponse;
 import java.io.IOException;
 import java.time.Instant;
-import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -60,7 +59,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.apache.kafka.clients.admin.Admin;
-import org.apache.kafka.clients.admin.AlterConfigOp;
 import org.apache.kafka.clients.admin.AlterConfigsResult;
 import org.apache.kafka.clients.admin.CreateTopicsResult;
 import org.apache.kafka.clients.admin.DeleteTopicsResult;
@@ -491,21 +489,15 @@ class TopicAsyncExecutorTest {
                 .build();
 
         ConfigResource cr = new ConfigResource(ConfigResource.Type.TOPIC, "topic");
-        Map<ConfigResource, Collection<AlterConfigOp>> configsToUpdate =
-                Map.of(cr, topicAsyncExecutor.computeTopicConfig(topic.getSpec().getConfigs()));
+        ManagedClusterProperties.TimeoutProperties.TopicProperties topicProperties =
+                new ManagedClusterProperties.TimeoutProperties.TopicProperties();
+        topicProperties.setAlterConfigs(1000);
+        ManagedClusterProperties.TimeoutProperties timeoutProperties = new ManagedClusterProperties.TimeoutProperties();
+        timeoutProperties.setTopic(topicProperties);
 
         when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
         when(adminClient.incrementalAlterConfigs(any())).thenReturn(alterConfigsResult);
         when(alterConfigsResult.values()).thenReturn(Map.of(cr, kafkaFuture));
-
-        ManagedClusterProperties.TimeoutProperties.TopicProperties topicProperties =
-                new ManagedClusterProperties.TimeoutProperties.TopicProperties();
-        topicProperties.setAlterConfigs(1000);
-
-        ManagedClusterProperties.TimeoutProperties timeoutProperties = new ManagedClusterProperties.TimeoutProperties();
-        timeoutProperties.setTopic(topicProperties);
-
-        when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
 
         Topic newTopic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
@@ -520,7 +512,7 @@ class TopicAsyncExecutorTest {
 
         when(topicService.findByName("local", "topic")).thenReturn(Optional.of(newTopic));
 
-        topicAsyncExecutor.alterTopics(configsToUpdate, List.of(topic));
+        topicAsyncExecutor.alterTopics(List.of(topic), Map.of("topic", topic));
 
         verify(topicRepository, never()).create(any());
     }
@@ -540,26 +532,20 @@ class TopicAsyncExecutorTest {
                 .build();
 
         ConfigResource cr = new ConfigResource(ConfigResource.Type.TOPIC, "topic");
-        Map<ConfigResource, Collection<AlterConfigOp>> configsToUpdate =
-                Map.of(cr, topicAsyncExecutor.computeTopicConfig(topic.getSpec().getConfigs()));
+        ManagedClusterProperties.TimeoutProperties.TopicProperties topicProperties =
+                new ManagedClusterProperties.TimeoutProperties.TopicProperties();
+        topicProperties.setAlterConfigs(1000);
+        ManagedClusterProperties.TimeoutProperties timeoutProperties = new ManagedClusterProperties.TimeoutProperties();
+        timeoutProperties.setTopic(topicProperties);
 
         when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
         when(adminClient.incrementalAlterConfigs(any())).thenReturn(alterConfigsResult);
         when(alterConfigsResult.values()).thenReturn(Map.of(cr, kafkaFuture));
-
-        ManagedClusterProperties.TimeoutProperties.TopicProperties topicProperties =
-                new ManagedClusterProperties.TimeoutProperties.TopicProperties();
-        topicProperties.setAlterConfigs(1000);
-
-        ManagedClusterProperties.TimeoutProperties timeoutProperties = new ManagedClusterProperties.TimeoutProperties();
-        timeoutProperties.setTopic(topicProperties);
-
         when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
         when(kafkaFuture.get(1000, TimeUnit.MILLISECONDS)).thenThrow(new ExecutionException("Error", new Exception()));
-
         when(topicService.findByName("local", "topic")).thenReturn(Optional.of(topic));
 
-        topicAsyncExecutor.alterTopics(configsToUpdate, List.of(topic));
+        topicAsyncExecutor.alterTopics(List.of(topic), Map.of("topic", topic));
 
         verify(topicRepository).create(argThat(a -> a.equals(topic) && a.isFailed()));
     }
@@ -579,20 +565,15 @@ class TopicAsyncExecutorTest {
                 .build();
 
         ConfigResource cr = new ConfigResource(ConfigResource.Type.TOPIC, "topic");
-        Map<ConfigResource, Collection<AlterConfigOp>> configsToUpdate =
-                Map.of(cr, topicAsyncExecutor.computeTopicConfig(topic.getSpec().getConfigs()));
+        ManagedClusterProperties.TimeoutProperties.TopicProperties topicProperties =
+                new ManagedClusterProperties.TimeoutProperties.TopicProperties();
+        topicProperties.setAlterConfigs(1000);
+        ManagedClusterProperties.TimeoutProperties timeoutProperties = new ManagedClusterProperties.TimeoutProperties();
+        timeoutProperties.setTopic(topicProperties);
 
         when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
         when(adminClient.incrementalAlterConfigs(any())).thenReturn(alterConfigsResult);
         when(alterConfigsResult.values()).thenReturn(Map.of(cr, kafkaFuture));
-
-        ManagedClusterProperties.TimeoutProperties.TopicProperties topicProperties =
-                new ManagedClusterProperties.TimeoutProperties.TopicProperties();
-        topicProperties.setAlterConfigs(1000);
-
-        ManagedClusterProperties.TimeoutProperties timeoutProperties = new ManagedClusterProperties.TimeoutProperties();
-        timeoutProperties.setTopic(topicProperties);
-
         when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
         when(kafkaFuture.get(1000, TimeUnit.MILLISECONDS)).thenThrow(new ExecutionException("Error", new Exception()));
 
@@ -609,7 +590,7 @@ class TopicAsyncExecutorTest {
 
         when(topicService.findByName("local", "topic")).thenReturn(Optional.of(newTopic));
 
-        topicAsyncExecutor.alterTopics(configsToUpdate, List.of(topic));
+        topicAsyncExecutor.alterTopics(List.of(topic), Map.of("topic", topic));
 
         verify(topicRepository, never()).create(any());
     }

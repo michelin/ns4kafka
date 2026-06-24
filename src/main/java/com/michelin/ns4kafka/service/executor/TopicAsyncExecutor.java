@@ -37,8 +37,8 @@ import io.micronaut.context.annotation.EachBean;
 import jakarta.annotation.PreDestroy;
 import jakarta.inject.Singleton;
 import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -134,22 +134,16 @@ public class TopicAsyncExecutor {
             }
 
             if (!topicsToUpdate.isEmpty()) {
-                Map<ConfigResource, Collection<AlterConfigOp>> configsToUpdate = new HashMap<>();
-                topicsToUpdate.forEach(topic -> {
-                    Collection<AlterConfigOp> configs =
-                            computeTopicConfig(topic.getSpec().getConfigs());
-                    ConfigResource cr = new ConfigResource(
-                            ConfigResource.Type.TOPIC, topic.getMetadata().getName());
-                    configsToUpdate.put(cr, configs);
-                });
-
                 log.atDebug()
                         .addArgument(topicsToUpdate.stream()
                                 .map(topic -> topic.getMetadata().getName())
                                 .collect(Collectors.joining(",")))
                         .log("Topic(s) to update: {}");
 
-                alterTopics(configsToUpdate, topicsToUpdate);
+                List<String> topicsNames = topicsToUpdate.stream()
+                        .map(topic -> topic.getMetadata().getName())
+                        .toList();
+                alterTopics(topicsToUpdate, collectBrokerTopicsFromNames(topicsNames));
             }
 
             if (!topicsToDelete.isEmpty()) {
@@ -162,7 +156,13 @@ public class TopicAsyncExecutor {
                 deleteTopics(topicsToDelete);
             }
 
-        } catch (CancellationException | KafkaStoreException e) {
+        } catch (InterruptedException e) {
+            log.error("Exception ", e);
+            Thread.currentThread().interrupt();
+        } catch (CancellationException
+                | KafkaStoreException
+                | ExecutionException
+                | TimeoutException e) {
             log.error("An error occurred during the topic synchronization", e);
         }
     }
@@ -406,7 +406,7 @@ public class TopicAsyncExecutor {
                 .allTopicNames()
                 .get();
 
-        Map<String, Topic> topics = managedClusterProperties
+        return managedClusterProperties
                 .getAdminClient()
                 .describeConfigs(topicNames.stream()
                         .map(topicName -> new ConfigResource(ConfigResource.Type.TOPIC, topicName))
@@ -439,10 +439,6 @@ public class TopicAsyncExecutor {
                             .build();
                 })
                 .collect(Collectors.toMap(topic -> topic.getMetadata().getName(), Function.identity()));
-
-        enrichWithCatalogInfo(topics);
-
-        return topics;
     }
 
     /**
@@ -499,19 +495,15 @@ public class TopicAsyncExecutor {
                         "Success creating topic {} on cluster {}",
                         topicToCreate.getMetadata().getName(),
                         managedClusterProperties.getName());
-
             } catch (InterruptedException e) {
                 log.error(ERROR, e);
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
                 if (isUnchangedSinceLastApply(topicToCreate)) {
                     if (e.getCause() instanceof TopicExistsException) {
-                        Collection<AlterConfigOp> configs =
-                                computeTopicConfig(topicToCreate.getSpec().getConfigs());
-                        ConfigResource cr = new ConfigResource(
-                                ConfigResource.Type.TOPIC,
-                                topicToCreate.getMetadata().getName());
-                        alterTopics(Map.of(cr, configs), List.of(topicToCreate));
+                        topicToCreate.getMetadata().setStatus(Resource.Metadata.Status.ofPending());
+                        topicToCreate.getMetadata().setGeneration(1);
+                        topicRepository.create(topicToCreate);
                         return;
                     }
 
@@ -533,14 +525,27 @@ public class TopicAsyncExecutor {
     /**
      * Alter topics.
      *
-     * @param toUpdate The topics to update
-     * @param topics The current topics
+     * @param targetTopics The target topics
+     * @param brokerTopics The current topics
      */
-    public void alterTopics(Map<ConfigResource, Collection<AlterConfigOp>> toUpdate, List<Topic> topics) {
+    public void alterTopics(List<Topic> targetTopics, Map<String, Topic> brokerTopics) {
+        Map<ConfigResource, Collection<AlterConfigOp>> topicConfigsToUpdate = targetTopics.stream()
+                .collect(Collectors.toMap(
+                        topic -> new ConfigResource(
+                                ConfigResource.Type.TOPIC, topic.getMetadata().getName()),
+                        topic -> {
+                            Map<String, String> currentConfig = brokerTopics
+                                    .get(topic.getMetadata().getName())
+                                    .getSpec()
+                                    .getConfigs();
+
+                            return computeConfigChanges(topic.getSpec().getConfigs(), currentConfig);
+                        }));
+
         AlterConfigsResult alterConfigsResult =
-                managedClusterProperties.getAdminClient().incrementalAlterConfigs(toUpdate);
+                managedClusterProperties.getAdminClient().incrementalAlterConfigs(topicConfigsToUpdate);
         alterConfigsResult.values().forEach((key, value) -> {
-            Topic topicToUpdate = topics.stream()
+            Topic updatedTopic = targetTopics.stream()
                     .filter(topic -> topic.getMetadata().getName().equals(key.name()))
                     .findFirst()
                     .get();
@@ -548,17 +553,17 @@ public class TopicAsyncExecutor {
             try {
                 value.get(managedClusterProperties.getTimeout().getTopic().getAlterConfigs(), TimeUnit.MILLISECONDS);
 
-                if (isUnchangedSinceLastApply(topicToUpdate)) {
-                    topicToUpdate
+                if (isUnchangedSinceLastApply(updatedTopic)) {
+                    updatedTopic
                             .getMetadata()
-                            .setGeneration(topicToUpdate.getMetadata().getGeneration() + 1);
-                    topicToUpdate.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
-                    topicRepository.create(topicToUpdate);
+                            .setGeneration(updatedTopic.getMetadata().getGeneration() + 1);
+                    updatedTopic.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
+                    topicRepository.create(updatedTopic);
 
                     log.atInfo()
                             .addArgument(key.name())
                             .addArgument(managedClusterProperties.getName())
-                            .addArgument(toUpdate.get(key).stream()
+                            .addArgument(topicConfigsToUpdate.get(key).stream()
                                     .map(AlterConfigOp::toString)
                                     .collect(Collectors.joining(",")))
                             .log("Success updating topic configs {} on cluster {}: [{}]");
@@ -567,20 +572,20 @@ public class TopicAsyncExecutor {
                 log.error(ERROR, e);
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
-                if (isUnchangedSinceLastApply(topicToUpdate)) {
+                if (isUnchangedSinceLastApply(updatedTopic)) {
                     if (e.getCause() instanceof UnknownTopicOrPartitionException) {
-                        createTopics(List.of(topicToUpdate));
+                        createTopics(List.of(updatedTopic));
                         return;
                     }
-                    topicToUpdate
+                    updatedTopic
                             .getMetadata()
                             .setStatus(Resource.Metadata.Status.ofFailed(
                                     "Error while updating topic configs: " + e.getMessage()));
-                    topicRepository.create(topicToUpdate);
+                    topicRepository.create(updatedTopic);
 
                     log.error(
                             "Error while updating topic configs {} on cluster {}",
-                            topicToUpdate.getMetadata().getName(),
+                            updatedTopic.getMetadata().getName(),
                             managedClusterProperties.getName(),
                             e);
                 }
@@ -749,16 +754,29 @@ public class TopicAsyncExecutor {
     }
 
     /**
-     * Compute the topic configuration.
+     * Compute the configuration changes.
      *
-     * @param topicConfig The topic config
+     * @param configToApply The config from Ns4Kafka
+     * @param currentConfig The config from cluster
      * @return A list of config
      */
-    Collection<AlterConfigOp> computeTopicConfig(Map<String, String> topicConfig) {
-        return topicConfig.entrySet().stream()
-                .map(entry ->
-                        new AlterConfigOp(new ConfigEntry(entry.getKey(), entry.getValue()), AlterConfigOp.OpType.SET))
-                .toList();
+    private Collection<AlterConfigOp> computeConfigChanges(
+            Map<String, String> configToApply, Map<String, String> currentConfig) {
+        List<AlterConfigOp> changes = new ArrayList<>();
+
+        configToApply.forEach((key, value) -> {
+            if (!currentConfig.containsKey(key) || !value.equals(currentConfig.get(key))) {
+                changes.add(new AlterConfigOp(new ConfigEntry(key, value), AlterConfigOp.OpType.SET));
+            }
+        });
+
+        currentConfig.forEach((key, value) -> {
+            if (!configToApply.containsKey(key)) {
+                changes.add(new AlterConfigOp(new ConfigEntry(key, value), AlterConfigOp.OpType.DELETE));
+            }
+        });
+
+        return changes;
     }
 
     /**
