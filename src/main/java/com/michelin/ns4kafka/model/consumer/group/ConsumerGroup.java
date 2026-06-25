@@ -78,5 +78,7 @@ public class ConsumerGroup extends Resource {
         private String topic;
         private int partition;
         private long currentOffset;
+        private long logEndOffset;
+        private long lag;
     }
 }
