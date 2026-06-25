@@ -44,6 +44,7 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -103,11 +104,16 @@ public class ConsumerGroupService {
 
         boolean includeOffsets = consumerGroupIds.size() == 1;
         return consumerGroupIds.stream()
-                .map(groupId -> buildConsumerGroup(
-                        namespace,
-                        groupId,
-                        descriptions.get(groupId),
-                        includeOffsets ? getCommittedOffsets(consumerGroupAsyncExecutor, groupId) : Map.of()))
+                .map(groupId -> {
+                    Map<TopicPartition, Long> committedOffsets =
+                            includeOffsets ? getCommittedOffsets(consumerGroupAsyncExecutor, groupId) : Map.of();
+                    return buildConsumerGroup(
+                            namespace,
+                            groupId,
+                            descriptions.get(groupId),
+                            committedOffsets,
+                            getLogEndOffsets(consumerGroupAsyncExecutor, committedOffsets.keySet()));
+                })
                 .toList();
     }
 
@@ -153,8 +159,15 @@ public class ConsumerGroupService {
                 consumerGroupAsyncExecutor.describeConsumerGroups(consumerGroupIds);
 
         return consumerGroupIds.stream()
-                .map(groupId -> buildConsumerGroup(
-                        namespace, groupId, descriptions.get(groupId), committedOffsetsByGroup.get(groupId)))
+                .map(groupId -> {
+                    Map<TopicPartition, Long> committedOffsets = committedOffsetsByGroup.get(groupId);
+                    return buildConsumerGroup(
+                            namespace,
+                            groupId,
+                            descriptions.get(groupId),
+                            committedOffsets,
+                            getLogEndOffsets(consumerGroupAsyncExecutor, committedOffsets.keySet()));
+                })
                 .toList();
     }
 
@@ -388,13 +401,15 @@ public class ConsumerGroupService {
      * @param consumerGroupId The consumer group
      * @param description The consumer group description
      * @param committedOffsets The committed offsets
+     * @param logEndOffsets The log end offsets
      * @return The consumer group
      */
     private ConsumerGroup buildConsumerGroup(
             Namespace namespace,
             String consumerGroupId,
             ConsumerGroupDescription description,
-            Map<TopicPartition, Long> committedOffsets) {
+            Map<TopicPartition, Long> committedOffsets,
+            Map<TopicPartition, Long> logEndOffsets) {
         return ConsumerGroup.builder()
                 .metadata(Resource.Metadata.builder()
                         .name(consumerGroupId)
@@ -404,11 +419,17 @@ public class ConsumerGroupService {
                 .status(ConsumerGroup.ConsumerGroupStatus.builder()
                         .state(description == null ? GroupState.UNKNOWN : description.groupState())
                         .offsets(committedOffsets.entrySet().stream()
-                                .map(entry -> ConsumerGroup.ConsumerGroupOffset.builder()
-                                        .topic(entry.getKey().topic())
-                                        .partition(entry.getKey().partition())
-                                        .currentOffset(entry.getValue())
-                                        .build())
+                                .map(entry -> {
+                                    long currentOffset = entry.getValue();
+                                    Long logEndOffset = logEndOffsets.get(entry.getKey());
+                                    return ConsumerGroup.ConsumerGroupOffset.builder()
+                                            .topic(entry.getKey().topic())
+                                            .partition(entry.getKey().partition())
+                                            .currentOffset(currentOffset)
+                                            .logEndOffset(logEndOffset == null ? 0L : logEndOffset)
+                                            .lag(logEndOffset == null ? 0L : logEndOffset - currentOffset)
+                                            .build();
+                                })
                                 .sorted(comparing(ConsumerGroup.ConsumerGroupOffset::getTopic)
                                         .thenComparingInt(ConsumerGroup.ConsumerGroupOffset::getPartition))
                                 .toList())
@@ -427,6 +448,29 @@ public class ConsumerGroupService {
             ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor, String groupId) {
         try {
             return consumerGroupAsyncExecutor.getCommittedOffsets(groupId);
+        } catch (ExecutionException _) {
+            return Map.of();
+        } catch (InterruptedException _) {
+            Thread.currentThread().interrupt();
+            return Map.of();
+        }
+    }
+
+    /**
+     * Get the log end offsets for a given set of topic-partitions.
+     *
+     * @param consumerGroupAsyncExecutor The consumer group async executor
+     * @param partitions The topic-partitions
+     * @return The log end offsets
+     */
+    private Map<TopicPartition, Long> getLogEndOffsets(
+            ConsumerGroupAsyncExecutor consumerGroupAsyncExecutor, Set<TopicPartition> partitions) {
+        if (partitions.isEmpty()) {
+            return Map.of();
+        }
+
+        try {
+            return consumerGroupAsyncExecutor.getLogEndOffsets(new ArrayList<>(partitions));
         } catch (ExecutionException _) {
             return Map.of();
         } catch (InterruptedException _) {
