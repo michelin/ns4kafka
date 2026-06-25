@@ -159,10 +159,7 @@ public class TopicAsyncExecutor {
         } catch (InterruptedException e) {
             log.error("Exception ", e);
             Thread.currentThread().interrupt();
-        } catch (CancellationException
-                | KafkaStoreException
-                | ExecutionException
-                | TimeoutException e) {
+        } catch (CancellationException | KafkaStoreException | ExecutionException | TimeoutException e) {
             log.error("An error occurred during the topic synchronization", e);
         }
     }
@@ -501,6 +498,8 @@ public class TopicAsyncExecutor {
             } catch (Exception e) {
                 if (isUnchangedSinceLastApply(topicToCreate)) {
                     if (e.getCause() instanceof TopicExistsException) {
+                        // Let the next executor update topic, because if update here with alterTopics, we would need
+                        // collectBrokerTopicsFromNames which can throw errors we don't want to handle in createTopics
                         topicToCreate.getMetadata().setStatus(Resource.Metadata.Status.ofPending());
                         topicToCreate.getMetadata().setGeneration(1);
                         topicRepository.create(topicToCreate);
