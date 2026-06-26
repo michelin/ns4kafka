@@ -96,9 +96,6 @@ public class AkhqController {
 
         List<AccessControlEntry> relatedAcl = getAclsByGroups(groups);
 
-        // Add all public ACLs.
-        relatedAcl.addAll(aclService.findAllPublicGrantedTo());
-
         return AkhqClaimResponseV2.builder()
                 .roles(ns4KafkaProperties.getAkhq().getFormerRoles())
                 .topicsFilterRegexp(
@@ -124,9 +121,6 @@ public class AkhqController {
         }
 
         List<AccessControlEntry> acls = getAclsByGroups(groups);
-
-        // Add all public ACLs
-        acls.addAll(aclService.findAllPublicGrantedTo());
 
         // Remove unnecessary ACLs
         // E.g., project.topic1 when project.* is granted on the same resource type and cluster
@@ -294,7 +288,7 @@ public class AkhqController {
                                                 ns4KafkaProperties.getAkhq().getGroupLabel(), "_")
                                         .toLowerCase()
                                         .split(ns4KafkaProperties.getAkhq().getGroupDelimiter()))))
-                .flatMap(namespace -> aclService.findAllGrantedToNamespace(namespace).stream())
+                .flatMap(namespace -> aclService.findNonTransactionalGrantedToNamespace(namespace).stream())
                 .collect(Collectors.toList());
     }
 

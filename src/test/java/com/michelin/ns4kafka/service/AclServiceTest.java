@@ -949,38 +949,6 @@ class AclServiceTest {
     }
 
     @Test
-    void shouldFindAllAclsGrantedToAll() {
-        AccessControlEntry ace1 = AccessControlEntry.builder()
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .grantedTo("namespace1")
-                        .build())
-                .build();
-
-        AccessControlEntry ace2 = AccessControlEntry.builder()
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .grantedTo("namespace1")
-                        .build())
-                .build();
-
-        AccessControlEntry ace3 = AccessControlEntry.builder()
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .grantedTo("namespace2")
-                        .build())
-                .build();
-
-        AccessControlEntry ace4 = AccessControlEntry.builder()
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .grantedTo("*")
-                        .build())
-                .build();
-
-        when(accessControlEntryRepository.findAll()).thenReturn(List.of(ace1, ace2, ace3, ace4));
-
-        List<AccessControlEntry> actual = aclService.findAllPublicGrantedTo();
-        assertEquals(1, actual.size());
-    }
-
-    @Test
     void shouldFindAllAclForNamespace() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
@@ -1748,6 +1716,98 @@ class AclServiceTest {
                 aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.CONNECT));
         assertEquals(
                 List.of(), aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.GROUP));
+    }
+
+    @Test
+    void shouldFindNonTransactionalAclGrantedToNamespace() {
+        AccessControlEntry acl1 = AccessControlEntry.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-acl-topic")
+                        .namespace("namespace1")
+                        .cluster("local")
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .grantedTo("namespace1")
+                        .build())
+                .build();
+
+        AccessControlEntry acl2 = AccessControlEntry.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("acl-ns2-read-to-all")
+                        .namespace("namespace2")
+                        .cluster("local")
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .permission(AccessControlEntry.Permission.READ)
+                        .grantedTo("*")
+                        .build())
+                .build();
+
+        AccessControlEntry acl3 = AccessControlEntry.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-acl-connect")
+                        .namespace("namespace1")
+                        .cluster("local")
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .grantedTo("namespace1")
+                        .build())
+                .build();
+
+        AccessControlEntry acl4 = AccessControlEntry.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns2-acl-topic")
+                        .namespace("namespace2")
+                        .cluster("local")
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .grantedTo("namespace2")
+                        .build())
+                .build();
+
+        AccessControlEntry acl5 = AccessControlEntry.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns3-write-trans-acl-all")
+                        .namespace("namespace3")
+                        .cluster("local")
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TRANSACTIONAL_ID)
+                        .permission(AccessControlEntry.Permission.WRITE)
+                        .grantedTo("*")
+                        .build())
+                .build();
+
+        AccessControlEntry acl6 = AccessControlEntry.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns3-owner-trans-acl-ns1")
+                        .namespace("namespace3")
+                        .cluster("local")
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TRANSACTIONAL_ID)
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .grantedTo("namespace1")
+                        .build())
+                .build();
+
+        when(accessControlEntryRepository.findAll()).thenReturn(List.of(acl1, acl2, acl3, acl4, acl5, acl6));
+
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace1")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        assertEquals(List.of(acl1, acl2, acl3), aclService.findNonTransactionalGrantedToNamespace(ns));
     }
 
     @Test

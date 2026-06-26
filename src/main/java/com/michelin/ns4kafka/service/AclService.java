@@ -526,13 +526,18 @@ public class AclService {
     }
 
     /**
-     * Find all public granted ACLs.
+     * Find non-transactional ID ACLs granted to a given namespace, including public granted ACLs.
      *
+     * @param namespace The namespace
      * @return A list of ACLs
      */
-    public List<AccessControlEntry> findAllPublicGrantedTo() {
-        return accessControlEntryRepository.findAll().stream()
-                .filter(this::isPublicAcl)
+    public List<AccessControlEntry> findNonTransactionalGrantedToNamespace(Namespace namespace) {
+        return findAllForCluster(namespace.getMetadata().getCluster()).stream()
+                .filter(acl -> isPublicAcl(acl)
+                        || acl.getSpec()
+                                .getGrantedTo()
+                                .equals(namespace.getMetadata().getName()))
+                .filter(acl -> !acl.getSpec().getResourceType().equals(TRANSACTIONAL_ID))
                 .toList();
     }
 
