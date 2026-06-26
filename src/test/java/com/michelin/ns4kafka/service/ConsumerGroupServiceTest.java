@@ -93,6 +93,7 @@ class ConsumerGroupServiceTest {
         when(consumerGroupAsyncExecutor.describeConsumerGroups(List.of("abc.group1")))
                 .thenReturn(Map.of("abc.group1", stableDescription));
         when(consumerGroupAsyncExecutor.getCommittedOffsets("abc.group1")).thenReturn(Map.of(partition, 5L));
+        when(consumerGroupAsyncExecutor.getLogEndOffsets(List.of(partition))).thenReturn(Map.of(partition, 12L));
 
         List<ConsumerGroup> result = consumerGroupService.findByWildcardName(namespace, "*");
 
@@ -110,6 +111,8 @@ class ConsumerGroupServiceTest {
         assertEquals("namespace-topic", offset.getTopic());
         assertEquals(0, offset.getPartition());
         assertEquals(5L, offset.getCurrentOffset());
+        assertEquals(12L, offset.getLogEndOffset());
+        assertEquals(7L, offset.getLag());
     }
 
     @Test
@@ -173,16 +176,23 @@ class ConsumerGroupServiceTest {
                 .thenReturn(true);
         when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.GROUP, "abc.group2"))
                 .thenReturn(true);
+        TopicPartition partition = new TopicPartition("topic2", 0);
         when(consumerGroupAsyncExecutor.describeConsumerGroups(List.of("abc.group2")))
                 .thenReturn(Map.of());
-        when(consumerGroupAsyncExecutor.getCommittedOffsets("abc.group2"))
-                .thenReturn(Map.of(new TopicPartition("topic2", 0), 3L));
+        when(consumerGroupAsyncExecutor.getCommittedOffsets("abc.group2")).thenReturn(Map.of(partition, 3L));
+        when(consumerGroupAsyncExecutor.getLogEndOffsets(List.of(partition))).thenReturn(Map.of(partition, 10L));
 
         List<ConsumerGroup> result = consumerGroupService.findByWildcardName(namespace, "*group2");
 
         assertEquals(1, result.size());
         assertEquals("abc.group2", result.getFirst().getMetadata().getName());
         assertEquals(1, result.getFirst().getStatus().getOffsets().size());
+
+        ConsumerGroup.ConsumerGroupOffset offset =
+                result.getFirst().getStatus().getOffsets().getFirst();
+        assertEquals(3L, offset.getCurrentOffset());
+        assertEquals(10L, offset.getLogEndOffset());
+        assertEquals(7L, offset.getLag());
     }
 
     @Test
@@ -244,15 +254,21 @@ class ConsumerGroupServiceTest {
                 .thenReturn(false);
         when(consumerGroupAsyncExecutor.describeConsumerGroups(List.of("def.group1")))
                 .thenReturn(Map.of("def.group1", stableDescription));
+        when(consumerGroupAsyncExecutor.getLogEndOffsets(List.of(ownedPartition)))
+                .thenReturn(Map.of(ownedPartition, 8L));
 
         List<ConsumerGroup> result = consumerGroupService.findExternalByWildcardName(namespace, "*");
 
         assertEquals(1, result.size());
         assertEquals("def.group1", result.getFirst().getMetadata().getName());
         assertEquals(1, result.getFirst().getStatus().getOffsets().size());
-        assertEquals(
-                "abc.namespace-topic",
-                result.getFirst().getStatus().getOffsets().getFirst().getTopic());
+
+        ConsumerGroup.ConsumerGroupOffset offset =
+                result.getFirst().getStatus().getOffsets().getFirst();
+        assertEquals("abc.namespace-topic", offset.getTopic());
+        assertEquals(5L, offset.getCurrentOffset());
+        assertEquals(8L, offset.getLogEndOffset());
+        assertEquals(3L, offset.getLag());
     }
 
     @Test

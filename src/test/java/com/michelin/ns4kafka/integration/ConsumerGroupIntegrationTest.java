@@ -236,12 +236,12 @@ class ConsumerGroupIntegrationTest extends KafkaIntegrationTest {
         assertEquals(GroupState.EMPTY, consumerGroups.getFirst().getStatus().getState());
         assertEquals(
                 List.of(
-                        new ConsumerGroupOffset("ns1-topic", 0, 1),
-                        new ConsumerGroupOffset("ns1-topic", 1, 1),
-                        new ConsumerGroupOffset("ns1-topic", 2, 1),
-                        new ConsumerGroupOffset("other-topic", 0, 1),
-                        new ConsumerGroupOffset("other-topic", 1, 1),
-                        new ConsumerGroupOffset("other-topic", 2, 1)),
+                        new ConsumerGroupOffset("ns1-topic", 0, 1, 1, 0),
+                        new ConsumerGroupOffset("ns1-topic", 1, 1, 1, 0),
+                        new ConsumerGroupOffset("ns1-topic", 2, 1, 1, 0),
+                        new ConsumerGroupOffset("other-topic", 0, 1, 1, 0),
+                        new ConsumerGroupOffset("other-topic", 1, 1, 1, 0),
+                        new ConsumerGroupOffset("other-topic", 2, 1, 1, 0)),
                 consumerGroups.getFirst().getStatus().getOffsets());
 
         assertTrue(consumerGroups.stream()
@@ -319,9 +319,9 @@ class ConsumerGroupIntegrationTest extends KafkaIntegrationTest {
         assertEquals(GroupState.EMPTY, externalConsumerGroup.getStatus().getState());
         assertEquals(
                 List.of(
-                        new ConsumerGroupOffset("ns1-externalTopic", 0, 1),
-                        new ConsumerGroupOffset("ns1-externalTopic", 1, 1),
-                        new ConsumerGroupOffset("ns1-externalTopic", 2, 1)),
+                        new ConsumerGroupOffset("ns1-externalTopic", 0, 1, 1, 0),
+                        new ConsumerGroupOffset("ns1-externalTopic", 1, 1, 1, 0),
+                        new ConsumerGroupOffset("ns1-externalTopic", 2, 1, 1, 0)),
                 externalConsumerGroup.getStatus().getOffsets());
 
         assertTrue(externalConsumerGroups.stream()
@@ -373,9 +373,9 @@ class ConsumerGroupIntegrationTest extends KafkaIntegrationTest {
                 consumerGroups.getFirst().getMetadata().getName());
         assertEquals(
                 List.of(
-                        new ConsumerGroupOffset("ns1-resetTopic", 0, 0),
-                        new ConsumerGroupOffset("ns1-resetTopic", 1, 0),
-                        new ConsumerGroupOffset("ns1-resetTopic", 2, 0)),
+                        new ConsumerGroupOffset("ns1-resetTopic", 0, 0, 0, 0),
+                        new ConsumerGroupOffset("ns1-resetTopic", 1, 0, 0, 0),
+                        new ConsumerGroupOffset("ns1-resetTopic", 2, 0, 0, 0)),
                 consumerGroups.getFirst().getStatus().getOffsets());
 
         HttpResponse<Void> deleteResponse = ns4KafkaClient
