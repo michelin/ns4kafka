@@ -196,6 +196,84 @@ class ConsumerGroupServiceTest {
     }
 
     @Test
+    void shouldListConsumerGroupsWithoutLogEndOffsets() throws InterruptedException, ExecutionException {
+        Namespace namespace = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("test")
+                        .build())
+                .build();
+
+        ConsumerGroupDescription stableDescription =
+                new ConsumerGroupDescription(null, true, null, null, null, GroupState.STABLE, null, null, null, null);
+
+        TopicPartition partition = new TopicPartition("namespace-topic", 0);
+
+        when(applicationContext.getBean(
+                        ConsumerGroupAsyncExecutor.class,
+                        Qualifiers.byName(namespace.getMetadata().getCluster())))
+                .thenReturn(consumerGroupAsyncExecutor);
+        when(consumerGroupAsyncExecutor.listConsumerGroupIds()).thenReturn(List.of("abc.group1"));
+        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.GROUP, "abc.group1"))
+                .thenReturn(true);
+        when(consumerGroupAsyncExecutor.describeConsumerGroups(List.of("abc.group1")))
+                .thenReturn(Map.of("abc.group1", stableDescription));
+        when(consumerGroupAsyncExecutor.getCommittedOffsets("abc.group1")).thenReturn(Map.of(partition, 5L));
+        when(consumerGroupAsyncExecutor.getLogEndOffsets(List.of(partition)))
+                .thenThrow(new ExecutionException(new RuntimeException("boom")));
+
+        List<ConsumerGroup> result = consumerGroupService.findByWildcardName(namespace, "*");
+
+        assertEquals(1, result.size());
+
+        ConsumerGroup.ConsumerGroupOffset offset =
+                result.getFirst().getStatus().getOffsets().getFirst();
+        assertEquals(5L, offset.getCurrentOffset());
+        assertEquals(0L, offset.getLogEndOffset());
+        assertEquals(0L, offset.getLag());
+    }
+
+    @Test
+    void shouldListConsumerGroupsWithoutLogEndOffsetsWhenInterrupted() throws InterruptedException, ExecutionException {
+        Namespace namespace = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("test")
+                        .build())
+                .build();
+
+        ConsumerGroupDescription stableDescription =
+                new ConsumerGroupDescription(null, true, null, null, null, GroupState.STABLE, null, null, null, null);
+
+        TopicPartition partition = new TopicPartition("namespace-topic", 0);
+
+        when(applicationContext.getBean(
+                        ConsumerGroupAsyncExecutor.class,
+                        Qualifiers.byName(namespace.getMetadata().getCluster())))
+                .thenReturn(consumerGroupAsyncExecutor);
+        when(consumerGroupAsyncExecutor.listConsumerGroupIds()).thenReturn(List.of("abc.group1"));
+        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.GROUP, "abc.group1"))
+                .thenReturn(true);
+        when(consumerGroupAsyncExecutor.describeConsumerGroups(List.of("abc.group1")))
+                .thenReturn(Map.of("abc.group1", stableDescription));
+        when(consumerGroupAsyncExecutor.getCommittedOffsets("abc.group1")).thenReturn(Map.of(partition, 5L));
+        when(consumerGroupAsyncExecutor.getLogEndOffsets(List.of(partition)))
+                .thenThrow(new InterruptedException("interrupted"));
+
+        List<ConsumerGroup> result = consumerGroupService.findByWildcardName(namespace, "*");
+
+        assertEquals(1, result.size());
+
+        ConsumerGroup.ConsumerGroupOffset offset =
+                result.getFirst().getStatus().getOffsets().getFirst();
+        assertEquals(5L, offset.getCurrentOffset());
+        assertEquals(0L, offset.getLogEndOffset());
+        assertEquals(0L, offset.getLag());
+        // The interrupt flag is set by the service; clear it so it does not leak to other tests
+        assertTrue(Thread.interrupted());
+    }
+
+    @Test
     void shouldListConsumerGroupsWhenEmpty() throws InterruptedException, ExecutionException {
         Namespace namespace = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
