@@ -218,32 +218,6 @@ class TopicServiceTest {
     }
 
     @Test
-    void shouldImportTopics() {
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("namespace")
-                        .cluster("local")
-                        .build())
-                .spec(NamespaceSpec.builder()
-                        .connectClusters(List.of("local-name"))
-                        .build())
-                .build();
-
-        when(applicationContext.getBean(
-                        TopicAsyncExecutor.class,
-                        Qualifiers.byName(ns.getMetadata().getCluster())))
-                .thenReturn(topicAsyncExecutor);
-
-        List<Topic> topics = List.of(Topic.builder()
-                .metadata(Resource.Metadata.builder().name("ns-topic1").build())
-                .build());
-
-        topicService.importTopics(ns, topics);
-
-        verify(topicAsyncExecutor).importTopics(topics);
-    }
-
-    @Test
     void shouldFindAllForNamespace() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
@@ -854,50 +828,6 @@ class TopicServiceTest {
     }
 
     @Test
-    void shouldDeleteTopic() throws ExecutionException, InterruptedException, TimeoutException {
-        Topic topic = Topic.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("ns-topic1")
-                        .cluster("cluster")
-                        .build())
-                .build();
-
-        when(applicationContext.getBean(eq(TopicAsyncExecutor.class), any())).thenReturn(topicAsyncExecutor);
-
-        topicService.delete(topic);
-
-        verify(topicRepository).delete(topic);
-        verify(topicAsyncExecutor).deleteTopics(List.of(topic));
-    }
-
-    @Test
-    void shouldDeleteMultipleTopics() throws ExecutionException, InterruptedException, TimeoutException {
-        Topic topic1 = Topic.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("ns-topic1")
-                        .cluster("cluster")
-                        .build())
-                .build();
-
-        Topic topic2 = Topic.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("ns-topic2")
-                        .cluster("cluster")
-                        .build())
-                .build();
-
-        List<Topic> topics = List.of(topic1, topic2);
-
-        when(applicationContext.getBean(eq(TopicAsyncExecutor.class), any())).thenReturn(topicAsyncExecutor);
-
-        topicService.deleteTopics(topics);
-
-        verify(topicAsyncExecutor).deleteTopics(topics);
-        verify(topicRepository).delete(topic1);
-        verify(topicRepository).delete(topic2);
-    }
-
-    @Test
     void shouldListUnsynchronizedTopicNames() throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
@@ -1007,6 +937,129 @@ class TopicServiceTest {
 
         assertEquals(1, actual.size());
         assertTrue(actual.contains(t2));
+    }
+
+    @Test
+    void shouldDeleteKafkaStreamInternalTopics() {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Topic t1 = Topic.builder()
+                .metadata(Resource.Metadata.builder().name("ns-topic1").build())
+                .build();
+        Topic t2 = Topic.builder()
+                .metadata(Resource.Metadata.builder().name("ns-stream-test").build())
+                .build();
+        Topic t3 = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns-stream-test-changelog")
+                        .status(Resource.Metadata.Status.ofDeleting())
+                        .build())
+                .build();
+
+        List<AccessControlEntry> acls = List.of(AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .grantedTo("namespace")
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resource("ns-")
+                        .build())
+                .build());
+
+        when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.TOPIC))
+                .thenReturn(acls);
+        when(aclService.isResourceCoveredByAcls(acls, t1.getMetadata().getName()))
+                .thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, t2.getMetadata().getName()))
+                .thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, t3.getMetadata().getName()))
+                .thenReturn(true);
+        when(topicRepository.findAllForCluster("local")).thenReturn(List.of(t1, t2, t3));
+
+        topicService.deleteKafkaStream(ns, "ns-stream", List.of());
+
+        verify(topicRepository, never()).create(t1);
+        verify(topicRepository, never()).create(t2);
+        verify(topicRepository).create(t3);
+    }
+
+    @Test
+    void shouldNotDeleteKafkaStreamOverlappingTopics() {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Topic t1 = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns-stream-test-changelog")
+                        .status(Resource.Metadata.Status.ofDeleting())
+                        .build())
+                .build();
+        Topic t2 = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns-stream-test-repartition")
+                        .status(Resource.Metadata.Status.ofDeleting())
+                        .build())
+                .build();
+        Topic t3 = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns-stream-test-nochangelog")
+                        .build())
+                .build();
+        Topic t4 = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns-stream-overlap-test-changelog")
+                        .build())
+                .build();
+        Topic t5 = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns-stream-overlap-test-repartition")
+                        .build())
+                .build();
+        Topic t6 = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns-stream-overlap-test-nochangelog")
+                        .build())
+                .build();
+
+        List<AccessControlEntry> acls = List.of(AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .grantedTo("namespace")
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resource("ns-")
+                        .build())
+                .build());
+
+        when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.TOPIC))
+                .thenReturn(acls);
+        when(aclService.isResourceCoveredByAcls(any(), any()))
+                .thenReturn(true)
+                .thenReturn(true)
+                .thenReturn(true)
+                .thenReturn(true)
+                .thenReturn(true)
+                .thenReturn(true);
+
+        when(topicRepository.findAllForCluster("local")).thenReturn(List.of(t1, t2, t3, t4, t5, t6));
+
+        topicService.deleteKafkaStream(ns, "ns-stream", List.of("ns-stream-overlap"));
+
+        verify(topicRepository).create(t1);
+        verify(topicRepository).create(t2);
+        verify(topicRepository, never()).create(t3);
+        verify(topicRepository, never()).create(t4);
+        verify(topicRepository, never()).create(t5);
+        verify(topicRepository, never()).create(t6);
     }
 
     @Test
@@ -1175,21 +1228,5 @@ class TopicServiceTest {
                 "Invalid value \"0TAG-TEST\" for field \"tags\": "
                         + "tags should start with letter and be followed by alphanumeric or _ characters.",
                 validationErrors.getFirst());
-    }
-
-    @Test
-    void deleteTopics_shouldNotCallAnything_whenListIsNull() throws Exception {
-        topicService.deleteTopics(null);
-
-        verify(topicAsyncExecutor, never()).deleteTopics(any());
-        verify(topicRepository, never()).delete(any());
-    }
-
-    @Test
-    void deleteTopics_shouldNotCallAnything_whenListIsEmpty() throws Exception {
-        topicService.deleteTopics(List.of());
-
-        verify(topicAsyncExecutor, never()).deleteTopics(any());
-        verify(topicRepository, never()).delete(any());
     }
 }

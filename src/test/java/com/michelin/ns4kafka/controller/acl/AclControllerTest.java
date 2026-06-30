@@ -763,65 +763,6 @@ class AclControllerTest {
     }
 
     @Test
-    void shouldApplyAclWithCreatedStatusWhenExistingAclIsDeleting() {
-        Namespace namespace = Namespace.builder()
-                .spec(Namespace.NamespaceSpec.builder()
-                        .protectionEnabled(Boolean.FALSE)
-                        .build())
-                .metadata(Resource.Metadata.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
-
-        AccessControlEntry accessControlEntry = AccessControlEntry.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("ace1")
-                        .namespace("test")
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .resource("prefix")
-                        .grantedTo("test")
-                        .build())
-                .build();
-
-        AccessControlEntry existingDeletingAcl = AccessControlEntry.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("ace1")
-                        .namespace("test")
-                        .status(Resource.Metadata.Status.ofDeleting())
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .resource("prefix")
-                        .grantedTo("test")
-                        .build())
-                .build();
-
-        Authentication authentication = Authentication.build("user", Map.of("roles", List.of()));
-
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(namespace));
-        when(aclService.validate(accessControlEntry, namespace)).thenReturn(List.of());
-        when(aclService.findByName("test", "ace1")).thenReturn(Optional.of(existingDeletingAcl));
-        when(aclService.isClusterManagingRbac(existingDeletingAcl)).thenReturn(true);
-        when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
-        doNothing().when(applicationEventPublisher).publishEvent(any());
-        when(aclService.create(accessControlEntry)).thenReturn(accessControlEntry);
-
-        HttpResponse<AccessControlEntry> response =
-                accessControlListController.apply(authentication, "test", accessControlEntry, false);
-        assertEquals("created", response.header("X-Ns4kafka-Result"));
-        assertEquals("test", response.body().getMetadata().getNamespace());
-        assertEquals("local", response.body().getMetadata().getCluster());
-    }
-
-    @Test
     void shouldNotApplyAclInDryRunModeAsAdmin() {
         Namespace adminNamespace = Namespace.builder()
                 .spec(Namespace.NamespaceSpec.builder().build())

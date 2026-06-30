@@ -22,7 +22,6 @@ import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.KafkaStream;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Resource;
-import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.StreamRepository;
 import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
@@ -218,31 +217,15 @@ public class StreamService {
                 Qualifiers.byName(stream.getMetadata().getCluster()));
         accessControlEntryAsyncExecutor.deleteKafkaStreams(namespace, stream);
 
-        List<KafkaStream> overlapKafkaStreams = findAllForNamespace(namespace).stream()
+        List<String> overlapKafkaStreams = findAllForNamespace(namespace).stream()
                 .filter(kafkaStream -> kafkaStream
                         .getMetadata()
                         .getName()
                         .startsWith(stream.getMetadata().getName() + "-"))
+                .map(kafkaStream -> kafkaStream.getMetadata().getName())
                 .toList();
 
-        List<Topic> kafkaStreamsTopics =
-                topicService
-                        .findByWildcardName(
-                                namespace, stream.getMetadata().getName().concat("-*"))
-                        .stream()
-                        .filter(topic -> topic.getMetadata().getName().endsWith("-repartition")
-                                || topic.getMetadata().getName().endsWith("-changelog"))
-                        // Exclude topics covered by other Kafka Streams
-                        // (E.g., When deleting "abc.appId", avoid deleting "abc.appId-1234")
-                        .filter(topic -> overlapKafkaStreams.stream()
-                                .noneMatch(kafkaStream -> topic.getMetadata()
-                                        .getName()
-                                        .startsWith(kafkaStream.getMetadata().getName())))
-                        .toList();
-
-        if (!kafkaStreamsTopics.isEmpty()) {
-            topicService.deleteTopics(kafkaStreamsTopics);
-        }
+        topicService.deleteKafkaStream(namespace, stream.getMetadata().getName(), overlapKafkaStreams);
 
         Optional<ManagedClusterProperties> streamCluster = managedClusterProperties.stream()
                 .filter(cluster -> cluster.getName().equals(stream.getMetadata().getCluster()))

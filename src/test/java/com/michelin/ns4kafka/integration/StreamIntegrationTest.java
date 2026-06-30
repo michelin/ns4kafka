@@ -32,7 +32,6 @@ import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Namespace.NamespaceSpec;
 import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.Topic;
-import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
 import com.michelin.ns4kafka.service.executor.TopicAsyncExecutor;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.core.type.Argument;
@@ -61,9 +60,6 @@ class StreamIntegrationTest extends KafkaIntegrationTest {
 
     @Inject
     List<TopicAsyncExecutor> topicAsyncExecutorList;
-
-    @Inject
-    List<AccessControlEntryAsyncExecutor> aceAsyncExecutorList;
 
     private String token;
 
@@ -142,16 +138,19 @@ class StreamIntegrationTest extends KafkaIntegrationTest {
             throws InterruptedException, ExecutionException, TimeoutException {
         NewTopic changelogTopic = new NewTopic("kstream-appId-MY_TOPIC-changelog", 1, (short) 1);
         NewTopic repartitionTopic = new NewTopic("kstream-appId-MY_TOPIC-repartition", 1, (short) 1);
-        NewTopic outsideNs4KafkaTopic = new NewTopic("kstream-MY_TOPIC_CREATED_OUTSIDE_NS4KAFKA", 1, (short) 1);
         NewTopic notCoveredByNamespaceTopic = new NewTopic("kstream2-MY_TOPIC-changelog", 1, (short) 1);
 
-        List<NewTopic> topics =
-                List.of(changelogTopic, repartitionTopic, outsideNs4KafkaTopic, notCoveredByNamespaceTopic);
+        List<NewTopic> topics = List.of(changelogTopic, repartitionTopic, notCoveredByNamespaceTopic);
 
         Admin kafkaClient = getAdminClient();
         kafkaClient.createTopics(topics).all().get(60, TimeUnit.SECONDS);
 
-        forceTopicSynchronization();
+        ns4KafkaClient
+                .toBlocking()
+                .retrieve(
+                        HttpRequest.create(HttpMethod.POST, "/api/namespaces/nskafkastream/topics/_/import")
+                                .bearerAuth(token),
+                        Argument.listOf(Topic.class));
 
         List<Topic> response = ns4KafkaClient
                 .toBlocking()
@@ -164,8 +163,6 @@ class StreamIntegrationTest extends KafkaIntegrationTest {
                 .anyMatch(topic -> topic.getMetadata().getName().equals("kstream-appId-MY_TOPIC-changelog")));
         assertTrue(response.stream()
                 .anyMatch(topic -> topic.getMetadata().getName().equals("kstream-appId-MY_TOPIC-repartition")));
-        assertTrue(response.stream()
-                .noneMatch(topic -> topic.getMetadata().getName().equals("kstream-MY_TOPIC_CREATED_OUTSIDE_NS4KAFKA")));
         assertTrue(response.stream()
                 .noneMatch(topic -> topic.getMetadata().getName().equals("kstream2-MY_TOPIC-changelog")));
 
@@ -187,6 +184,8 @@ class StreamIntegrationTest extends KafkaIntegrationTest {
                 .exchange(HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/nskafkastream/streams")
                         .bearerAuth(token)
                         .body(kafkaStream));
+
+        forceTopicSynchronization();
 
         response = ns4KafkaClient
                 .toBlocking()

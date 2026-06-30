@@ -27,6 +27,8 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class MetadataTest {
+    private static final Instant instant = Instant.parse("2026-01-01T00:00:00Z");
+
     @Test
     void shouldBeEqual() {
         Resource.Metadata original = Resource.Metadata.builder()
@@ -36,7 +38,8 @@ class MetadataTest {
                 .labels(Map.of(
                         "key1", "val1",
                         "key2", "val2"))
-                .creationTimestamp(Date.from(Instant.now()))
+                .creationTimestamp(Date.from(instant))
+                .updateTimestamp(Date.from(instant))
                 .generation(0)
                 .build();
         Resource.Metadata same = Resource.Metadata.builder()
@@ -47,8 +50,9 @@ class MetadataTest {
                 .labels(Map.of(
                         "key2", "val2",
                         "key1", "val1"))
-                // different date
-                .creationTimestamp(Date.from(Instant.now().plusMillis(1000)))
+                // different dates
+                .creationTimestamp(Date.from(instant.plusSeconds(1)))
+                .updateTimestamp(Date.from(instant.plusSeconds(1)))
                 // different gen
                 .generation(99)
                 .build();
@@ -57,7 +61,8 @@ class MetadataTest {
                 .namespace("namespace1")
                 .cluster("local")
                 .labels(Map.of())
-                .creationTimestamp(Date.from(Instant.now()))
+                .creationTimestamp(Date.from(instant))
+                .updateTimestamp(Date.from(instant))
                 .generation(0)
                 .build();
 

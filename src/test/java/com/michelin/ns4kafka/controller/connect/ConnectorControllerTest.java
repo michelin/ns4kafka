@@ -795,65 +795,6 @@ class ConnectorControllerTest {
     }
 
     @Test
-    void shouldCreateConnectorWhenExistingIsDeleting() {
-        Connector connector = Connector.builder()
-                .metadata(Resource.Metadata.builder().name("connect1").build())
-                .spec(Connector.ConnectorSpec.builder().config(new HashMap<>()).build())
-                .build();
-
-        Connector deletingConnector = Connector.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("connect1")
-                        .namespace("test")
-                        .cluster("local")
-                        .status(Resource.Metadata.Status.ofDeleting(Map.of()))
-                        .build())
-                .spec(Connector.ConnectorSpec.builder()
-                        .config(Map.of("name", "connect1"))
-                        .build())
-                .build();
-
-        Connector expected = Connector.builder()
-                .metadata(Resource.Metadata.builder().name("connect1").build())
-                .spec(Connector.ConnectorSpec.builder()
-                        .config(Map.of("name", "connect1"))
-                        .build())
-                .status(Connector.ConnectorStatus.builder()
-                        .state(Connector.TaskState.UNASSIGNED)
-                        .build())
-                .build();
-
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .build();
-
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1")).thenReturn(true);
-        when(connectorService.validateLocally(ns, connector)).thenReturn(Mono.just(ValidationResult.empty()));
-        when(connectorService.validateRemotely(ns, connector)).thenReturn(Mono.just(List.of()));
-        when(connectorService.findByName(ns, "connect1")).thenReturn(Optional.of(deletingConnector));
-        when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
-        doNothing().when(applicationEventPublisher).publishEvent(any());
-        when(connectorService.create(connector)).thenReturn(expected);
-
-        StepVerifier.create(connectorController.apply("test", connector, false))
-                .consumeNextWith(response -> {
-                    assertEquals("created", response.header("X-Ns4kafka-Result"));
-                    assertTrue(response.getBody().isPresent());
-                    assertEquals(
-                            expected.getStatus().getState(),
-                            response.getBody().get().getStatus().getState());
-                })
-                .verifyComplete();
-
-        verify(resourceQuotaService, never()).validateConnectorQuota(any());
-    }
-
-    @Test
     void shouldCreateConnectorInDryRunMode() {
         Connector connector = Connector.builder()
                 .metadata(Resource.Metadata.builder().name("connect1").build())
