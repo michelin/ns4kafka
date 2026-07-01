@@ -25,8 +25,6 @@ import io.micronaut.serde.annotation.Serdeable;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
-import java.util.ArrayList;
-import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -63,22 +61,10 @@ public class ConsumerGroup extends Resource {
     @Schema(description = "Server-side", accessMode = Schema.AccessMode.READ_ONLY)
     public static class ConsumerGroupStatus {
         private GroupState state;
-
-        @Builder.Default
-        private List<ConsumerGroupOffset> offsets = new ArrayList<>();
-    }
-
-    /** Consumer group committed offset. */
-    @Data
-    @Builder
-    @Serdeable
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class ConsumerGroupOffset {
         private String topic;
-        private int partition;
-        private long currentOffset;
-        private long logEndOffset;
-        private long lag;
+        private Integer partition;
+        private Long currentOffset;
+        private Long logEndOffset;
+        private Long lag;
     }
 }
