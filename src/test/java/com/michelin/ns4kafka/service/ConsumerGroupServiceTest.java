@@ -19,7 +19,9 @@
 package com.michelin.ns4kafka.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -79,7 +81,8 @@ class ConsumerGroupServiceTest {
         ConsumerGroupDescription stableDescription =
                 new ConsumerGroupDescription(null, true, null, null, null, GroupState.STABLE, null, null, null, null);
 
-        TopicPartition partition = new TopicPartition("namespace-topic", 0);
+        TopicPartition partition0 = new TopicPartition("namespace-topic", 0);
+        TopicPartition partition1 = new TopicPartition("namespace-topic", 1);
 
         when(applicationContext.getBean(
                         ConsumerGroupAsyncExecutor.class,
@@ -92,27 +95,33 @@ class ConsumerGroupServiceTest {
                 .thenReturn(false);
         when(consumerGroupAsyncExecutor.describeConsumerGroups(List.of("abc.group1")))
                 .thenReturn(Map.of("abc.group1", stableDescription));
-        when(consumerGroupAsyncExecutor.getCommittedOffsets("abc.group1")).thenReturn(Map.of(partition, 5L));
-        when(consumerGroupAsyncExecutor.getLogEndOffsets(List.of(partition))).thenReturn(Map.of(partition, 12L));
+        when(consumerGroupAsyncExecutor.getCommittedOffsets("abc.group1"))
+                .thenReturn(Map.of(partition0, 5L, partition1, 8L));
+        when(consumerGroupAsyncExecutor.getLogEndOffsets(anyList()))
+                .thenReturn(Map.of(partition0, 12L, partition1, 20L));
 
         List<ConsumerGroup> result = consumerGroupService.findByWildcardName(namespace, "*");
 
-        assertEquals(1, result.size());
+        // The group is flattened into one consumer group per topic-partition
+        assertEquals(2, result.size());
 
         ConsumerGroup firstGroup = result.getFirst();
         assertEquals("abc.group1", firstGroup.getMetadata().getName());
         assertEquals("namespace", firstGroup.getMetadata().getNamespace());
         assertEquals("test", firstGroup.getMetadata().getCluster());
         assertEquals(GroupState.STABLE, firstGroup.getStatus().getState());
-        assertEquals(1, firstGroup.getStatus().getOffsets().size());
+        assertEquals("namespace-topic", firstGroup.getStatus().getTopic());
+        assertEquals(0, firstGroup.getStatus().getPartition());
+        assertEquals(5L, firstGroup.getStatus().getCurrentOffset());
+        assertEquals(12L, firstGroup.getStatus().getLogEndOffset());
+        assertEquals(7L, firstGroup.getStatus().getLag());
 
-        ConsumerGroup.ConsumerGroupOffset offset =
-                firstGroup.getStatus().getOffsets().getFirst();
-        assertEquals("namespace-topic", offset.getTopic());
-        assertEquals(0, offset.getPartition());
-        assertEquals(5L, offset.getCurrentOffset());
-        assertEquals(12L, offset.getLogEndOffset());
-        assertEquals(7L, offset.getLag());
+        ConsumerGroup secondGroup = result.get(1);
+        assertEquals("abc.group1", secondGroup.getMetadata().getName());
+        assertEquals(1, secondGroup.getStatus().getPartition());
+        assertEquals(8L, secondGroup.getStatus().getCurrentOffset());
+        assertEquals(20L, secondGroup.getStatus().getLogEndOffset());
+        assertEquals(12L, secondGroup.getStatus().getLag());
     }
 
     @Test
@@ -148,12 +157,16 @@ class ConsumerGroupServiceTest {
         assertEquals("namespace", firstGroup.getMetadata().getNamespace());
         assertEquals("test", firstGroup.getMetadata().getCluster());
         assertEquals(GroupState.STABLE, firstGroup.getStatus().getState());
-        assertTrue(firstGroup.getStatus().getOffsets().isEmpty());
+        assertNull(firstGroup.getStatus().getTopic());
+        assertNull(firstGroup.getStatus().getPartition());
+        assertNull(firstGroup.getStatus().getCurrentOffset());
+        assertNull(firstGroup.getStatus().getLogEndOffset());
+        assertNull(firstGroup.getStatus().getLag());
 
         ConsumerGroup secondGroup = result.get(1);
         assertEquals("abc.group2", secondGroup.getMetadata().getName());
         assertEquals(GroupState.UNKNOWN, secondGroup.getStatus().getState());
-        assertTrue(secondGroup.getStatus().getOffsets().isEmpty());
+        assertNull(secondGroup.getStatus().getTopic());
         verify(consumerGroupAsyncExecutor, never()).getCommittedOffsets(anyString());
     }
 
@@ -186,13 +199,13 @@ class ConsumerGroupServiceTest {
 
         assertEquals(1, result.size());
         assertEquals("abc.group2", result.getFirst().getMetadata().getName());
-        assertEquals(1, result.getFirst().getStatus().getOffsets().size());
 
-        ConsumerGroup.ConsumerGroupOffset offset =
-                result.getFirst().getStatus().getOffsets().getFirst();
-        assertEquals(3L, offset.getCurrentOffset());
-        assertEquals(10L, offset.getLogEndOffset());
-        assertEquals(7L, offset.getLag());
+        ConsumerGroup group = result.getFirst();
+        assertEquals("topic2", group.getStatus().getTopic());
+        assertEquals(0, group.getStatus().getPartition());
+        assertEquals(3L, group.getStatus().getCurrentOffset());
+        assertEquals(10L, group.getStatus().getLogEndOffset());
+        assertEquals(7L, group.getStatus().getLag());
     }
 
     @Test
@@ -226,11 +239,10 @@ class ConsumerGroupServiceTest {
 
         assertEquals(1, result.size());
 
-        ConsumerGroup.ConsumerGroupOffset offset =
-                result.getFirst().getStatus().getOffsets().getFirst();
-        assertEquals(5L, offset.getCurrentOffset());
-        assertEquals(0L, offset.getLogEndOffset());
-        assertEquals(0L, offset.getLag());
+        ConsumerGroup group = result.getFirst();
+        assertEquals(5L, group.getStatus().getCurrentOffset());
+        assertEquals(0L, group.getStatus().getLogEndOffset());
+        assertEquals(0L, group.getStatus().getLag());
     }
 
     @Test
@@ -264,11 +276,10 @@ class ConsumerGroupServiceTest {
 
         assertEquals(1, result.size());
 
-        ConsumerGroup.ConsumerGroupOffset offset =
-                result.getFirst().getStatus().getOffsets().getFirst();
-        assertEquals(5L, offset.getCurrentOffset());
-        assertEquals(0L, offset.getLogEndOffset());
-        assertEquals(0L, offset.getLag());
+        ConsumerGroup group = result.getFirst();
+        assertEquals(5L, group.getStatus().getCurrentOffset());
+        assertEquals(0L, group.getStatus().getLogEndOffset());
+        assertEquals(0L, group.getStatus().getLag());
         // The interrupt flag is set by the service; clear it so it does not leak to other tests
         assertTrue(Thread.interrupted());
     }
@@ -339,14 +350,12 @@ class ConsumerGroupServiceTest {
 
         assertEquals(1, result.size());
         assertEquals("def.group1", result.getFirst().getMetadata().getName());
-        assertEquals(1, result.getFirst().getStatus().getOffsets().size());
 
-        ConsumerGroup.ConsumerGroupOffset offset =
-                result.getFirst().getStatus().getOffsets().getFirst();
-        assertEquals("abc.namespace-topic", offset.getTopic());
-        assertEquals(5L, offset.getCurrentOffset());
-        assertEquals(8L, offset.getLogEndOffset());
-        assertEquals(3L, offset.getLag());
+        ConsumerGroup group = result.getFirst();
+        assertEquals("abc.namespace-topic", group.getStatus().getTopic());
+        assertEquals(5L, group.getStatus().getCurrentOffset());
+        assertEquals(8L, group.getStatus().getLogEndOffset());
+        assertEquals(3L, group.getStatus().getLag());
     }
 
     @Test
