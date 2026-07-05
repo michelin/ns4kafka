@@ -139,7 +139,8 @@ public class ConsumerGroupController extends NamespacedResourceController {
 
         String topicName = consumerGroupResetOffsets.getSpec().getTopic().split(":")[0];
 
-        if (!aclService.isTopicReadableByNamespace(namespace, topicName)) {
+        // Do not validate readability for wildcard topics. Readable topics are automatically retrieved downstream.
+        if (!topicName.equals("*") && !aclService.isTopicReadableByNamespace(namespace, topicName)) {
             validationErrors.add(invalidNamespaceCannotReadTopic(topicName));
         }
 
