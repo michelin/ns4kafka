@@ -23,6 +23,7 @@ import io.micronaut.http.HttpResponse;
 import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -43,13 +44,25 @@ public class GitlabAuthenticationService {
     }
 
     /**
-     * Get all GitLab user groups.
+     * Get all GitLab user groups with at least the "Guest" access level.
      *
      * @param token The user token
      * @return The user groups
      */
-    public Flux<String> findAllGroups(String token) {
-        return getPageAndNext(token, 1)
+    public Flux<String> findGuestGroups(String token) {
+        return getPageAndNext(token, 1, gitlabApiClient::getGuestGroupsPage)
+                .flatMap(response -> Flux.fromStream(response.body().stream()
+                        .map(stringObjectMap -> stringObjectMap.get("full_path").toString())));
+    }
+
+    /**
+     * Get all GitLab user groups, including the groups the user was invited to.
+     *
+     * @param token The user token
+     * @return The user groups
+     */
+    public Flux<String> findAllAvailableGroups(String token) {
+        return getPageAndNext(token, 1, gitlabApiClient::getAllAvailableGroupsPage)
                 .flatMap(response -> Flux.fromStream(response.body().stream()
                         .map(stringObjectMap -> stringObjectMap.get("full_path").toString())));
     }
@@ -71,10 +84,14 @@ public class GitlabAuthenticationService {
      *
      * @param token The user token
      * @param page The current page to fetch
+     * @param fetchPage The function fetching a given page of groups
      * @return The user groups information
      */
-    private Flux<HttpResponse<List<Map<String, Object>>>> getPageAndNext(String token, int page) {
-        return gitlabApiClient.getGroupsPage(token, page).concatMap(response -> {
+    private Flux<HttpResponse<List<Map<String, Object>>>> getPageAndNext(
+            String token,
+            int page,
+            BiFunction<String, Integer, Flux<HttpResponse<List<Map<String, Object>>>>> fetchPage) {
+        return fetchPage.apply(token, page).concatMap(response -> {
             log.debug("Call GitLab groups page {}/{}.", page, response.header("X-Total-Pages"));
 
             if (StringUtils.isEmpty(response.header("X-Next-Page"))) {
@@ -82,7 +99,7 @@ public class GitlabAuthenticationService {
             }
 
             int nextPage = Integer.parseInt(response.header("X-Next-Page"));
-            return Flux.just(response).concatWith(getPageAndNext(token, nextPage));
+            return Flux.just(response).concatWith(getPageAndNext(token, nextPage, fetchPage));
         });
     }
 }

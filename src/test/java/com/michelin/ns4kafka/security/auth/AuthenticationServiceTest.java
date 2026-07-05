@@ -66,7 +66,7 @@ class AuthenticationServiceTest {
 
         assertTrue(exception.getResponse().getMessage().isPresent());
         assertEquals(
-                "No namespace matches your groups",
+                "None of your groups is bound to a namespace, please verify your token or contact an administrator",
                 exception.getResponse().getMessage().get());
     }
 

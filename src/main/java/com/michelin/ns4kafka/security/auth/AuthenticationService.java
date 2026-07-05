@@ -71,8 +71,13 @@ public class AuthenticationService {
                 && groups.stream()
                         .noneMatch(group -> group.equalsIgnoreCase(
                                 ns4KafkaProperties.getSecurity().getAdminGroup()))) {
-            log.debug("Error during authentication: user groups not found in any namespace");
-            throw new AuthenticationException(new AuthenticationFailed("No namespace matches your groups"));
+            log.debug(
+                    "Authentication failed for user {}: none of their groups is bound to a namespace "
+                            + "or matches the admin group.",
+                    username);
+            throw new AuthenticationException(
+                    new AuthenticationFailed("None of your groups is bound to a namespace, please verify your token "
+                            + "or contact an administrator"));
         }
 
         return AuthenticationResponse.success(

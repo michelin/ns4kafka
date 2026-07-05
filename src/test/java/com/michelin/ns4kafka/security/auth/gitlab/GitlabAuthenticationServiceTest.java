@@ -44,6 +44,24 @@ class GitlabAuthenticationServiceTest {
     GitlabAuthenticationService gitlabAuthenticationService;
 
     @Test
+    void findAllAvailableGroupsOnePage() {
+        String token = "v4l1d_70k3n";
+        MutableHttpResponse<List<Map<String, Object>>> pageOneResponse = HttpResponse.ok(List.of(
+                        Map.<String, Object>of("full_path", "invitedGroup1", "unusedKey", "unusedVal"),
+                        Map.<String, Object>of("full_path", "invitedGroup2", "unusedKey", "unusedVal")))
+                .header("X-Total-Pages", "1");
+
+        when(gitlabApiClient.getAllAvailableGroupsPage(token, 1)).thenReturn(Flux.just(pageOneResponse));
+
+        Flux<String> authenticationResponsePublisher = gitlabAuthenticationService.findAllAvailableGroups(token);
+
+        StepVerifier.create(authenticationResponsePublisher)
+                .consumeNextWith(response -> assertEquals("invitedGroup1", response))
+                .consumeNextWith(response -> assertEquals("invitedGroup2", response))
+                .verifyComplete();
+    }
+
+    @Test
     void findUserSuccess() {
         String token = "v4l1d_70k3n";
         when(gitlabApiClient.findUser(token)).thenReturn(Mono.just(Map.of("user", "test", "email", "user@mail.com")));
@@ -63,9 +81,9 @@ class GitlabAuthenticationServiceTest {
                         Map.<String, Object>of("full_path", "group2", "unusedKey", "unusedVal")))
                 .header("X-Total-Pages", "1");
 
-        when(gitlabApiClient.getGroupsPage(token, 1)).thenReturn(Flux.just(pageOneResponse));
+        when(gitlabApiClient.getGuestGroupsPage(token, 1)).thenReturn(Flux.just(pageOneResponse));
 
-        Flux<String> authenticationResponsePublisher = gitlabAuthenticationService.findAllGroups(token);
+        Flux<String> authenticationResponsePublisher = gitlabAuthenticationService.findGuestGroups(token);
 
         StepVerifier.create(authenticationResponsePublisher)
                 .consumeNextWith(response -> assertEquals("group1", response))
@@ -93,11 +111,11 @@ class GitlabAuthenticationServiceTest {
                         Map.<String, Object>of("full_path", "group6", "unusedKey", "unusedVal")))
                 .header("X-Total-Pages", "3");
 
-        when(gitlabApiClient.getGroupsPage(token, 1)).thenReturn(Flux.just(pageOneResponse));
-        when(gitlabApiClient.getGroupsPage(token, 2)).thenReturn(Flux.just(pageTwoResponse));
-        when(gitlabApiClient.getGroupsPage(token, 3)).thenReturn(Flux.just(pageThreeResponse));
+        when(gitlabApiClient.getGuestGroupsPage(token, 1)).thenReturn(Flux.just(pageOneResponse));
+        when(gitlabApiClient.getGuestGroupsPage(token, 2)).thenReturn(Flux.just(pageTwoResponse));
+        when(gitlabApiClient.getGuestGroupsPage(token, 3)).thenReturn(Flux.just(pageThreeResponse));
 
-        Publisher<String> authenticationResponsePublisher = gitlabAuthenticationService.findAllGroups(token);
+        Publisher<String> authenticationResponsePublisher = gitlabAuthenticationService.findGuestGroups(token);
 
         StepVerifier.create(authenticationResponsePublisher)
                 .consumeNextWith(response -> assertEquals("group1", response))
