@@ -33,7 +33,23 @@ import reactor.core.publisher.Mono;
 @Client(id = "gitlab")
 public interface GitlabApiClient {
     /**
-     * Get user groups.
+     * Get user groups with at least the "Guest" access level.
+     *
+     * @param token The user token
+     * @param page The current page to fetch groups
+     * @return The groups
+     */
+    @Get("/api/v4/groups?min_access_level=10&sort=asc&page={page}&per_page=100")
+    @Retryable(
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
+    Flux<HttpResponse<List<Map<String, Object>>>> getGuestGroupsPage(
+            @Header(value = "PRIVATE-TOKEN") String token, int page);
+
+    /**
+     * Get user groups, including those the user was invited to.
      *
      * @param token The user token
      * @param page The current page to fetch groups
@@ -45,7 +61,7 @@ public interface GitlabApiClient {
             attempts = "${ns4kafka.retry.attempt}",
             multiplier = "${ns4kafka.retry.multiplier}",
             includes = ReadTimeoutException.class)
-    Flux<HttpResponse<List<Map<String, Object>>>> getGroupsPage(
+    Flux<HttpResponse<List<Map<String, Object>>>> getAllAvailableGroupsPage(
             @Header(value = "PRIVATE-TOKEN") String token, int page);
 
     /**
