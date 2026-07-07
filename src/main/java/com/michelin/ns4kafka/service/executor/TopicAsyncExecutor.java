@@ -309,6 +309,31 @@ public class TopicAsyncExecutor {
                             return computeConfigChanges(topic.getSpec().getConfigs(), currentConfig);
                         }));
 
+        // Topics with no config changes are deployed without calling the broker.
+        // Can happen on delete -> applying an existing topic with the same config.
+        targetTopics.stream()
+                .filter(topic -> topicConfigsToUpdate
+                        .get(new ConfigResource(
+                                ConfigResource.Type.TOPIC, topic.getMetadata().getName()))
+                        .isEmpty())
+                .filter(this::isUnchangedSinceLastApply)
+                .forEach(topic -> {
+                    topic.getMetadata().setGeneration(topic.getMetadata().getGeneration() + 1);
+                    topic.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
+                    topicRepository.create(topic);
+
+                    log.info(
+                            "Topic {} configs are already up to date on cluster {}",
+                            topic.getMetadata().getName(),
+                            managedClusterProperties.getName());
+                });
+
+        topicConfigsToUpdate.values().removeIf(Collection::isEmpty);
+
+        if (topicConfigsToUpdate.isEmpty()) {
+            return;
+        }
+
         AlterConfigsResult alterConfigsResult =
                 managedClusterProperties.getAdminClient().incrementalAlterConfigs(topicConfigsToUpdate);
         alterConfigsResult.values().forEach((key, value) -> {

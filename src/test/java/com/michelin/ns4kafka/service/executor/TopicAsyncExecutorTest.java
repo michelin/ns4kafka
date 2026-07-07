@@ -449,6 +449,16 @@ class TopicAsyncExecutorTest {
                         .updateTimestamp(Date.from(instant))
                         .generation(1)
                         .build())
+                .spec(Topic.TopicSpec.builder()
+                        .configs(Map.of("retention.ms", "60000"))
+                        .build())
+                .build();
+
+        Topic brokerTopic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("topic")
+                        .build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
 
@@ -476,7 +486,7 @@ class TopicAsyncExecutorTest {
 
         when(topicService.findByName("local", "topic")).thenReturn(Optional.of(newTopic));
 
-        topicAsyncExecutor.alterTopics(List.of(topic), Map.of("topic", topic));
+        topicAsyncExecutor.alterTopics(List.of(topic), Map.of("topic", brokerTopic));
 
         verify(topicRepository, never()).create(any());
     }
@@ -491,6 +501,16 @@ class TopicAsyncExecutorTest {
                         .status(Resource.Metadata.Status.ofPending())
                         .updateTimestamp(Date.from(instant))
                         .generation(1)
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .configs(Map.of("retention.ms", "60000"))
+                        .build())
+                .build();
+
+        Topic brokerTopic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("topic")
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
@@ -509,7 +529,7 @@ class TopicAsyncExecutorTest {
         when(kafkaFuture.get(1000, TimeUnit.MILLISECONDS)).thenThrow(new ExecutionException("Error", new Exception()));
         when(topicService.findByName("local", "topic")).thenReturn(Optional.of(topic));
 
-        topicAsyncExecutor.alterTopics(List.of(topic), Map.of("topic", topic));
+        topicAsyncExecutor.alterTopics(List.of(topic), Map.of("topic", brokerTopic));
 
         verify(topicRepository).create(argThat(a -> a.equals(topic) && a.isFailed()));
     }
@@ -524,6 +544,16 @@ class TopicAsyncExecutorTest {
                         .status(Resource.Metadata.Status.ofPending())
                         .updateTimestamp(Date.from(instant))
                         .generation(1)
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .configs(Map.of("retention.ms", "60000"))
+                        .build())
+                .build();
+
+        Topic brokerTopic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("topic")
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
@@ -554,8 +584,42 @@ class TopicAsyncExecutorTest {
 
         when(topicService.findByName("local", "topic")).thenReturn(Optional.of(newTopic));
 
-        topicAsyncExecutor.alterTopics(List.of(topic), Map.of("topic", topic));
+        topicAsyncExecutor.alterTopics(List.of(topic), Map.of("topic", brokerTopic));
 
         verify(topicRepository, never()).create(any());
+    }
+
+    @Test
+    void shouldNotCallBrokerWhenNoConfigChanges() {
+        Topic topic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("topic")
+                        .status(Resource.Metadata.Status.ofPending())
+                        .updateTimestamp(Date.from(instant))
+                        .generation(1)
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .configs(Map.of("retention.ms", "60000"))
+                        .build())
+                .build();
+
+        Topic brokerTopic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("topic")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .configs(Map.of("retention.ms", "60000"))
+                        .build())
+                .build();
+
+        when(topicService.findByName("local", "topic")).thenReturn(Optional.of(topic));
+
+        topicAsyncExecutor.alterTopics(List.of(topic), Map.of("topic", brokerTopic));
+
+        verify(managedClusterProperties, never()).getAdminClient();
+        verify(topicRepository)
+                .create(argThat(t -> t.isSuccess() && t.getMetadata().getGeneration() == 2));
     }
 }
