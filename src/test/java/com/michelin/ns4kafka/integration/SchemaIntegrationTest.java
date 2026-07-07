@@ -954,7 +954,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
     }
 
     @Test
-    void shouldBulkDeleteSchemas() {
+    void shouldDeleteSchemas() {
         Schema schema1 = Schema.builder()
                 .metadata(Resource.Metadata.builder().name("ns1-subject5-value").build())
                 .spec(Schema.SchemaSpec.builder()

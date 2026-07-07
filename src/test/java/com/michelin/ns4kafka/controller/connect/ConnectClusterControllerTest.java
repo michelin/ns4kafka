@@ -40,7 +40,6 @@ import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.context.event.ApplicationEventPublisher;
-import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.security.utils.SecurityService;
 import java.util.List;
@@ -229,7 +228,7 @@ class ConnectClusterControllerTest {
     }
 
     @Test
-    void shouldBulkForceDeleteConnectClustersWithConnectors() {
+    void shouldForceDeleteConnectClustersWithConnectors() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test")

@@ -24,10 +24,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.anyMap;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -137,7 +139,7 @@ class TopicControllerTest {
     }
 
     @Test
-    void shouldDeleteTopics() throws InterruptedException, ExecutionException, TimeoutException {
+    void shouldDeleteTopics() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test")
@@ -162,10 +164,13 @@ class TopicControllerTest {
 
         HttpResponse<List<Topic>> actual = topicController.delete("test", "prefix1.*", false);
         assertEquals(HttpStatus.OK, actual.getStatus());
+        verify(topicService, times(2))
+                .create(argThat(
+                        topic -> topic.getMetadata().getStatus().getPhase() == Resource.Metadata.Phase.DELETING));
     }
 
     @Test
-    void shouldNotDeleteTopicsWhenNotFound() throws InterruptedException, ExecutionException, TimeoutException {
+    void shouldNotDeleteTopicsWhenNotFound() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test")
@@ -180,11 +185,11 @@ class TopicControllerTest {
         HttpResponse<List<Topic>> actual = topicController.delete("test", "topic*", false);
 
         assertEquals(HttpStatus.NOT_FOUND, actual.getStatus());
-        verify(topicService, never()).deleteTopics(any());
+        verify(topicService, never()).create(any());
     }
 
     @Test
-    void shouldNotDeleteTopicsInDryRunMode() throws InterruptedException, ExecutionException, TimeoutException {
+    void shouldNotDeleteTopicsInDryRunMode() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test")
@@ -202,7 +207,7 @@ class TopicControllerTest {
 
         HttpResponse<List<Topic>> actual = topicController.delete("test", "prefix.topic", true);
         assertEquals(HttpStatus.OK, actual.getStatus());
-        verify(topicService, never()).deleteTopics(any());
+        verify(topicService, never()).create(any());
     }
 
     @Test
@@ -241,6 +246,7 @@ class TopicControllerTest {
         HttpResponse<Topic> response = topicController.apply("test", topic, false);
         Topic actual = response.body();
         assertEquals("created", response.header("X-Ns4kafka-Result"));
+        assertNotNull(actual);
         assertEquals("test.topic", actual.getMetadata().getName());
     }
 
@@ -280,6 +286,7 @@ class TopicControllerTest {
         HttpResponse<Topic> response = topicController.apply("test", topic, false);
         Topic actual = response.body();
         assertEquals("created", response.header("X-Ns4kafka-Result"));
+        assertNotNull(actual);
         assertEquals("test.topic", actual.getMetadata().getName());
     }
 
@@ -326,6 +333,7 @@ class TopicControllerTest {
         HttpResponse<Topic> response = topicController.apply("test", topic, false);
         Topic actual = response.body();
         assertEquals("changed", response.header("X-Ns4kafka-Result"));
+        assertNotNull(actual);
         assertEquals("test.topic", actual.getMetadata().getName());
     }
 

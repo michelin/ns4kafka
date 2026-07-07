@@ -165,7 +165,7 @@ class ConnectorControllerTest {
     }
 
     @Test
-    void shouldBulkForceDeleteConnectors() {
+    void shouldForceDeleteConnectors() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test")
@@ -183,8 +183,8 @@ class ConnectorControllerTest {
         when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1")).thenReturn(true);
         when(connectorService.isNamespaceOwnerOfConnect(ns, "connect2")).thenReturn(true);
         when(connectorService.findByWildcardName(ns, "connect*")).thenReturn(List.of(connector1, connector2));
-        when(connectorService.delete(ns, connector1, true)).thenReturn(Mono.just(HttpResponse.noContent()));
-        when(connectorService.delete(ns, connector2, true)).thenReturn(Mono.just(HttpResponse.noContent()));
+        when(connectorService.create(connector1)).thenReturn(connector1);
+        when(connectorService.create(connector2)).thenReturn(connector2);
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
