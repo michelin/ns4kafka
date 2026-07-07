@@ -19,22 +19,14 @@
 package com.michelin.ns4kafka.service.client.schema;
 
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
-import com.michelin.ns4kafka.service.client.schema.entities.GraphQueryResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaCompatibilityCheckResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaRequest;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
 import com.michelin.ns4kafka.service.client.schema.entities.SubjectConfigRequest;
 import com.michelin.ns4kafka.service.client.schema.entities.SubjectConfigResponse;
-import com.michelin.ns4kafka.service.client.schema.entities.TagInfo;
-import com.michelin.ns4kafka.service.client.schema.entities.TagTopicInfo;
-import com.michelin.ns4kafka.service.client.schema.entities.TopicDescriptionUpdateBody;
-import com.michelin.ns4kafka.service.client.schema.entities.TopicDescriptionUpdateResponse;
-import com.michelin.ns4kafka.service.client.schema.entities.TopicListResponse;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
-import io.micronaut.core.type.Argument;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpRequest;
-import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MutableHttpRequest;
 import io.micronaut.http.client.HttpClient;
@@ -48,7 +40,6 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -361,189 +352,6 @@ public class SchemaRegistryClient {
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
 
         return Mono.from(httpClient.retrieve(request, SubjectConfigResponse.class));
-    }
-
-    /**
-     * List tags.
-     *
-     * @param kafkaCluster The Kafka cluster
-     * @return List of existing tags
-     */
-    @Retryable(
-            delay = "${ns4kafka.retry.delay}",
-            attempts = "${ns4kafka.retry.attempt}",
-            multiplier = "${ns4kafka.retry.multiplier}",
-            includes = ReadTimeoutException.class)
-    public Mono<List<TagInfo>> listTags(String kafkaCluster) {
-        ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
-
-        HttpRequest<?> request = HttpRequest.GET(
-                        URI.create(StringUtils.prependUri(config.getUrl(), "/catalog/v1/types/tagdefs")))
-                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
-
-        return Mono.from(httpClient.retrieve(request, Argument.listOf(TagInfo.class)));
-    }
-
-    /**
-     * Add tags to a topic.
-     *
-     * @param kafkaCluster The Kafka cluster
-     * @param tagSpecs The tags to add
-     * @return List of associated tags
-     */
-    @Retryable(
-            delay = "${ns4kafka.retry.delay}",
-            attempts = "${ns4kafka.retry.attempt}",
-            multiplier = "${ns4kafka.retry.multiplier}",
-            includes = ReadTimeoutException.class)
-    public Mono<List<TagTopicInfo>> associateTags(String kafkaCluster, List<TagTopicInfo> tagSpecs) {
-        ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
-
-        HttpRequest<?> request = HttpRequest.POST(
-                        URI.create(StringUtils.prependUri(config.getUrl(), "/catalog/v1/entity/tags")), tagSpecs)
-                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
-
-        return Mono.from(httpClient.retrieve(request, Argument.listOf(TagTopicInfo.class)));
-    }
-
-    /**
-     * Create tags.
-     *
-     * @param tags The list of tags to create
-     * @param kafkaCluster The Kafka cluster
-     * @return List of created tags
-     */
-    @Retryable(
-            delay = "${ns4kafka.retry.delay}",
-            attempts = "${ns4kafka.retry.attempt}",
-            multiplier = "${ns4kafka.retry.multiplier}",
-            includes = ReadTimeoutException.class)
-    public Mono<List<TagInfo>> createTags(String kafkaCluster, List<TagInfo> tags) {
-        ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
-
-        HttpRequest<?> request = HttpRequest.POST(
-                        URI.create(StringUtils.prependUri(config.getUrl(), "/catalog/v1/types/tagdefs")), tags)
-                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
-
-        return Mono.from(httpClient.retrieve(request, Argument.listOf(TagInfo.class)));
-    }
-
-    /**
-     * Delete a tag from a topic.
-     *
-     * @param kafkaCluster The Kafka cluster
-     * @param entityName The topic name
-     * @param tagName The tag to delete
-     * @return The resume response
-     */
-    @Retryable(
-            delay = "${ns4kafka.retry.delay}",
-            attempts = "${ns4kafka.retry.attempt}",
-            multiplier = "${ns4kafka.retry.multiplier}",
-            includes = ReadTimeoutException.class)
-    public Mono<HttpResponse<Void>> dissociateTag(String kafkaCluster, String entityName, String tagName) {
-        ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
-
-        HttpRequest<?> request = HttpRequest.DELETE(URI.create(StringUtils.prependUri(
-                        config.getUrl(),
-                        "/catalog/v1/entity/type/kafka_topic/name/" + entityName + "/tags/" + tagName)))
-                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
-
-        return Mono.from(httpClient.exchange(request, Void.class));
-    }
-
-    /**
-     * List topics with catalog info including tags & description, using Stream Catalog API.
-     *
-     * @param kafkaCluster The Kafka cluster
-     * @return The topics list with their catalog information
-     */
-    @Retryable(
-            delay = "${ns4kafka.retry.delay}",
-            attempts = "${ns4kafka.retry.attempt}",
-            multiplier = "${ns4kafka.retry.multiplier}",
-            includes = ReadTimeoutException.class)
-    public Mono<TopicListResponse> getTopicsWithStreamCatalog(String kafkaCluster, int limit, int offset) {
-        ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
-
-        HttpRequest<?> request = HttpRequest.GET(URI.create(StringUtils.prependUri(
-                        config.getUrl(),
-                        "/catalog/v1/search/basic?type=kafka_topic&limit=" + limit + "&offset=" + offset)))
-                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
-
-        return Mono.from(httpClient.retrieve(request, TopicListResponse.class));
-    }
-
-    /**
-     * List topics with tags, using GraphQL.
-     *
-     * @param kafkaCluster The Kafka cluster
-     * @return The GraphQL response containing the topics list with their tags
-     */
-    @Retryable(
-            delay = "${ns4kafka.retry.delay}",
-            attempts = "${ns4kafka.retry.attempt}",
-            multiplier = "${ns4kafka.retry.multiplier}",
-            includes = ReadTimeoutException.class)
-    public Mono<GraphQueryResponse> getTopicsWithTagsWithGraphQl(String kafkaCluster, List<String> tagsNames) {
-        String query = "query { kafka_topic(tags: [" + String.join(",", tagsNames) + "]) { nameLower tags } }";
-        return queryWithGraphQl(kafkaCluster, query);
-    }
-
-    /**
-     * List topics with description, using GraphQL.
-     *
-     * @param kafkaCluster The Kafka cluster
-     * @return The GraphQL query response containing the topics list with their descriptions
-     */
-    @Retryable(
-            delay = "${ns4kafka.retry.delay}",
-            attempts = "${ns4kafka.retry.attempt}",
-            multiplier = "${ns4kafka.retry.multiplier}",
-            includes = ReadTimeoutException.class)
-    public Mono<GraphQueryResponse> getTopicsWithDescriptionWithGraphQl(String kafkaCluster) {
-        String query = "query { kafka_topic(where: {description: {_gte: null}}) { nameLower description } }";
-        return queryWithGraphQl(kafkaCluster, query);
-    }
-
-    /**
-     * Query Stream Catalog information, using GraphQL.
-     *
-     * @param kafkaCluster The Kafka cluster
-     * @param query The GraphQL query
-     * @return The GraphQL response
-     */
-    private Mono<GraphQueryResponse> queryWithGraphQl(String kafkaCluster, String query) {
-        ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
-
-        HttpRequest<?> request = HttpRequest.POST(
-                        URI.create(StringUtils.prependUri(config.getUrl(), "/catalog/graphql")), Map.of("query", query))
-                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
-
-        return Mono.from(httpClient.retrieve(request, GraphQueryResponse.class));
-    }
-
-    /**
-     * Update a topic description.
-     *
-     * @param kafkaCluster The Kafka cluster
-     * @param body The body given to the request
-     * @return Information about description
-     */
-    @Retryable(
-            delay = "${ns4kafka.retry.delay}",
-            attempts = "${ns4kafka.retry.attempt}",
-            multiplier = "${ns4kafka.retry.multiplier}",
-            includes = ReadTimeoutException.class)
-    public Mono<HttpResponse<TopicDescriptionUpdateResponse>> updateDescription(
-            String kafkaCluster, TopicDescriptionUpdateBody body) {
-        ManagedClusterProperties.SchemaRegistryProperties config = getSchemaRegistry(kafkaCluster);
-
-        HttpRequest<?> request = HttpRequest.PUT(
-                        URI.create(StringUtils.prependUri(config.getUrl(), "/catalog/v1/entity")), body)
-                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
-
-        return Mono.from(httpClient.exchange(request, TopicDescriptionUpdateResponse.class));
     }
 
     /**

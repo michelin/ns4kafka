@@ -21,8 +21,6 @@ package com.michelin.ns4kafka.service;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidImmutableValue;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidTopicCleanUpPolicy;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidTopicDeleteRecords;
-import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidTopicTags;
-import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidTopicTagsFormat;
 import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_COMPACT;
 import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_CONFIG;
 import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_DELETE;
@@ -386,44 +384,5 @@ public class TopicService {
                     topic.getMetadata().setStatus(Resource.Metadata.Status.ofDeleting());
                     topicRepository.create(topic);
                 });
-    }
-
-    /**
-     * Check if all topic tags respect confluent format (starts with letter followed by alphanumerical or underscore).
-     *
-     * @param topic The topic which contains tags
-     * @return true if yes, false otherwise
-     */
-    public boolean isTagsFormatValid(Topic topic) {
-        return topic.getSpec().getTags().stream().allMatch(tag -> tag.matches("^[a-zA-Z]\\w*$"));
-    }
-
-    /**
-     * Validate tags for topic.
-     *
-     * @param namespace The namespace
-     * @param topic The topic which contains tags
-     * @return A list of validation errors
-     */
-    public List<String> validateTags(Namespace namespace, Topic topic) {
-        List<String> validationErrors = new ArrayList<>();
-
-        Optional<ManagedClusterProperties> topicCluster = managedClusterProperties.stream()
-                .filter(cluster -> namespace.getMetadata().getCluster().equals(cluster.getName()))
-                .findFirst();
-
-        if (topicCluster.isPresent() && !topicCluster.get().isConfluentCloud()) {
-            validationErrors.add(
-                    invalidTopicTags(String.join(",", topic.getSpec().getTags())));
-            return validationErrors;
-        }
-
-        if (!isTagsFormatValid(topic)) {
-            validationErrors.add(
-                    invalidTopicTagsFormat(String.join(",", topic.getSpec().getTags())));
-            return validationErrors;
-        }
-
-        return validationErrors;
     }
 }

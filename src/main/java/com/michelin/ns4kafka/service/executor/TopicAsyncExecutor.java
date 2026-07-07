@@ -21,29 +21,16 @@ package com.michelin.ns4kafka.service.executor;
 import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
-import com.michelin.ns4kafka.property.Ns4KafkaProperties;
 import com.michelin.ns4kafka.repository.TopicRepository;
 import com.michelin.ns4kafka.repository.kafka.KafkaStoreException;
 import com.michelin.ns4kafka.service.TopicService;
-import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
-import com.michelin.ns4kafka.service.client.schema.entities.GraphQueryResponse;
-import com.michelin.ns4kafka.service.client.schema.entities.TagInfo;
-import com.michelin.ns4kafka.service.client.schema.entities.TagTopicInfo;
-import com.michelin.ns4kafka.service.client.schema.entities.TopicDescriptionUpdateAttributes;
-import com.michelin.ns4kafka.service.client.schema.entities.TopicDescriptionUpdateBody;
-import com.michelin.ns4kafka.service.client.schema.entities.TopicDescriptionUpdateEntity;
-import com.michelin.ns4kafka.service.client.schema.entities.TopicListResponse;
 import io.micronaut.context.annotation.EachBean;
-import jakarta.annotation.PreDestroy;
 import jakarta.inject.Singleton;
-import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -64,45 +51,32 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.errors.TopicExistsException;
 import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
-import reactor.core.Disposable;
-import reactor.core.publisher.Mono;
 
 /** Topic executor. */
 @Slf4j
 @EachBean(ManagedClusterProperties.class)
 @Singleton
 public class TopicAsyncExecutor {
-    public static final String CLUSTER_ID = "cluster.id";
-    public static final String TOPIC_ENTITY_TYPE = "kafka_topic";
     public static final String ERROR = "Error";
 
     private final ManagedClusterProperties managedClusterProperties;
     private final TopicService topicService;
     private final TopicRepository topicRepository;
-    private final SchemaRegistryClient schemaRegistryClient;
-    private final Ns4KafkaProperties ns4KafkaProperties;
-
-    private Disposable tagSyncDisposable;
 
     /**
      * Constructor.
      *
      * @param managedClusterProperties The managed cluster properties
+     * @param topicService The topic service
      * @param topicRepository The topic repository
-     * @param schemaRegistryClient The schema registry client
-     * @param ns4KafkaProperties The Ns4Kafka properties
      */
     public TopicAsyncExecutor(
             ManagedClusterProperties managedClusterProperties,
             TopicService topicService,
-            TopicRepository topicRepository,
-            SchemaRegistryClient schemaRegistryClient,
-            Ns4KafkaProperties ns4KafkaProperties) {
+            TopicRepository topicRepository) {
         this.managedClusterProperties = managedClusterProperties;
         this.topicService = topicService;
         this.topicRepository = topicRepository;
-        this.schemaRegistryClient = schemaRegistryClient;
-        this.ns4KafkaProperties = ns4KafkaProperties;
     }
 
     /** Run the topic synchronization. */
@@ -165,58 +139,6 @@ public class TopicAsyncExecutor {
     }
 
     /**
-     * Alter catalog info.
-     *
-     * @param checkTopics Topics from Ns4Kafka
-     * @param brokerTopics Topics from broker
-     */
-    public void alterCatalogInfo(List<Topic> checkTopics, Map<String, Topic> brokerTopics) {
-        if (ns4KafkaProperties.getConfluentCloud().getStreamCatalog().isSyncCatalog()
-                && managedClusterProperties.isConfluentCloud()) {
-            alterTags(checkTopics, brokerTopics);
-            alterDescriptions(checkTopics, brokerTopics);
-        }
-    }
-
-    /**
-     * Alter tags.
-     *
-     * @param ns4kafkaTopics Topics from Ns4Kafka
-     * @param brokerTopics Topics from broker
-     */
-    public void alterTags(List<Topic> ns4kafkaTopics, Map<String, Topic> brokerTopics) {
-        Map<Topic, List<TagTopicInfo>> topicTagsMapping = ns4kafkaTopics.stream()
-                .map(topic -> {
-                    Topic brokerTopic = brokerTopics.get(topic.getMetadata().getName());
-
-                    dissociateTags(brokerTopic, topic);
-
-                    Set<String> newTags = topic.getSpec().getTags().stream()
-                            .filter(tag -> !brokerTopic.getSpec().getTags().contains(tag))
-                            .collect(Collectors.toSet());
-
-                    return new AbstractMap.SimpleEntry<>(
-                            topic,
-                            newTags.stream()
-                                    .map(tag -> TagTopicInfo.builder()
-                                            .entityName(managedClusterProperties
-                                                            .getConfig()
-                                                            .getProperty(CLUSTER_ID) + ":"
-                                                    + topic.getMetadata().getName())
-                                            .typeName(tag)
-                                            .entityType(TOPIC_ENTITY_TYPE)
-                                            .build())
-                                    .toList());
-                })
-                .filter(entry -> !entry.getValue().isEmpty())
-                .collect(Collectors.toMap(AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue));
-
-        if (!topicTagsMapping.isEmpty()) {
-            tagSyncDisposable = createAndAssociateTags(topicTagsMapping);
-        }
-    }
-
-    /**
      * List all topic names on broker.
      *
      * @return All topic names
@@ -230,160 +152,6 @@ public class TopicAsyncExecutor {
                 .stream()
                 .map(TopicListing::name)
                 .toList();
-    }
-
-    /**
-     * Alter description.
-     *
-     * @param ns4kafkaTopics Topics from ns4kafka
-     * @param brokerTopics Topics from broker
-     */
-    public void alterDescriptions(List<Topic> ns4kafkaTopics, Map<String, Topic> brokerTopics) {
-        String clusterId = managedClusterProperties.getConfig().getProperty(CLUSTER_ID);
-
-        for (Topic topic : ns4kafkaTopics) {
-            String description = topic.getSpec().getDescription();
-            String brokerDescription =
-                    brokerTopics.get(topic.getMetadata().getName()).getSpec().getDescription();
-
-            if (!Objects.equals(brokerDescription, description)) {
-                String qualifiedName = clusterId + ":" + topic.getMetadata().getName();
-
-                TopicDescriptionUpdateBody body = TopicDescriptionUpdateBody.builder()
-                        .entity(TopicDescriptionUpdateEntity.builder()
-                                .typeName(TOPIC_ENTITY_TYPE)
-                                .attributes(TopicDescriptionUpdateAttributes.builder()
-                                        .qualifiedName(qualifiedName)
-                                        .description(description)
-                                        .build())
-                                .build())
-                        .build();
-
-                schemaRegistryClient
-                        .updateDescription(managedClusterProperties.getName(), body)
-                        .subscribe(
-                                _ -> {
-                                    log.info(
-                                            "Success update description {}",
-                                            qualifiedName + ": "
-                                                    + topic.getSpec().getDescription());
-                                    topic.getMetadata()
-                                            .setGeneration(topic.getMetadata().getGeneration() + 1);
-                                    topic.setStatus(Topic.TopicStatus.ofSuccess("Topic description updated"));
-                                    topicRepository.create(topic);
-                                },
-                                error -> {
-                                    log.error(
-                                            "Error update description {}",
-                                            qualifiedName + ": "
-                                                    + topic.getSpec().getDescription(),
-                                            error);
-                                    topic.setStatus(Topic.TopicStatus.ofFailed(
-                                            "Error while updating topic description: " + error.getMessage()));
-                                    topicRepository.create(topic);
-                                });
-            }
-        }
-    }
-
-    /**
-     * Enrich topics with Confluent catalog info.
-     *
-     * @param topics Topics to enrich
-     */
-    public void enrichWithCatalogInfo(Map<String, Topic> topics) {
-        if (ns4KafkaProperties.getConfluentCloud().getStreamCatalog().isSyncCatalog()
-                && managedClusterProperties.isConfluentCloud()) {
-            try {
-                enrichWithGraphQlCatalogInfo(topics);
-            } catch (Exception graphQLError) {
-                try {
-                    enrichWithRestCatalogInfo(topics);
-                } catch (Exception restError) {
-                    log.error(
-                            "Error while enriching topics with catalog info:\r\nGraphQL error: {}\r\nRest API error: {}",
-                            graphQLError.getMessage(),
-                            restError.getMessage());
-                }
-            }
-        }
-    }
-
-    /**
-     * Enrich topics with Confluent catalog information, using Confluent Stream Catalog GraphQL API.
-     *
-     * @param topics Topics to enrich
-     */
-    public void enrichWithGraphQlCatalogInfo(Map<String, Topic> topics) {
-        // block tags & description enrichment to make sure they are present during NS4 & broker comparison
-        GraphQueryResponse descriptionResponse = schemaRegistryClient
-                .getTopicsWithDescriptionWithGraphQl(managedClusterProperties.getName())
-                .block();
-
-        if (descriptionResponse != null
-                && descriptionResponse.data() != null
-                && descriptionResponse.data().kafkaTopic() != null) {
-            descriptionResponse
-                    .data()
-                    .kafkaTopic()
-                    .forEach(describedTopic ->
-                            topics.get(describedTopic.name()).getSpec().setDescription(describedTopic.description()));
-        }
-
-        GraphQueryResponse tagsResponse = schemaRegistryClient
-                .listTags(managedClusterProperties.getName())
-                .flatMap(tagsList -> tagsList.isEmpty()
-                        ? Mono.just(GraphQueryResponse.builder().data(null).build())
-                        : schemaRegistryClient.getTopicsWithTagsWithGraphQl(
-                                managedClusterProperties.getName(),
-                                tagsList.stream()
-                                        .map(tagInfo -> "\"" + tagInfo.name() + "\"")
-                                        .toList()))
-                .block();
-
-        if (tagsResponse != null
-                && tagsResponse.data() != null
-                && tagsResponse.data().kafkaTopic() != null) {
-            tagsResponse
-                    .data()
-                    .kafkaTopic()
-                    .forEach(taggedTopic ->
-                            topics.get(taggedTopic.name()).getSpec().setTags(taggedTopic.tags()));
-        }
-    }
-
-    /**
-     * Enrich topics with Confluent catalog information, using Confluent Stream Catalog REST API.
-     *
-     * @param topics Topics to enrich
-     */
-    public void enrichWithRestCatalogInfo(Map<String, Topic> topics) {
-        // getting topics by managing offset & limit
-        TopicListResponse topicListResponse;
-        int offset = 0;
-        int limit = ns4KafkaProperties.getConfluentCloud().getStreamCatalog().getPageSize();
-
-        do {
-            topicListResponse = schemaRegistryClient
-                    .getTopicsWithStreamCatalog(managedClusterProperties.getName(), limit, offset)
-                    .block();
-            if (topicListResponse == null) {
-                break;
-            }
-            topicListResponse.entities().stream()
-                    .filter(topicEntity -> (topicEntity.attributes().description() != null
-                                    || !topicEntity.classificationNames().isEmpty())
-                            && topics.containsKey(topicEntity.attributes().name()))
-                    .forEach(topicEntity -> {
-                        topics.get(topicEntity.attributes().name())
-                                .getSpec()
-                                .setTags(topicEntity.classificationNames());
-                        topics.get(topicEntity.attributes().name())
-                                .getSpec()
-                                .setDescription(topicEntity.attributes().description());
-                    });
-            offset += limit;
-        } while (!topicListResponse.entities().isEmpty());
     }
 
     /**
@@ -565,7 +333,7 @@ public class TopicAsyncExecutor {
                             .addArgument(topicConfigsToUpdate.get(key).stream()
                                     .map(AlterConfigOp::toString)
                                     .collect(Collectors.joining(",")))
-                            .log("Success updating topic configs {} on cluster {}: [{}]");
+                            .log("Success updating topic {} configs on cluster {}: [{}]");
                 }
             } catch (InterruptedException e) {
                 log.error(ERROR, e);
@@ -647,109 +415,6 @@ public class TopicAsyncExecutor {
                 }
             }
         });
-    }
-
-    /**
-     * Create tags and associate them.
-     *
-     * @param topicTags Mapping between topics and their list of tags info
-     * @return A disposable to subscribe to the creation and association of tags
-     */
-    public Disposable createAndAssociateTags(Map<Topic, List<TagTopicInfo>> topicTags) {
-        List<TagTopicInfo> tagsToAssociate =
-                topicTags.values().stream().flatMap(Collection::stream).toList();
-
-        List<TagInfo> tagsToCreate = tagsToAssociate.stream()
-                .map(tag -> TagInfo.builder().name(tag.typeName()).build())
-                .distinct()
-                .toList();
-
-        String tagsListString = tagsToCreate.stream().map(TagInfo::name).collect(Collectors.joining(","));
-
-        return schemaRegistryClient
-                .createTags(managedClusterProperties.getName(), tagsToCreate)
-                .subscribe(
-                        _ -> {
-                            log.info("Success creating tag {}.", tagsListString);
-
-                            schemaRegistryClient
-                                    .associateTags(managedClusterProperties.getName(), tagsToAssociate)
-                                    .subscribe(
-                                            _ -> topicTags.forEach((topic, tags) -> {
-                                                log.info(
-                                                        "Success associating tag {}.",
-                                                        managedClusterProperties
-                                                                        .getConfig()
-                                                                        .getProperty(CLUSTER_ID) + ":"
-                                                                + topic.getMetadata()
-                                                                        .getName() + "/"
-                                                                + tags.stream()
-                                                                        .map(TagTopicInfo::typeName)
-                                                                        .collect(Collectors.joining(",")));
-                                                topic.getMetadata()
-                                                        .setGeneration(topic.getMetadata()
-                                                                        .getGeneration()
-                                                                + 1);
-                                                topic.setStatus(Topic.TopicStatus.ofSuccess("Topic tags updated"));
-                                                topicRepository.create(topic);
-                                            }),
-                                            error -> topicTags.forEach((topic, tags) -> {
-                                                log.error(
-                                                        "Error associating tag {}.",
-                                                        managedClusterProperties
-                                                                        .getConfig()
-                                                                        .getProperty(CLUSTER_ID)
-                                                                + ":"
-                                                                + topic.getMetadata()
-                                                                        .getName() + "/"
-                                                                + tags.stream()
-                                                                        .map(TagTopicInfo::typeName)
-                                                                        .collect(Collectors.joining(",")),
-                                                        error);
-                                                topic.setStatus(Topic.TopicStatus.ofFailed(
-                                                        "Error while associating topic tags: " + error.getMessage()));
-                                                topicRepository.create(topic);
-                                            }));
-                        },
-                        error -> log.error("Error creating tag {}.", tagsListString, error));
-    }
-
-    /**
-     * Dissociate tags to a topic.
-     *
-     * @param brokerTopic The topic from the broker
-     * @param topic The topic from Ns4Kafka
-     */
-    private void dissociateTags(Topic brokerTopic, Topic topic) {
-        brokerTopic.getSpec().getTags().stream()
-                .filter(tag -> !topic.getSpec().getTags().contains(tag))
-                .forEach(tag -> schemaRegistryClient
-                        .dissociateTag(
-                                managedClusterProperties.getName(),
-                                managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
-                                        + topic.getMetadata().getName(),
-                                tag)
-                        .subscribe(
-                                _ -> {
-                                    log.info(
-                                            "Success dissociating tag {}.",
-                                            managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
-                                                    + topic.getMetadata().getName() + "/" + tag);
-                                    topic.getMetadata()
-                                            .setGeneration(topic.getMetadata().getGeneration() + 1);
-                                    topic.setStatus(Topic.TopicStatus.ofSuccess("Topic tags updated"));
-                                    topicRepository.create(topic);
-                                },
-                                error -> {
-                                    log.error(
-                                            "Error dissociating tag {}.",
-                                            managedClusterProperties.getConfig().getProperty(CLUSTER_ID) + ":"
-                                                    + topic.getMetadata().getName() + "/" + tag,
-                                            error);
-                                    topic.setStatus(Topic.TopicStatus.ofFailed(
-                                            "Error while dissociating topic tags: " + error.getMessage()));
-                                    topicRepository.create(topic);
-                                }));
     }
 
     /**
@@ -846,14 +511,6 @@ public class TopicAsyncExecutor {
                         return -1L;
                     }
                 }));
-    }
-
-    /** Dispose the topic synchronization disposable when the bean is destroyed. */
-    @PreDestroy
-    public void onDestroy() {
-        if (tagSyncDisposable != null && !tagSyncDisposable.isDisposed()) {
-            tagSyncDisposable.dispose();
-        }
     }
 
     /**
