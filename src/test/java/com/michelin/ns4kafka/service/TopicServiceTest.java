@@ -19,7 +19,6 @@
 package com.michelin.ns4kafka.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertLinesMatch;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -45,7 +44,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
@@ -215,32 +213,6 @@ class TopicServiceTest {
         when(aclService.isResourceCoveredByAcls(any(), anyString())).thenReturn(false);
 
         assertTrue(topicService.findAllForNamespace(ns).isEmpty());
-    }
-
-    @Test
-    void shouldImportTopics() {
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("namespace")
-                        .cluster("local")
-                        .build())
-                .spec(NamespaceSpec.builder()
-                        .connectClusters(List.of("local-name"))
-                        .build())
-                .build();
-
-        when(applicationContext.getBean(
-                        TopicAsyncExecutor.class,
-                        Qualifiers.byName(ns.getMetadata().getCluster())))
-                .thenReturn(topicAsyncExecutor);
-
-        List<Topic> topics = List.of(Topic.builder()
-                .metadata(Resource.Metadata.builder().name("ns-topic1").build())
-                .build());
-
-        topicService.importTopics(ns, topics);
-
-        verify(topicAsyncExecutor).importTopics(topics);
     }
 
     @Test
@@ -854,50 +826,6 @@ class TopicServiceTest {
     }
 
     @Test
-    void shouldDeleteTopic() throws ExecutionException, InterruptedException, TimeoutException {
-        Topic topic = Topic.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("ns-topic1")
-                        .cluster("cluster")
-                        .build())
-                .build();
-
-        when(applicationContext.getBean(eq(TopicAsyncExecutor.class), any())).thenReturn(topicAsyncExecutor);
-
-        topicService.delete(topic);
-
-        verify(topicRepository).delete(topic);
-        verify(topicAsyncExecutor).deleteTopics(List.of(topic));
-    }
-
-    @Test
-    void shouldDeleteMultipleTopics() throws ExecutionException, InterruptedException, TimeoutException {
-        Topic topic1 = Topic.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("ns-topic1")
-                        .cluster("cluster")
-                        .build())
-                .build();
-
-        Topic topic2 = Topic.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("ns-topic2")
-                        .cluster("cluster")
-                        .build())
-                .build();
-
-        List<Topic> topics = List.of(topic1, topic2);
-
-        when(applicationContext.getBean(eq(TopicAsyncExecutor.class), any())).thenReturn(topicAsyncExecutor);
-
-        topicService.deleteTopics(topics);
-
-        verify(topicAsyncExecutor).deleteTopics(topics);
-        verify(topicRepository).delete(topic1);
-        verify(topicRepository).delete(topic2);
-    }
-
-    @Test
     void shouldListUnsynchronizedTopicNames() throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
@@ -1010,186 +938,125 @@ class TopicServiceTest {
     }
 
     @Test
-    void shouldTagsBeValid() {
-        ManagedClusterProperties managedClusterProps =
-                new ManagedClusterProperties("local", ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
-        Properties properties = new Properties();
-        managedClusterProps.setConfig(properties);
-
-        when(managedClusterProperties.stream()).thenReturn(Stream.of(managedClusterProps));
-
-        List<String> validationErrors = topicService.validateTags(
-                Namespace.builder()
-                        .metadata(Resource.Metadata.builder()
-                                .name("namespace")
-                                .cluster("local")
-                                .build())
-                        .build(),
-                Topic.builder()
-                        .metadata(Resource.Metadata.builder().name("ns-topic1").build())
-                        .spec(Topic.TopicSpec.builder()
-                                .tags(List.of("TAG_TEST"))
-                                .build())
-                        .build());
-
-        assertEquals(0, validationErrors.size());
-    }
-
-    @Test
-    void shouldTagsBeInvalidWhenNotConfluentCloud() {
+    void shouldDeleteKafkaStreamInternalTopics() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
-                        .name("namespace")
+                        .name("test")
                         .cluster("local")
                         .build())
                 .build();
 
-        Topic topic = Topic.builder()
+        Topic t1 = Topic.builder()
                 .metadata(Resource.Metadata.builder().name("ns-topic1").build())
-                .spec(Topic.TopicSpec.builder().tags(List.of("TAG_TEST")).build())
+                .build();
+        Topic t2 = Topic.builder()
+                .metadata(Resource.Metadata.builder().name("ns-stream-test").build())
+                .build();
+        Topic t3 = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns-stream-test-changelog")
+                        .status(Resource.Metadata.Status.ofDeleting())
+                        .build())
                 .build();
 
-        when(managedClusterProperties.stream())
-                .thenReturn(Stream.of(
-                        new ManagedClusterProperties("local", ManagedClusterProperties.KafkaProvider.SELF_MANAGED)));
+        List<AccessControlEntry> acls = List.of(AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .grantedTo("namespace")
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resource("ns-")
+                        .build())
+                .build());
 
-        List<String> validationErrors = topicService.validateTags(ns, topic);
-        assertEquals(1, validationErrors.size());
-        assertEquals(
-                "Invalid value \"TAG_TEST\" for field \"tags\": tags are not currently supported.",
-                validationErrors.getFirst());
+        when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.TOPIC))
+                .thenReturn(acls);
+        when(aclService.isResourceCoveredByAcls(acls, t1.getMetadata().getName()))
+                .thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, t2.getMetadata().getName()))
+                .thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, t3.getMetadata().getName()))
+                .thenReturn(true);
+        when(topicRepository.findAllForCluster("local")).thenReturn(List.of(t1, t2, t3));
+
+        topicService.deleteKafkaStream(ns, "ns-stream", List.of());
+
+        verify(topicRepository, never()).create(t1);
+        verify(topicRepository, never()).create(t2);
+        verify(topicRepository).create(t3);
     }
 
     @Test
-    void shouldReturnTrueWhenTagFormatIsValid() {
-        Topic topicWithTag = Topic.builder()
-                .metadata(Resource.Metadata.builder().name("ns-topic1").build())
-                .spec(Topic.TopicSpec.builder().tags(List.of("test")).build())
-                .build();
-
-        assertTrue(topicService.isTagsFormatValid(topicWithTag));
-
-        Topic topicWithEasiestTag = Topic.builder()
-                .metadata(Resource.Metadata.builder().name("ns-topic2").build())
-                .spec(Topic.TopicSpec.builder().tags(List.of("A")).build())
-                .build();
-
-        assertTrue(topicService.isTagsFormatValid(topicWithEasiestTag));
-
-        Topic topicWithUnderscoreAndNumberTag = Topic.builder()
-                .metadata(Resource.Metadata.builder().name("ns-topic3").build())
-                .spec(Topic.TopicSpec.builder().tags(List.of("TEST1_TAG")).build())
-                .build();
-
-        assertTrue(topicService.isTagsFormatValid(topicWithUnderscoreAndNumberTag));
-
-        Topic topicWithUnderscoreAndUpperLowerCase = Topic.builder()
-                .metadata(Resource.Metadata.builder().name("ns-topic4").build())
-                .spec(Topic.TopicSpec.builder().tags(List.of("t1_T_a_g2")).build())
-                .build();
-
-        assertTrue(topicService.isTagsFormatValid(topicWithUnderscoreAndUpperLowerCase));
-
-        Topic topicWithMultipleCorrectTags = Topic.builder()
-                .metadata(Resource.Metadata.builder().name("ns-topic5").build())
-                .spec(Topic.TopicSpec.builder()
-                        .tags(List.of("TEST1", "test2", "tEST_3", "T_a_g"))
-                        .build())
-                .build();
-
-        assertTrue(topicService.isTagsFormatValid(topicWithMultipleCorrectTags));
-    }
-
-    @Test
-    void shouldReturnFalseWhenTagFormatIsInvalid() {
-        Topic topicWithBeginningDigitTag = Topic.builder()
-                .metadata(Resource.Metadata.builder().name("ns-topic1").build())
-                .spec(Topic.TopicSpec.builder().tags(List.of("0test")).build())
-                .build();
-
-        assertFalse(topicService.isTagsFormatValid(topicWithBeginningDigitTag));
-
-        Topic topicWithBeginningUnderscoreTag = Topic.builder()
-                .metadata(Resource.Metadata.builder().name("ns-topic2").build())
-                .spec(Topic.TopicSpec.builder().tags(List.of("_TEST")).build())
-                .build();
-
-        assertFalse(topicService.isTagsFormatValid(topicWithBeginningUnderscoreTag));
-
-        Topic topicWithForbiddenCharacterTag = Topic.builder()
-                .metadata(Resource.Metadata.builder().name("ns-topic3").build())
-                .spec(Topic.TopicSpec.builder().tags(List.of("test-tag")).build())
-                .build();
-
-        assertFalse(topicService.isTagsFormatValid(topicWithForbiddenCharacterTag));
-
-        Topic topicWithManyForbiddenCharactersTag = Topic.builder()
-                .metadata(Resource.Metadata.builder().name("ns-topic4").build())
-                .spec(Topic.TopicSpec.builder()
-                        .tags(List.of("&~#()[]{}-+=*%:.,;!?^°çé"))
-                        .build())
-                .build();
-
-        assertFalse(topicService.isTagsFormatValid(topicWithManyForbiddenCharactersTag));
-
-        Topic topicWithMultipleIncorrectTags = Topic.builder()
-                .metadata(Resource.Metadata.builder().name("ns-topic5").build())
-                .spec(Topic.TopicSpec.builder()
-                        .tags(List.of("test-tag", "TEST.tag", "0TEST"))
-                        .build())
-                .build();
-
-        assertFalse(topicService.isTagsFormatValid(topicWithMultipleIncorrectTags));
-
-        Topic topicWithOneIncorrectAndMultipleCorrectTags = Topic.builder()
-                .metadata(Resource.Metadata.builder().name("ns-topic5").build())
-                .spec(Topic.TopicSpec.builder()
-                        .tags(List.of("testTag", "0TEST-tag", "TEST"))
-                        .build())
-                .build();
-
-        assertFalse(topicService.isTagsFormatValid(topicWithOneIncorrectAndMultipleCorrectTags));
-    }
-
-    @Test
-    void shouldTagsBeInvalidWhenFormatIsWrong() {
+    void shouldNotDeleteKafkaStreamOverlappingTopics() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
-                        .name("namespace")
+                        .name("test")
                         .cluster("local")
                         .build())
                 .build();
 
-        Topic topic = Topic.builder()
-                .metadata(Resource.Metadata.builder().name("ns-topic1").build())
-                .spec(Topic.TopicSpec.builder().tags(List.of("0TAG-TEST")).build())
+        Topic t1 = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns-stream-test-changelog")
+                        .status(Resource.Metadata.Status.ofDeleting())
+                        .build())
+                .build();
+        Topic t2 = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns-stream-test-repartition")
+                        .status(Resource.Metadata.Status.ofDeleting())
+                        .build())
+                .build();
+        Topic t3 = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns-stream-test-nochangelog")
+                        .build())
+                .build();
+        Topic t4 = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns-stream-overlap-test-changelog")
+                        .build())
+                .build();
+        Topic t5 = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns-stream-overlap-test-repartition")
+                        .build())
+                .build();
+        Topic t6 = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns-stream-overlap-test-nochangelog")
+                        .build())
                 .build();
 
-        when(managedClusterProperties.stream())
-                .thenReturn(Stream.of(
-                        new ManagedClusterProperties("local", ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD)));
+        List<AccessControlEntry> acls = List.of(AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .grantedTo("namespace")
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resource("ns-")
+                        .build())
+                .build());
 
-        List<String> validationErrors = topicService.validateTags(ns, topic);
-        assertEquals(1, validationErrors.size());
-        assertEquals(
-                "Invalid value \"0TAG-TEST\" for field \"tags\": "
-                        + "tags should start with letter and be followed by alphanumeric or _ characters.",
-                validationErrors.getFirst());
-    }
+        when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.TOPIC))
+                .thenReturn(acls);
+        when(aclService.isResourceCoveredByAcls(any(), any()))
+                .thenReturn(true)
+                .thenReturn(true)
+                .thenReturn(true)
+                .thenReturn(true)
+                .thenReturn(true)
+                .thenReturn(true);
 
-    @Test
-    void deleteTopics_shouldNotCallAnything_whenListIsNull() throws Exception {
-        topicService.deleteTopics(null);
+        when(topicRepository.findAllForCluster("local")).thenReturn(List.of(t1, t2, t3, t4, t5, t6));
 
-        verify(topicAsyncExecutor, never()).deleteTopics(any());
-        verify(topicRepository, never()).delete(any());
-    }
+        topicService.deleteKafkaStream(ns, "ns-stream", List.of("ns-stream-overlap"));
 
-    @Test
-    void deleteTopics_shouldNotCallAnything_whenListIsEmpty() throws Exception {
-        topicService.deleteTopics(List.of());
-
-        verify(topicAsyncExecutor, never()).deleteTopics(any());
-        verify(topicRepository, never()).delete(any());
+        verify(topicRepository).create(t1);
+        verify(topicRepository).create(t2);
+        verify(topicRepository, never()).create(t3);
+        verify(topicRepository, never()).create(t4);
+        verify(topicRepository, never()).create(t5);
+        verify(topicRepository, never()).create(t6);
     }
 }

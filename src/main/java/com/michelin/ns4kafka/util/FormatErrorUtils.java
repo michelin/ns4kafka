@@ -826,27 +826,4 @@ public class FormatErrorUtils {
         return INVALID_FIELD.formatted(
                 invalidFieldValue, invalidFieldName, "configuration is not allowed on your namespace");
     }
-
-    /**
-     * Invalid topic tags.
-     *
-     * @param invalidTagValue the invalid field value
-     * @return the error message
-     */
-    public static String invalidTopicTags(String invalidTagValue) {
-        return INVALID_FIELD.formatted(invalidTagValue, "tags", "tags are not currently supported");
-    }
-
-    /**
-     * Invalid topic tags format.
-     *
-     * @param invalidTagFormatValue the invalid field value
-     * @return the error message
-     */
-    public static String invalidTopicTagsFormat(String invalidTagFormatValue) {
-        return INVALID_FIELD.formatted(
-                invalidTagFormatValue,
-                "tags",
-                "tags should start with letter and be followed by alphanumeric or _ characters");
-    }
 }

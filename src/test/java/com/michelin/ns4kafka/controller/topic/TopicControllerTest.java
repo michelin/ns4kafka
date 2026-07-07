@@ -24,7 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.anyMap;
 import static org.mockito.Mockito.doNothing;
@@ -48,8 +47,6 @@ import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.security.utils.SecurityService;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -58,7 +55,6 @@ import java.util.concurrent.TimeoutException;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -173,7 +169,7 @@ class TopicControllerTest {
     }
 
     @Test
-    void shouldBulkDeleteTopics() throws InterruptedException, ExecutionException, TimeoutException {
+    void shouldBulkDeleteTopics() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test")
@@ -182,21 +178,18 @@ class TopicControllerTest {
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        List<Topic> toDelete = List.of(
-                Topic.builder()
-                        .metadata(Resource.Metadata.builder()
-                                .name("prefix1.topic1")
-                                .build())
-                        .build(),
-                Topic.builder()
-                        .metadata(Resource.Metadata.builder()
-                                .name("prefix1.topic2")
-                                .build())
-                        .build());
-        when(topicService.findByWildcardName(ns, "prefix1.*")).thenReturn(toDelete);
+        Topic topic1 = Topic.builder()
+                .metadata(Resource.Metadata.builder().name("prefix1.topic1").build())
+                .build();
+        Topic topic2 = Topic.builder()
+                .metadata(Resource.Metadata.builder().name("prefix1.topic2").build())
+                .build();
+
+        when(topicService.findByWildcardName(ns, "prefix1.*")).thenReturn(List.of(topic1, topic2));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
-        doNothing().when(topicService).deleteTopics(toDelete);
+        when(topicService.create(topic1)).thenReturn(topic1);
+        when(topicService.create(topic2)).thenReturn(topic2);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         HttpResponse<List<Topic>> actual = topicController.bulkDelete("test", "prefix1.*", false);
@@ -204,7 +197,7 @@ class TopicControllerTest {
     }
 
     @Test
-    void shouldNotBulkDeleteTopicsWhenNotFound() throws InterruptedException, ExecutionException, TimeoutException {
+    void shouldNotBulkDeleteTopicsWhenNotFound() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test")
@@ -219,11 +212,11 @@ class TopicControllerTest {
         HttpResponse<List<Topic>> actual = topicController.bulkDelete("test", "topic*", false);
 
         assertEquals(HttpStatus.NOT_FOUND, actual.getStatus());
-        verify(topicService, never()).delete(any());
+        verify(topicService, never()).create(any());
     }
 
     @Test
-    void shouldNotBulkDeleteTopicsInDryRunMode() throws InterruptedException, ExecutionException, TimeoutException {
+    void shouldNotBulkDeleteTopicsInDryRunMode() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test")
@@ -240,8 +233,9 @@ class TopicControllerTest {
         when(topicService.findByWildcardName(ns, "prefix.topic")).thenReturn(toDelete);
 
         HttpResponse<List<Topic>> actual = topicController.bulkDelete("test", "prefix.topic", true);
+
         assertEquals(HttpStatus.OK, actual.getStatus());
-        verify(topicService, never()).delete(any());
+        verify(topicService, never()).create(any());
     }
 
     @Test
@@ -262,7 +256,7 @@ class TopicControllerTest {
         when(topicService.isNamespaceOwnerOfTopic("test", "topic.delete")).thenReturn(true);
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
-        doNothing().when(topicService).delete(toDelete.get());
+        when(topicService.create(toDelete.get())).thenReturn(toDelete.get());
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         HttpResponse<Void> actual = topicController.delete("test", "topic.delete", false);
@@ -291,7 +285,7 @@ class TopicControllerTest {
 
         topicController.delete("test", "topic.delete", true);
 
-        verify(topicService, never()).delete(any());
+        verify(topicService, never()).create(any());
     }
 
     @Test
@@ -435,101 +429,6 @@ class TopicControllerTest {
     }
 
     @Test
-    void shouldValidateNewTags() {
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .spec(NamespaceSpec.builder()
-                        .topicValidator(TopicValidator.makeDefault())
-                        .build())
-                .build();
-
-        Topic existing = Topic.builder()
-                .metadata(Resource.Metadata.builder().name("test.topic").build())
-                .spec(Topic.TopicSpec.builder()
-                        .replicationFactor(3)
-                        .partitions(3)
-                        .tags(Arrays.asList("TAG1", "TAG3"))
-                        .configs(Map.of(
-                                "cleanup.policy", "compact", "min.insync.replicas", "2", "retention.ms", "60000"))
-                        .build())
-                .build();
-
-        Topic topic = Topic.builder()
-                .metadata(Resource.Metadata.builder().name("test.topic").build())
-                .spec(Topic.TopicSpec.builder()
-                        .tags(Arrays.asList("TAG1", "TAG2"))
-                        .replicationFactor(3)
-                        .partitions(3)
-                        .configs(
-                                Map.of("cleanup.policy", "delete", "min.insync.replicas", "2", "retention.ms", "60000"))
-                        .build())
-                .build();
-
-        when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
-        when(topicService.validateTags(ns, topic)).thenReturn(List.of("Error on tags"));
-
-        ResourceValidationException actual =
-                assertThrows(ResourceValidationException.class, () -> topicController.apply("test", topic, false));
-        assertEquals(1, actual.getValidationErrors().size());
-        assertLinesMatch(List.of("Error on tags"), actual.getValidationErrors());
-    }
-
-    @Test
-    void shouldNotValidateTagsWhenNoNewTag() throws InterruptedException, ExecutionException, TimeoutException {
-        Namespace ns = Namespace.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test")
-                        .cluster("local")
-                        .build())
-                .spec(NamespaceSpec.builder()
-                        .topicValidator(TopicValidator.makeDefault())
-                        .build())
-                .build();
-
-        Topic existing = Topic.builder()
-                .metadata(Resource.Metadata.builder().name("test.topic").build())
-                .spec(Topic.TopicSpec.builder()
-                        .tags(Arrays.asList("TAG1", "TAG2"))
-                        .replicationFactor(3)
-                        .partitions(3)
-                        .configs(Map.of(
-                                "cleanup.policy", "compact", "min.insync.replicas", "2", "retention.ms", "60000"))
-                        .build())
-                .build();
-
-        Topic topic = Topic.builder()
-                .metadata(Resource.Metadata.builder().name("test.topic").build())
-                .spec(Topic.TopicSpec.builder()
-                        .tags(new ArrayList<>(List.of("TAG1")))
-                        .replicationFactor(3)
-                        .partitions(3)
-                        .configs(
-                                Map.of("cleanup.policy", "delete", "min.insync.replicas", "2", "retention.ms", "60000"))
-                        .build())
-                .build();
-
-        when(topicService.isNamespaceOwnerOfTopic(any(), any())).thenReturn(true);
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(topicService.findByName(ns, "test.topic")).thenReturn(Optional.of(existing));
-        when(topicService.create(topic)).thenReturn(topic);
-        when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
-        doNothing().when(applicationEventPublisher).publishEvent(any());
-
-        HttpResponse<Topic> response = topicController.apply("test", topic, false);
-        Topic actual = response.body();
-        assertEquals("changed", response.header("X-Ns4kafka-Result"));
-        assertEquals("test.topic", actual.getMetadata().getName());
-        assertEquals(1, actual.getSpec().getTags().size());
-        assertEquals("TAG1", actual.getSpec().getTags().getFirst());
-    }
-
-    @Test
     void shouldNotUpdateTopicWhenValidationErrors() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
@@ -618,7 +517,7 @@ class TopicControllerTest {
         HttpResponse<Topic> response = topicController.apply("test", topic, false);
         Topic actual = response.body();
         assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
-        verify(topicService, never()).create(ArgumentMatchers.any());
+        verify(topicService, never()).create(any());
         assertEquals(existing, actual);
     }
 
@@ -652,7 +551,7 @@ class TopicControllerTest {
 
         HttpResponse<Topic> response = topicController.apply("test", topic, true);
         assertEquals("created", response.header("X-Ns4kafka-Result"));
-        verify(topicService, never()).create(topic);
+        verify(topicService, never()).create(any());
     }
 
     @Test
@@ -714,7 +613,7 @@ class TopicControllerTest {
 
         HttpResponse<Topic> response = topicController.apply("test", topic, true);
         assertEquals("created", response.header("X-Ns4kafka-Result"));
-        verify(topicService, never()).create(topic);
+        verify(topicService, never()).create(any());
     }
 
     @Test
@@ -746,7 +645,7 @@ class TopicControllerTest {
 
         HttpResponse<Topic> response = topicController.apply("test", topic, true);
         assertEquals("created", response.header("X-Ns4kafka-Result"));
-        verify(topicService, never()).create(topic);
+        verify(topicService, never()).create(any());
     }
 
     @Test
@@ -817,27 +716,16 @@ class TopicControllerTest {
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(topicService.listUnsynchronizedTopicsByWildcardName(ns, "*")).thenReturn(List.of(topic1, topic2));
-        doNothing().when(topicService).importTopics(any(), any());
+        when(topicService.create(topic1)).thenReturn(topic1);
+        when(topicService.create(topic2)).thenReturn(topic2);
 
         List<Topic> actual = topicController.importResources("test", "*", false);
 
-        assertTrue(actual.stream()
-                .anyMatch(t -> t.getMetadata().getName().equals("test.topic1")
-                        && t.getStatus().getMessage().equals("Imported from cluster")
-                        && t.getStatus().getPhase().equals(Topic.TopicPhase.Success)));
+        assertTrue(actual.stream().anyMatch(t -> t.getMetadata().getName().equals("test.topic1")));
+        assertTrue(actual.stream().anyMatch(t -> t.getMetadata().getName().equals("test.topic2")));
 
-        assertTrue(actual.stream()
-                .anyMatch(t -> t.getMetadata().getName().equals("test.topic2")
-                        && t.getStatus().getMessage().equals("Imported from cluster")
-                        && t.getStatus().getPhase().equals(Topic.TopicPhase.Success)));
-
-        verify(topicService)
-                .importTopics(
-                        eq(ns),
-                        argThat(topics -> topics.stream()
-                                        .anyMatch(t -> t.getMetadata().getName().equals("test.topic1"))
-                                || topics.stream()
-                                        .anyMatch(t -> t.getMetadata().getName().equals("test.topic2"))));
+        verify(topicService).create(topic1);
+        verify(topicService).create(topic2);
     }
 
     @Test
@@ -878,8 +766,8 @@ class TopicControllerTest {
         List<Topic> actual = topicController.importResources("test", "*", true);
 
         assertTrue(actual.stream().anyMatch(t -> t.getMetadata().getName().equals("test.topic1")));
-
         assertTrue(actual.stream().anyMatch(t -> t.getMetadata().getName().equals("test.topic2")));
+        verify(topicService, never()).create(any());
     }
 
     @Test
@@ -907,20 +795,12 @@ class TopicControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(topicService.listUnsynchronizedTopicsByWildcardName(ns, "test.topic1"))
                 .thenReturn(List.of(topic1));
-        doNothing().when(topicService).importTopics(any(), any());
+        when(topicService.create(topic1)).thenReturn(topic1);
 
         List<Topic> actual = topicController.importResources("test", "test.topic1", false);
 
-        assertTrue(actual.stream()
-                .anyMatch(t -> t.getMetadata().getName().equals("test.topic1")
-                        && t.getStatus().getMessage().equals("Imported from cluster")
-                        && t.getStatus().getPhase().equals(Topic.TopicPhase.Success)));
-
-        verify(topicService)
-                .importTopics(
-                        eq(ns),
-                        argThat(topics -> topics.stream()
-                                .anyMatch(t -> t.getMetadata().getName().equals("test.topic1"))));
+        assertTrue(actual.stream().anyMatch(t -> t.getMetadata().getName().equals("test.topic1")));
+        verify(topicService).create(topic1);
     }
 
     @Test

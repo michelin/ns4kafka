@@ -151,11 +151,8 @@ public class AclController extends NamespacedResourceController {
             throw new ResourceValidationException(accessControlEntry, validationErrors);
         }
 
-        // When the cluster manages RBAC, an ACL in "deleting" state is treated as non-existent,
-        // so that an apply-delete-apply flow transparently returns "created".
-        Optional<AccessControlEntry> existingAcl = aclService
-                .findByName(namespace, accessControlEntry.getMetadata().getName())
-                .filter(existing -> !(aclService.isClusterManagingRbac(existing) && existing.isDeleting()));
+        Optional<AccessControlEntry> existingAcl = aclService.findByName(
+                namespace, accessControlEntry.getMetadata().getName());
 
         // Spec is immutable to prevent accidental updates to ACLs already declared with the same name
         if (existingAcl.isPresent() && !existingAcl.get().getSpec().equals(accessControlEntry.getSpec())) {
@@ -166,11 +163,13 @@ public class AclController extends NamespacedResourceController {
 
         if (existingAcl.isPresent()
                 && !existingAcl.get().isFailed()
+                && !existingAcl.get().isDeleting()
                 && existingAcl.get().equals(accessControlEntry)) {
             return formatHttpResponse(existingAcl.get(), ApplyStatus.UNCHANGED);
         }
 
-        ApplyStatus status = existingAcl.isPresent() ? ApplyStatus.CHANGED : ApplyStatus.CREATED;
+        ApplyStatus status =
+                existingAcl.isPresent() && existingAcl.get().isCreated() ? ApplyStatus.CHANGED : ApplyStatus.CREATED;
 
         if (dryrun) {
             return formatHttpResponse(accessControlEntry, status);

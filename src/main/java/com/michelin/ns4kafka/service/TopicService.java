@@ -21,14 +21,13 @@ package com.michelin.ns4kafka.service;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidImmutableValue;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidTopicCleanUpPolicy;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidTopicDeleteRecords;
-import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidTopicTags;
-import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidTopicTagsFormat;
 import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_COMPACT;
 import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_CONFIG;
 import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_DELETE;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.TopicRepository;
@@ -86,6 +85,30 @@ public class TopicService {
     }
 
     /**
+     * Find all topics to create for a cluster.
+     *
+     * @param cluster The cluster
+     * @return A list of topics
+     */
+    public List<Topic> findAllToDeployForCluster(String cluster) {
+        return topicRepository.findAllForCluster(cluster).stream()
+                .filter(Resource::isPending)
+                .toList();
+    }
+
+    /**
+     * Find all topics to delete for a cluster.
+     *
+     * @param cluster The cluster
+     * @return A list of topics
+     */
+    public List<Topic> findAllToDeleteForCluster(String cluster) {
+        return topicRepository.findAllForCluster(cluster).stream()
+                .filter(Resource::isDeleting)
+                .toList();
+    }
+
+    /**
      * Find all topics by given namespace.
      *
      * @param namespace The namespace
@@ -127,6 +150,17 @@ public class TopicService {
     }
 
     /**
+     * Find a topic by cluster.
+     *
+     * @param cluster The cluster
+     * @param topicName The topic name
+     * @return An optional topic
+     */
+    public Optional<Topic> findByName(String cluster, String topicName) {
+        return topicRepository.findByName(cluster, topicName);
+    }
+
+    /**
      * Is given namespace owner of the given topic.
      *
      * @param namespace The namespace
@@ -145,37 +179,6 @@ public class TopicService {
      */
     public Topic create(Topic topic) {
         return topicRepository.create(topic);
-    }
-
-    /**
-     * Delete a given topic.
-     *
-     * @param topic The topic
-     */
-    public void delete(Topic topic) throws InterruptedException, ExecutionException, TimeoutException {
-        TopicAsyncExecutor topicAsyncExecutor = applicationContext.getBean(
-                TopicAsyncExecutor.class, Qualifiers.byName(topic.getMetadata().getCluster()));
-        topicAsyncExecutor.deleteTopics(List.of(topic));
-
-        topicRepository.delete(topic);
-    }
-
-    /**
-     * Delete multiple topics.
-     *
-     * @param topics The topics list
-     */
-    public void deleteTopics(List<Topic> topics) throws InterruptedException, ExecutionException, TimeoutException {
-        if (topics == null || topics.isEmpty()) {
-            return;
-        }
-
-        TopicAsyncExecutor topicAsyncExecutor = applicationContext.getBean(
-                TopicAsyncExecutor.class,
-                Qualifiers.byName(topics.getFirst().getMetadata().getCluster()));
-        topicAsyncExecutor.deleteTopics(topics);
-
-        topics.forEach(topicRepository::delete);
     }
 
     /**
@@ -298,20 +301,6 @@ public class TopicService {
     }
 
     /**
-     * Import topics from broker to Ns4Kafka storage.
-     *
-     * @param namespace The namespace
-     * @param topics The list of topics to import
-     */
-    public void importTopics(Namespace namespace, List<Topic> topics) {
-        TopicAsyncExecutor topicAsyncExecutor = applicationContext.getBean(
-                TopicAsyncExecutor.class,
-                Qualifiers.byName(namespace.getMetadata().getCluster()));
-
-        topicAsyncExecutor.importTopics(topics);
-    }
-
-    /**
      * Validate if a topic can be eligible for records deletion.
      *
      * @param topic The topic to delete records
@@ -377,41 +366,23 @@ public class TopicService {
     }
 
     /**
-     * Check if all topic tags respect confluent format (starts with letter followed by alphanumerical or underscore).
-     *
-     * @param topic The topic which contains tags
-     * @return true if yes, false otherwise
-     */
-    public boolean isTagsFormatValid(Topic topic) {
-        return topic.getSpec().getTags().stream().allMatch(tag -> tag.matches("^[a-zA-Z]\\w*$"));
-    }
-
-    /**
-     * Validate tags for topic.
+     * Delete Kafka Stream internal topics, excluding overlapping topics.
      *
      * @param namespace The namespace
-     * @param topic The topic which contains tags
-     * @return A list of validation errors
+     * @param stream The stream name
+     * @param overlapKafkaStreams The list of Kafka Stream overlapping topics
      */
-    public List<String> validateTags(Namespace namespace, Topic topic) {
-        List<String> validationErrors = new ArrayList<>();
-
-        Optional<ManagedClusterProperties> topicCluster = managedClusterProperties.stream()
-                .filter(cluster -> namespace.getMetadata().getCluster().equals(cluster.getName()))
-                .findFirst();
-
-        if (topicCluster.isPresent() && !topicCluster.get().isConfluentCloud()) {
-            validationErrors.add(
-                    invalidTopicTags(String.join(",", topic.getSpec().getTags())));
-            return validationErrors;
-        }
-
-        if (!isTagsFormatValid(topic)) {
-            validationErrors.add(
-                    invalidTopicTagsFormat(String.join(",", topic.getSpec().getTags())));
-            return validationErrors;
-        }
-
-        return validationErrors;
+    public void deleteKafkaStream(Namespace namespace, String stream, List<String> overlapKafkaStreams) {
+        findByWildcardName(namespace, stream.concat("-*")).stream()
+                .filter(topic -> topic.getMetadata().getName().endsWith("-repartition")
+                        || topic.getMetadata().getName().endsWith("-changelog"))
+                // Exclude topics covered by other Kafka Streams
+                // (E.g., When deleting "abc.appId", avoid deleting "abc.appId-1234")
+                .filter(topic -> overlapKafkaStreams.stream()
+                        .noneMatch(kafkaStream -> topic.getMetadata().getName().startsWith(kafkaStream)))
+                .forEach(topic -> {
+                    topic.getMetadata().setStatus(Resource.Metadata.Status.ofDeleting());
+                    topicRepository.create(topic);
+                });
     }
 }

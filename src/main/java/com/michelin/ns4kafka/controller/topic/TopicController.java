@@ -28,6 +28,7 @@ import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.DeleteRecordsResponse;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.ResourceQuotaService;
@@ -46,10 +47,7 @@ import io.micronaut.http.annotation.QueryValue;
 import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -158,23 +156,16 @@ public class TopicController extends NamespacedResourceController {
         }
 
         topic.getSpec().getTags().replaceAll(String::toUpperCase);
-        List<String> existingTags =
-                existingTopic.map(oldTopic -> oldTopic.getSpec().getTags()).orElse(Collections.emptyList());
-        if (topic.getSpec().getTags().stream().anyMatch(newTag -> !existingTags.contains(newTag))) {
-            validationErrors.addAll(topicService.validateTags(ns, topic));
-        }
 
         if (!validationErrors.isEmpty()) {
             throw new ResourceValidationException(topic, validationErrors);
         }
 
-        // 3. Fill server-side fields (server side metadata + status)
-        topic.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
-        topic.getMetadata().setCluster(ns.getMetadata().getCluster());
-        topic.getMetadata().setNamespace(ns.getMetadata().getName());
-        topic.setStatus(Topic.TopicStatus.ofPending());
+        assignResourceMetadata(topic, ns, existingTopic.orElse(null));
 
-        if (existingTopic.isPresent() && existingTopic.get().equals(topic)) {
+        if (existingTopic.isPresent()
+                && existingTopic.get().equals(topic)
+                && !existingTopic.get().isDeleting()) {
             return formatHttpResponse(existingTopic.get(), ApplyStatus.UNCHANGED, validationWarnings);
         }
 
@@ -183,13 +174,18 @@ public class TopicController extends NamespacedResourceController {
             throw new ResourceValidationException(topic, validationErrors);
         }
 
-        ApplyStatus status = existingTopic.isPresent() ? ApplyStatus.CHANGED : ApplyStatus.CREATED;
+        ApplyStatus status = existingTopic.isPresent() && existingTopic.get().isCreated()
+                ? ApplyStatus.CHANGED
+                : ApplyStatus.CREATED;
+
         if (dryrun) {
             return formatHttpResponse(topic, status, validationWarnings);
         }
 
         sendEventLog(
                 topic, status, existingTopic.<Object>map(Topic::getSpec).orElse(null), topic.getSpec(), EMPTY_STRING);
+
+        topic.getMetadata().setStatus(Resource.Metadata.Status.ofPending());
 
         return formatHttpResponse(topicService.create(topic), status, validationWarnings);
     }
@@ -206,8 +202,7 @@ public class TopicController extends NamespacedResourceController {
     public HttpResponse<List<Topic>> bulkDelete(
             String namespace,
             @QueryValue(defaultValue = "*") String name,
-            @QueryValue(defaultValue = "false") boolean dryrun)
-            throws InterruptedException, ExecutionException, TimeoutException {
+            @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
         List<Topic> topics = topicService.findByWildcardName(ns, name);
 
@@ -219,10 +214,11 @@ public class TopicController extends NamespacedResourceController {
             return HttpResponse.ok(topics);
         }
 
-        topics.forEach(topicToDelete ->
-                sendEventLog(topicToDelete, ApplyStatus.DELETED, topicToDelete.getSpec(), null, EMPTY_STRING));
-
-        topicService.deleteTopics(topics);
+        topics.forEach(topicToDelete -> {
+            topicToDelete.getMetadata().setStatus(Resource.Metadata.Status.ofDeleting());
+            topicService.create(topicToDelete);
+            sendEventLog(topicToDelete, ApplyStatus.DELETED, topicToDelete.getSpec(), null, EMPTY_STRING);
+        });
 
         return HttpResponse.ok(topics);
     }
@@ -256,10 +252,9 @@ public class TopicController extends NamespacedResourceController {
         }
 
         Topic topicToDelete = optionalTopic.get();
-
+        topicToDelete.getMetadata().setStatus(Resource.Metadata.Status.ofDeleting());
+        topicService.create(topicToDelete);
         sendEventLog(topicToDelete, ApplyStatus.DELETED, topicToDelete.getSpec(), null, EMPTY_STRING);
-
-        topicService.delete(topicToDelete);
 
         return HttpResponse.noContent();
     }
@@ -289,14 +284,12 @@ public class TopicController extends NamespacedResourceController {
         }
 
         unsynchronizedTopics.forEach(topic -> {
-            topic.getMetadata().setCreationTimestamp(Date.from(Instant.now()));
-            topic.getMetadata().setCluster(ns.getMetadata().getCluster());
-            topic.getMetadata().setNamespace(ns.getMetadata().getName());
-            topic.setStatus(Topic.TopicStatus.ofSuccess("Imported from cluster"));
+            assignResourceMetadata(topic, ns, null);
+            topic.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
+            topic.getMetadata().setGeneration(1);
+            topicService.create(topic);
             sendEventLog(topic, ApplyStatus.CREATED, null, topic.getSpec(), EMPTY_STRING);
         });
-
-        topicService.importTopics(ns, unsynchronizedTopics);
 
         return unsynchronizedTopics;
     }
