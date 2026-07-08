@@ -673,11 +673,11 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
         HttpResponse<List<Schema>> deleteResponse = ns4KafkaClient
                 .toBlocking()
                 .exchange(
-                        HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/schemas/ns1-subject2-value")
+                        HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/schemas?name=ns1-subject2-value")
                                 .bearerAuth(token),
                         Argument.listOf(Schema.class));
 
-        assertEquals(HttpStatus.NO_CONTENT, deleteResponse.getStatus());
+        assertEquals(HttpStatus.OK, deleteResponse.getStatus());
 
         // Get all schemas
         HttpResponse<List<Schema>> getResponseEmpty = ns4KafkaClient
@@ -954,7 +954,7 @@ class SchemaIntegrationTest extends SchemaRegistryIntegrationTest {
     }
 
     @Test
-    void shouldBulkDeleteSchemas() {
+    void shouldDeleteSchemas() {
         Schema schema1 = Schema.builder()
                 .metadata(Resource.Metadata.builder().name("ns1-subject5-value").build())
                 .spec(Schema.SchemaSpec.builder()
