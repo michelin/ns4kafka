@@ -73,8 +73,8 @@ public class GitlabAuthenticationProvider implements ReactiveAuthenticationProvi
                 .flatMap(username -> gitlabAuthenticationService
                         .findAllAvailableGroups(token)
                         .collectList()
-                        .onErrorResume(error -> Mono.error(new AuthenticationException(
-                                new AuthenticationFailed("Cannot retrieve your GitLab groups"))))
+                        .onErrorResume(_ -> Mono.error(new AuthenticationException(
+                                new AuthenticationFailed("Cannot retrieve your GitLab groups from GitLab"))))
                         .flatMap(groups -> Mono.just(authenticationService.buildAuthJwtGroups(username, groups))));
     }
 }
