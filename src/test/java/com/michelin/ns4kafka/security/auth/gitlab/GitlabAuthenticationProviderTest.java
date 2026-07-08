@@ -33,7 +33,6 @@ import io.micronaut.security.authentication.AuthenticationException;
 import io.micronaut.security.authentication.AuthenticationRequest;
 import io.micronaut.security.authentication.AuthenticationResponse;
 import io.micronaut.security.authentication.UsernamePasswordCredentials;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -67,7 +66,7 @@ class GitlabAuthenticationProviderTest {
 
         when(gitlabAuthenticationService.findUsername(authenticationRequest.getSecret()))
                 .thenReturn(Mono.just("username"));
-        when(gitlabAuthenticationService.findGuestGroups(authenticationRequest.getSecret()))
+        when(gitlabAuthenticationService.findAllAvailableGroups(authenticationRequest.getSecret()))
                 .thenReturn(Flux.fromIterable(groups));
 
         AuthenticationRoleBinding authenticationRoleBinding = AuthenticationRoleBinding.builder()
@@ -107,7 +106,7 @@ class GitlabAuthenticationProviderTest {
 
         when(gitlabAuthenticationService.findUsername(authenticationRequest.getSecret()))
                 .thenReturn(Mono.just("usernameAdmin"));
-        when(gitlabAuthenticationService.findGuestGroups(authenticationRequest.getSecret()))
+        when(gitlabAuthenticationService.findAllAvailableGroups(authenticationRequest.getSecret()))
                 .thenReturn(Flux.fromIterable(groups));
 
         AuthenticationRoleBinding authenticationRoleBinding = AuthenticationRoleBinding.builder()
@@ -143,50 +142,6 @@ class GitlabAuthenticationProviderTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
-    void authenticationSuccessFallbackOnInvitedGroups() {
-        AuthenticationRequest<String, String> authenticationRequest =
-                new UsernamePasswordCredentials("username", "53cu23d_70k3n");
-
-        List<String> groups = List.of("group-1", "group-2");
-        List<String> invitedGroups = List.of("group-1", "group-2", "invited-group");
-
-        when(gitlabAuthenticationService.findUsername(authenticationRequest.getSecret()))
-                .thenReturn(Mono.just("username"));
-        when(gitlabAuthenticationService.findGuestGroups(authenticationRequest.getSecret()))
-                .thenReturn(Flux.fromIterable(groups));
-        when(gitlabAuthenticationService.findAllAvailableGroups(authenticationRequest.getSecret()))
-                .thenReturn(Flux.fromIterable(invitedGroups));
-
-        AuthenticationRoleBinding authenticationRoleBinding = AuthenticationRoleBinding.builder()
-                .namespaces(List.of("namespace"))
-                .verbs(List.of(RoleBinding.Verb.GET))
-                .resourceTypes(List.of("topics"))
-                .build();
-
-        AuthenticationResponse authenticationResponse = AuthenticationResponse.success(
-                "username", Collections.emptyList(), Map.of("roleBindings", List.of(authenticationRoleBinding)));
-
-        when(authenticationService.buildAuthJwtGroups("username", groups))
-                .thenThrow(new AuthenticationException("No namespace matches your groups"));
-        when(authenticationService.buildAuthJwtGroups("username", invitedGroups))
-                .thenReturn(authenticationResponse);
-
-        Publisher<AuthenticationResponse> authenticationResponsePublisher =
-                gitlabAuthenticationProvider.authenticate(null, authenticationRequest);
-
-        StepVerifier.create(authenticationResponsePublisher)
-                .consumeNextWith(response -> {
-                    assertTrue(response.isAuthenticated());
-                    assertTrue(response.getAuthentication().isPresent());
-                    assertEquals("username", response.getAuthentication().get().getName());
-                    assertIterableEquals(List.of(authenticationRoleBinding), (List<AuthenticationRoleBinding>)
-                            response.getAuthentication().get().getAttributes().get("roleBindings"));
-                })
-                .verifyComplete();
-    }
-
-    @Test
     void authenticationFailureUsername() {
         AuthenticationRequest<String, String> authenticationRequest =
                 new UsernamePasswordCredentials("username", "f4k3_70k3n");
@@ -213,7 +168,7 @@ class GitlabAuthenticationProviderTest {
 
         when(gitlabAuthenticationService.findUsername(authenticationRequest.getSecret()))
                 .thenReturn(Mono.just("username"));
-        when(gitlabAuthenticationService.findGuestGroups(authenticationRequest.getSecret()))
+        when(gitlabAuthenticationService.findAllAvailableGroups(authenticationRequest.getSecret()))
                 .thenReturn(Flux.error(new HttpClientResponseException("Error", HttpResponse.unauthorized())));
 
         Publisher<AuthenticationResponse> authenticationResponsePublisher =
