@@ -70,32 +70,11 @@ public class GitlabAuthenticationProvider implements ReactiveAuthenticationProvi
                 .findUsername(token)
                 .onErrorResume(throwable ->
                         Mono.error(new AuthenticationException(new AuthenticationFailed(throwable.getMessage()))))
-                .flatMap(username -> buildAuthResponse(username, token));
-    }
-
-    /**
-     * Build the authentication response for the given user.
-     *
-     * @param username The username
-     * @param token The user token
-     * @return The authentication response
-     */
-    private Mono<AuthenticationResponse> buildAuthResponse(String username, String token) {
-        return gitlabAuthenticationService
-                .findGuestGroups(token)
-                .collectList()
-                .onErrorResume(_ -> Mono.error(new AuthenticationException(
-                        new AuthenticationFailed("Cannot retrieve your GitLab groups from GitLab"))))
-                .flatMap(groups -> Mono.fromCallable(() -> authenticationService.buildAuthJwtGroups(username, groups))
-                        .onErrorResume(
-                                AuthenticationException.class,
-                                _ -> gitlabAuthenticationService
-                                        .findAllAvailableGroups(token)
-                                        .collectList()
-                                        .onErrorResume(
-                                                _ -> Mono.error(new AuthenticationException(new AuthenticationFailed(
-                                                        "Cannot retrieve the GitLab groups you were invited to"))))
-                                        .map(fallbackGroups ->
-                                                authenticationService.buildAuthJwtGroups(username, fallbackGroups))));
+                .flatMap(username -> gitlabAuthenticationService
+                        .findAllAvailableGroups(token)
+                        .collectList()
+                        .onErrorResume(_ -> Mono.error(new AuthenticationException(
+                                new AuthenticationFailed("Cannot retrieve your GitLab groups from GitLab"))))
+                        .flatMap(groups -> Mono.just(authenticationService.buildAuthJwtGroups(username, groups))));
     }
 }
