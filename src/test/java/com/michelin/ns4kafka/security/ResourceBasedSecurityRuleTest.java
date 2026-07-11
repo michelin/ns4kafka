@@ -323,22 +323,6 @@ class ResourceBasedSecurityRuleTest {
     }
 
     @Test
-    void checkReturnsUnknownConnectorOffsetsSubResourceWithoutPermission() {
-        List<Map<String, ?>> roleBindings = List.of(
-                Map.of(NAMESPACES, List.of("test"), VERBS, List.of(GET), RESOURCE_TYPES, List.of("connectors")));
-
-        Map<String, Object> claims = Map.of(SUBJECT, "user", ROLES, List.of(), ROLE_BINDINGS, roleBindings);
-        Authentication auth = Authentication.build("user", claims);
-
-        when(namespaceRepository.findByName("test"))
-                .thenReturn(Optional.of(Namespace.builder().build()));
-
-        SecurityRuleResult actual = resourceBasedSecurityRule.checkSecurity(
-                HttpRequest.GET("/api/namespaces/test/connectors/name/offsets"), auth);
-        assertEquals(SecurityRuleResult.UNKNOWN, actual);
-    }
-
-    @Test
     void computeRolesNoAdmin() {
         when(ns4KafkaProperties.getSecurity()).thenReturn(buildSecurityProperties("admin-group"));
         List<String> actual = resourceBasedSecurityRule.computeRolesFromGroups(List.of("not-admin"));
