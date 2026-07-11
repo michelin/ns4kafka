@@ -369,7 +369,7 @@ public class ConnectorController extends NamespacedResourceController {
      * @param connector The connector to reset offsets for
      * @return An HTTP response
      */
-    @Delete("/{connector}/offsets")
+    @Delete("/{connector}/reset")
     public Mono<HttpResponse<ConnectorOffsetsResponse>> resetOffsets(String namespace, String connector) {
         Namespace ns = getNamespace(namespace);
 
@@ -383,7 +383,13 @@ public class ConnectorController extends NamespacedResourceController {
             return Mono.just(HttpResponse.notFound());
         }
 
-        return connectorService.resetOffsets(ns, optionalConnector.get());
+        Connector connectorToReset = optionalConnector.get();
+
+        return connectorService.resetOffsets(ns, connectorToReset).map(response -> {
+            sendEventLog(connectorToReset, ApplyStatus.CHANGED, null, connectorToReset.getSpec(), EMPTY_STRING);
+
+            return HttpResponse.status(response.getStatus()).body(response.body());
+        });
     }
 
     /**

@@ -898,12 +898,13 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
                 .exchange(
                         HttpRequest.create(
                                         HttpMethod.DELETE,
-                                        "/api/namespaces/ns1/connectors/ns1-connector-reset-offsets/offsets")
+                                        "/api/namespaces/ns1/connectors/ns1-connector-reset-offsets/reset")
                                 .bearerAuth(token),
                         ConnectorOffsetsResponse.class);
 
         assertEquals(HttpStatus.OK, resetResponse.status());
         assertTrue(resetResponse.getBody().isPresent());
+        assertNotNull(resetResponse.body());
         assertTrue(resetResponse.body().message().contains("reset successfully"));
     }
 

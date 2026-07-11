@@ -415,19 +415,9 @@ public class ConnectorService {
      * @return An HTTP response
      */
     public Mono<HttpResponse<ConnectorOffsetsResponse>> resetOffsets(Namespace namespace, Connector connector) {
-        return kafkaConnectClient
-                .resetOffsets(
-                        namespace.getMetadata().getCluster(),
-                        connector.getSpec().getConnectCluster(),
-                        connector.getMetadata().getName())
-                .map(response -> {
-                    log.info(
-                            "Success resetting offsets for Connector [{}] on Namespace [{}] Connect [{}]",
-                            connector.getMetadata().getName(),
-                            namespace.getMetadata().getName(),
-                            connector.getSpec().getConnectCluster());
-
-                    return HttpResponse.status(response.getStatus()).body(response.body());
-                });
+        return kafkaConnectClient.resetOffsets(
+                namespace.getMetadata().getCluster(),
+                connector.getSpec().getConnectCluster(),
+                connector.getMetadata().getName());
     }
 }
