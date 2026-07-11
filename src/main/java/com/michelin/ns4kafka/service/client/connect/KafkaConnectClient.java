@@ -36,8 +36,10 @@ import io.micronaut.core.type.Argument;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.client.exceptions.ReadTimeoutException;
 import io.micronaut.retry.annotation.Retryable;
 import jakarta.inject.Singleton;
@@ -263,7 +265,10 @@ public class KafkaConnectClient {
                         URI.create(StringUtils.prependUri(config.getUrl(), CONNECTORS + encodedConnector + "/offsets")))
                 .basicAuth(config.getUsername(), config.getPassword());
 
-        return Mono.from(httpClient.retrieve(request, ConnectorOffsets.class));
+        return Mono.from(httpClient.retrieve(request, ConnectorOffsets.class))
+                .onErrorResume(
+                        HttpClientResponseException.class,
+                        ex -> ex.getStatus().equals(HttpStatus.NOT_FOUND) ? Mono.empty() : Mono.error(ex));
     }
 
     /**

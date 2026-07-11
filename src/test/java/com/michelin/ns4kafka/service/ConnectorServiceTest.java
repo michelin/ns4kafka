@@ -1313,17 +1313,22 @@ class ConnectorServiceTest {
                         .build())
                 .build();
 
-        ConnectorOffsets expected = new ConnectorOffsets(List.of(new ConnectorOffsets.ConnectorOffset(
+        ConnectorOffsets connectorOffsets = new ConnectorOffsets(List.of(new ConnectorOffsets.ConnectorOffset(
                 Map.of("kafka_topic", "topic-a", "kafka_partition", 0), Map.of("kafka_offset", 42))));
 
         when(kafkaConnectClient.listOffsets(
                         namespace.getMetadata().getCluster(),
                         connector.getSpec().getConnectCluster(),
                         connector.getMetadata().getName()))
-                .thenReturn(Mono.just(expected));
+                .thenReturn(Mono.just(connectorOffsets));
 
         StepVerifier.create(connectorService.listOffsets(namespace, connector))
-                .expectNext(expected)
+                .consumeNextWith(offsets -> {
+                    assertEquals(1, offsets.size());
+                    assertEquals("topic-a", offsets.getFirst().getSpec().getTopic());
+                    assertEquals(0, offsets.getFirst().getSpec().getPartition());
+                    assertEquals(42L, offsets.getFirst().getSpec().getOffset());
+                })
                 .verifyComplete();
 
         verify(kafkaConnectClient)

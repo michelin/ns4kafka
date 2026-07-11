@@ -73,6 +73,7 @@ spec:
     - "connectors"
     - "connectors/import"
     - "connectors/change-state"
+    - "connectors/offsets"
     - "connect-clusters"
     - "connect-clusters/vaults"
     - "acls"

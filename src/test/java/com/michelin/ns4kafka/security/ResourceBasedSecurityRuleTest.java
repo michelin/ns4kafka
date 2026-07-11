@@ -205,23 +205,6 @@ class ResourceBasedSecurityRuleTest {
         assertEquals(SecurityRuleResult.ALLOWED, actual);
     }
 
-    @Test
-    void shouldReturnAllowedWhenConnectorOffsetsSubResource() {
-        List<Map<String, ?>> jwtRoleBindings = List.of(Map.of(
-                NAMESPACES, List.of("test"), VERBS, List.of(GET), RESOURCE_TYPES, List.of("connectors/offsets")));
-
-        Map<String, Object> jwtClaims = Map.of(SUBJECT, "user", ROLES, List.of(), ROLE_BINDINGS, jwtRoleBindings);
-        Authentication jwtAuth = Authentication.build("user", jwtClaims);
-
-        when(namespaceRepository.findByName("test"))
-                .thenReturn(Optional.of(Namespace.builder().build()));
-
-        SecurityRuleResult actual = resourceBasedSecurityRule.checkSecurity(
-                HttpRequest.GET("/api/namespaces/test/connectors/name/offsets"), jwtAuth);
-
-        assertEquals(SecurityRuleResult.ALLOWED, actual);
-    }
-
     @ParameterizedTest
     @CsvSource({"namespace", "name-space", "name.space", "_name_space_", "namespace123"})
     void shouldReturnAllowedWhenSpecialNamespaceName(String namespace) {

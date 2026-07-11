@@ -45,8 +45,8 @@ import com.michelin.ns4kafka.model.Status;
 import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.model.connect.ChangeConnectorState;
 import com.michelin.ns4kafka.model.connect.Connector;
+import com.michelin.ns4kafka.model.connect.ConnectorOffsetResponse;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorInfo;
-import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsets;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorSpecs;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorStateInfo;
 import com.michelin.ns4kafka.service.client.connect.entities.ServerInfo;
@@ -871,16 +871,15 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
         forceConnectorSynchronization();
         waitForConnectorToBeInState("ns1-connector-list-offsets", "RUNNING");
 
-        HttpResponse<ConnectorOffsets> offsetsResponse = ns4KafkaClient
+        HttpResponse<List<ConnectorOffsetResponse>> offsetsResponse = ns4KafkaClient
                 .toBlocking()
                 .exchange(
                         HttpRequest.GET("/api/namespaces/ns1/connectors/ns1-connector-list-offsets/offsets")
                                 .bearerAuth(token),
-                        ConnectorOffsets.class);
+                        Argument.listOf(ConnectorOffsetResponse.class));
 
         assertEquals(HttpStatus.OK, offsetsResponse.status());
         assertTrue(offsetsResponse.getBody().isPresent());
-        assertNotNull(offsetsResponse.body().offsets());
     }
 
     @Test

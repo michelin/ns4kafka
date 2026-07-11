@@ -27,9 +27,9 @@ import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.connect.Connector;
+import com.michelin.ns4kafka.model.connect.ConnectorOffsetResponse;
 import com.michelin.ns4kafka.repository.ConnectorRepository;
 import com.michelin.ns4kafka.service.client.connect.KafkaConnectClient;
-import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsets;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorSpecs;
 import com.michelin.ns4kafka.util.FormatErrorUtils;
 import com.michelin.ns4kafka.util.RegexUtils;
@@ -283,11 +283,28 @@ public class ConnectorService {
      * @param connector The connector
      * @return The connector offsets
      */
-    public Mono<ConnectorOffsets> listOffsets(Namespace namespace, Connector connector) {
-        return kafkaConnectClient.listOffsets(
-                namespace.getMetadata().getCluster(),
-                connector.getSpec().getConnectCluster(),
-                connector.getMetadata().getName());
+    public Mono<List<ConnectorOffsetResponse>> listOffsets(Namespace namespace, Connector connector) {
+        return kafkaConnectClient
+                .listOffsets(
+                        namespace.getMetadata().getCluster(),
+                        connector.getSpec().getConnectCluster(),
+                        connector.getMetadata().getName())
+                .map(connectorOffsets -> connectorOffsets.offsets().stream()
+                        .map(connectorOffset -> {
+                            Object offset = connectorOffset.offset() == null
+                                    ? null
+                                    : connectorOffset.offset().get("kafka_offset");
+                            return ConnectorOffsetResponse.builder()
+                                    .spec(ConnectorOffsetResponse.ConnectorOffsetResponseSpec.builder()
+                                            .topic((String)
+                                                    connectorOffset.partition().get("kafka_topic"))
+                                            .partition((Integer)
+                                                    connectorOffset.partition().get("kafka_partition"))
+                                            .offset(offset == null ? null : ((Number) offset).longValue())
+                                            .build())
+                                    .build();
+                        })
+                        .toList());
     }
 
     /**

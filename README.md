@@ -200,6 +200,7 @@ The delivered JWT token will have the following format:
         "topics/delete-records",
         "connectors",
         "connectors/change-state",
+        "connectors/offsets",
         "acls",
         "consumer-groups/reset",
         "streams",
