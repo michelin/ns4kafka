@@ -167,11 +167,9 @@ public class ConsumerGroupController extends NamespacedResourceController {
                                 currentState.toString().toLowerCase()));
             }
 
-            // List partitions
             List<TopicPartition> partitionsToReset = consumerGroupService.getPartitionsToReset(
                     ns, consumerGroup, consumerGroupResetOffsets.getSpec().getTopic());
 
-            // Prepare offsets
             Map<TopicPartition, Long> preparedOffsets = consumerGroupService.prepareOffsetsToReset(
                     ns,
                     consumerGroup,

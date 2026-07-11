@@ -332,7 +332,7 @@ public class ConnectorService {
                                 connector.getMetadata().getName(),
                                 namespace.getMetadata().getName(),
                                 connector.getSpec().getConnectCluster()))
-                        .then(Mono.just(HttpResponse.ok())));
+                        .last(HttpResponse.ok()));
     }
 
     /**
@@ -348,15 +348,11 @@ public class ConnectorService {
                         namespace.getMetadata().getCluster(),
                         connector.getSpec().getConnectCluster(),
                         connector.getMetadata().getName())
-                .map(_ -> {
-                    log.info(
-                            "Success pausing connector {} on namespace {} and Kafka Connect {}.",
-                            connector.getMetadata().getName(),
-                            namespace.getMetadata().getName(),
-                            connector.getSpec().getConnectCluster());
-
-                    return HttpResponse.accepted();
-                });
+                .doOnNext(_ -> log.info(
+                        "Success pausing connector {} on namespace {} and Kafka Connect {}.",
+                        connector.getMetadata().getName(),
+                        namespace.getMetadata().getName(),
+                        connector.getSpec().getConnectCluster()));
     }
 
     /**
@@ -372,15 +368,11 @@ public class ConnectorService {
                         namespace.getMetadata().getCluster(),
                         connector.getSpec().getConnectCluster(),
                         connector.getMetadata().getName())
-                .map(_ -> {
-                    log.info(
-                            "Success resuming connector {} on namespace {} and Kafka Connect {}.",
-                            connector.getMetadata().getName(),
-                            namespace.getMetadata().getName(),
-                            connector.getSpec().getConnectCluster());
-
-                    return HttpResponse.accepted();
-                });
+                .doOnNext(_ -> log.info(
+                        "Success resuming connector {} on namespace {} and Kafka Connect {}.",
+                        connector.getMetadata().getName(),
+                        namespace.getMetadata().getName(),
+                        connector.getSpec().getConnectCluster()));
     }
 
     /**
@@ -396,15 +388,11 @@ public class ConnectorService {
                         namespace.getMetadata().getCluster(),
                         connector.getSpec().getConnectCluster(),
                         connector.getMetadata().getName())
-                .map(_ -> {
-                    log.info(
-                            "Success stopping Connector [{}] on Namespace [{}] Connect [{}]",
-                            connector.getMetadata().getName(),
-                            namespace.getMetadata().getName(),
-                            connector.getSpec().getConnectCluster());
-
-                    return HttpResponse.accepted();
-                });
+                .doOnNext(_ -> log.info(
+                        "Success stopping connector {} on namespace {} and Kafka Connect {}",
+                        connector.getMetadata().getName(),
+                        namespace.getMetadata().getName(),
+                        connector.getSpec().getConnectCluster()));
     }
 
     /**
