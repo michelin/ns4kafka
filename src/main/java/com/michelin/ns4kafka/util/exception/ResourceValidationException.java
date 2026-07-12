@@ -22,12 +22,10 @@ import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.util.enumation.Kind;
 import java.io.Serial;
 import java.util.List;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 /** Resource validation exception. */
 @Getter
-@AllArgsConstructor
 public class ResourceValidationException extends RuntimeException {
     @Serial
     private static final long serialVersionUID = 32400191899153204L;
@@ -35,6 +33,20 @@ public class ResourceValidationException extends RuntimeException {
     private final Kind kind;
     private final String name;
     private final List<String> validationErrors;
+
+    /**
+     * Constructor.
+     *
+     * @param kind The kind of the resource
+     * @param name The name of the resource
+     * @param validationErrors The validation errors
+     */
+    public ResourceValidationException(Kind kind, String name, List<String> validationErrors) {
+        super("Resource validation failed");
+        this.kind = kind;
+        this.name = name;
+        this.validationErrors = validationErrors;
+    }
 
     /**
      * Constructor.

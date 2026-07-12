@@ -52,6 +52,7 @@ class ExceptionHandlerControllerTest {
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, response.getStatus());
         assertNotNull(response.body());
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY.getCode(), response.body().getCode());
+        assertEquals("Resource validation failed", response.body().getMessage());
 
         assertEquals(TOPIC, response.body().getDetails().getKind());
         assertEquals("Name", response.body().getDetails().getName());
@@ -139,7 +140,8 @@ class ExceptionHandlerControllerTest {
                 exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"), new Exception());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
         assertNotNull(response.body());
-        assertEquals("Internal server error", response.body().getMessage());
+        assertEquals(
+                HttpStatus.INTERNAL_SERVER_ERROR.getReason(), response.body().getMessage());
         assertNull(response.body().getDetails());
     }
 }
