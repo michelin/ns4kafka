@@ -389,7 +389,7 @@ public class ConnectorService {
                         connector.getSpec().getConnectCluster(),
                         connector.getMetadata().getName())
                 .doOnNext(_ -> log.info(
-                        "Success stopping connector {} on namespace {} and Kafka Connect {}",
+                        "Success stopping connector {} on namespace {} and Kafka Connect {}.",
                         connector.getMetadata().getName(),
                         namespace.getMetadata().getName(),
                         connector.getSpec().getConnectCluster()));
