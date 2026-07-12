@@ -18,7 +18,7 @@
  */
 package com.michelin.ns4kafka.model.connect;
 
-import static com.michelin.ns4kafka.util.enumation.Kind.CONNECTOR_OFFSETS_RESET_RESPONSE;
+import static com.michelin.ns4kafka.util.enumation.Kind.CONNECTOR_RESET_OFFSETS_RESPONSE;
 
 import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.connect.ChangeConnectorState.ChangeConnectorStateStatus;
@@ -27,11 +27,11 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-/** Connector offsets reset response. */
+/** Connector reset offsets response. */
 @Data
 @Serdeable
 @EqualsAndHashCode(callSuper = true)
-public class ConnectorOffsetsResetResponse extends Resource {
+public class ConnectorResetOffsetsResponse extends Resource {
     private ChangeConnectorStateStatus status;
 
     /**
@@ -41,8 +41,8 @@ public class ConnectorOffsetsResetResponse extends Resource {
      * @param status The status
      */
     @Builder
-    public ConnectorOffsetsResetResponse(Metadata metadata, ChangeConnectorStateStatus status) {
-        super("v1", CONNECTOR_OFFSETS_RESET_RESPONSE, metadata);
+    public ConnectorResetOffsetsResponse(Metadata metadata, ChangeConnectorStateStatus status) {
+        super("v1", CONNECTOR_RESET_OFFSETS_RESPONSE, metadata);
         this.status = status;
     }
 }
