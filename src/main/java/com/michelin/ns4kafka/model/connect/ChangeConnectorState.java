@@ -37,6 +37,7 @@ import lombok.NoArgsConstructor;
 @EqualsAndHashCode(callSuper = true)
 public class ChangeConnectorState extends Resource {
     @Valid @NotNull private ChangeConnectorStateSpec spec;
+
     private ChangeConnectorStateStatus status;
 
     /**
