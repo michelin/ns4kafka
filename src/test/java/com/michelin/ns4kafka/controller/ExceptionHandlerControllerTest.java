@@ -20,6 +20,8 @@ package com.michelin.ns4kafka.controller;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.TOPIC;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import com.michelin.ns4kafka.model.Status;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
@@ -47,35 +49,32 @@ class ExceptionHandlerControllerTest {
         HttpResponse<Status> response = exceptionHandlerController.error(
                 HttpRequest.create(HttpMethod.POST, "local"),
                 new ResourceValidationException(TOPIC, "Name", List.of("Error1", "Error2")));
-        Status status = response.body();
-
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, response.getStatus());
-        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY.getCode(), status.getCode());
+        assertNotNull(response.body());
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY.getCode(), response.body().getCode());
 
-        assertEquals(TOPIC, status.getDetails().getKind());
-        assertEquals("Name", status.getDetails().getName());
-        assertEquals("Error1", status.getDetails().getCauses().getFirst());
-        assertEquals("Error2", status.getDetails().getCauses().get(1));
+        assertEquals(TOPIC, response.body().getDetails().getKind());
+        assertEquals("Name", response.body().getDetails().getName());
+        assertEquals("Error1", response.body().getDetails().getCauses().getFirst());
+        assertEquals("Error2", response.body().getDetails().getCauses().get(1));
     }
 
     @Test
     void shouldHandleConstraintViolationException() {
         HttpResponse<Status> response = exceptionHandlerController.error(
                 HttpRequest.create(HttpMethod.POST, "local"), new ConstraintViolationException(Set.of()));
-        Status status = response.body();
-
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, response.getStatus());
-        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY.getCode(), status.getCode());
+        assertNotNull(response.body());
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY.getCode(), response.body().getCode());
     }
 
     @Test
     void shouldHandleAuthorizationExceptionAndConvertToUnauthorized() {
         HttpResponse<Status> response = exceptionHandlerController.error(
                 HttpRequest.create(HttpMethod.POST, "local"), new AuthorizationException(null));
-        Status status = response.body();
-
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatus());
-        assertEquals(HttpStatus.UNAUTHORIZED.getCode(), status.getCode());
+        assertNotNull(response.body());
+        assertEquals(HttpStatus.UNAUTHORIZED.getCode(), response.body().getCode());
     }
 
     @Test
@@ -83,11 +82,10 @@ class ExceptionHandlerControllerTest {
         AuthorizationException exception = new AuthorizationException(Authentication.build("user", Map.of()));
         HttpResponse<Status> response =
                 exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"), exception);
-        Status status = response.body();
-
         assertEquals(HttpStatus.FORBIDDEN, response.getStatus());
-        assertEquals(HttpStatus.FORBIDDEN.getCode(), status.getCode());
-        assertEquals(HttpStatus.FORBIDDEN.getReason(), status.getMessage());
+        assertNotNull(response.body());
+        assertEquals(HttpStatus.FORBIDDEN.getCode(), response.body().getCode());
+        assertEquals(HttpStatus.FORBIDDEN.getReason(), response.body().getMessage());
     }
 
     @Test
@@ -95,20 +93,18 @@ class ExceptionHandlerControllerTest {
         HttpResponse<Status> response = exceptionHandlerController.error(
                 HttpRequest.create(HttpMethod.PUT, "/api/namespaces/ns1/topics"),
                 new NotAllowedException("PUT", URI.create("/api/namespaces/ns1/topics"), Set.of("GET")));
-        Status status = response.body();
-
         assertEquals(HttpStatus.METHOD_NOT_ALLOWED, response.getStatus());
-        assertEquals(HttpStatus.METHOD_NOT_ALLOWED.getCode(), status.getCode());
+        assertNotNull(response.body());
+        assertEquals(HttpStatus.METHOD_NOT_ALLOWED.getCode(), response.body().getCode());
     }
 
     @Test
     void shouldHandleAuthenticationException() {
         HttpResponse<Status> response = exceptionHandlerController.error(
                 HttpRequest.create(HttpMethod.POST, "local"), new AuthenticationException());
-        Status status = response.body();
-
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatus());
-        assertEquals(HttpStatus.UNAUTHORIZED.getCode(), status.getCode());
+        assertNotNull(response.body());
+        assertEquals(HttpStatus.UNAUTHORIZED.getCode(), response.body().getCode());
     }
 
     @Test
@@ -116,23 +112,34 @@ class ExceptionHandlerControllerTest {
         HttpResponse<Status> response = exceptionHandlerController.error(
                 HttpRequest.create(HttpMethod.POST, "local"),
                 new HttpStatusException(HttpStatus.BAD_GATEWAY, "Connect cluster unreachable"));
-        Status status = response.body();
-
         assertEquals(HttpStatus.BAD_GATEWAY, response.getStatus());
-        assertEquals(HttpStatus.BAD_GATEWAY.getCode(), status.getCode());
-        assertEquals("Bad Gateway", status.getMessage());
+        assertNotNull(response.body());
+        assertEquals(HttpStatus.BAD_GATEWAY.getCode(), response.body().getCode());
+        assertEquals("Bad Gateway", response.body().getMessage());
         assertEquals(
-                "Connect cluster unreachable", status.getDetails().getCauses().getFirst());
+                "Connect cluster unreachable",
+                response.body().getDetails().getCauses().getFirst());
     }
 
     @Test
     void shouldHandleAnyException() {
         HttpResponse<Status> response = exceptionHandlerController.error(
                 HttpRequest.create(HttpMethod.POST, "local"), new Exception("Unexpected error"));
-        Status status = response.body();
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR.getCode(), status.getCode());
-        assertEquals("Unexpected error", status.getMessage());
+        assertNotNull(response.body());
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR.getCode(), response.body().getCode());
+        assertEquals("Unexpected error", response.body().getMessage());
+        assertNull(response.body().getDetails());
+    }
+
+    @Test
+    void shouldHandleAnyExceptionWithoutMessage() {
+        HttpResponse<Status> response =
+                exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"), new Exception());
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
+        assertNotNull(response.body());
+        assertEquals("Internal server error", response.body().getMessage());
+        assertNull(response.body().getDetails());
     }
 }

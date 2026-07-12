@@ -252,13 +252,22 @@ public class ExceptionHandlerController {
 
         Status status = Status.builder()
                 .status(FAILED)
-                .message(exception.getMessage() != null ? exception.getMessage() : "Internal server error")
+                .message(
+                        exception.getMessage() != null
+                                ? exception.getMessage()
+                                : HttpStatus.INTERNAL_SERVER_ERROR.getReason())
                 .httpStatus(HttpStatus.INTERNAL_SERVER_ERROR)
                 .build();
 
         return HttpResponse.serverError().body(status);
     }
 
+    /**
+     * Format a constraint violation into a readable message.
+     *
+     * @param violation the constraint violation
+     * @return the formatted message
+     */
     private String formatViolation(ConstraintViolation<?> violation) {
         Path propertyPath = violation.getPropertyPath();
         StringBuilder message = new StringBuilder();
