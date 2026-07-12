@@ -29,7 +29,7 @@ public enum Kind {
     CONNECT_CLUSTER("ConnectCluster"),
     CONNECTOR("Connector"),
     CONNECTOR_OFFSET_RESPONSE("ConnectorOffsetResponse"),
-    CONNECTOR_OFFSETS_RESET_RESPONSE("ConnectorOffsetsResetResponse"),
+    CONNECTOR_RESET_OFFSETS_RESPONSE("ConnectorResetOffsetsResponse"),
     CONSUMER_GROUP("ConsumerGroup"),
     CONSUMER_GROUP_RESET_OFFSET("ConsumerGroupResetOffsets"),
     CONSUMER_GROUP_RESET_OFFSET_RESPONSE("ConsumerGroupResetOffsetsResponse"),

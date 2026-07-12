@@ -29,8 +29,8 @@ import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.connect.ChangeConnectorState;
 import com.michelin.ns4kafka.model.connect.Connector;
 import com.michelin.ns4kafka.model.connect.ConnectorOffsetResponse;
-import com.michelin.ns4kafka.model.connect.ConnectorOffsetsResetResponse;
 import com.michelin.ns4kafka.model.connect.ConnectorOperation;
+import com.michelin.ns4kafka.model.connect.ConnectorResetOffsetsResponse;
 import com.michelin.ns4kafka.service.ConnectorService;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.ResourceQuotaService;
@@ -367,7 +367,7 @@ public class ConnectorController extends NamespacedResourceController {
      * @return The connector offsets reset response
      */
     @Delete("/{connector}/offsets")
-    public Mono<ConnectorOffsetsResetResponse> resetOffsets(String namespace, String connector) {
+    public Mono<ConnectorResetOffsetsResponse> resetOffsets(String namespace, String connector) {
         Namespace ns = getNamespace(namespace);
 
         if (!connectorService.isNamespaceOwnerOfConnect(ns, connector)) {
@@ -384,7 +384,7 @@ public class ConnectorController extends NamespacedResourceController {
 
         return connectorService
                 .resetOffsets(ns, connectorToReset)
-                .map(_ -> ConnectorOffsetsResetResponse.builder()
+                .map(_ -> ConnectorResetOffsetsResponse.builder()
                         .metadata(connectorToReset.getMetadata())
                         .status(ChangeConnectorState.ChangeConnectorStateStatus.builder()
                                 .code(ConnectorOperation.RESET)

@@ -45,8 +45,8 @@ import com.michelin.ns4kafka.model.Status;
 import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.model.connect.ChangeConnectorState;
 import com.michelin.ns4kafka.model.connect.Connector;
-import com.michelin.ns4kafka.model.connect.ConnectorOffsetsResetResponse;
 import com.michelin.ns4kafka.model.connect.ConnectorOperation;
+import com.michelin.ns4kafka.model.connect.ConnectorResetOffsetsResponse;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorInfo;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorSpecs;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorStateInfo;
@@ -893,14 +893,14 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
 
         waitForConnectorToBeInState("ns1-connector-reset-offsets", "STOPPED");
 
-        HttpResponse<ConnectorOffsetsResetResponse> resetResponse = ns4KafkaClient
+        HttpResponse<ConnectorResetOffsetsResponse> resetResponse = ns4KafkaClient
                 .toBlocking()
                 .exchange(
                         HttpRequest.create(
                                         HttpMethod.DELETE,
                                         "/api/namespaces/ns1/connectors/ns1-connector-reset-offsets/offsets")
                                 .bearerAuth(token),
-                        ConnectorOffsetsResetResponse.class);
+                        ConnectorResetOffsetsResponse.class);
 
         assertEquals(HttpStatus.OK, resetResponse.status());
         assertTrue(resetResponse.getBody().isPresent());
