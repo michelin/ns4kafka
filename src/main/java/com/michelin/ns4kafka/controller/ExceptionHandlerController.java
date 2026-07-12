@@ -48,7 +48,8 @@ import lombok.extern.slf4j.Slf4j;
 @Controller("/errors")
 public class ExceptionHandlerController {
     /**
-     * Handle resource validation exception.
+     * Handle resource validation exception. Happens when a resource submitted by the user does not comply with the
+     * namespace rules.
      *
      * @param request the request
      * @param exception the exception
@@ -58,7 +59,7 @@ public class ExceptionHandlerController {
     public HttpResponse<Status> error(HttpRequest<?> request, ResourceValidationException exception) {
         Status status = Status.builder()
                 .status(FAILED)
-                .message("Resource validation failed")
+                .message(exception.getMessage())
                 .httpStatus(HttpStatus.UNPROCESSABLE_ENTITY)
                 .details(StatusDetails.builder()
                         .kind(exception.getKind())
@@ -254,14 +255,17 @@ public class ExceptionHandlerController {
                 .status(FAILED)
                 .message(exception.getMessage() != null ? exception.getMessage() : "Internal server error")
                 .httpStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-                .details(StatusDetails.builder()
-                        .causes(List.of(exception.getMessage() != null ? exception.getMessage() : exception.toString()))
-                        .build())
                 .build();
 
         return HttpResponse.serverError().body(status);
     }
 
+    /**
+     * Format a constraint violation into a readable message.
+     *
+     * @param violation the constraint violation
+     * @return the formatted message
+     */
     private String formatViolation(ConstraintViolation<?> violation) {
         Path propertyPath = violation.getPropertyPath();
         StringBuilder message = new StringBuilder();
