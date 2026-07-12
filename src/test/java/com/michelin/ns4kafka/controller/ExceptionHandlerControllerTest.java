@@ -140,8 +140,7 @@ class ExceptionHandlerControllerTest {
                 exceptionHandlerController.error(HttpRequest.create(HttpMethod.POST, "local"), new Exception());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
         assertNotNull(response.body());
-        assertEquals(
-                HttpStatus.INTERNAL_SERVER_ERROR.getReason(), response.body().getMessage());
+        assertEquals("Internal server error", response.body().getMessage());
         assertNull(response.body().getDetails());
     }
 }
