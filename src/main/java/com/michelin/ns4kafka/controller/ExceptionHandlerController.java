@@ -254,9 +254,6 @@ public class ExceptionHandlerController {
                 .status(FAILED)
                 .message(exception.getMessage() != null ? exception.getMessage() : "Internal server error")
                 .httpStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-                .details(StatusDetails.builder()
-                        .causes(List.of(exception.getMessage() != null ? exception.getMessage() : exception.toString()))
-                        .build())
                 .build();
 
         return HttpResponse.serverError().body(status);
