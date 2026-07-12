@@ -42,6 +42,7 @@ import com.michelin.ns4kafka.service.client.connect.entities.ConfigKeyInfo;
 import com.michelin.ns4kafka.service.client.connect.entities.ConfigValueInfo;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorInfo;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsets;
+import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsetsResponse;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorPluginInfo;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorStateInfo;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorStatus;
@@ -1271,10 +1272,10 @@ class ConnectorServiceTest {
                                 new ConnectorStateInfo.TaskState(2, "RUNNING", "worker", "message")),
                         SOURCE)));
 
-        when(kafkaConnectClient.restart(any(), any(), any(), anyInt())).thenReturn(Mono.just(HttpResponse.ok()));
+        when(kafkaConnectClient.restart(any(), any(), any(), anyInt())).thenReturn(Mono.just(HttpResponse.noContent()));
 
         StepVerifier.create(connectorService.restart(namespace, connector))
-                .consumeNextWith(response -> assertEquals(HttpStatus.OK, response.getStatus()))
+                .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
                 .verifyComplete();
 
         verify(kafkaConnectClient)
@@ -1361,11 +1362,47 @@ class ConnectorServiceTest {
                 .thenReturn(Mono.just(HttpResponse.noContent()));
 
         StepVerifier.create(connectorService.stop(namespace, connector))
-                .consumeNextWith(response -> assertEquals(HttpStatus.ACCEPTED, response.getStatus()))
+                .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
                 .verifyComplete();
 
         verify(kafkaConnectClient)
                 .stop(
+                        namespace.getMetadata().getCluster(),
+                        connector.getSpec().getConnectCluster(),
+                        connector.getMetadata().getName());
+    }
+
+    @Test
+    void shouldFullyResetConnectorOffsets() {
+        Namespace namespace = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Connector connector = Connector.builder()
+                .metadata(Resource.Metadata.builder().name("ns-connect1").build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("local-name")
+                        .build())
+                .build();
+
+        when(kafkaConnectClient.resetOffsets(
+                        namespace.getMetadata().getCluster(),
+                        connector.getSpec().getConnectCluster(),
+                        connector.getMetadata().getName()))
+                .thenReturn(Mono.just(HttpResponse.ok(new ConnectorOffsetsResponse("reset ok"))));
+
+        StepVerifier.create(connectorService.resetOffsets(namespace, connector))
+                .consumeNextWith(response -> {
+                    assertEquals(HttpStatus.OK, response.getStatus());
+                    assertEquals("reset ok", response.body().message());
+                })
+                .verifyComplete();
+
+        verify(kafkaConnectClient)
+                .resetOffsets(
                         namespace.getMetadata().getCluster(),
                         connector.getSpec().getConnectCluster(),
                         connector.getMetadata().getName());

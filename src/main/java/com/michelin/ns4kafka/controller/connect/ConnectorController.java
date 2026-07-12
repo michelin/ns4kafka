@@ -29,6 +29,8 @@ import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.connect.ChangeConnectorState;
 import com.michelin.ns4kafka.model.connect.Connector;
 import com.michelin.ns4kafka.model.connect.ConnectorOffsetResponse;
+import com.michelin.ns4kafka.model.connect.ConnectorOffsetsResetResponse;
+import com.michelin.ns4kafka.model.connect.ConnectorOperation;
 import com.michelin.ns4kafka.service.ConnectorService;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.ResourceQuotaService;
@@ -36,8 +38,6 @@ import com.michelin.ns4kafka.util.enumation.ApplyStatus;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
-import io.micronaut.http.HttpStatus;
-import io.micronaut.http.MutableHttpResponse;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Delete;
@@ -110,27 +110,6 @@ public class ConnectorController extends NamespacedResourceController {
     @Deprecated(since = "1.12.0")
     public Optional<Connector> get(String namespace, String connector) {
         return connectorService.findByName(getNamespace(namespace), connector);
-    }
-
-    /**
-     * Get offsets for a connector.
-     *
-     * @param namespace The namespace
-     * @param connector The connector name
-     * @return The connector offsets
-     */
-    @Get("/{connector}/offsets")
-    public Mono<List<ConnectorOffsetResponse>> listOffsets(String namespace, String connector) {
-        Namespace ns = getNamespace(namespace);
-
-        if (!connectorService.isNamespaceOwnerOfConnect(ns, connector)) {
-            return Mono.error(new ResourceValidationException(CONNECTOR, connector, invalidOwner(connector)));
-        }
-
-        return connectorService
-                .findByName(ns, connector)
-                .map(value -> connectorService.listOffsets(ns, value))
-                .orElseGet(Mono::empty);
     }
 
     /**
@@ -316,7 +295,7 @@ public class ConnectorController extends NamespacedResourceController {
      * @return The change connector state response
      */
     @Post("/{connector}/change-state")
-    public Mono<MutableHttpResponse<ChangeConnectorState>> changeState(
+    public Mono<ChangeConnectorState> changeState(
             String namespace, String connector, @Body @Valid ChangeConnectorState state) {
         Namespace ns = getNamespace(namespace);
 
@@ -327,7 +306,7 @@ public class ConnectorController extends NamespacedResourceController {
         Optional<Connector> optionalConnector = connectorService.findByName(ns, connector);
 
         if (optionalConnector.isEmpty()) {
-            return Mono.just(HttpResponse.notFound());
+            return Mono.empty();
         }
 
         Mono<HttpResponse<Void>> response;
@@ -342,23 +321,75 @@ public class ConnectorController extends NamespacedResourceController {
             }
         }
 
-        return response.doOnSuccess(success -> {
-                    state.setStatus(ChangeConnectorState.ChangeConnectorStateStatus.builder()
-                            .success(true)
-                            .code(success.status())
-                            .build());
-                    state.setMetadata(optionalConnector.get().getMetadata());
-                })
-                .doOnError(error -> {
-                    state.setStatus(ChangeConnectorState.ChangeConnectorStateStatus.builder()
-                            .success(false)
-                            .code(HttpStatus.INTERNAL_SERVER_ERROR)
-                            .errorMessage(error.getMessage())
-                            .build());
-                    state.setMetadata(optionalConnector.get().getMetadata());
-                })
-                .map(_ -> HttpResponse.ok(state))
-                .onErrorReturn(HttpResponse.ok(state));
+        ConnectorOperation operation =
+                switch (state.getSpec().getAction()) {
+                    case RESTART -> ConnectorOperation.RESTARTED;
+                    case PAUSE -> ConnectorOperation.PAUSED;
+                    case RESUME -> ConnectorOperation.RESUMED;
+                    case STOP -> ConnectorOperation.STOPPED;
+                };
+
+        return response.map(_ -> {
+            state.setMetadata(optionalConnector.get().getMetadata());
+            state.setStatus(ChangeConnectorState.ChangeConnectorStateStatus.builder()
+                    .code(operation)
+                    .build());
+            return state;
+        });
+    }
+
+    /**
+     * Get offsets for a connector.
+     *
+     * @param namespace The namespace
+     * @param connector The connector name
+     * @return The connector offsets
+     */
+    @Get("/{connector}/offsets")
+    public Mono<List<ConnectorOffsetResponse>> listOffsets(String namespace, String connector) {
+        Namespace ns = getNamespace(namespace);
+
+        if (!connectorService.isNamespaceOwnerOfConnect(ns, connector)) {
+            return Mono.error(new ResourceValidationException(CONNECTOR, connector, invalidOwner(connector)));
+        }
+
+        return connectorService
+                .findByName(ns, connector)
+                .map(value -> connectorService.listOffsets(ns, value))
+                .orElseGet(Mono::empty);
+    }
+
+    /**
+     * Reset the offsets of a connector.
+     *
+     * @param namespace The namespace
+     * @param connector The connector to reset offsets for
+     * @return The connector offsets reset response
+     */
+    @Delete("/{connector}/offsets")
+    public Mono<ConnectorOffsetsResetResponse> resetOffsets(String namespace, String connector) {
+        Namespace ns = getNamespace(namespace);
+
+        if (!connectorService.isNamespaceOwnerOfConnect(ns, connector)) {
+            return Mono.error(new ResourceValidationException(CONNECTOR, connector, invalidOwner(connector)));
+        }
+
+        Optional<Connector> optionalConnector = connectorService.findByName(ns, connector);
+
+        if (optionalConnector.isEmpty()) {
+            return Mono.empty();
+        }
+
+        Connector connectorToReset = optionalConnector.get();
+
+        return connectorService
+                .resetOffsets(ns, connectorToReset)
+                .map(_ -> ConnectorOffsetsResetResponse.builder()
+                        .metadata(connectorToReset.getMetadata())
+                        .status(ChangeConnectorState.ChangeConnectorStateStatus.builder()
+                                .code(ConnectorOperation.RESET)
+                                .build())
+                        .build());
     }
 
     /**

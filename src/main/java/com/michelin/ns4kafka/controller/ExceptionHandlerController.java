@@ -253,8 +253,14 @@ public class ExceptionHandlerController {
 
         Status status = Status.builder()
                 .status(FAILED)
-                .message(exception.getMessage() != null ? exception.getMessage() : "Internal server error")
+                .message("Internal server error")
                 .httpStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+                .details(
+                        exception.getMessage() != null
+                                ? StatusDetails.builder()
+                                        .causes(List.of(exception.getMessage()))
+                                        .build()
+                                : null)
                 .build();
 
         return HttpResponse.serverError().body(status);

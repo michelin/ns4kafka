@@ -22,7 +22,6 @@ import static com.michelin.ns4kafka.util.enumation.Kind.CHANGE_CONNECTOR_STATE;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.michelin.ns4kafka.model.Resource;
-import io.micronaut.http.HttpStatus;
 import io.micronaut.serde.annotation.Serdeable;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -97,8 +96,6 @@ public class ChangeConnectorState extends Resource {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ChangeConnectorStateStatus {
-        private boolean success;
-        private HttpStatus code;
-        private String errorMessage;
+        private ConnectorOperation code;
     }
 }

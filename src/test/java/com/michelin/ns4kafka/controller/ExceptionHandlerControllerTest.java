@@ -130,8 +130,9 @@ class ExceptionHandlerControllerTest {
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
         assertNotNull(response.body());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR.getCode(), response.body().getCode());
-        assertEquals("Unexpected error", response.body().getMessage());
-        assertNull(response.body().getDetails());
+        assertEquals("Internal server error", response.body().getMessage());
+        assertEquals(
+                "Unexpected error", response.body().getDetails().getCauses().getFirst());
     }
 
     @Test

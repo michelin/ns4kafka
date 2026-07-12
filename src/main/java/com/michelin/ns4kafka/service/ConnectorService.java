@@ -30,6 +30,7 @@ import com.michelin.ns4kafka.model.connect.Connector;
 import com.michelin.ns4kafka.model.connect.ConnectorOffsetResponse;
 import com.michelin.ns4kafka.repository.ConnectorRepository;
 import com.michelin.ns4kafka.service.client.connect.KafkaConnectClient;
+import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsetsResponse;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorSpecs;
 import com.michelin.ns4kafka.util.FormatErrorUtils;
 import com.michelin.ns4kafka.util.RegexUtils;
@@ -331,7 +332,7 @@ public class ConnectorService {
                                 connector.getMetadata().getName(),
                                 namespace.getMetadata().getName(),
                                 connector.getSpec().getConnectCluster()))
-                        .then(Mono.just(HttpResponse.ok())));
+                        .last(HttpResponse.ok()));
     }
 
     /**
@@ -347,15 +348,11 @@ public class ConnectorService {
                         namespace.getMetadata().getCluster(),
                         connector.getSpec().getConnectCluster(),
                         connector.getMetadata().getName())
-                .map(_ -> {
-                    log.info(
-                            "Success pausing connector {} on namespace {} and Kafka Connect {}.",
-                            connector.getMetadata().getName(),
-                            namespace.getMetadata().getName(),
-                            connector.getSpec().getConnectCluster());
-
-                    return HttpResponse.accepted();
-                });
+                .doOnNext(_ -> log.info(
+                        "Success pausing connector {} on namespace {} and Kafka Connect {}.",
+                        connector.getMetadata().getName(),
+                        namespace.getMetadata().getName(),
+                        connector.getSpec().getConnectCluster()));
     }
 
     /**
@@ -371,15 +368,11 @@ public class ConnectorService {
                         namespace.getMetadata().getCluster(),
                         connector.getSpec().getConnectCluster(),
                         connector.getMetadata().getName())
-                .map(_ -> {
-                    log.info(
-                            "Success resuming connector {} on namespace {} and Kafka Connect {}.",
-                            connector.getMetadata().getName(),
-                            namespace.getMetadata().getName(),
-                            connector.getSpec().getConnectCluster());
-
-                    return HttpResponse.accepted();
-                });
+                .doOnNext(_ -> log.info(
+                        "Success resuming connector {} on namespace {} and Kafka Connect {}.",
+                        connector.getMetadata().getName(),
+                        namespace.getMetadata().getName(),
+                        connector.getSpec().getConnectCluster()));
     }
 
     /**
@@ -395,14 +388,24 @@ public class ConnectorService {
                         namespace.getMetadata().getCluster(),
                         connector.getSpec().getConnectCluster(),
                         connector.getMetadata().getName())
-                .map(_ -> {
-                    log.info(
-                            "Success stopping Connector [{}] on Namespace [{}] Connect [{}]",
-                            connector.getMetadata().getName(),
-                            namespace.getMetadata().getName(),
-                            connector.getSpec().getConnectCluster());
+                .doOnNext(_ -> log.info(
+                        "Success stopping connector {} on namespace {} and Kafka Connect {}.",
+                        connector.getMetadata().getName(),
+                        namespace.getMetadata().getName(),
+                        connector.getSpec().getConnectCluster()));
+    }
 
-                    return HttpResponse.accepted();
-                });
+    /**
+     * Reset offsets for a given connector.
+     *
+     * @param namespace The namespace
+     * @param connector The connector
+     * @return An HTTP response
+     */
+    public Mono<HttpResponse<ConnectorOffsetsResponse>> resetOffsets(Namespace namespace, Connector connector) {
+        return kafkaConnectClient.resetOffsets(
+                namespace.getMetadata().getCluster(),
+                connector.getSpec().getConnectCluster(),
+                connector.getMetadata().getName());
     }
 }
