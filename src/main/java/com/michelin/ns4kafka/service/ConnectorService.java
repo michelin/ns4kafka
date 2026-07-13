@@ -21,6 +21,7 @@ package com.michelin.ns4kafka.service;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidConnectorConnectCluster;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidConnectorEmptyConnectorClass;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidConnectorNoPlugin;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidConnectorResetOperation;
 import static com.michelin.ns4kafka.util.config.ConnectorConfig.CONNECTOR_CLASS;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
@@ -34,6 +35,7 @@ import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsetsRes
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorSpecs;
 import com.michelin.ns4kafka.util.FormatErrorUtils;
 import com.michelin.ns4kafka.util.RegexUtils;
+import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import com.michelin.ns4kafka.validation.ValidationResult;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpResponse;
@@ -403,9 +405,21 @@ public class ConnectorService {
      * @return An HTTP response
      */
     public Mono<HttpResponse<ConnectorOffsetsResponse>> resetOffsets(Namespace namespace, Connector connector) {
-        return kafkaConnectClient.resetOffsets(
-                namespace.getMetadata().getCluster(),
-                connector.getSpec().getConnectCluster(),
-                connector.getMetadata().getName());
+        String kafkaCluster = namespace.getMetadata().getCluster();
+        String connectCluster = connector.getSpec().getConnectCluster();
+        String connectorName = connector.getMetadata().getName();
+
+        return kafkaConnectClient
+                .status(kafkaCluster, connectCluster, connectorName)
+                .flatMap(status -> {
+                    String currentState = status.connector().getState();
+
+                    if (!"STOPPED".equalsIgnoreCase(currentState)) {
+                        return Mono.error(new ResourceValidationException(
+                                connector, invalidConnectorResetOperation(connectorName, "STOPPED", currentState)));
+                    }
+
+                    return kafkaConnectClient.resetOffsets(kafkaCluster, connectCluster, connectorName);
+                });
     }
 }

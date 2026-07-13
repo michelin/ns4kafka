@@ -328,6 +328,23 @@ public class FormatErrorUtils {
     }
 
     /**
+     * Invalid reset offsets operation on connector.
+     *
+     * @param connector the connector
+     * @param targetState the target state
+     * @param currentState the current state
+     * @return the error message
+     */
+    public static String invalidConnectorResetOperation(String connector, String targetState, String currentState) {
+        return INVALID_OPERATION.formatted(
+                "reset offset",
+                String.format(
+                        "connector \"%s\" must be in the %s state before offsets can be reset. "
+                                + "Stop the connector first using ns4kafka API or Kafkactl, then retry the reset",
+                        connector, targetState));
+    }
+
+    /**
      * Invalid delete operation on consumer group.
      *
      * @param consumerGroup the consumer group
