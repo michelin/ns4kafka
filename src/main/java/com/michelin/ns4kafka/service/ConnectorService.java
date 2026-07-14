@@ -416,7 +416,7 @@ public class ConnectorService {
 
                     if (!"STOPPED".equalsIgnoreCase(currentState)) {
                         return Mono.error(new ResourceValidationException(
-                                connector, invalidConnectorResetOperation(connectorName, "STOPPED", currentState)));
+                                connector, invalidConnectorResetOperation(connectorName, "STOPPED")));
                     }
 
                     return kafkaConnectClient.resetOffsets(kafkaCluster, connectCluster, connectorName);

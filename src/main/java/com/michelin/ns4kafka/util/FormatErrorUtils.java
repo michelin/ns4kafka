@@ -39,6 +39,7 @@ import lombok.NoArgsConstructor;
 public class FormatErrorUtils {
     private static final String OPERATION_APPLY = "apply";
     private static final String OPERATION_DELETE = "delete";
+    private static final String OPERATION_RESET_OFFSET = "reset offset";
     private static final String FIELD_NAME = "name";
     private static final String FIELD_ALIAS = "alias";
     private static final String INVALID_FIELD = "Invalid value \"%s\" for field \"%s\": %s.";
@@ -320,7 +321,7 @@ public class FormatErrorUtils {
      */
     public static String invalidConsumerGroupOperation(String consumerGroup, String targetState, String currentState) {
         return INVALID_OPERATION.formatted(
-                "reset offset",
+                OPERATION_RESET_OFFSET,
                 String.format(
                         "offsets can only be reset if the consumer group \"%s\" "
                                 + "is %s but the current state is %s. Stop the consumption and wait \"session.timeout.ms\" before retrying",
@@ -332,12 +333,11 @@ public class FormatErrorUtils {
      *
      * @param connector the connector
      * @param targetState the target state
-     * @param currentState the current state
      * @return the error message
      */
-    public static String invalidConnectorResetOperation(String connector, String targetState, String currentState) {
+    public static String invalidConnectorResetOperation(String connector, String targetState) {
         return INVALID_OPERATION.formatted(
-                "reset offset",
+                OPERATION_RESET_OFFSET,
                 String.format(
                         "connector \"%s\" must be in the %s state before offsets can be reset. "
                                 + "Stop the connector first using ns4kafka API or Kafkactl, then retry the reset",
@@ -567,7 +567,7 @@ public class FormatErrorUtils {
      * @return the error message
      */
     public static String invalidNamespaceCannotReadTopic(String topic) {
-        return INVALID_OPERATION.formatted("reset offset", "namespace cannot read topic %s".formatted(topic));
+        return INVALID_OPERATION.formatted(OPERATION_RESET_OFFSET, "namespace cannot read topic %s".formatted(topic));
     }
 
     /**
