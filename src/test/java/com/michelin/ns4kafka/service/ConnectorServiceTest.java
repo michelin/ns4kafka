@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -47,6 +48,7 @@ import com.michelin.ns4kafka.service.client.connect.entities.ConnectorPluginInfo
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorStateInfo;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorStatus;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorType;
+import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import com.michelin.ns4kafka.validation.ConnectValidator;
 import com.michelin.ns4kafka.validation.ResourceValidator;
 import io.micronaut.http.HttpResponse;
@@ -1388,6 +1390,16 @@ class ConnectorServiceTest {
                         .build())
                 .build();
 
+        when(kafkaConnectClient.status(
+                        namespace.getMetadata().getCluster(),
+                        connector.getSpec().getConnectCluster(),
+                        connector.getMetadata().getName()))
+                .thenReturn(Mono.just(new ConnectorStateInfo(
+                        connector.getMetadata().getName(),
+                        new ConnectorStateInfo.ConnectorState("STOPPED", "worker-1", null),
+                        List.of(),
+                        SOURCE)));
+
         when(kafkaConnectClient.resetOffsets(
                         namespace.getMetadata().getCluster(),
                         connector.getSpec().getConnectCluster(),
@@ -1402,6 +1414,62 @@ class ConnectorServiceTest {
                 .verifyComplete();
 
         verify(kafkaConnectClient)
+                .status(
+                        namespace.getMetadata().getCluster(),
+                        connector.getSpec().getConnectCluster(),
+                        connector.getMetadata().getName());
+
+        verify(kafkaConnectClient)
+                .resetOffsets(
+                        namespace.getMetadata().getCluster(),
+                        connector.getSpec().getConnectCluster(),
+                        connector.getMetadata().getName());
+    }
+
+    @Test
+    void shouldNotResetConnectorOffsetsWhenConnectorIsNotStopped() {
+        Namespace namespace = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Connector connector = Connector.builder()
+                .metadata(Resource.Metadata.builder().name("ns-connect1").build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("local-name")
+                        .build())
+                .build();
+
+        when(kafkaConnectClient.status(
+                        namespace.getMetadata().getCluster(),
+                        connector.getSpec().getConnectCluster(),
+                        connector.getMetadata().getName()))
+                .thenReturn(Mono.just(new ConnectorStateInfo(
+                        connector.getMetadata().getName(),
+                        new ConnectorStateInfo.ConnectorState("RUNNING", "worker-1", null),
+                        List.of(),
+                        SOURCE)));
+
+        StepVerifier.create(connectorService.resetOffsets(namespace, connector))
+                .consumeErrorWith(error -> {
+                    assertEquals(ResourceValidationException.class, error.getClass());
+                    assertEquals(
+                            "Invalid \"reset offset\" operation: connector \"ns-connect1\" must be in the STOPPED state before offsets can be reset. Stop the connector first using ns4kafka API or Kafkactl, then retry the reset.",
+                            ((ResourceValidationException) error)
+                                    .getValidationErrors()
+                                    .getFirst());
+                })
+                .verify();
+
+        verify(kafkaConnectClient)
+                .status(
+                        namespace.getMetadata().getCluster(),
+                        connector.getSpec().getConnectCluster(),
+                        connector.getMetadata().getName());
+
+        verify(kafkaConnectClient, never())
                 .resetOffsets(
                         namespace.getMetadata().getCluster(),
                         connector.getSpec().getConnectCluster(),
