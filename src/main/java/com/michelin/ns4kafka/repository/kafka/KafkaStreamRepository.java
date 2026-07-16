@@ -74,6 +74,16 @@ public class KafkaStreamRepository extends KafkaStore<KafkaStream> implements St
     }
 
     /**
+     * Find all streams.
+     *
+     * @return The list of streams
+     */
+    @Override
+    public List<KafkaStream> findAll() {
+        return getKafkaStore().values().stream().toList();
+    }
+
+    /**
      * Find all streams by cluster.
      *
      * @param cluster The cluster name
