@@ -38,7 +38,7 @@ import com.michelin.ns4kafka.model.RoleBinding.Subject;
 import com.michelin.ns4kafka.model.RoleBinding.SubjectType;
 import com.michelin.ns4kafka.model.RoleBinding.Verb;
 import com.michelin.ns4kafka.model.consumer.group.ConsumerGroup;
-import com.michelin.ns4kafka.model.consumer.group.ConsumerGroup.ConsumerGroupOffset;
+import com.michelin.ns4kafka.model.consumer.group.ConsumerGroup.ConsumerGroupStatus;
 import com.michelin.ns4kafka.model.consumer.group.ConsumerGroupResetOffsets;
 import com.michelin.ns4kafka.model.consumer.group.ConsumerGroupResetOffsets.ConsumerGroupResetOffsetsSpec;
 import com.michelin.ns4kafka.model.consumer.group.ConsumerGroupResetOffsets.ResetOffsetsMethod;
@@ -229,20 +229,20 @@ class ConsumerGroupIntegrationTest extends KafkaIntegrationTest {
                                 .bearerAuth(token),
                         Argument.listOf(ConsumerGroup.class));
 
-        assertEquals(1, consumerGroups.size());
+        // The consumer group is flattened into one entry per topic-partition
+        assertEquals(6, consumerGroups.size());
         assertTrue(consumerGroups.stream()
-                .anyMatch(consumerGroup ->
+                .allMatch(consumerGroup ->
                         "ns1-consumerGroup".equals(consumerGroup.getMetadata().getName())));
-        assertEquals(GroupState.EMPTY, consumerGroups.getFirst().getStatus().getState());
         assertEquals(
                 List.of(
-                        new ConsumerGroupOffset("ns1-topic", 0, 1),
-                        new ConsumerGroupOffset("ns1-topic", 1, 1),
-                        new ConsumerGroupOffset("ns1-topic", 2, 1),
-                        new ConsumerGroupOffset("other-topic", 0, 1),
-                        new ConsumerGroupOffset("other-topic", 1, 1),
-                        new ConsumerGroupOffset("other-topic", 2, 1)),
-                consumerGroups.getFirst().getStatus().getOffsets());
+                        new ConsumerGroupStatus(GroupState.EMPTY, "ns1-topic", 0, 1L, 1L, 0L),
+                        new ConsumerGroupStatus(GroupState.EMPTY, "ns1-topic", 1, 1L, 1L, 0L),
+                        new ConsumerGroupStatus(GroupState.EMPTY, "ns1-topic", 2, 1L, 1L, 0L),
+                        new ConsumerGroupStatus(GroupState.EMPTY, "other-topic", 0, 1L, 1L, 0L),
+                        new ConsumerGroupStatus(GroupState.EMPTY, "other-topic", 1, 1L, 1L, 0L),
+                        new ConsumerGroupStatus(GroupState.EMPTY, "other-topic", 2, 1L, 1L, 0L)),
+                consumerGroups.stream().map(ConsumerGroup::getStatus).toList());
 
         assertTrue(consumerGroups.stream()
                 .noneMatch(consumerGroup ->
@@ -311,18 +311,16 @@ class ConsumerGroupIntegrationTest extends KafkaIntegrationTest {
         assertTrue(externalConsumerGroups.stream()
                 .anyMatch(consumerGroup -> "externalConsumerGroup"
                         .equals(consumerGroup.getMetadata().getName())));
-        ConsumerGroup externalConsumerGroup = externalConsumerGroups.stream()
+        List<ConsumerGroup> externalConsumerGroup = externalConsumerGroups.stream()
                 .filter(consumerGroup -> "externalConsumerGroup"
                         .equals(consumerGroup.getMetadata().getName()))
-                .findFirst()
-                .orElseThrow();
-        assertEquals(GroupState.EMPTY, externalConsumerGroup.getStatus().getState());
+                .toList();
         assertEquals(
                 List.of(
-                        new ConsumerGroupOffset("ns1-externalTopic", 0, 1),
-                        new ConsumerGroupOffset("ns1-externalTopic", 1, 1),
-                        new ConsumerGroupOffset("ns1-externalTopic", 2, 1)),
-                externalConsumerGroup.getStatus().getOffsets());
+                        new ConsumerGroupStatus(GroupState.EMPTY, "ns1-externalTopic", 0, 1L, 1L, 0L),
+                        new ConsumerGroupStatus(GroupState.EMPTY, "ns1-externalTopic", 1, 1L, 1L, 0L),
+                        new ConsumerGroupStatus(GroupState.EMPTY, "ns1-externalTopic", 2, 1L, 1L, 0L)),
+                externalConsumerGroup.stream().map(ConsumerGroup::getStatus).toList());
 
         assertTrue(externalConsumerGroups.stream()
                 .noneMatch(consumerGroup ->
@@ -367,16 +365,16 @@ class ConsumerGroupIntegrationTest extends KafkaIntegrationTest {
                                 .bearerAuth(token),
                         Argument.listOf(ConsumerGroup.class));
 
-        assertEquals(1, consumerGroups.size());
-        assertEquals(
-                "ns1-resetConsumerGroup",
-                consumerGroups.getFirst().getMetadata().getName());
+        assertEquals(3, consumerGroups.size());
+        assertTrue(consumerGroups.stream()
+                .allMatch(consumerGroup -> "ns1-resetConsumerGroup"
+                        .equals(consumerGroup.getMetadata().getName())));
         assertEquals(
                 List.of(
-                        new ConsumerGroupOffset("ns1-resetTopic", 0, 0),
-                        new ConsumerGroupOffset("ns1-resetTopic", 1, 0),
-                        new ConsumerGroupOffset("ns1-resetTopic", 2, 0)),
-                consumerGroups.getFirst().getStatus().getOffsets());
+                        new ConsumerGroupStatus(GroupState.EMPTY, "ns1-resetTopic", 0, 0L, 0L, 0L),
+                        new ConsumerGroupStatus(GroupState.EMPTY, "ns1-resetTopic", 1, 0L, 0L, 0L),
+                        new ConsumerGroupStatus(GroupState.EMPTY, "ns1-resetTopic", 2, 0L, 0L, 0L)),
+                consumerGroups.stream().map(ConsumerGroup::getStatus).toList());
 
         HttpResponse<Void> deleteResponse = ns4KafkaClient
                 .toBlocking()
