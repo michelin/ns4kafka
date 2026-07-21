@@ -19,6 +19,7 @@
 package com.michelin.ns4kafka.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.model.Resource;
@@ -39,6 +40,21 @@ class RoleBindingServiceTest {
 
     @InjectMocks
     RoleBindingService roleBindingService;
+
+    @Test
+    void shouldFindAll() {
+        RoleBinding roleBinding1 = RoleBinding.builder()
+                .metadata(Resource.Metadata.builder().name("role-binding1").build())
+                .build();
+        RoleBinding roleBinding2 = RoleBinding.builder()
+                .metadata(Resource.Metadata.builder().name("role-binding2").build())
+                .build();
+
+        when(roleBindingRepository.findAll()).thenReturn(List.of(roleBinding1, roleBinding2));
+
+        assertEquals(List.of(roleBinding1, roleBinding2), roleBindingService.findAll());
+        verify(roleBindingRepository).findAll();
+    }
 
     @Test
     void shouldFindByName() {

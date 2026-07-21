@@ -25,6 +25,13 @@ import java.util.List;
 /** Role binding repository. */
 public interface RoleBindingRepository {
     /**
+     * List all role bindings.
+     *
+     * @return The list of role bindings
+     */
+    List<RoleBinding> findAll();
+
+    /**
      * List role bindings by groups.
      *
      * @param groups The groups used to research

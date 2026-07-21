@@ -50,6 +50,15 @@ public class StreamService {
     private final List<ManagedClusterProperties> managedClusterProperties;
 
     /**
+     * Find all Kafka Streams.
+     *
+     * @return A list of Kafka Streams
+     */
+    public List<KafkaStream> findAll() {
+        return streamRepository.findAll();
+    }
+
+    /**
      * Constructor.
      *
      * @param applicationContext The application context
