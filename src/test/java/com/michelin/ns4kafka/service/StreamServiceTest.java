@@ -69,6 +69,21 @@ class StreamServiceTest {
     List<ManagedClusterProperties> managedClusterProperties;
 
     @Test
+    void shouldFindAll() {
+        KafkaStream stream1 = KafkaStream.builder()
+                .metadata(Resource.Metadata.builder().name("stream1").build())
+                .build();
+        KafkaStream stream2 = KafkaStream.builder()
+                .metadata(Resource.Metadata.builder().name("stream2").build())
+                .build();
+
+        when(streamRepository.findAll()).thenReturn(List.of(stream1, stream2));
+
+        assertEquals(List.of(stream1, stream2), streamService.findAll());
+        verify(streamRepository).findAll();
+    }
+
+    @Test
     void shouldFindAllForClusterWhenEmpty() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
