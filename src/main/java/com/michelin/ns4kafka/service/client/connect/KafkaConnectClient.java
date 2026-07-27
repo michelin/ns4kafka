@@ -61,6 +61,7 @@ import reactor.core.publisher.Mono;
 @Singleton
 public class KafkaConnectClient {
     private static final String CONNECTORS = "/connectors/";
+    private static final String OFFSETS = "/offsets";
 
     private final ConnectClusterRepository connectClusterRepository;
     private final HttpClient httpClient;
@@ -264,7 +265,7 @@ public class KafkaConnectClient {
         String encodedConnector = URLEncoder.encode(connector, StandardCharsets.UTF_8);
 
         HttpRequest<?> request = HttpRequest.GET(
-                        URI.create(StringUtils.prependUri(config.getUrl(), CONNECTORS + encodedConnector + "/offsets")))
+                        URI.create(StringUtils.prependUri(config.getUrl(), CONNECTORS + encodedConnector + OFFSETS)))
                 .basicAuth(config.getUsername(), config.getPassword());
 
         return Mono.from(httpClient.retrieve(request, ConnectorOffsets.class))
@@ -394,7 +395,7 @@ public class KafkaConnectClient {
         String encodedConnector = URLEncoder.encode(connector, StandardCharsets.UTF_8);
 
         HttpRequest<?> request = HttpRequest.DELETE(
-                        URI.create(StringUtils.prependUri(config.getUrl(), CONNECTORS + encodedConnector + "/offsets")))
+                        URI.create(StringUtils.prependUri(config.getUrl(), CONNECTORS + encodedConnector + OFFSETS)))
                 .basicAuth(config.getUsername(), config.getPassword());
 
         return Mono.from(httpClient.exchange(request, ConnectorOffsetsResponse.class));
@@ -421,7 +422,7 @@ public class KafkaConnectClient {
 
         HttpRequest<?> request = HttpRequest.create(
                         HttpMethod.PATCH,
-                        StringUtils.prependUri(config.getUrl(), CONNECTORS + encodedConnector + "/offsets"))
+                        StringUtils.prependUri(config.getUrl(), CONNECTORS + encodedConnector + OFFSETS))
                 .body(offsetsRequest)
                 .basicAuth(config.getUsername(), config.getPassword());
 
