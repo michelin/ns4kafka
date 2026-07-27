@@ -1270,8 +1270,8 @@ class ConnectorControllerTest {
                 .verifyComplete();
     }
 
-        @Test
-        void shouldNotResetConnectorOffsetsWhenError() {
+    @Test
+    void shouldNotResetConnectorOffsetsWhenError() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test")
@@ -1311,8 +1311,8 @@ class ConnectorControllerTest {
                 .metadata(Resource.Metadata.builder().name("connect1").build())
                 .build();
 
-        ConnectorOffsets offsetsRequest = new ConnectorOffsets(List.of(new ConnectorOffsets.ConnectorOffset(
-                Map.of("kafka_topic", "topic1", "kafka_partition", 0), null)));
+        ConnectorOffsets offsetsRequest = new ConnectorOffsets(List.of(
+                new ConnectorOffsets.ConnectorOffset(Map.of("kafka_topic", "topic1", "kafka_partition", 0), null)));
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1")).thenReturn(true);
@@ -1322,7 +1322,8 @@ class ConnectorControllerTest {
 
         StepVerifier.create(connectorController.alterOffsets("test", "connect1", offsetsRequest))
                 .consumeNextWith(alterResponse -> {
-                    assertEquals(ConnectorOperation.RESET, alterResponse.getStatus().getCode());
+                    assertEquals(
+                            ConnectorOperation.RESET, alterResponse.getStatus().getCode());
                     assertEquals("connect1", alterResponse.getMetadata().getName());
                 })
                 .verifyComplete();

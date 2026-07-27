@@ -1424,9 +1424,8 @@ class ConnectorServiceTest {
                         .build())
                 .build();
 
-        ConnectorOffsets offsetsRequest =
-                new ConnectorOffsets(List.of(new ConnectorOffsets.ConnectorOffset(
-                        Map.of("kafka_topic", "topic1", "kafka_partition", 0), null)));
+        ConnectorOffsets offsetsRequest = new ConnectorOffsets(List.of(
+                new ConnectorOffsets.ConnectorOffset(Map.of("kafka_topic", "topic1", "kafka_partition", 0), null)));
 
         when(kafkaConnectClient.alterOffsets(
                         namespace.getMetadata().getCluster(),
