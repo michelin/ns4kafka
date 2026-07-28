@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.michelin.ns4kafka.controller;
+package com.michelin.ns4kafka.controller.stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
+import com.michelin.ns4kafka.model.KafkaStream;
 import com.michelin.ns4kafka.model.Resource;
-import com.michelin.ns4kafka.model.RoleBinding;
-import com.michelin.ns4kafka.service.RoleBindingService;
+import com.michelin.ns4kafka.service.StreamService;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,24 +32,24 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class RoleBindingNonNamespacedControllerTest {
+class StreamNonNamespacedControllerTest {
     @Mock
-    RoleBindingService roleBindingService;
+    StreamService streamService;
 
     @InjectMocks
-    RoleBindingNonNamespacedController roleBindingNonNamespacedController;
+    StreamNonNamespacedController streamNonNamespacedController;
 
     @Test
-    void shouldListRoleBindings() {
-        RoleBinding roleBinding1 = RoleBinding.builder()
-                .metadata(Resource.Metadata.builder().name("role-binding1").build())
+    void shouldListStreams() {
+        KafkaStream stream1 = KafkaStream.builder()
+                .metadata(Resource.Metadata.builder().name("stream1").build())
                 .build();
-        RoleBinding roleBinding2 = RoleBinding.builder()
-                .metadata(Resource.Metadata.builder().name("role-binding2").build())
+        KafkaStream stream2 = KafkaStream.builder()
+                .metadata(Resource.Metadata.builder().name("stream2").build())
                 .build();
 
-        when(roleBindingService.findAll()).thenReturn(List.of(roleBinding1, roleBinding2));
+        when(streamService.findAll()).thenReturn(List.of(stream1, stream2));
 
-        assertEquals(List.of(roleBinding1, roleBinding2), roleBindingNonNamespacedController.listAll());
+        assertEquals(List.of(stream1, stream2), streamNonNamespacedController.listAll());
     }
 }

@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.michelin.ns4kafka.controller;
+package com.michelin.ns4kafka.controller.rolebindings;
 
 import com.michelin.ns4kafka.controller.generic.ResourceController;
 import com.michelin.ns4kafka.model.AuditLog;
-import com.michelin.ns4kafka.model.KafkaStream;
+import com.michelin.ns4kafka.model.RoleBinding;
 import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
-import com.michelin.ns4kafka.service.StreamService;
+import com.michelin.ns4kafka.service.RoleBindingService;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
@@ -31,35 +31,35 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
 import java.util.List;
 
-/** Non-namespaced controller to manage Kafka Streams. */
-@Tag(name = "Kafka Streams", description = "Manage the Kafka Streams.")
-@Controller(value = "/api/streams")
+/** Non-namespaced controller to manage role bindings. */
+@Tag(name = "Role Bindings", description = "Manage the role bindings.")
+@Controller(value = "/api/role-bindings")
 @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
-public class StreamNonNamespacedController extends ResourceController {
-    private final StreamService streamService;
+public class RoleBindingNonNamespacedController extends ResourceController {
+    private final RoleBindingService roleBindingService;
 
     /**
      * Constructor.
      *
-     * @param streamService The stream service
+     * @param roleBindingService The role binding service
      * @param securityService The security service
      * @param applicationEventPublisher The application event publisher
      */
-    protected StreamNonNamespacedController(
-            StreamService streamService,
+    public RoleBindingNonNamespacedController(
+            RoleBindingService roleBindingService,
             SecurityService securityService,
             ApplicationEventPublisher<AuditLog> applicationEventPublisher) {
         super(securityService, applicationEventPublisher);
-        this.streamService = streamService;
+        this.roleBindingService = roleBindingService;
     }
 
     /**
-     * List Kafka Streams.
+     * List role bindings.
      *
-     * @return A list of Kafka Streams
+     * @return A list of role bindings
      */
     @Get
-    public List<KafkaStream> listAll() {
-        return streamService.findAll();
+    public List<RoleBinding> listAll() {
+        return roleBindingService.findAll();
     }
 }
