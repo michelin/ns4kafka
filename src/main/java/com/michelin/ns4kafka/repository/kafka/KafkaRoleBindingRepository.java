@@ -76,6 +76,16 @@ public class KafkaRoleBindingRepository extends KafkaStore<RoleBinding> implemen
     }
 
     /**
+     * List all role bindings.
+     *
+     * @return The list of role bindings
+     */
+    @Override
+    public List<RoleBinding> findAll() {
+        return getKafkaStore().values().stream().toList();
+    }
+
+    /**
      * List role bindings by groups.
      *
      * @param groups The groups used to research

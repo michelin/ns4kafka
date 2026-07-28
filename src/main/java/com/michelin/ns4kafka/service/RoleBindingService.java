@@ -41,6 +41,15 @@ public class RoleBindingService {
     }
 
     /**
+     * List all role bindings.
+     *
+     * @return The list of role bindings
+     */
+    public List<RoleBinding> findAll() {
+        return roleBindingRepository.findAll();
+    }
+
+    /**
      * List role bindings of a given namespace.
      *
      * @param namespace The namespace used to research

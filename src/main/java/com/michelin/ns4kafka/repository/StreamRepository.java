@@ -24,6 +24,13 @@ import java.util.List;
 /** Stream repository. */
 public interface StreamRepository {
     /**
+     * Find all streams.
+     *
+     * @return The list of streams
+     */
+    List<KafkaStream> findAll();
+
+    /**
      * Find all streams by cluster.
      *
      * @param cluster The cluster name
