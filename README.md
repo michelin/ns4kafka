@@ -352,7 +352,6 @@ ns4kafka:
       manage-acls: true
       manage-topics: true
       manage-connectors: true
-      drop-unsync-acls: true
       sync-kstream-topics: true
       provider: "SELF_MANAGED"
       config:
@@ -392,33 +391,33 @@ This is the name you need to set in the `metadata.cluster` field of your namespa
 
 `connect-name` must be a unique name identifying a Kafka Connect cluster.
 
-| Property                                   | Type    | Required | Description                                                                                                                                                                                                    |
-|--------------------------------------------|---------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| manage-acls                                | boolean | No       | Does the cluster manages access control entries (Default: false)                                                                                                                                               |
-| manage-connectors                          | boolean | No       | Does the cluster manages connects (Default: false)                                                                                                                                                             |
-| manage-topics                              | boolean | No       | Does the cluster manages topics (Default: false)                                                                                                                                                               |
-| manage-users                               | boolean | No       | Does the cluster manages users (Default: false)                                                                                                                                                                |
-| drop-unsync-acls                           | boolean | No       | Should unsynchronized acls be dropped (Default: true)                                                                                                                                                          |
-| sync-kstream-topics | boolean | No       | **Deprecated since 1.22.** Should Kafka Streams internal topics be automatically imported into Ns4kafka (Default: false)                                                                                       |
-| timeout.acl.create                         | int     | No       | The timeout in milliseconds used by the AdminClient to create acls (Default: 30000ms)                                                                                                                          |
-| timeout.acl.describe                       | int     | No       | The timeout in milliseconds used by the AdminClient to describe acls (Default: 30000ms)                                                                                                                        |
-| timeout.acl.delete                         | int     | No       | The timeout in milliseconds used by the AdminClient to delete acls (Default: 30000ms)                                                                                                                          |
-| timeout.topic.alter-configs                | int     | No       | The timeout in milliseconds used by the AdminClient to alter topic configs (Default: 30000ms)                                                                                                                  |
-| timeout.topic.create                       | int     | No       | The timeout in milliseconds used by the AdminClient to create topics (Default: 30000ms)                                                                                                                        |
-| timeout.topic.describe-configs             | int     | No       | The timeout in milliseconds used by the AdminClient to describe topic configs (Default: 30000ms)                                                                                                               |
-| timeout.topic.delete                       | int     | No       | The timeout in milliseconds used by the AdminClient to delete topics (Default: 30000ms)                                                                                                                        |
-| timeout.topic.list                         | int     | No       | The timeout in milliseconds used by the AdminClient to list topics (Default: 30000ms)                                                                                                                          |
-| timeout.user.alter-quotas                  | int     | No       | The timeout in milliseconds used by the AdminClient to alter client quotas (Default: 30000ms)                                                                                                                  |
-| timeout.user.alter-scram-credentials       | int     | No       | The timeout in milliseconds used by the AdminClient to alter scram credentials (Default: 30000ms)                                                                                                              |
-| timeout.user.describe-quotas               | int     | No       | The timeout in milliseconds used by the AdminClient to describe client quotas (Default: 30000ms)                                                                                                               |
-| provider                                   | boolean | Yes      | The kind of cluster. Either SELF_MANAGED or CONFLUENT_CLOUD                                                                                                                                                    |
-| config.bootstrap.servers                   | string  | Yes      | The location of the clusters servers                                                                                                                                                                           |
-| schema-registry.url                        | string  | No       | The location of the Schema Registry                                                                                                                                                                            |
-| schema-registry.basicAuthUsername          | string  | No       | Basic authentication username to the Schema Registry                                                                                                                                                           |
-| schema-registry.basicAuthPassword          | string  | No       | Basic authentication password to the Schema Registry                                                                                                                                                           |
-| connects.<connect-name>.url                | string  | No       | The location of the kafka connect                                                                                                                                                                              |
-| connects.<connect-name>.basicAuthUsername  | string  | No       | Basic authentication username to the Kafka Connect                                                                                                                                                             |
-| connects.<connect-name>.basicAuthPassword  | string  | No       | Basic authentication password to the Kafka Connect                                                                                                                                                             |
+| Property                                  | Type    | Required | Description                                                                                                              |
+|-------------------------------------------|---------|----------|--------------------------------------------------------------------------------------------------------------------------|
+| manage-acls                               | boolean | No       | Does the cluster manages access control entries (Default: false)                                                         |
+| manage-connectors                         | boolean | No       | Does the cluster manages connects (Default: false)                                                                       |
+| manage-topics                             | boolean | No       | Does the cluster manages topics (Default: false)                                                                         |
+| manage-users                              | boolean | No       | Does the cluster manages users (Default: false)                                                                          |
+| drop-unsync-acls                          | boolean | No       | **Deprecated since 1.22.** Should unsynchronized acls be dropped (Default: true)                                         |
+| sync-kstream-topics                       | boolean | No       | **Deprecated since 1.22.** Should Kafka Streams internal topics be automatically imported into Ns4kafka (Default: false) |
+| timeout.acl.create                        | int     | No       | The timeout in milliseconds used by the AdminClient to create acls (Default: 30000ms)                                    |
+| timeout.acl.describe                      | int     | No       | The timeout in milliseconds used by the AdminClient to describe acls (Default: 30000ms)                                  |
+| timeout.acl.delete                        | int     | No       | The timeout in milliseconds used by the AdminClient to delete acls (Default: 30000ms)                                    |
+| timeout.topic.alter-configs               | int     | No       | The timeout in milliseconds used by the AdminClient to alter topic configs (Default: 30000ms)                            |
+| timeout.topic.create                      | int     | No       | The timeout in milliseconds used by the AdminClient to create topics (Default: 30000ms)                                  |
+| timeout.topic.describe-configs            | int     | No       | The timeout in milliseconds used by the AdminClient to describe topic configs (Default: 30000ms)                         |
+| timeout.topic.delete                      | int     | No       | The timeout in milliseconds used by the AdminClient to delete topics (Default: 30000ms)                                  |
+| timeout.topic.list                        | int     | No       | The timeout in milliseconds used by the AdminClient to list topics (Default: 30000ms)                                    |
+| timeout.user.alter-quotas                 | int     | No       | The timeout in milliseconds used by the AdminClient to alter client quotas (Default: 30000ms)                            |
+| timeout.user.alter-scram-credentials      | int     | No       | The timeout in milliseconds used by the AdminClient to alter scram credentials (Default: 30000ms)                        |
+| timeout.user.describe-quotas              | int     | No       | The timeout in milliseconds used by the AdminClient to describe client quotas (Default: 30000ms)                         |
+| provider                                  | boolean | Yes      | The kind of cluster. Either SELF_MANAGED or CONFLUENT_CLOUD                                                              |
+| config.bootstrap.servers                  | string  | Yes      | The location of the clusters servers                                                                                     |
+| schema-registry.url                       | string  | No       | The location of the Schema Registry                                                                                      |
+| schema-registry.basicAuthUsername         | string  | No       | Basic authentication username to the Schema Registry                                                                     |
+| schema-registry.basicAuthPassword         | string  | No       | Basic authentication password to the Schema Registry                                                                     |
+| connects.<connect-name>.url               | string  | No       | The location of the kafka connect                                                                                        |
+| connects.<connect-name>.basicAuthUsername | string  | No       | Basic authentication username to the Kafka Connect                                                                       |
+| connects.<connect-name>.basicAuthPassword | string  | No       | Basic authentication password to the Kafka Connect                                                                       |
 
 The configuration will depend on the authentication method selected for your broker, schema registry and Kafka Connect.
 

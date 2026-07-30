@@ -164,8 +164,9 @@ public class TopicController extends NamespacedResourceController {
         assignResourceMetadata(topic, ns, existingTopic.orElse(null));
 
         if (existingTopic.isPresent()
-                && existingTopic.get().equals(topic)
-                && !existingTopic.get().isDeleting()) {
+                && !existingTopic.get().isFailed()
+                && !existingTopic.get().isDeleting()
+                && existingTopic.get().equals(topic)) {
             return formatHttpResponse(existingTopic.get(), ApplyStatus.UNCHANGED, validationWarnings);
         }
 

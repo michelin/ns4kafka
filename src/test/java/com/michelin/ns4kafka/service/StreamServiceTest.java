@@ -22,7 +22,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -37,8 +36,6 @@ import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
 import java.util.List;
 import java.util.Optional;
-import java.util.Properties;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -522,15 +519,6 @@ class StreamServiceTest {
                         .build())
                 .build();
 
-        ManagedClusterProperties managedClusterProps =
-                new ManagedClusterProperties("local", ManagedClusterProperties.KafkaProvider.SELF_MANAGED);
-        Properties properties = new Properties();
-        managedClusterProps.setConfig(properties);
-        managedClusterProps.setManageAcls(true);
-
-        when(managedClusterProperties.stream()).thenReturn(Stream.of(managedClusterProps));
-        when(applicationContext.getBean(eq(AccessControlEntryAsyncExecutor.class), any()))
-                .thenReturn(aceAsyncExecutor);
         List<KafkaStream> kafkaStreams = List.of(kafkaStream);
         when(streamRepository.findAllForCluster(any())).thenReturn(kafkaStreams);
 
@@ -540,41 +528,6 @@ class StreamServiceTest {
                         namespace, "prefix1.stream_app_id1", List.of("prefix1.stream_app_id1-sub-appid-overlap"));
 
         streamService.delete(namespace, stream);
-        verify(aceAsyncExecutor).deleteKafkaStreams(namespace, stream);
-        verify(streamRepository).delete(stream);
-    }
-
-    @Test
-    void shouldDeleteKafkaStreamsOnConfluentCloud() throws Exception {
-        Namespace namespace = Namespace.builder()
-                .metadata(
-                        Resource.Metadata.builder().name("ns").cluster("local").build())
-                .build();
-
-        KafkaStream stream = KafkaStream.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("prefix.stream_app_id")
-                        .namespace("ns")
-                        .cluster("local")
-                        .build())
-                .build();
-
-        ManagedClusterProperties managedClusterProps =
-                new ManagedClusterProperties("local", ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
-        Properties properties = new Properties();
-        managedClusterProps.setConfig(properties);
-        managedClusterProps.setManageAcls(false);
-        managedClusterProps.setManageRbac(true);
-
-        when(managedClusterProperties.stream()).thenReturn(Stream.of(managedClusterProps));
-        when(applicationContext.getBean(eq(AccessControlEntryAsyncExecutor.class), any()))
-                .thenReturn(aceAsyncExecutor);
-        when(streamRepository.findAllForCluster(any())).thenReturn(List.of());
-        doNothing().when(topicService).deleteKafkaStream(namespace, "prefix.stream_app_id", List.of());
-
-        streamService.delete(namespace, stream);
-
-        verify(aceAsyncExecutor).deleteKafkaStreams(namespace, stream);
         verify(streamRepository).create(stream);
     }
 }

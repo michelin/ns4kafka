@@ -26,7 +26,6 @@ ns4kafka:
       connects:
         local:
           url: 'http://connect:8083'
-      drop-unsync-acls: true
       manage-acls: true
       manage-connectors: true
       manage-topics: true

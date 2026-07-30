@@ -18,18 +18,7 @@
  */
 package com.michelin.ns4kafka.service.executor;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
-import com.michelin.ns4kafka.model.AccessControlEntry;
-import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
-import org.apache.kafka.common.acl.AclBinding;
-import org.apache.kafka.common.acl.AclOperation;
-import org.apache.kafka.common.acl.AclPermissionType;
-import org.apache.kafka.common.resource.PatternType;
-import org.apache.kafka.common.resource.ResourcePattern;
-import org.apache.kafka.common.resource.ResourceType;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -43,31 +32,4 @@ class AccessControlEntryAsyncExecutorTest {
 
     @InjectMocks
     AccessControlEntryAsyncExecutor aclAsyncExecutor;
-
-    @Test
-    void shouldConvertPublicAcl() {
-        AccessControlEntry acl = AccessControlEntry.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("ns1-owner")
-                        .namespace("ns1")
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resource("ns1-")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .grantedTo("*")
-                        .build())
-                .build();
-
-        AclBinding aclBinding = new AclBinding(
-                new ResourcePattern(ResourceType.TOPIC, "ns1-", PatternType.PREFIXED),
-                new org.apache.kafka.common.acl.AccessControlEntry(
-                        "User:*",
-                        "*",
-                        AclOperation.fromString(acl.getSpec().getPermission().toString()),
-                        AclPermissionType.ALLOW));
-
-        assertEquals(aclBinding, aclAsyncExecutor.convertPublicAcl(acl));
-    }
 }

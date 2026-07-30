@@ -24,10 +24,8 @@ import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.StreamRepository;
-import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
 import com.michelin.ns4kafka.util.RegexUtils;
 import io.micronaut.context.ApplicationContext;
-import io.micronaut.inject.qualifiers.Qualifiers;
 import jakarta.inject.Singleton;
 import java.util.EnumSet;
 import java.util.List;
@@ -221,11 +219,6 @@ public class StreamService {
      */
     public void delete(Namespace namespace, KafkaStream stream)
             throws ExecutionException, InterruptedException, TimeoutException {
-        AccessControlEntryAsyncExecutor accessControlEntryAsyncExecutor = applicationContext.getBean(
-                AccessControlEntryAsyncExecutor.class,
-                Qualifiers.byName(stream.getMetadata().getCluster()));
-        accessControlEntryAsyncExecutor.deleteKafkaStreams(namespace, stream);
-
         List<String> overlapKafkaStreams = findAllForNamespace(namespace).stream()
                 .filter(kafkaStream -> kafkaStream
                         .getMetadata()
@@ -235,21 +228,7 @@ public class StreamService {
                 .toList();
 
         topicService.deleteKafkaStream(namespace, stream.getMetadata().getName(), overlapKafkaStreams);
-
-        Optional<ManagedClusterProperties> streamCluster = managedClusterProperties.stream()
-                .filter(cluster -> cluster.getName().equals(stream.getMetadata().getCluster()))
-                .findFirst();
-
-        if (streamCluster.isPresent() && streamCluster.get().isManageAcls()) {
-            streamRepository.delete(stream);
-            return;
-        }
-
-        if (streamCluster.isPresent()
-                && streamCluster.get().isConfluentCloud()
-                && streamCluster.get().isManageRbac()) {
-            stream.getMetadata().setStatus(Resource.Metadata.Status.ofDeleting());
-            streamRepository.create(stream);
-        }
+        stream.getMetadata().setStatus(Resource.Metadata.Status.ofDeleting());
+        streamRepository.create(stream);
     }
 }
