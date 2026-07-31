@@ -26,7 +26,6 @@ import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.AccessControlEntryRepository;
-import com.michelin.ns4kafka.repository.NamespaceRepository;
 import com.michelin.ns4kafka.repository.kafka.KafkaStreamRepository;
 import com.michelin.ns4kafka.service.AclService;
 import com.michelin.ns4kafka.service.NamespaceService;
@@ -53,13 +52,13 @@ import org.apache.kafka.common.resource.ResourceType;
 public class AccessControlEntryAsyncExecutor {
     private static final String USER_PRINCIPAL = "User:";
     private static final String USER_PRINCIPAL_PUBLIC = "User:*";
+    private static final String ERROR = "Error";
 
     private final ManagedClusterProperties managedClusterProperties;
     private final AclService aclService;
     private final StreamService streamService;
     private final NamespaceService namespaceService;
     private final AccessControlEntryRepository aclRepository;
-    private final NamespaceRepository namespaceRepository;
     private final KafkaStreamRepository kafkaStreamRepository;
 
     /**
@@ -68,8 +67,9 @@ public class AccessControlEntryAsyncExecutor {
      * @param managedClusterProperties The managed cluster properties
      * @param aclService The ACL service
      * @param streamService The stream service
+     * @param namespaceService The namespace service
      * @param aclRepository The ACL repository
-     * @param namespaceRepository The namespace repository
+     * @param kafkaStreamRepository The Kafka Stream repository
      */
     public AccessControlEntryAsyncExecutor(
             ManagedClusterProperties managedClusterProperties,
@@ -77,14 +77,12 @@ public class AccessControlEntryAsyncExecutor {
             StreamService streamService,
             NamespaceService namespaceService,
             AccessControlEntryRepository aclRepository,
-            NamespaceRepository namespaceRepository,
             KafkaStreamRepository kafkaStreamRepository) {
         this.managedClusterProperties = managedClusterProperties;
         this.aclService = aclService;
         this.streamService = streamService;
         this.namespaceService = namespaceService;
         this.aclRepository = aclRepository;
-        this.namespaceRepository = namespaceRepository;
         this.kafkaStreamRepository = kafkaStreamRepository;
     }
 
@@ -100,7 +98,7 @@ public class AccessControlEntryAsyncExecutor {
 
     /** Start the ACLs synchronization. */
     private void synchronizeAcls() {
-        log.debug("Starting ACL collection for cluster {}", managedClusterProperties.getName());
+        log.debug("Starting ACL deployment for cluster {}", managedClusterProperties.getName());
 
         try {
             // When Confluent Role Bindings activated, only handle public Kafka ACLs
@@ -119,7 +117,7 @@ public class AccessControlEntryAsyncExecutor {
             deleteAclsFromKafkaStreams(streamsToDelete);
 
         } catch (Exception e) {
-            log.error("An error occurred collecting ACLs from broker during ACLs synchronization", e);
+            log.error("An error occurred creating or deleting ACLs during ACLs synchronization", e);
         }
     }
 
@@ -136,7 +134,7 @@ public class AccessControlEntryAsyncExecutor {
             createAcls(aclsToCreate);
             deleteAcls(aclsToDelete);
         } catch (Exception e) {
-            log.error("An error occurred collecting ACLs from broker during ACLs synchronization", e);
+            log.error("An error occurred creating or deleting public ACLs during ACLs synchronization", e);
         }
     }
     /**
@@ -145,7 +143,7 @@ public class AccessControlEntryAsyncExecutor {
      * @param acl The Ns4Kafka ACL
      * @return A list of Kafka ACLs
      */
-    private List<AclBinding> convertAclToAclBindings(AccessControlEntry acl) {
+    List<AclBinding> convertAclToAclBindings(AccessControlEntry acl) {
         String connectPrefix = CONNECT == acl.getSpec().getResourceType() ? "connect-" : "";
 
         // Convert pattern & resource type from Ns4Kafka to org.apache.kafka.common types
@@ -183,7 +181,7 @@ public class AccessControlEntryAsyncExecutor {
         }
 
         Namespace namespace =
-                namespaceRepository.findByName(acl.getSpec().getGrantedTo()).orElseThrow();
+                namespaceService.findByName(acl.getSpec().getGrantedTo()).orElseThrow();
         String principal = USER_PRINCIPAL + namespace.getSpec().getKafkaUser();
 
         return aclOperations.stream()
@@ -203,8 +201,8 @@ public class AccessControlEntryAsyncExecutor {
      *     href="https://docs.confluent.io/platform/current/streams/developer-guide/security.html#required-acl-setting-for-secure-ak-clusters">Required
      *     ACL setting for secure Kafka clusters</a>
      */
-    private List<AclBinding> convertKafkaStreamToAclBindings(KafkaStream kafkaStream) {
-        Namespace namespace = namespaceRepository
+    List<AclBinding> convertKafkaStreamToAclBindings(KafkaStream kafkaStream) {
+        Namespace namespace = namespaceService
                 .findByName(kafkaStream.getMetadata().getNamespace())
                 .orElseThrow();
         String principal = USER_PRINCIPAL + namespace.getSpec().getKafkaUser();
@@ -228,7 +226,7 @@ public class AccessControlEntryAsyncExecutor {
      *
      * @param toCreate The list of ACLs to create
      */
-    private void createAcls(List<AccessControlEntry> toCreate) {
+    void createAcls(List<AccessControlEntry> toCreate) {
         toCreate.forEach(aclToCreate -> managedClusterProperties
                 .getAdminClient()
                 .createAcls(convertAclToAclBindings(aclToCreate))
@@ -236,25 +234,41 @@ public class AccessControlEntryAsyncExecutor {
                 .forEach((key, value) -> {
                     try {
                         value.get(managedClusterProperties.getTimeout().getAcl().getCreate(), TimeUnit.MILLISECONDS);
-                        if (isUnchangedSinceLastApply(aclToCreate)) {
-                            log.atInfo()
-                                    .addArgument(key)
-                                    .addArgument(managedClusterProperties.getName())
-                                    .log("Success creating ACL {} on cluster {}.");
-                            aclToCreate.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
-                            aclRepository.create(aclToCreate);
+
+                        Optional<AccessControlEntry> existingAcl = aclService.findByName(
+                                aclToCreate.getMetadata().getNamespace(),
+                                aclToCreate.getMetadata().getName());
+                        AccessControlEntry lastVersion = existingAcl.orElse(aclToCreate);
+                        lastVersion
+                                .getMetadata()
+                                .setGeneration(lastVersion.getMetadata().getGeneration() + 1);
+
+                        boolean isUnchangedSinceLastApply = existingAcl.isEmpty()
+                                || !existingAcl
+                                        .get()
+                                        .getMetadata()
+                                        .getUpdateTimestamp()
+                                        .after(aclToCreate.getMetadata().getUpdateTimestamp());
+
+                        if (isUnchangedSinceLastApply) {
+                            lastVersion.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
                         }
+
+                        aclRepository.create(lastVersion);
+
+                        log.atInfo()
+                                .addArgument(key)
+                                .addArgument(managedClusterProperties.getName())
+                                .log("Success creating ACL {} on cluster {}.");
                     } catch (InterruptedException e) {
-                        log.error("Error", e);
+                        log.error(ERROR, e);
                         Thread.currentThread().interrupt();
                     } catch (Exception e) {
                         if (isUnchangedSinceLastApply(aclToCreate)) {
-                            aclToCreate
-                                    .getMetadata()
-                                    .setStatus(Resource.Metadata.Status.ofFailed(
-                                            "Error while deleting ACL: " + e.getMessage()));
-                            aclRepository.create(aclToCreate);
                             log.error("Error while creating ACL {} on {}", key, managedClusterProperties.getName(), e);
+
+                            aclToCreate.getMetadata().setStatus(Resource.Metadata.Status.ofFailed(e.getMessage()));
+                            aclRepository.create(aclToCreate);
                         }
                     }
                 }));
@@ -265,7 +279,7 @@ public class AccessControlEntryAsyncExecutor {
      *
      * @param toCreate The list of Kafka Streams to create
      */
-    private void createAclsFromKafkaStreams(List<KafkaStream> toCreate) {
+    void createAclsFromKafkaStreams(List<KafkaStream> toCreate) {
         toCreate.forEach(ksToCreate -> managedClusterProperties
                 .getAdminClient()
                 .createAcls(convertKafkaStreamToAclBindings(ksToCreate))
@@ -273,23 +287,40 @@ public class AccessControlEntryAsyncExecutor {
                 .forEach((key, value) -> {
                     try {
                         value.get(managedClusterProperties.getTimeout().getAcl().getCreate(), TimeUnit.MILLISECONDS);
-                        if (isUnchangedSinceLastApply(ksToCreate)) {
-                            log.atInfo()
-                                    .addArgument(ksToCreate.getMetadata().getName())
-                                    .addArgument(managedClusterProperties.getName())
-                                    .log("Success creating Kafka Stream {} on cluster {}.");
-                            ksToCreate.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
-                            kafkaStreamRepository.create(ksToCreate);
+
+                        Namespace ns = namespaceService
+                                .findByName(ksToCreate.getMetadata().getNamespace())
+                                .orElseThrow();
+                        Optional<KafkaStream> existingKafkaStream = streamService.findByName(
+                                ns, ksToCreate.getMetadata().getName());
+                        KafkaStream lastVersion = existingKafkaStream.orElse(ksToCreate);
+                        lastVersion
+                                .getMetadata()
+                                .setGeneration(lastVersion.getMetadata().getGeneration() + 1);
+
+                        boolean isUnchangedSinceLastApply = existingKafkaStream.isEmpty()
+                                || !existingKafkaStream
+                                        .get()
+                                        .getMetadata()
+                                        .getUpdateTimestamp()
+                                        .after(ksToCreate.getMetadata().getUpdateTimestamp());
+
+                        if (isUnchangedSinceLastApply) {
+                            lastVersion.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
                         }
+
+                        kafkaStreamRepository.create(lastVersion);
+
+                        log.atInfo()
+                                .addArgument(key)
+                                .addArgument(managedClusterProperties.getName())
+                                .log("Success creating Kafka Stream {} on cluster {}.");
                     } catch (InterruptedException e) {
-                        log.error("Error", e);
+                        log.error(ERROR, e);
                         Thread.currentThread().interrupt();
                     } catch (Exception e) {
                         if (isUnchangedSinceLastApply(ksToCreate)) {
-                            ksToCreate
-                                    .getMetadata()
-                                    .setStatus(Resource.Metadata.Status.ofFailed(
-                                            "Error while deleting Kafka Stream: " + e.getMessage()));
+                            ksToCreate.getMetadata().setStatus(Resource.Metadata.Status.ofFailed(e.getMessage()));
                             kafkaStreamRepository.create(ksToCreate);
                             log.error(
                                     "Error while creating Kafka Stream {} on {}",
@@ -321,7 +352,7 @@ public class AccessControlEntryAsyncExecutor {
                             aclRepository.delete(aclToDelete);
                         }
                     } catch (InterruptedException e) {
-                        log.error("Error", e);
+                        log.error(ERROR, e);
                         Thread.currentThread().interrupt();
                     } catch (Exception e) {
                         if (isUnchangedSinceLastApply(aclToDelete)) {
@@ -360,7 +391,7 @@ public class AccessControlEntryAsyncExecutor {
                             kafkaStreamRepository.delete(ksToDelete);
                         }
                     } catch (InterruptedException e) {
-                        log.error("Error", e);
+                        log.error(ERROR, e);
                         Thread.currentThread().interrupt();
                     } catch (Exception e) {
                         if (isUnchangedSinceLastApply(ksToDelete)) {

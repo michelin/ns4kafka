@@ -22,7 +22,6 @@ import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.KafkaStream;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Resource;
-import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.StreamRepository;
 import com.michelin.ns4kafka.util.RegexUtils;
 import jakarta.inject.Singleton;
@@ -43,7 +42,6 @@ public class StreamService {
     private final StreamRepository streamRepository;
     private final AclService aclService;
     private final TopicService topicService;
-    private final List<ManagedClusterProperties> managedClusterProperties;
 
     /**
      * Find all Kafka Streams.
@@ -57,20 +55,14 @@ public class StreamService {
     /**
      * Constructor.
      *
-     * @param applicationContext The application context
      * @param streamRepository The stream repository
      * @param aclService The ACL service
      * @param topicService The topic service
      */
-    public StreamService(
-            StreamRepository streamRepository,
-            AclService aclService,
-            TopicService topicService,
-            List<ManagedClusterProperties> managedClusterProperties) {
+    public StreamService(StreamRepository streamRepository, AclService aclService, TopicService topicService) {
         this.streamRepository = streamRepository;
         this.aclService = aclService;
         this.topicService = topicService;
-        this.managedClusterProperties = managedClusterProperties;
     }
 
     /**

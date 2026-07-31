@@ -603,7 +603,7 @@ class AclIntegrationTest extends KafkaIntegrationTest {
     @Test
     void shouldGrantAclToAnotherNamespace() throws ExecutionException, InterruptedException {
         // Ownership of first namespace
-        AccessControlEntry accessControlEntryNamespace1 = AccessControlEntry.builder()
+        AccessControlEntry topicAclNamespace1 = AccessControlEntry.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("ns1-acl-topic-owner")
                         .namespace("ns1")
@@ -617,11 +617,31 @@ class AclIntegrationTest extends KafkaIntegrationTest {
                         .build())
                 .build();
 
+        AccessControlEntry transactionalIdAclNamespace1 = AccessControlEntry.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-acl-transac-owner")
+                        .namespace("ns1")
+                        .build())
+                .spec(AccessControlEntrySpec.builder()
+                        .resourceType(ResourceType.TRANSACTIONAL_ID)
+                        .resource("ns1-")
+                        .resourcePatternType(ResourcePatternType.PREFIXED)
+                        .permission(Permission.OWNER)
+                        .grantedTo("ns1")
+                        .build())
+                .build();
+
         ns4KafkaClient
                 .toBlocking()
                 .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/acls")
                         .bearerAuth(token)
-                        .body(accessControlEntryNamespace1));
+                        .body(topicAclNamespace1));
+
+        ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/acls")
+                        .bearerAuth(token)
+                        .body(transactionalIdAclNamespace1));
 
         // Force ACLs synchronization
         accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
@@ -644,10 +664,10 @@ class AclIntegrationTest extends KafkaIntegrationTest {
                         .bearerAuth(token)
                         .body(namespace));
 
-        // Grant ACL from namespace 1 to namespace 2 on topic prefixed by ns1-
-        AccessControlEntry grantedAclOnPrefix = AccessControlEntry.builder()
+        // Grant ACL from namespace 1 to namespace 2 on resources prefixed by ns1-
+        AccessControlEntry grantedTopicAclOnPrefix = AccessControlEntry.builder()
                 .metadata(Resource.Metadata.builder()
-                        .name("ns1-granted-acl-on-prefix")
+                        .name("ns1-granted-topic-acl-on-prefix")
                         .namespace("ns1")
                         .build())
                 .spec(AccessControlEntrySpec.builder()
@@ -663,7 +683,7 @@ class AclIntegrationTest extends KafkaIntegrationTest {
                 .toBlocking()
                 .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/acls")
                         .bearerAuth(token)
-                        .body(grantedAclOnPrefix));
+                        .body(grantedTopicAclOnPrefix));
 
         accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
 
@@ -683,13 +703,14 @@ class AclIntegrationTest extends KafkaIntegrationTest {
                         "User:user2", "*", AclOperation.READ, AclPermissionType.ALLOW));
 
         assertEquals(1, results.size());
-        assertTrue(results.contains(expectedNamespace2TopicReadAcl));
+        assertTrue(
+                results.contains(expectedNamespace2TopicReadAcl));
 
         ns4KafkaClient
                 .toBlocking()
-                .exchange(
-                        HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/acls?name=ns1-granted-acl-on-prefix")
-                                .bearerAuth(token));
+                .exchange(HttpRequest.create(
+                                HttpMethod.DELETE, "/api/namespaces/ns1/acls?name=ns1-granted-topic-acl-on-prefix")
+                        .bearerAuth(token));
 
         accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
 
@@ -699,7 +720,7 @@ class AclIntegrationTest extends KafkaIntegrationTest {
         // Verify namespace 1 is still owner of the topic
         AclBindingFilter namespace1AclBindingFilter = new AclBindingFilter(
                 ResourcePatternFilter.ANY,
-                new AccessControlEntryFilter("User:user1", "*", AclOperation.READ, AclPermissionType.ALLOW));
+                new AccessControlEntryFilter("User:user1", "*", AclOperation.ANY, AclPermissionType.ALLOW));
 
         results = kafkaClient.describeAcls(namespace1AclBindingFilter).values().get();
 
@@ -708,7 +729,18 @@ class AclIntegrationTest extends KafkaIntegrationTest {
                 new org.apache.kafka.common.acl.AccessControlEntry(
                         "User:user1", "*", AclOperation.READ, AclPermissionType.ALLOW));
 
-        assertEquals(1, results.size());
-        assertTrue(results.contains(expectedNamespace1TopicReadAcl));
+        AclBinding expectedNamespace1TransactionalWriteAcl = new AclBinding(
+                new ResourcePattern(org.apache.kafka.common.resource.ResourceType.TOPIC, "ns1-", PatternType.PREFIXED),
+                new org.apache.kafka.common.acl.AccessControlEntry(
+                        "User:user1", "*", AclOperation.WRITE, AclPermissionType.ALLOW));
+
+        AclBinding expectedNamespace1TransactionalDescribeAcl = new AclBinding(
+                new ResourcePattern(org.apache.kafka.common.resource.ResourceType.TOPIC, "ns1-", PatternType.PREFIXED),
+                new org.apache.kafka.common.acl.AccessControlEntry(
+                        "User:user1", "*", AclOperation.DESCRIBE_CONFIGS, AclPermissionType.ALLOW));
+
+        assertEquals(5, results.size());
+        assertTrue(
+                results.containsAll(List.of(expectedNamespace1TopicReadAcl, expectedNamespace1TransactionalWriteAcl, expectedNamespace1TransactionalDescribeAcl)));
     }
 }
