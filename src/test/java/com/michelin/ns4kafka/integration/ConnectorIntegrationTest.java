@@ -982,7 +982,7 @@ class ConnectorIntegrationTest extends KafkaConnectIntegrationTest {
                 .toBlocking()
                 .exchange(
                         HttpRequest.create(
-                                        HttpMethod.PATCH,
+                                        HttpMethod.POST,
                                         "/api/namespaces/ns1/connectors/ns1-connector-alter-offsets/offsets")
                                 .bearerAuth(token)
                                 .body(offsetsRequest),

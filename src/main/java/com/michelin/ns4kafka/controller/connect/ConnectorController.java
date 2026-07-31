@@ -43,7 +43,6 @@ import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Delete;
 import io.micronaut.http.annotation.Get;
-import io.micronaut.http.annotation.Patch;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
 import io.micronaut.scheduling.TaskExecutors;
@@ -402,7 +401,7 @@ public class ConnectorController extends NamespacedResourceController {
      * @param offsetsRequest The offsets payload
      * @return The connector offsets reset response
      */
-    @Patch("/{connector}/offsets")
+    @Post("/{connector}/offsets")
     public Mono<ConnectorResetOffsetsResponse> alterOffsets(
             String namespace, String connector, @Body ConnectorOffsets offsetsRequest) {
         Namespace ns = getNamespace(namespace);
