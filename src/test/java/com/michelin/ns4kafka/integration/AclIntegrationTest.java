@@ -703,8 +703,7 @@ class AclIntegrationTest extends KafkaIntegrationTest {
                         "User:user2", "*", AclOperation.READ, AclPermissionType.ALLOW));
 
         assertEquals(1, results.size());
-        assertTrue(
-                results.contains(expectedNamespace2TopicReadAcl));
+        assertTrue(results.contains(expectedNamespace2TopicReadAcl));
 
         ns4KafkaClient
                 .toBlocking()
@@ -740,7 +739,9 @@ class AclIntegrationTest extends KafkaIntegrationTest {
                         "User:user1", "*", AclOperation.DESCRIBE_CONFIGS, AclPermissionType.ALLOW));
 
         assertEquals(5, results.size());
-        assertTrue(
-                results.containsAll(List.of(expectedNamespace1TopicReadAcl, expectedNamespace1TransactionalWriteAcl, expectedNamespace1TransactionalDescribeAcl)));
+        assertTrue(results.containsAll(List.of(
+                expectedNamespace1TopicReadAcl,
+                expectedNamespace1TransactionalWriteAcl,
+                expectedNamespace1TransactionalDescribeAcl)));
     }
 }

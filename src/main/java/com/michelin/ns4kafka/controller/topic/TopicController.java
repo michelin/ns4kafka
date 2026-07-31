@@ -47,7 +47,9 @@ import io.micronaut.http.annotation.QueryValue;
 import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -216,6 +218,7 @@ public class TopicController extends NamespacedResourceController {
         }
 
         topics.forEach(topicToDelete -> {
+            topicToDelete.getMetadata().setUpdateTimestamp(Date.from(Instant.now()));
             topicToDelete.getMetadata().setStatus(Resource.Metadata.Status.ofDeleting());
             topicService.create(topicToDelete);
             sendEventLog(topicToDelete, ApplyStatus.DELETED, topicToDelete.getSpec(), null, EMPTY_STRING);

@@ -39,8 +39,10 @@ import com.michelin.ns4kafka.repository.AccessControlEntryRepository;
 import com.michelin.ns4kafka.util.RegexUtils;
 import io.micronaut.context.ApplicationContext;
 import jakarta.inject.Singleton;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
@@ -330,15 +332,16 @@ public class AclService {
     /**
      * Delete an ACL from broker and from internal topic.
      *
-     * @param accessControlEntry The ACL
+     * @param acl The ACL
      */
-    public void delete(AccessControlEntry accessControlEntry) {
-        if (RESOURCE_TYPES_TO_DEPLOY.contains(accessControlEntry.getSpec().getResourceType())) {
-            accessControlEntry.getMetadata().setStatus(Resource.Metadata.Status.ofDeleting());
-            accessControlEntryRepository.create(accessControlEntry);
+    public void delete(AccessControlEntry acl) {
+        if (RESOURCE_TYPES_TO_DEPLOY.contains(acl.getSpec().getResourceType())) {
+            acl.getMetadata().setUpdateTimestamp(Date.from(Instant.now()));
+            acl.getMetadata().setStatus(Resource.Metadata.Status.ofDeleting());
+            accessControlEntryRepository.create(acl);
             return;
         }
-        accessControlEntryRepository.delete(accessControlEntry);
+        accessControlEntryRepository.delete(acl);
     }
 
     /**
