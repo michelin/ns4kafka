@@ -398,7 +398,7 @@ class AclIntegrationTest extends KafkaIntegrationTest {
                         .bearerAuth(token)
                         .body(namespace));
 
-        AccessControlEntry accessControlEntry = AccessControlEntry.builder()
+        AccessControlEntry aclTopic = AccessControlEntry.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("ns1-acl-topic")
                         .namespace("ns1")
@@ -430,7 +430,7 @@ class AclIntegrationTest extends KafkaIntegrationTest {
                 .toBlocking()
                 .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/acls")
                         .bearerAuth(token)
-                        .body(accessControlEntry));
+                        .body(aclTopic));
 
         ns4KafkaClient
                 .toBlocking()
@@ -468,18 +468,6 @@ class AclIntegrationTest extends KafkaIntegrationTest {
                 new ResourcePattern(org.apache.kafka.common.resource.ResourceType.TOPIC, "ns1-", PatternType.PREFIXED),
                 new org.apache.kafka.common.acl.AccessControlEntry(
                         "User:user1", "*", AclOperation.DESCRIBE_CONFIGS, AclPermissionType.ALLOW));
-
-        AclBinding aclBindingTransactionalWrite = new AclBinding(
-                new ResourcePattern(
-                        org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID, "ns1-", PatternType.PREFIXED),
-                new org.apache.kafka.common.acl.AccessControlEntry(
-                        "User:user1", "*", AclOperation.WRITE, AclPermissionType.ALLOW));
-
-        AclBinding aclBindingTransactionalDescribe = new AclBinding(
-                new ResourcePattern(
-                        org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID, "ns1-", PatternType.PREFIXED),
-                new org.apache.kafka.common.acl.AccessControlEntry(
-                        "User:user1", "*", AclOperation.DESCRIBE, AclPermissionType.ALLOW));
 
         HttpResponse<List<KafkaStream>> streams = ns4KafkaClient
                 .toBlocking()
@@ -533,14 +521,12 @@ class AclIntegrationTest extends KafkaIntegrationTest {
 
         assertTrue(streams.getBody().isPresent());
         assertEquals(1, streams.getBody().get().size());
-        assertEquals(8, results.size());
+        assertEquals(6, results.size());
         assertTrue(results.containsAll(List.of(
                 aclBindingTopicRead,
                 aclBindingTopicWrite,
                 aclBindingGroupRead,
                 aclBindingTopicDescribeConfigs,
-                aclBindingTransactionalWrite,
-                aclBindingTransactionalDescribe,
                 aclBindingTopicCreateForKafkaStream1,
                 aclBindingTopicDeleteForKafkaStream1)));
 
@@ -584,46 +570,16 @@ class AclIntegrationTest extends KafkaIntegrationTest {
 
         assertTrue(streams.getBody().isPresent());
         assertEquals(2, streams.getBody().get().size());
-        assertEquals(10, results.size());
+        assertEquals(8, results.size());
         assertTrue(results.containsAll(List.of(
                 aclBindingTopicRead,
                 aclBindingTopicWrite,
                 aclBindingGroupRead,
                 aclBindingTopicDescribeConfigs,
-                aclBindingTransactionalWrite,
-                aclBindingTransactionalDescribe,
                 aclBindingTopicCreateForKafkaStream1,
                 aclBindingTopicDeleteForKafkaStream1,
                 aclBindingTopicCreateForKafkaStream2,
                 aclBindingTopicDeleteForKafkaStream2)));
-
-        // Create another group ACL and check new ACLs are created
-        AccessControlEntry aclGroup2 = AccessControlEntry.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("ns1-acl-group2")
-                        .namespace("ns1")
-                        .build())
-                .spec(AccessControlEntrySpec.builder()
-                        .resourceType(ResourceType.GROUP)
-                        .resource("ns2-")
-                        .resourcePatternType(ResourcePatternType.PREFIXED)
-                        .permission(Permission.OWNER)
-                        .grantedTo("ns1")
-                        .build())
-                .build();
-
-        ns4KafkaClient
-                .toBlocking()
-                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/acls")
-                        .bearerAuth(token)
-                        .body(aclGroup2));
-
-        // Force ACLs synchronization
-        accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
-
-        results = kafkaClient.describeAcls(aclBindingFilter).values().get();
-
-        assertEquals(13, results.size());
 
         // DELETE the Streams & ACLs and verify
         ns4KafkaClient
@@ -734,6 +690,8 @@ class AclIntegrationTest extends KafkaIntegrationTest {
                 .exchange(
                         HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/ns1/acls?name=ns1-granted-acl-on-prefix")
                                 .bearerAuth(token));
+
+        accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
 
         results = kafkaClient.describeAcls(namespace2AclBindingFilter).values().get();
         assertTrue(results.isEmpty());

@@ -33,9 +33,7 @@ import static org.mockito.Mockito.when;
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Resource;
-import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.AccessControlEntryRepository;
-import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
 import java.util.Collection;
 import java.util.List;
@@ -54,9 +52,6 @@ class AclServiceTest {
     AccessControlEntryRepository accessControlEntryRepository;
 
     @Mock
-    AccessControlEntryAsyncExecutor accessControlEntryAsyncExecutor;
-
-    @Mock
     ApplicationContext applicationContext;
 
     @Mock
@@ -64,9 +59,6 @@ class AclServiceTest {
 
     @InjectMocks
     AclService aclService;
-
-    @Mock
-    List<ManagedClusterProperties> managedClusterProperties;
 
     @Test
     void shouldNotValidateAcl() {

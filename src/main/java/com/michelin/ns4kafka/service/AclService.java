@@ -35,7 +35,6 @@ import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidProtectedNamesp
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Resource;
-import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.AccessControlEntryRepository;
 import com.michelin.ns4kafka.util.RegexUtils;
 import io.micronaut.context.ApplicationContext;
@@ -63,7 +62,6 @@ public class AclService {
 
     private final AccessControlEntryRepository accessControlEntryRepository;
     private final ApplicationContext applicationContext;
-    private final List<ManagedClusterProperties> managedClusterProperties;
 
     /**
      * Constructor.
@@ -72,12 +70,9 @@ public class AclService {
      * @param applicationContext The application context
      */
     public AclService(
-            AccessControlEntryRepository accessControlEntryRepository,
-            ApplicationContext applicationContext,
-            List<ManagedClusterProperties> managedClusterProperties) {
+            AccessControlEntryRepository accessControlEntryRepository, ApplicationContext applicationContext) {
         this.accessControlEntryRepository = accessControlEntryRepository;
         this.applicationContext = applicationContext;
-        this.managedClusterProperties = managedClusterProperties;
     }
 
     /**
@@ -566,6 +561,7 @@ public class AclService {
      */
     public List<AccessControlEntry> findAllToDeployForCluster(String cluster) {
         return accessControlEntryRepository.findAll().stream()
+                .filter(acl -> acl.getMetadata().getCluster().equals(cluster))
                 .filter(Resource::isPending)
                 .toList();
     }
@@ -604,6 +600,7 @@ public class AclService {
      */
     public List<AccessControlEntry> findAllToDeleteForCluster(String cluster) {
         return accessControlEntryRepository.findAll().stream()
+                .filter(acl -> acl.getMetadata().getCluster().equals(cluster))
                 .filter(Resource::isDeleting)
                 .toList();
     }

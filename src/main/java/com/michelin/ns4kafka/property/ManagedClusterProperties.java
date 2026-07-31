@@ -34,11 +34,10 @@ import org.apache.kafka.clients.admin.Admin;
 @EachProperty("ns4kafka.managed-clusters")
 public class ManagedClusterProperties {
     private String name;
-    private boolean manageAcls;
+    private ManageAcl manageAcls = ManageAcl.NONE;
     private boolean manageConnectors;
     private boolean manageTopics;
     private boolean manageUsers;
-    private boolean manageRbac;
     private boolean syncKstreamTopics;
     private TimeoutProperties timeout = new TimeoutProperties();
     private KafkaProvider provider;
@@ -85,6 +84,14 @@ public class ManagedClusterProperties {
     public enum KafkaProvider {
         SELF_MANAGED,
         CONFLUENT_CLOUD
+    }
+
+    /** Manage ACL. */
+    public enum ManageAcl {
+        /** Returns all Manage ACL. */
+        ACLS,
+        CONFLUENT_RBAC,
+        NONE
     }
 
     /** Connect properties. */
@@ -170,5 +177,23 @@ public class ManagedClusterProperties {
      */
     public boolean isConfluentCloud() {
         return provider == KafkaProvider.CONFLUENT_CLOUD;
+    }
+
+    /**
+     * Check if manages ACLs.
+     *
+     * @return true if it is, false otherwise
+     */
+    public boolean isManageAcls() {
+        return manageAcls == ManageAcl.ACLS;
+    }
+
+    /**
+     * Check if manages Confluent Role Bindings.
+     *
+     * @return true if it is, false otherwise
+     */
+    public boolean isManageRbac() {
+        return isConfluentCloud() && manageAcls == ManageAcl.CONFLUENT_RBAC;
     }
 }

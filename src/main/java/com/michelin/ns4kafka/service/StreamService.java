@@ -25,7 +25,6 @@ import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.StreamRepository;
 import com.michelin.ns4kafka.util.RegexUtils;
-import io.micronaut.context.ApplicationContext;
 import jakarta.inject.Singleton;
 import java.util.EnumSet;
 import java.util.List;
@@ -41,7 +40,6 @@ public class StreamService {
     private static final Set<AccessControlEntry.ResourceType> KAFKA_STREAMS_ACLS =
             EnumSet.of(AccessControlEntry.ResourceType.TOPIC, AccessControlEntry.ResourceType.GROUP);
 
-    private final ApplicationContext applicationContext;
     private final StreamRepository streamRepository;
     private final AclService aclService;
     private final TopicService topicService;
@@ -65,12 +63,10 @@ public class StreamService {
      * @param topicService The topic service
      */
     public StreamService(
-            ApplicationContext applicationContext,
             StreamRepository streamRepository,
             AclService aclService,
             TopicService topicService,
             List<ManagedClusterProperties> managedClusterProperties) {
-        this.applicationContext = applicationContext;
         this.streamRepository = streamRepository;
         this.aclService = aclService;
         this.topicService = topicService;
@@ -185,31 +181,8 @@ public class StreamService {
      * @return The created Kafka Stream
      */
     public KafkaStream create(KafkaStream stream) {
-        Optional<ManagedClusterProperties> streamCluster = managedClusterProperties.stream()
-                .filter(cluster -> cluster.getName().equals(stream.getMetadata().getCluster()))
-                .findFirst();
-
-        if (streamCluster.isPresent()
-                && streamCluster.get().isConfluentCloud()
-                && streamCluster.get().isManageRbac()) {
-            stream.getMetadata().setStatus(Resource.Metadata.Status.ofPending());
-        }
+        stream.getMetadata().setStatus(Resource.Metadata.Status.ofPending());
         return streamRepository.create(stream);
-    }
-
-    /**
-     * Check if the cluster manages Confluent Cloud RBAC.
-     *
-     * @param stream The Kafka Stream
-     * @return true if the cluster is Confluent Cloud with RBAC management enabled, false otherwise
-     */
-    public boolean isClusterManagingRbac(KafkaStream stream) {
-        String cluster = stream.getMetadata().getCluster();
-        return managedClusterProperties.stream()
-                .filter(clusterProperties -> clusterProperties.getName().equals(cluster))
-                .findFirst()
-                .map(clusterProperties -> clusterProperties.isConfluentCloud() && clusterProperties.isManageRbac())
-                .orElse(false);
     }
 
     /**

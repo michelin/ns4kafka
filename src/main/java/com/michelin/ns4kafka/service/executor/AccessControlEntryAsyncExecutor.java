@@ -90,8 +90,11 @@ public class AccessControlEntryAsyncExecutor {
 
     /** Run the ACLs synchronization. */
     public void run() {
-        if (this.managedClusterProperties.isManageAcls() || this.managedClusterProperties.isManageRbac()) {
+        if (this.managedClusterProperties.isManageAcls()) {
             synchronizeAcls();
+        }
+        if (this.managedClusterProperties.isManageRbac()) {
+            synchronizePublicAcls();
         }
     }
 
@@ -101,21 +104,12 @@ public class AccessControlEntryAsyncExecutor {
 
         try {
             // When Confluent Role Bindings activated, only handle public Kafka ACLs
-            List<AccessControlEntry> aclsToCreate = managedClusterProperties.isManageAcls()
-                    ? aclService.findAllToDeployForCluster(managedClusterProperties.getName()).stream()
-                            .toList()
-                    : aclService.findPublicToDeployForCluster(managedClusterProperties.getName()).stream()
-                            .toList();
-
-            List<AccessControlEntry> aclsToDelete = managedClusterProperties.isManageAcls()
-                    ? aclService.findAllToDeleteForCluster(managedClusterProperties.getName()).stream()
-                            .toList()
-                    : aclService.findPublicToDeleteForCluster(managedClusterProperties.getName()).stream()
-                            .toList();
-
+            List<AccessControlEntry> aclsToCreate =
+                    aclService.findAllToDeployForCluster(managedClusterProperties.getName());
+            List<AccessControlEntry> aclsToDelete =
+                    aclService.findAllToDeleteForCluster(managedClusterProperties.getName());
             List<KafkaStream> streamsToCreate =
                     streamService.findAllToDeployForCluster(managedClusterProperties.getName());
-
             List<KafkaStream> streamsToDelete =
                     streamService.findAllToDeleteForCluster(managedClusterProperties.getName());
 
@@ -129,6 +123,22 @@ public class AccessControlEntryAsyncExecutor {
         }
     }
 
+    /** Start the ACLs synchronization. */
+    private void synchronizePublicAcls() {
+        log.debug("Starting public ACL deployment for cluster {}", managedClusterProperties.getName());
+
+        try {
+            List<AccessControlEntry> aclsToCreate =
+                    aclService.findPublicToDeleteForCluster(managedClusterProperties.getName());
+            List<AccessControlEntry> aclsToDelete =
+                    aclService.findPublicToDeployForCluster(managedClusterProperties.getName());
+
+            createAcls(aclsToCreate);
+            deleteAcls(aclsToDelete);
+        } catch (Exception e) {
+            log.error("An error occurred collecting ACLs from broker during ACLs synchronization", e);
+        }
+    }
     /**
      * Convert Ns4Kafka ACL into Kafka ACLs.
      *
@@ -339,7 +349,7 @@ public class AccessControlEntryAsyncExecutor {
                         .map(AclBinding::toFilter)
                         .toList())
                 .values()
-                .forEach((key, value) -> {
+                .forEach((_, value) -> {
                     try {
                         value.get(managedClusterProperties.getTimeout().getAcl().getDelete(), TimeUnit.MILLISECONDS);
                         if (isUnchangedSinceLastApply(ksToDelete)) {

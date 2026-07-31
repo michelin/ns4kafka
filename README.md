@@ -349,7 +349,7 @@ ns4kafka:
   managed-clusters:
     clusterNameOne:
       manage-users: true
-      manage-acls: true
+      manage-acls: "acls"
       manage-topics: true
       manage-connectors: true
       sync-kstream-topics: true
@@ -393,7 +393,7 @@ This is the name you need to set in the `metadata.cluster` field of your namespa
 
 | Property                                  | Type    | Required | Description                                                                                                              |
 |-------------------------------------------|---------|----------|--------------------------------------------------------------------------------------------------------------------------|
-| manage-acls                               | boolean | No       | Does the cluster manages access control entries (Default: false)                                                         |
+| manage-acls                               | string  | No       | What access control does the cluster manages: NONE, ACLS or CONFLUENT_RBAC (Default: NONE)                               |
 | manage-connectors                         | boolean | No       | Does the cluster manages connects (Default: false)                                                                       |
 | manage-topics                             | boolean | No       | Does the cluster manages topics (Default: false)                                                                         |
 | manage-users                              | boolean | No       | Does the cluster manages users (Default: false)                                                                          |

@@ -30,10 +30,7 @@ import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.KafkaStream;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Resource;
-import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.StreamRepository;
-import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
-import io.micronaut.context.ApplicationContext;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -55,15 +52,6 @@ class StreamServiceTest {
 
     @Mock
     StreamRepository streamRepository;
-
-    @Mock
-    ApplicationContext applicationContext;
-
-    @Mock
-    AccessControlEntryAsyncExecutor aceAsyncExecutor;
-
-    @Mock
-    List<ManagedClusterProperties> managedClusterProperties;
 
     @Test
     void shouldFindAll() {
