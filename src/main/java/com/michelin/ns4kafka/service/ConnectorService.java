@@ -30,6 +30,7 @@ import com.michelin.ns4kafka.model.connect.Connector;
 import com.michelin.ns4kafka.model.connect.ConnectorOffsetResponse;
 import com.michelin.ns4kafka.repository.ConnectorRepository;
 import com.michelin.ns4kafka.service.client.connect.KafkaConnectClient;
+import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsets;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsetsResponse;
 import com.michelin.ns4kafka.service.client.connect.entities.ConnectorSpecs;
 import com.michelin.ns4kafka.util.FormatErrorUtils;
@@ -291,33 +292,28 @@ public class ConnectorService {
                         connector.getSpec().getConnectCluster(),
                         connector.getMetadata().getName())
                 .map(connectorOffsets -> connectorOffsets.offsets().stream()
-                        .map(connectorOffset -> {
-                            boolean sinkOffset = connectorOffset.partition().containsKey("kafka_topic")
-                                    && connectorOffset.partition().containsKey("kafka_partition");
-                            Object offset = connectorOffset.offset() == null
-                                    ? null
-                                    : connectorOffset.offset().get("kafka_offset");
-                            return ConnectorOffsetResponse.builder()
-                                    .spec(ConnectorOffsetResponse.ConnectorOffsetResponseSpec.builder()
-                                            .topic(
-                                                    sinkOffset
-                                                            ? (String) connectorOffset
-                                                                    .partition()
-                                                                    .get("kafka_topic")
-                                                            : null)
-                                            .partition(
-                                                    sinkOffset
-                                                            ? (Integer) connectorOffset
-                                                                    .partition()
-                                                                    .get("kafka_partition")
-                                                            : null)
-                                            .offset(sinkOffset && offset != null ? ((Number) offset).longValue() : null)
-                                            .sourcePartition(sinkOffset ? null : connectorOffset.partition())
-                                            .sourceOffset(sinkOffset ? null : connectorOffset.offset())
-                                            .build())
-                                    .build();
-                        })
+                        .map(this::toConnectorOffsetResponse)
                         .toList());
+    }
+
+    private ConnectorOffsetResponse toConnectorOffsetResponse(ConnectorOffsets.ConnectorOffset connectorOffset) {
+        boolean sinkOffset = connectorOffset.partition().containsKey("kafka_topic")
+                && connectorOffset.partition().containsKey("kafka_partition");
+        Object offset = connectorOffset.offset() == null
+                ? null
+                : connectorOffset.offset().get("kafka_offset");
+        return ConnectorOffsetResponse.builder()
+                .spec(ConnectorOffsetResponse.ConnectorOffsetResponseSpec.builder()
+                        .topic(sinkOffset ? (String) connectorOffset.partition().get("kafka_topic") : null)
+                        .partition(
+                                sinkOffset
+                                        ? (Integer) connectorOffset.partition().get("kafka_partition")
+                                        : null)
+                        .offset(sinkOffset && offset != null ? ((Number) offset).longValue() : null)
+                        .sourcePartition(sinkOffset ? null : connectorOffset.partition())
+                        .sourceOffset(sinkOffset ? null : connectorOffset.offset())
+                        .build())
+                .build();
     }
 
     /**
