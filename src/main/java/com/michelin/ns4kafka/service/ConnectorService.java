@@ -292,16 +292,28 @@ public class ConnectorService {
                         connector.getMetadata().getName())
                 .map(connectorOffsets -> connectorOffsets.offsets().stream()
                         .map(connectorOffset -> {
+                            boolean sinkOffset = connectorOffset.partition().containsKey("kafka_topic")
+                                    && connectorOffset.partition().containsKey("kafka_partition");
                             Object offset = connectorOffset.offset() == null
                                     ? null
                                     : connectorOffset.offset().get("kafka_offset");
                             return ConnectorOffsetResponse.builder()
                                     .spec(ConnectorOffsetResponse.ConnectorOffsetResponseSpec.builder()
-                                            .topic((String)
-                                                    connectorOffset.partition().get("kafka_topic"))
-                                            .partition((Integer)
-                                                    connectorOffset.partition().get("kafka_partition"))
-                                            .offset(offset == null ? null : ((Number) offset).longValue())
+                                            .topic(
+                                                    sinkOffset
+                                                            ? (String) connectorOffset
+                                                                    .partition()
+                                                                    .get("kafka_topic")
+                                                            : null)
+                                            .partition(
+                                                    sinkOffset
+                                                            ? (Integer) connectorOffset
+                                                                    .partition()
+                                                                    .get("kafka_partition")
+                                                            : null)
+                                            .offset(sinkOffset && offset != null ? ((Number) offset).longValue() : null)
+                                            .sourcePartition(sinkOffset ? null : connectorOffset.partition())
+                                            .sourceOffset(sinkOffset ? null : connectorOffset.offset())
                                             .build())
                                     .build();
                         })
