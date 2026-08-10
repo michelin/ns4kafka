@@ -1340,6 +1340,42 @@ class ConnectorServiceTest {
     }
 
     @Test
+    void shouldListSourceConnectorOffsets() {
+        Namespace namespace = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Connector connector = Connector.builder()
+                .metadata(Resource.Metadata.builder().name("ns-connect1").build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("local-name")
+                        .build())
+                .build();
+
+        Map<String, Object> sourcePartition = Map.of("filename", "input.json");
+        Map<String, Object> sourceOffset = Map.of("position", 42L);
+        ConnectorOffsets connectorOffsets =
+                new ConnectorOffsets(List.of(new ConnectorOffsets.ConnectorOffset(sourcePartition, sourceOffset)));
+
+        when(kafkaConnectClient.listOffsets(
+                        namespace.getMetadata().getCluster(),
+                        connector.getSpec().getConnectCluster(),
+                        connector.getMetadata().getName()))
+                .thenReturn(Mono.just(connectorOffsets));
+
+        StepVerifier.create(connectorService.listOffsets(namespace, connector))
+                .consumeNextWith(offsets -> {
+                    assertEquals(1, offsets.size());
+                    assertEquals(sourcePartition, offsets.getFirst().getSpec().getSourcePartition());
+                    assertEquals(sourceOffset, offsets.getFirst().getSpec().getSourceOffset());
+                })
+                .verifyComplete();
+    }
+
+    @Test
     void shouldStopConnector() {
         Namespace namespace = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
