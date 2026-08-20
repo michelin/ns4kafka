@@ -33,16 +33,11 @@ import static org.mockito.Mockito.when;
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Resource;
-import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.AccessControlEntryRepository;
-import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
-import io.micronaut.inject.qualifiers.Qualifiers;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import java.util.Properties;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -57,9 +52,6 @@ class AclServiceTest {
     AccessControlEntryRepository accessControlEntryRepository;
 
     @Mock
-    AccessControlEntryAsyncExecutor accessControlEntryAsyncExecutor;
-
-    @Mock
     ApplicationContext applicationContext;
 
     @Mock
@@ -67,9 +59,6 @@ class AclServiceTest {
 
     @InjectMocks
     AclService aclService;
-
-    @Mock
-    List<ManagedClusterProperties> managedClusterProperties;
 
     @Test
     void shouldNotValidateAcl() {
@@ -1874,6 +1863,7 @@ class AclServiceTest {
     void shouldDeleteAllGrantedToAclsForNamespace() {
         AccessControlEntry acl1 = AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
                         .grantedTo("namespace1")
                         .build())
                 .metadata(Resource.Metadata.builder().cluster("cluster").build())
@@ -1881,31 +1871,14 @@ class AclServiceTest {
 
         AccessControlEntry acl2 = AccessControlEntry.builder()
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.CONNECT_CLUSTER)
                         .grantedTo("namespace1")
                         .build())
                 .metadata(Resource.Metadata.builder().cluster("cluster").build())
                 .build();
 
-        AccessControlEntry acl3 = AccessControlEntry.builder()
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .grantedTo("namespace2")
-                        .build())
-                .metadata(Resource.Metadata.builder().cluster("cluster").build())
-                .build();
-
-        ManagedClusterProperties managedClusterProps =
-                new ManagedClusterProperties("cluster", ManagedClusterProperties.KafkaProvider.SELF_MANAGED);
-        Properties properties = new Properties();
-        managedClusterProps.setConfig(properties);
-        managedClusterProps.setManageAcls(true);
-
-        when(managedClusterProperties.stream())
-                .thenReturn(Stream.of(managedClusterProps))
-                .thenReturn(Stream.of(managedClusterProps));
-
-        when(accessControlEntryRepository.findAll()).thenReturn(List.of(acl1, acl2, acl3));
-        when(applicationContext.getBean(AccessControlEntryAsyncExecutor.class, Qualifiers.byName("cluster")))
-                .thenReturn(accessControlEntryAsyncExecutor);
+        when(accessControlEntryRepository.findAll()).thenReturn(List.of(acl1, acl2));
+        when(accessControlEntryRepository.create(acl1)).thenReturn(acl1);
         doNothing().when(accessControlEntryRepository).delete(any());
 
         Namespace namespace = Namespace.builder()
@@ -1917,8 +1890,8 @@ class AclServiceTest {
 
         aclService.deleteAllGrantedToNamespace(namespace);
 
-        verify(accessControlEntryRepository, times(2)).delete(argThat(arg -> arg.equals(acl1) || arg.equals(acl2)));
-        verify(accessControlEntryRepository, never()).delete(acl3);
+        verify(accessControlEntryRepository).create(acl1);
+        verify(accessControlEntryRepository).delete(acl2);
     }
 
     @Test
@@ -1944,20 +1917,7 @@ class AclServiceTest {
                 .metadata(Resource.Metadata.builder().cluster("cluster").build())
                 .build();
 
-        ManagedClusterProperties managedClusterProps =
-                new ManagedClusterProperties("cluster", ManagedClusterProperties.KafkaProvider.SELF_MANAGED);
-        Properties properties = new Properties();
-        managedClusterProps.setConfig(properties);
-        managedClusterProps.setManageAcls(true);
-
-        when(managedClusterProperties.stream())
-                .thenReturn(Stream.of(managedClusterProps))
-                .thenReturn(Stream.of(managedClusterProps))
-                .thenReturn(Stream.of(managedClusterProps));
-
         when(accessControlEntryRepository.findAll()).thenReturn(List.of(acl1, acl2, publicAcl));
-        when(applicationContext.getBean(AccessControlEntryAsyncExecutor.class, Qualifiers.byName("cluster")))
-                .thenReturn(accessControlEntryAsyncExecutor);
         doNothing().when(accessControlEntryRepository).delete(any());
 
         Namespace namespace = Namespace.builder()
@@ -1974,54 +1934,6 @@ class AclServiceTest {
     }
 
     @Test
-    void shouldDeleteAllGrantedToAclsForNamespaceWhenManagingRbac() {
-        AccessControlEntry acl1 = AccessControlEntry.builder()
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .grantedTo("namespace1")
-                        .build())
-                .metadata(Resource.Metadata.builder().cluster("cluster").build())
-                .build();
-
-        AccessControlEntry acl2 = AccessControlEntry.builder()
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.CONNECT_CLUSTER)
-                        .grantedTo("namespace1")
-                        .build())
-                .metadata(Resource.Metadata.builder().cluster("cluster").build())
-                .build();
-
-        ManagedClusterProperties managedClusterProps =
-                new ManagedClusterProperties("cluster", ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
-        Properties properties = new Properties();
-        managedClusterProps.setConfig(properties);
-        managedClusterProps.setManageAcls(false);
-        managedClusterProps.setManageRbac(true);
-
-        when(managedClusterProperties.stream())
-                .thenReturn(Stream.of(managedClusterProps))
-                .thenReturn(Stream.of(managedClusterProps));
-
-        when(accessControlEntryRepository.findAll()).thenReturn(List.of(acl1, acl2));
-        when(applicationContext.getBean(AccessControlEntryAsyncExecutor.class, Qualifiers.byName("cluster")))
-                .thenReturn(accessControlEntryAsyncExecutor);
-        when(accessControlEntryRepository.create(acl1)).thenReturn(acl1);
-        doNothing().when(accessControlEntryRepository).delete(any());
-
-        Namespace namespace = Namespace.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("namespace1")
-                        .cluster("cluster")
-                        .build())
-                .build();
-
-        aclService.deleteAllGrantedToNamespace(namespace);
-
-        verify(accessControlEntryRepository).create(acl1);
-        verify(accessControlEntryRepository).delete(acl2);
-    }
-
-    @Test
     void shouldNotDeleteAllAclsForNamespaceWhenNoAcl() {
         Namespace namespace = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
@@ -2034,6 +1946,7 @@ class AclServiceTest {
 
         aclService.deleteAllGrantedToNamespace(namespace);
 
+        verify(accessControlEntryRepository, never()).create(any());
         verify(accessControlEntryRepository, never()).delete(any());
     }
 }

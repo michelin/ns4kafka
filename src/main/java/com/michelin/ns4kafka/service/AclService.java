@@ -35,15 +35,14 @@ import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidProtectedNamesp
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Resource;
-import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.AccessControlEntryRepository;
-import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
 import com.michelin.ns4kafka.util.RegexUtils;
 import io.micronaut.context.ApplicationContext;
-import io.micronaut.inject.qualifiers.Qualifiers;
 import jakarta.inject.Singleton;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
@@ -65,7 +64,6 @@ public class AclService {
 
     private final AccessControlEntryRepository accessControlEntryRepository;
     private final ApplicationContext applicationContext;
-    private final List<ManagedClusterProperties> managedClusterProperties;
 
     /**
      * Constructor.
@@ -74,12 +72,9 @@ public class AclService {
      * @param applicationContext The application context
      */
     public AclService(
-            AccessControlEntryRepository accessControlEntryRepository,
-            ApplicationContext applicationContext,
-            List<ManagedClusterProperties> managedClusterProperties) {
+            AccessControlEntryRepository accessControlEntryRepository, ApplicationContext applicationContext) {
         this.accessControlEntryRepository = accessControlEntryRepository;
         this.applicationContext = applicationContext;
-        this.managedClusterProperties = managedClusterProperties;
     }
 
     /**
@@ -186,7 +181,7 @@ public class AclService {
         //   namespace2 OWNER:PREFIXED:project2             KO 6 parent overlap
         //
         //   namespace2 OWNER:PREFIXED:project3_topic1_sub  OK 7
-        //   namespace2 OWNER:PREFIXED:project2             OK 8
+        //   namespace2 OWNER:LITERAL:project2              OK 8
         //   namespace2 OWNER:LITERAL:proj                  OK 9
         return findAllForCluster(namespace.getMetadata().getCluster()).stream()
                 // Do not include the ACL if it is itself
@@ -337,50 +332,16 @@ public class AclService {
     /**
      * Delete an ACL from broker and from internal topic.
      *
-     * @param accessControlEntry The ACL
+     * @param acl The ACL
      */
-    public void delete(AccessControlEntry accessControlEntry) {
-        AccessControlEntryAsyncExecutor accessControlEntryAsyncExecutor = applicationContext.getBean(
-                AccessControlEntryAsyncExecutor.class,
-                Qualifiers.byName(accessControlEntry.getMetadata().getCluster()));
-
-        Optional<ManagedClusterProperties> aclCluster = managedClusterProperties.stream()
-                .filter(cluster -> cluster.getName()
-                        .equals(accessControlEntry.getMetadata().getCluster()))
-                .findFirst();
-
-        if (aclCluster.isPresent() && aclCluster.get().isManageAcls()) {
-            accessControlEntryAsyncExecutor.deleteAcl(accessControlEntry);
-            accessControlEntryRepository.delete(accessControlEntry);
+    public void delete(AccessControlEntry acl) {
+        if (RESOURCE_TYPES_TO_DEPLOY.contains(acl.getSpec().getResourceType())) {
+            acl.getMetadata().setUpdateTimestamp(Date.from(Instant.now()));
+            acl.getMetadata().setStatus(Resource.Metadata.Status.ofDeleting());
+            accessControlEntryRepository.create(acl);
             return;
         }
-
-        if (aclCluster.isPresent()
-                && aclCluster.get().isConfluentCloud()
-                && aclCluster.get().isManageRbac()) {
-            if (RESOURCE_TYPES_TO_DEPLOY.contains(accessControlEntry.getSpec().getResourceType())) {
-                accessControlEntry.getMetadata().setStatus(Resource.Metadata.Status.ofDeleting());
-                accessControlEntryRepository.create(accessControlEntry);
-                return;
-            }
-
-            accessControlEntryRepository.delete(accessControlEntry);
-        }
-    }
-
-    /**
-     * Check if the cluster manages Confluent Cloud RBAC.
-     *
-     * @param accessControlEntry The ACL
-     * @return true if the cluster is Confluent Cloud with RBAC management enabled, false otherwise
-     */
-    public boolean isClusterManagingRbac(AccessControlEntry accessControlEntry) {
-        String cluster = accessControlEntry.getMetadata().getCluster();
-        return managedClusterProperties.stream()
-                .filter(clusterProperties -> clusterProperties.getName().equals(cluster))
-                .findFirst()
-                .map(clusterProperties -> clusterProperties.isConfluentCloud() && clusterProperties.isManageRbac())
-                .orElse(false);
+        accessControlEntryRepository.delete(acl);
     }
 
     /**
@@ -583,6 +544,32 @@ public class AclService {
     }
 
     /**
+     * Find all public ACLs to deploy for a cluster.
+     *
+     * @param cluster The cluster
+     * @return A list of ACLs to deploy
+     */
+    public List<AccessControlEntry> findPublicToDeployForCluster(String cluster) {
+        return accessControlEntryRepository.findAll().stream()
+                .filter(acl -> acl.getMetadata().getCluster().equals(cluster) && isPublicAcl(acl))
+                .filter(Resource::isPending)
+                .toList();
+    }
+
+    /**
+     * Find all ACLs to deploy for a cluster.
+     *
+     * @param cluster The cluster
+     * @return A list of ACLs
+     */
+    public List<AccessControlEntry> findAllToDeployForCluster(String cluster) {
+        return accessControlEntryRepository.findAll().stream()
+                .filter(acl -> acl.getMetadata().getCluster().equals(cluster))
+                .filter(Resource::isPending)
+                .toList();
+    }
+
+    /**
      * Find all non-public ACLs to delete for a cluster.
      *
      * @param cluster The cluster
@@ -591,6 +578,32 @@ public class AclService {
     public List<AccessControlEntry> findNonPublicToDeleteForCluster(String cluster) {
         return accessControlEntryRepository.findAll().stream()
                 .filter(acl -> acl.getMetadata().getCluster().equals(cluster) && !isPublicAcl(acl))
+                .filter(Resource::isDeleting)
+                .toList();
+    }
+
+    /**
+     * Find all public ACLs to delete for a cluster.
+     *
+     * @param cluster The cluster
+     * @return A list of ACLs to delete
+     */
+    public List<AccessControlEntry> findPublicToDeleteForCluster(String cluster) {
+        return accessControlEntryRepository.findAll().stream()
+                .filter(acl -> acl.getMetadata().getCluster().equals(cluster) && !isPublicAcl(acl))
+                .filter(Resource::isDeleting)
+                .toList();
+    }
+
+    /**
+     * Find all ACLs to delete for a cluster.
+     *
+     * @param cluster The cluster
+     * @return A list of ACLs
+     */
+    public List<AccessControlEntry> findAllToDeleteForCluster(String cluster) {
+        return accessControlEntryRepository.findAll().stream()
+                .filter(acl -> acl.getMetadata().getCluster().equals(cluster))
                 .filter(Resource::isDeleting)
                 .toList();
     }

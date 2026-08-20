@@ -20,7 +20,7 @@ ns4kafka:
       connects:
         test-connect:
           url: "localhost:8083"
-      manage-acls: true
+      manage-acls: "ACLS"
       manage-connectors: true
       manage-topics: true
       manage-users: true
@@ -51,7 +51,7 @@ ns4kafka:
       connects:
         test-connect:
           url: "localhost:8083"
-      manage-acls: true
+      manage-acls: "CONFLUENT_RBAC"
       manage-connectors: true
       manage-topics: true
       manage-users: true
