@@ -22,6 +22,7 @@ import io.micronaut.context.annotation.ConfigurationProperties;
 import io.micronaut.context.annotation.EachProperty;
 import io.micronaut.context.annotation.Parameter;
 import io.micronaut.serde.annotation.Serdeable;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import lombok.Getter;
@@ -44,7 +45,7 @@ public class ManagedClusterProperties {
     private TimeoutProperties timeout = new TimeoutProperties();
     private KafkaProvider provider;
     private Properties config;
-    private Map<String, ConnectProperties> connects;
+    private Map<String, ConnectProperties> connects = new HashMap<>();
     private SchemaRegistryProperties schemaRegistry;
     private ConfluentCloudProperties confluentCloud;
     private Admin adminClient = null;
