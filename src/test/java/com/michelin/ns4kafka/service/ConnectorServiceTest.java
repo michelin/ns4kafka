@@ -1456,7 +1456,7 @@ class ConnectorServiceTest {
                 .consumeErrorWith(error -> {
                     assertEquals(ResourceValidationException.class, error.getClass());
                     assertEquals(
-                            "Invalid \"reset offset\" operation: connector \"ns-connect1\" must be in the STOPPED state before offsets can be reset. Stop the connector first using ns4kafka API or Kafkactl, then retry the reset.",
+                            "Invalid \"reset offset\" operation: connector \"ns-connect1\" must be in the STOPPED state before offsets can be reset. Stop the connector first using \"kafkactl connector stop\", then retry the reset.",
                             ((ResourceValidationException) error)
                                     .getValidationErrors()
                                     .getFirst());

@@ -340,7 +340,7 @@ public class FormatErrorUtils {
                 OPERATION_RESET_OFFSET,
                 String.format(
                         "connector \"%s\" must be in the %s state before offsets can be reset. "
-                                + "Stop the connector first using ns4kafka API or Kafkactl, then retry the reset",
+                                + "Stop the connector first using \"kafkactl connector stop\", then retry the reset",
                         connector, targetState));
     }
 
