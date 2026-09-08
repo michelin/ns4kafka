@@ -311,9 +311,10 @@ public class ConnectorService {
                                 sinkOffset
                                         ? (Integer) connectorOffset.partition().get("kafka_partition")
                                         : connectorOffset.partition())
-                        .offset(sinkOffset
-                                ? (offset == null ? null : ((Number) offset).longValue())
-                                : connectorOffset.offset())
+                        .offset(
+                                sinkOffset
+                                        ? (offset == null ? null : ((Number) offset).longValue())
+                                        : connectorOffset.offset())
                         .build())
                 .build();
     }

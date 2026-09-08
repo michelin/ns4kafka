@@ -1371,8 +1371,8 @@ class ConnectorServiceTest {
         StepVerifier.create(connectorService.listOffsets(namespace, connector))
                 .consumeNextWith(offsets -> {
                     assertEquals(1, offsets.size());
-                                        assertEquals(sourcePartition, offsets.getFirst().getSpec().getPartition());
-                                        assertEquals(sourceOffset, offsets.getFirst().getSpec().getOffset());
+                    assertEquals(sourcePartition, offsets.getFirst().getSpec().getPartition());
+                    assertEquals(sourceOffset, offsets.getFirst().getSpec().getOffset());
                 })
                 .verifyComplete();
     }
