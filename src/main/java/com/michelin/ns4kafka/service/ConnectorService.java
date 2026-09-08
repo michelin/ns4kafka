@@ -294,17 +294,20 @@ public class ConnectorService {
                         connector.getSpec().getConnectCluster(),
                         connector.getMetadata().getName())
                 .map(connectorOffsets -> connectorOffsets.offsets().stream()
-                        .map(this::toConnectorOffsetResponse)
+                        .map(connectorOffset -> toConnectorOffsetResponse(
+                                connector.getMetadata().getName(), connectorOffset))
                         .toList());
     }
 
-    private ConnectorOffsetResponse toConnectorOffsetResponse(ConnectorOffsets.ConnectorOffset connectorOffset) {
+    private ConnectorOffsetResponse toConnectorOffsetResponse(
+            String connectorName, ConnectorOffsets.ConnectorOffset connectorOffset) {
         boolean sinkOffset = connectorOffset.partition().containsKey("kafka_topic")
                 && connectorOffset.partition().containsKey("kafka_partition");
         Object offset = connectorOffset.offset() == null
                 ? null
                 : connectorOffset.offset().get("kafka_offset");
         return ConnectorOffsetResponse.builder()
+                .metadata(Resource.Metadata.builder().name(connectorName).build())
                 .spec(ConnectorOffsetResponse.ConnectorOffsetResponseSpec.builder()
                         .topic(sinkOffset ? (String) connectorOffset.partition().get("kafka_topic") : null)
                         .partition(
