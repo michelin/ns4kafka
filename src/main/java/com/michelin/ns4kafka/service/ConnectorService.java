@@ -294,28 +294,9 @@ public class ConnectorService {
                         connector.getSpec().getConnectCluster(),
                         connector.getMetadata().getName())
                 .map(connectorOffsets -> connectorOffsets.offsets().stream()
-                        .map(this::toConnectorOffsetResponse)
+                        .map(connectorOffset -> toConnectorOffsetResponse(
+                                connector.getMetadata().getName(), connectorOffset))
                         .toList());
-    }
-
-    private ConnectorOffsetResponse toConnectorOffsetResponse(ConnectorOffsets.ConnectorOffset connectorOffset) {
-        boolean sinkOffset = connectorOffset.partition().containsKey("kafka_topic")
-                && connectorOffset.partition().containsKey("kafka_partition");
-        Object offset = connectorOffset.offset() == null
-                ? null
-                : connectorOffset.offset().get("kafka_offset");
-        return ConnectorOffsetResponse.builder()
-                .spec(ConnectorOffsetResponse.ConnectorOffsetResponseSpec.builder()
-                        .topic(sinkOffset ? (String) connectorOffset.partition().get("kafka_topic") : null)
-                        .partition(
-                                sinkOffset
-                                        ? (Integer) connectorOffset.partition().get("kafka_partition")
-                                        : null)
-                        .offset(sinkOffset && offset != null ? ((Number) offset).longValue() : null)
-                        .sourcePartition(sinkOffset ? null : connectorOffset.partition())
-                        .sourceOffset(sinkOffset ? null : connectorOffset.offset())
-                        .build())
-                .build();
     }
 
     /**
@@ -429,5 +410,35 @@ public class ConnectorService {
 
                     return kafkaConnectClient.resetOffsets(kafkaCluster, connectCluster, connectorName);
                 });
+    }
+
+    /**
+     * Convert a Kafka Connect offset to a connector offset response.
+     *
+     * @param connectorName The connector name
+     * @param connectorOffset The Kafka Connect offset
+     * @return The connector offset response
+     */
+    private ConnectorOffsetResponse toConnectorOffsetResponse(
+            String connectorName, ConnectorOffsets.ConnectorOffset connectorOffset) {
+        boolean sinkOffset = connectorOffset.partition().containsKey("kafka_topic")
+                && connectorOffset.partition().containsKey("kafka_partition");
+        Object offset = connectorOffset.offset() == null
+                ? null
+                : connectorOffset.offset().get("kafka_offset");
+        return ConnectorOffsetResponse.builder()
+                .metadata(Resource.Metadata.builder().name(connectorName).build())
+                .spec(ConnectorOffsetResponse.ConnectorOffsetResponseSpec.builder()
+                        .topic(sinkOffset ? (String) connectorOffset.partition().get("kafka_topic") : null)
+                        .partition(
+                                sinkOffset
+                                        ? connectorOffset.partition().get("kafka_partition")
+                                        : connectorOffset.partition())
+                        .offset(
+                                sinkOffset
+                                        ? (offset == null ? null : ((Number) offset).longValue())
+                                        : connectorOffset.offset())
+                        .build())
+                .build();
     }
 }

@@ -24,7 +24,6 @@ import com.michelin.ns4kafka.model.Resource;
 import io.micronaut.serde.annotation.Serdeable;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
-import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -61,9 +60,7 @@ public class ConnectorOffsetResponse extends Resource {
     @NoArgsConstructor
     public static class ConnectorOffsetResponseSpec {
         private String topic;
-        private Integer partition;
-        private Long offset;
-        private Map<String, Object> sourcePartition;
-        private Map<String, Object> sourceOffset;
+        private Object partition;
+        private Object offset;
     }
 }

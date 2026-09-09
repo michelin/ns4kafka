@@ -21,6 +21,7 @@ package com.michelin.ns4kafka.service;
 import static com.michelin.ns4kafka.service.client.connect.entities.ConnectorType.SOURCE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -1328,6 +1329,7 @@ class ConnectorServiceTest {
         StepVerifier.create(connectorService.listOffsets(namespace, connector))
                 .consumeNextWith(offsets -> {
                     assertEquals(1, offsets.size());
+                    assertEquals("ns-connect1", offsets.getFirst().getMetadata().getName());
                     assertEquals("topic-a", offsets.getFirst().getSpec().getTopic());
                     assertEquals(0, offsets.getFirst().getSpec().getPartition());
                     assertEquals(42L, offsets.getFirst().getSpec().getOffset());
@@ -1371,8 +1373,10 @@ class ConnectorServiceTest {
         StepVerifier.create(connectorService.listOffsets(namespace, connector))
                 .consumeNextWith(offsets -> {
                     assertEquals(1, offsets.size());
-                    assertEquals(sourcePartition, offsets.getFirst().getSpec().getSourcePartition());
-                    assertEquals(sourceOffset, offsets.getFirst().getSpec().getSourceOffset());
+                    assertEquals("ns-connect1", offsets.getFirst().getMetadata().getName());
+                    assertNull(offsets.getFirst().getSpec().getTopic());
+                    assertEquals(sourcePartition, offsets.getFirst().getSpec().getPartition());
+                    assertEquals(sourceOffset, offsets.getFirst().getSpec().getOffset());
                 })
                 .verifyComplete();
     }
