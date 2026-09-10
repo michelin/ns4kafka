@@ -45,6 +45,7 @@ Ns4Kafka brings a namespace-based deployment model for Kafka resources, inspired
       * [Confluent Cloud](#confluent-cloud)
         * [Stream Catalog](#stream-catalog)
         * [Role Binding](#role-binding)
+        * [API Key Creation](#api-key-creation)
     * [Audit Log](#audit-log)
       * [Console](#console)
       * [Kafka](#kafka-1)
@@ -489,6 +490,51 @@ ns4kafka:
 | confluent-cloud.basic-auth-password  | string  | No       | Basic authentication password to the Confluent Cloud API. Required to use [Confluent Cloud Role Binding](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html).                |
 
 Ns4Kafka ACLs will be converted to the corresponding Role Bindings when synchronized.
+
+#### API Key Creation
+
+Confluent Cloud API keys can be created for a namespace's service account using Ns4Kafka.
+
+You can configure API key creation using the following properties:
+
+```yaml
+ns4kafka:
+  managed-clusters:
+    cluster-name:
+      provider: "CONFLUENT_CLOUD"
+      confluent-cloud:
+        environment-id: "env-xxx"
+        cluster-id: "lkc-xxx"
+        url: "https://api.confluent.cloud"
+        basic-auth-username: "my-cloud-api-key"
+        basic-auth-password: "my-cloud-api-secret"
+```
+
+| Property                            | Type   | Required | Description                                              |
+|-------------------------------------|--------|----------|----------------------------------------------------------|
+| confluent-cloud.environment-id       | string | Yes      | Confluent Cloud environment ID.                           |
+| confluent-cloud.cluster-id           | string | Yes      | Confluent Cloud Kafka cluster ID.                         |
+| confluent-cloud.url                  | string | Yes      | Confluent Cloud API hostname.                             |
+| confluent-cloud.basic-auth-username  | string | Yes      | Cloud resource management API key.                        |
+| confluent-cloud.basic-auth-password  | string | Yes      | Cloud resource management API secret.                     |
+
+The management credentials must have permission to read the service account and create API keys for that account
+and cluster. Kafka cluster API keys cannot be used as management credentials.
+
+Call `POST /api/namespaces/{namespace}/users/{user}/api-keys` without a request body.
+The caller needs `users/api-keys` POST permission. The user must match the namespace's `spec.kafkaUser`,
+which must contain the Confluent service account ID (`sa-...`), not its display name. Identity pools are unsupported.
+
+The endpoint returns HTTP `201` with a `KafkaUserApiKey` resource containing `spec.apiKey` and `spec.apiSecret`,
+and the `Cache-Control: no-store` header. Each successful call creates an additional key for the configured cluster.
+Existing keys are preserved.
+
+Save the secret from the response: it cannot be retrieved later and is not stored in audit events.
+[Propagation to brokers may take a few minutes](https://docs.confluent.io/cloud/current/security/authenticate/workload-identities/service-accounts/api-keys/manage-api-keys.html).
+
+Confluent API failures return HTTP `502` with the failed stage and upstream HTTP status; timeouts return HTTP `504`.
+Creation is not automatically retried. If a response is lost, check Confluent before making another request:
+a key may already have been created whose secret is unavailable.
 
 ### Audit Log
 
