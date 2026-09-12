@@ -41,6 +41,7 @@ import com.michelin.ns4kafka.validation.ValidationResult;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpResponse;
 import jakarta.inject.Singleton;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -76,6 +77,15 @@ public class ConnectorService {
         this.connectClusterService = connectClusterService;
         this.kafkaConnectClient = kafkaConnectClient;
         this.connectorRepository = connectorRepository;
+    }
+
+    /**
+     * Find all connectors.
+     *
+     * @return The list of connectors
+     */
+    public Collection<Connector> findAll() {
+        return connectorRepository.findAll();
     }
 
     /**
