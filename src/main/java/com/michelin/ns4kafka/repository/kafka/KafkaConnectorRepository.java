@@ -31,6 +31,7 @@ import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.TaskScheduler;
 import jakarta.inject.Named;
 import jakarta.inject.Singleton;
+import java.util.Collection;
 import java.util.List;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -72,6 +73,16 @@ public class KafkaConnectorRepository extends KafkaStore<Connector> implements C
     public String getMessageKey(Connector connector) {
         return connector.getMetadata().getNamespace() + "/"
                 + connector.getMetadata().getName();
+    }
+
+    /**
+     * Find all connectors.
+     *
+     * @return The list of connectors
+     */
+    @Override
+    public Collection<Connector> findAll() {
+        return getKafkaStore().values();
     }
 
     /**

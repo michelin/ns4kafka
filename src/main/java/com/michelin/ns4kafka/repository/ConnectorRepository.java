@@ -19,10 +19,18 @@
 package com.michelin.ns4kafka.repository;
 
 import com.michelin.ns4kafka.model.connect.Connector;
+import java.util.Collection;
 import java.util.List;
 
 /** Connector repository. */
 public interface ConnectorRepository {
+    /**
+     * Find all connectors.
+     *
+     * @return The list of connectors
+     */
+    Collection<Connector> findAll();
+
     /**
      * Find all connectors by cluster.
      *
