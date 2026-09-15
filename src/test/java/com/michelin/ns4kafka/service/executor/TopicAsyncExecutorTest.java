@@ -277,19 +277,6 @@ class TopicAsyncExecutorTest {
 
     @Test
     void shouldNotDeleteTopicWhenChangedSinceLastApply() {
-        when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
-        when(adminClient.deleteTopics(anyList())).thenReturn(deleteTopicsResult);
-        when(deleteTopicsResult.topicNameValues()).thenReturn(Map.of("topic", kafkaFuture));
-
-        ManagedClusterProperties.TimeoutProperties.TopicProperties topicProperties =
-                new ManagedClusterProperties.TimeoutProperties.TopicProperties();
-        topicProperties.setDelete(1000);
-
-        ManagedClusterProperties.TimeoutProperties timeoutProperties = new ManagedClusterProperties.TimeoutProperties();
-        timeoutProperties.setTopic(topicProperties);
-
-        when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
-
         Topic topic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
                         .cluster("local")
@@ -316,6 +303,7 @@ class TopicAsyncExecutorTest {
 
         topicAsyncExecutor.deleteTopics(List.of(topic));
 
+        verify(adminClient, never()).deleteTopics(anyList());
         verify(topicRepository, never()).create(any());
         verify(topicRepository, never()).delete(any());
     }
@@ -431,7 +419,8 @@ class TopicAsyncExecutorTest {
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
 
-        when(topicService.findByName("local", "topic")).thenReturn(Optional.of(newTopic));
+        // Reapplied while the broker deletion was in flight
+        when(topicService.findByName("local", "topic")).thenReturn(Optional.of(topic), Optional.of(newTopic));
 
         topicAsyncExecutor.deleteTopics(List.of(topic));
 

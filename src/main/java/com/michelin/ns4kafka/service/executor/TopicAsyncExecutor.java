@@ -28,6 +28,7 @@ import io.micronaut.context.annotation.EachBean;
 import jakarta.inject.Singleton;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -98,6 +99,16 @@ public class TopicAsyncExecutor {
             List<Topic> topicsToUpdate = partitioned.get(true);
             List<Topic> topicsToDelete = topicService.findAllToDeleteForCluster(managedClusterProperties.getName());
 
+            if (!topicsToDelete.isEmpty()) {
+                log.atDebug()
+                        .addArgument(topicsToDelete.stream()
+                                .map(topic -> topic.getMetadata().getName())
+                                .collect(Collectors.joining(",")))
+                        .log("Topic(s) to delete: {}");
+
+                deleteTopics(topicsToDelete);
+            }
+
             if (!topicsToCreate.isEmpty()) {
                 log.atDebug()
                         .addArgument(topicsToCreate.stream()
@@ -119,17 +130,6 @@ public class TopicAsyncExecutor {
                         .toList();
                 alterTopics(topicsToUpdate, collectBrokerTopicsFromNames(topicsNames));
             }
-
-            if (!topicsToDelete.isEmpty()) {
-                log.atDebug()
-                        .addArgument(topicsToDelete.stream()
-                                .map(topic -> topic.getMetadata().getName())
-                                .collect(Collectors.joining(",")))
-                        .log("Topic(s) to delete: {}");
-
-                deleteTopics(topicsToDelete);
-            }
-
         } catch (InterruptedException e) {
             log.error("Exception ", e);
             Thread.currentThread().interrupt();
@@ -165,15 +165,34 @@ public class TopicAsyncExecutor {
      */
     public Map<String, Topic> collectBrokerTopicsFromNames(List<String> topicNames)
             throws InterruptedException, ExecutionException, TimeoutException {
-        Map<String, TopicDescription> topicDescriptions = managedClusterProperties
+        Map<String, KafkaFuture<TopicDescription>> describeTopicsResult = managedClusterProperties
                 .getAdminClient()
                 .describeTopics(topicNames)
-                .allTopicNames()
-                .get();
+                .topicNameValues();
+
+        Map<String, TopicDescription> topicDescriptions = new HashMap<>();
+        for (Map.Entry<String, KafkaFuture<TopicDescription>> entry : describeTopicsResult.entrySet()) {
+            try {
+                topicDescriptions.put(
+                        entry.getKey(),
+                        entry.getValue()
+                                .get(
+                                        managedClusterProperties
+                                                .getTimeout()
+                                                .getTopic()
+                                                .getDescribeConfigs(),
+                                        TimeUnit.MILLISECONDS));
+            } catch (ExecutionException e) {
+                // Topics that no longer exist on the broker are left out, so that they get recreated
+                if (!(e.getCause() instanceof UnknownTopicOrPartitionException)) {
+                    throw e;
+                }
+            }
+        }
 
         return managedClusterProperties
                 .getAdminClient()
-                .describeConfigs(topicNames.stream()
+                .describeConfigs(topicDescriptions.keySet().stream()
                         .map(topicName -> new ConfigResource(ConfigResource.Type.TOPIC, topicName))
                         .toList())
                 .all()
@@ -296,7 +315,18 @@ public class TopicAsyncExecutor {
      * @param brokerTopics The current topics
      */
     public void alterTopics(List<Topic> targetTopics, Map<String, Topic> brokerTopics) {
-        Map<ConfigResource, Collection<AlterConfigOp>> topicConfigsToUpdate = targetTopics.stream()
+        Map<Boolean, List<Topic>> partitioned = targetTopics.stream()
+                .collect(Collectors.partitioningBy(
+                        topic -> brokerTopics.containsKey(topic.getMetadata().getName())));
+
+        // Topics missing from the broker cannot be altered, they are recreated instead
+        if (!partitioned.get(false).isEmpty()) {
+            createTopics(partitioned.get(false));
+        }
+
+        List<Topic> topicsToAlter = partitioned.get(true);
+
+        Map<ConfigResource, Collection<AlterConfigOp>> topicConfigsToUpdate = topicsToAlter.stream()
                 .collect(Collectors.toMap(
                         topic -> new ConfigResource(
                                 ConfigResource.Type.TOPIC, topic.getMetadata().getName()),
@@ -311,7 +341,7 @@ public class TopicAsyncExecutor {
 
         // Topics with no config changes are deployed without calling the broker.
         // Can happen on delete -> applying an existing topic with the same config.
-        targetTopics.stream()
+        topicsToAlter.stream()
                 .filter(topic -> topicConfigsToUpdate
                         .get(new ConfigResource(
                                 ConfigResource.Type.TOPIC, topic.getMetadata().getName()))
@@ -337,7 +367,7 @@ public class TopicAsyncExecutor {
         AlterConfigsResult alterConfigsResult =
                 managedClusterProperties.getAdminClient().incrementalAlterConfigs(topicConfigsToUpdate);
         alterConfigsResult.values().forEach((key, value) -> {
-            Topic updatedTopic = targetTopics.stream()
+            Topic updatedTopic = topicsToAlter.stream()
                     .filter(topic -> topic.getMetadata().getName().equals(key.name()))
                     .findFirst()
                     .get();
@@ -391,15 +421,24 @@ public class TopicAsyncExecutor {
      * @param topics The topics to delete
      */
     public void deleteTopics(List<Topic> topics) {
-        List<String> topicsNames =
-                topics.stream().map(topic -> topic.getMetadata().getName()).toList();
+        // Topics reapplied since the deletion was requested are not deleted from the broker
+        List<Topic> topicsToDelete =
+                topics.stream().filter(this::isUnchangedSinceLastApply).toList();
+
+        if (topicsToDelete.isEmpty()) {
+            return;
+        }
+
+        List<String> topicsNames = topicsToDelete.stream()
+                .map(topic -> topic.getMetadata().getName())
+                .toList();
 
         Map<String, KafkaFuture<Void>> deletedTopicsResult = managedClusterProperties
                 .getAdminClient()
                 .deleteTopics(topicsNames)
                 .topicNameValues();
 
-        topics.forEach(topicToDelete -> {
+        topicsToDelete.forEach(topicToDelete -> {
             try {
                 deletedTopicsResult
                         .get(topicToDelete.getMetadata().getName())
