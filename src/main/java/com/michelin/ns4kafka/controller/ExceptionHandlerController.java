@@ -25,6 +25,7 @@ import com.michelin.ns4kafka.model.Status.StatusDetails;
 import com.michelin.ns4kafka.util.exception.ForbiddenNamespaceException;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import com.michelin.ns4kafka.util.exception.UnknownNamespaceException;
+import io.micronaut.core.convert.exceptions.ConversionErrorException;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -212,6 +213,28 @@ public class ExceptionHandlerController {
                 .build();
 
         return HttpResponse.status(HttpStatus.FORBIDDEN).body(status);
+    }
+
+    /**
+     * Handle conversion error exception. Happens when a request parameter cannot be converted to the expected type.
+     *
+     * @param request the request
+     * @param exception the exception
+     * @return the http response
+     */
+    @Error(global = true)
+    public HttpResponse<Status> error(HttpRequest<?> request, ConversionErrorException exception) {
+        Status status = Status.builder()
+                .status(FAILED)
+                .message("Bad request")
+                .httpStatus(HttpStatus.BAD_REQUEST)
+                .details(StatusDetails.builder()
+                        .causes(List.of(
+                                exception.getConversionError().getCause().getMessage()))
+                        .build())
+                .build();
+
+        return HttpResponse.badRequest().body(status);
     }
 
     /**

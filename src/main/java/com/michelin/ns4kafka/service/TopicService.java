@@ -28,6 +28,7 @@ import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_DELETE;
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Resource;
+import com.michelin.ns4kafka.model.Resource.Metadata.Phase;
 import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.TopicRepository;
@@ -47,6 +48,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.RecordsToDelete;
 import org.apache.kafka.common.TopicPartition;
+import org.jspecify.annotations.Nullable;
 
 /** Service to manage topics. */
 @Singleton
@@ -82,6 +84,21 @@ public class TopicService {
      */
     public Collection<Topic> findAll() {
         return topicRepository.findAll();
+    }
+
+    /**
+     * Find all topics, filtered by the given metadata status phase.
+     *
+     * @param phase The phase filter. If null, all topics are returned
+     * @return The list of topics
+     */
+    public Collection<Topic> findAllByPhase(@Nullable Phase phase) {
+        return findAll().stream()
+                .filter(topic -> phase == null
+                        || (topic.getMetadata() != null
+                                && topic.getMetadata().getStatus() != null
+                                && phase == topic.getMetadata().getStatus().getPhase()))
+                .toList();
     }
 
     /**
