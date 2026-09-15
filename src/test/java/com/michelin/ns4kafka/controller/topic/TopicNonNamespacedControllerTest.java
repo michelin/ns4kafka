@@ -50,11 +50,27 @@ class TopicNonNamespacedControllerTest {
                 .metadata(Resource.Metadata.builder().name("topic2").build())
                 .build();
 
-        when(topicService.findAll()).thenReturn(List.of(topic, topic2));
+        when(topicService.findAllByPhase(null)).thenReturn(List.of(topic, topic2));
 
-        Collection<Topic> actual = topicController.listAll();
+        Collection<Topic> actual = topicController.listAll(null);
 
         assertEquals(2, actual.size());
         assertEquals(List.of(topic, topic2), actual);
+    }
+
+    @Test
+    void shouldFindAllByPhase() {
+        Topic topic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("topic1")
+                        .status(Resource.Metadata.Status.ofPending())
+                        .build())
+                .build();
+
+        when(topicService.findAllByPhase(Resource.Metadata.Phase.PENDING)).thenReturn(List.of(topic));
+
+        Collection<Topic> actual = topicController.listAll(Resource.Metadata.Phase.PENDING);
+
+        assertEquals(List.of(topic), actual);
     }
 }

@@ -420,7 +420,9 @@ class TopicAsyncExecutorTest {
                 .build();
 
         // Reapplied while the broker deletion was in flight
-        when(topicService.findByName("local", "topic")).thenReturn(Optional.of(topic), Optional.of(newTopic));
+        when(topicService.findByName("local", "topic"))
+                .thenReturn(Optional.of(topic))
+                .thenReturn(Optional.of(newTopic));
 
         topicAsyncExecutor.deleteTopics(List.of(topic));
 

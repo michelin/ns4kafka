@@ -23,8 +23,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.Status;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
+import io.micronaut.core.convert.exceptions.ConversionErrorException;
+import io.micronaut.core.type.Argument;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
@@ -119,6 +122,24 @@ class ExceptionHandlerControllerTest {
         assertEquals("Bad Gateway", response.body().getMessage());
         assertEquals(
                 "Connect cluster unreachable",
+                response.body().getDetails().getCauses().getFirst());
+    }
+
+    @Test
+    void shouldHandleConversionErrorException() {
+        HttpResponse<Status> response = exceptionHandlerController.error(
+                HttpRequest.create(HttpMethod.GET, "/api/topics?phase=unknownPhase"),
+                new ConversionErrorException(
+                        Argument.of(Resource.Metadata.Phase.class, "phase"),
+                        new IllegalArgumentException(
+                                "No enum constant com.michelin.ns4kafka.model.Resource.Metadata.Phase.unknownPhase")));
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatus());
+        assertNotNull(response.body());
+        assertEquals(HttpStatus.BAD_REQUEST.getCode(), response.body().getCode());
+        assertEquals("Bad request", response.body().getMessage());
+        assertEquals(
+                "No enum constant com.michelin.ns4kafka.model.Resource.Metadata.Phase.unknownPhase",
                 response.body().getDetails().getCauses().getFirst());
     }
 

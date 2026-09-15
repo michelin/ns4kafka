@@ -826,6 +826,50 @@ class TopicServiceTest {
     }
 
     @Test
+    void shouldFindAllTopicsByPhase() {
+        Topic pending = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns-topic1")
+                        .status(Resource.Metadata.Status.ofPending())
+                        .build())
+                .build();
+
+        Topic success = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns-topic2")
+                        .status(Resource.Metadata.Status.ofSuccess())
+                        .build())
+                .build();
+
+        Topic noStatus = Topic.builder()
+                .metadata(Resource.Metadata.builder().name("ns-topic3").build())
+                .build();
+
+        when(topicRepository.findAll()).thenReturn(List.of(pending, success, noStatus));
+
+        assertEquals(List.of(pending), topicService.findAllByPhase(Resource.Metadata.Phase.PENDING));
+        assertEquals(List.of(), topicService.findAllByPhase(Resource.Metadata.Phase.DELETING));
+    }
+
+    @Test
+    void shouldFindAllTopicsWhenNoPhaseGiven() {
+        Topic pending = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns-topic1")
+                        .status(Resource.Metadata.Status.ofPending())
+                        .build())
+                .build();
+
+        Topic noStatus = Topic.builder()
+                .metadata(Resource.Metadata.builder().name("ns-topic2").build())
+                .build();
+
+        when(topicRepository.findAll()).thenReturn(List.of(pending, noStatus));
+
+        assertEquals(List.of(pending, noStatus), topicService.findAllByPhase(null));
+    }
+
+    @Test
     void shouldListUnsynchronizedTopicNames() throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
