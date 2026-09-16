@@ -27,6 +27,7 @@ import static com.michelin.ns4kafka.util.config.ConnectorConfig.CONNECTOR_CLASS;
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Resource;
+import com.michelin.ns4kafka.model.Resource.Metadata.Phase;
 import com.michelin.ns4kafka.model.connect.Connector;
 import com.michelin.ns4kafka.model.connect.ConnectorOffsetResponse;
 import com.michelin.ns4kafka.repository.ConnectorRepository;
@@ -48,6 +49,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -86,6 +88,21 @@ public class ConnectorService {
      */
     public Collection<Connector> findAll() {
         return connectorRepository.findAll();
+    }
+
+    /**
+     * Find all connectors, filtered by the given metadata status phase.
+     *
+     * @param phase The phase filter. If null, all connectors are returned
+     * @return The list of connectors
+     */
+    public Collection<Connector> findAllByPhase(@Nullable Phase phase) {
+        return findAll().stream()
+                .filter(connector -> phase == null
+                        || (connector.getMetadata() != null
+                                && connector.getMetadata().getStatus() != null
+                                && phase == connector.getMetadata().getStatus().getPhase()))
+                .toList();
     }
 
     /**

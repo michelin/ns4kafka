@@ -46,6 +46,8 @@ import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -166,6 +168,126 @@ class ConnectorAsyncExecutorTest {
 
         verify(connectorRepository).create(argThat(c -> c.equals(newConnector) && c.isPending() && c.isCreated()));
         verify(connectorRepository, never()).delete(any());
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+            value = {"1000, null, true", "null, 1000, false"},
+            nullValues = "null")
+    void shouldHandleNullableUpdateTimestampsWhenCreating(
+            Long queuedTimestamp, Long latestTimestamp, boolean shouldMarkSuccess) {
+        Namespace namespace = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Connector connector = Connector.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("connect1")
+                        .namespace("namespace")
+                        .status(Resource.Metadata.Status.ofPending())
+                        .updateTimestamp(queuedTimestamp == null ? null : new Date(queuedTimestamp))
+                        .generation(0)
+                        .build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("connect-cluster")
+                        .config(Map.of("connector.class", "io.connect.MyConnector"))
+                        .build())
+                .build();
+
+        Connector latestConnector = Connector.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("connect1")
+                        .namespace("namespace")
+                        .status(Resource.Metadata.Status.ofPending())
+                        .updateTimestamp(latestTimestamp == null ? null : new Date(latestTimestamp))
+                        .generation(0)
+                        .build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("connect-cluster")
+                        .config(Map.of("connector.class", "io.connect.MyConnector"))
+                        .build())
+                .build();
+
+        when(managedClusterProperties.isManageConnectors()).thenReturn(true);
+        when(managedClusterProperties.getName()).thenReturn("local");
+        when(connectorRepository.findAllForCluster("local")).thenReturn(List.of(connector));
+        when(kafkaConnectClient.createOrUpdate(anyString(), anyString(), anyString(), any(ConnectorSpecs.class)))
+                .thenReturn(Mono.just(new ConnectorInfo("connect1", Map.of(), List.of(), null)));
+        when(namespaceService.findByName("namespace")).thenReturn(Optional.of(namespace));
+        when(connectorService.findByName(namespace, "connect1")).thenReturn(Optional.of(latestConnector));
+
+        StepVerifier.create(connectorAsyncExecutor.run()).expectNextCount(1).verifyComplete();
+
+        verify(connectorRepository)
+                .create(argThat(c ->
+                        c == latestConnector && c.isCreated() && (shouldMarkSuccess ? c.isSuccess() : c.isPending())));
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+            value = {"1000, null, true", "null, 1000, false"},
+            nullValues = "null")
+    void shouldHandleNullableUpdateTimestampsWhenDeleting(
+            Long queuedTimestamp, Long latestTimestamp, boolean shouldDelete) {
+        Namespace namespace = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Connector connector = Connector.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("connect1")
+                        .namespace("namespace")
+                        .status(Resource.Metadata.Status.ofDeleting())
+                        .updateTimestamp(queuedTimestamp == null ? null : new Date(queuedTimestamp))
+                        .generation(1)
+                        .build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("connect-cluster")
+                        .config(Map.of("connector.class", "io.connect.MyConnector"))
+                        .build())
+                .build();
+
+        Connector latestConnector = Connector.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("connect1")
+                        .namespace("namespace")
+                        .status(
+                                shouldDelete
+                                        ? Resource.Metadata.Status.ofDeleting()
+                                        : Resource.Metadata.Status.ofPending())
+                        .updateTimestamp(latestTimestamp == null ? null : new Date(latestTimestamp))
+                        .generation(1)
+                        .build())
+                .spec(Connector.ConnectorSpec.builder()
+                        .connectCluster("connect-cluster")
+                        .config(Map.of("connector.class", "io.connect.MyConnector"))
+                        .build())
+                .build();
+
+        when(managedClusterProperties.isManageConnectors()).thenReturn(true);
+        when(managedClusterProperties.getName()).thenReturn("local");
+        when(connectorRepository.findAllForCluster("local")).thenReturn(List.of(connector));
+        when(kafkaConnectClient.delete("local", "connect-cluster", "connect1"))
+                .thenReturn(Mono.just(HttpResponse.noContent()));
+        when(namespaceService.findByName("namespace")).thenReturn(Optional.of(namespace));
+        when(connectorService.findByName(namespace, "connect1")).thenReturn(Optional.of(latestConnector));
+        if (shouldDelete) {
+            when(connectClusterRepository.findAllForCluster("local")).thenReturn(List.of());
+        }
+
+        StepVerifier.create(connectorAsyncExecutor.run()).verifyComplete();
+
+        if (shouldDelete) {
+            verify(connectorRepository).delete(connector);
+        } else {
+            verify(connectorRepository, never()).delete(any());
+        }
     }
 
     @Test

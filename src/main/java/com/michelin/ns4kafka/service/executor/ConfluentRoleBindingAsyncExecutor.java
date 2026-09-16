@@ -135,11 +135,14 @@ public class ConfluentRoleBindingAsyncExecutor {
 
                                     // Only mark ACL as success if it has not been re-applied since last deployment
                                     boolean unchangedSinceLastApply = existingAcl.isEmpty()
-                                            || !existingAcl
-                                                    .get()
-                                                    .getMetadata()
-                                                    .getUpdateTimestamp()
-                                                    .after(acl.getMetadata().getUpdateTimestamp());
+                                            || existingAcl.get().getMetadata().getUpdateTimestamp() == null
+                                            || (acl.getMetadata().getUpdateTimestamp() != null
+                                                    && !existingAcl
+                                                            .get()
+                                                            .getMetadata()
+                                                            .getUpdateTimestamp()
+                                                            .after(acl.getMetadata()
+                                                                    .getUpdateTimestamp()));
                                     if (unchangedSinceLastApply) {
                                         lastVersion.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
                                     }
@@ -191,11 +194,13 @@ public class ConfluentRoleBindingAsyncExecutor {
 
                                 // Only mark Kafka stream as success if it has not been re-applied since last deployment
                                 boolean unchangedSinceLastApply = existingStream.isEmpty()
-                                        || !existingStream
-                                                .get()
-                                                .getMetadata()
-                                                .getUpdateTimestamp()
-                                                .after(ks.getMetadata().getUpdateTimestamp());
+                                        || existingStream.get().getMetadata().getUpdateTimestamp() == null
+                                        || (ks.getMetadata().getUpdateTimestamp() != null
+                                                && !existingStream
+                                                        .get()
+                                                        .getMetadata()
+                                                        .getUpdateTimestamp()
+                                                        .after(ks.getMetadata().getUpdateTimestamp()));
                                 if (unchangedSinceLastApply) {
                                     lastVersion.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
                                 }
@@ -445,7 +450,8 @@ public class ConfluentRoleBindingAsyncExecutor {
         Optional<AccessControlEntry> existingAcl = aclService.findByName(
                 acl.getMetadata().getNamespace(), acl.getMetadata().getName());
         return existingAcl.isEmpty()
-                || (existingAcl.get().getMetadata().getUpdateTimestamp() != null
+                || existingAcl.get().getMetadata().getUpdateTimestamp() == null
+                || (acl.getMetadata().getUpdateTimestamp() != null
                         && !existingAcl
                                 .get()
                                 .getMetadata()
@@ -467,7 +473,8 @@ public class ConfluentRoleBindingAsyncExecutor {
             Optional<KafkaStream> existingStream = streamService.findByName(
                     existingNamespace.get(), kafkaStream.getMetadata().getName());
             return existingStream.isEmpty()
-                    || (existingStream.get().getMetadata().getUpdateTimestamp() != null
+                    || existingStream.get().getMetadata().getUpdateTimestamp() == null
+                    || (kafkaStream.getMetadata().getUpdateTimestamp() != null
                             && !existingStream
                                     .get()
                                     .getMetadata()

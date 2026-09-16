@@ -97,6 +97,50 @@ class ConnectorServiceTest {
     }
 
     @Test
+    void shouldFindAllConnectorsByPhase() {
+        Connector pending = Connector.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("connect1")
+                        .status(Resource.Metadata.Status.ofPending())
+                        .build())
+                .build();
+
+        Connector success = Connector.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("connect2")
+                        .status(Resource.Metadata.Status.ofSuccess())
+                        .build())
+                .build();
+
+        Connector noStatus = Connector.builder()
+                .metadata(Resource.Metadata.builder().name("connect3").build())
+                .build();
+
+        when(connectorRepository.findAll()).thenReturn(List.of(pending, success, noStatus));
+
+        assertEquals(List.of(pending), connectorService.findAllByPhase(Resource.Metadata.Phase.PENDING));
+        assertEquals(List.of(), connectorService.findAllByPhase(Resource.Metadata.Phase.DELETING));
+    }
+
+    @Test
+    void shouldFindAllConnectorsWhenNoPhaseGiven() {
+        Connector pending = Connector.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("connect1")
+                        .status(Resource.Metadata.Status.ofPending())
+                        .build())
+                .build();
+
+        Connector noStatus = Connector.builder()
+                .metadata(Resource.Metadata.builder().name("connect2").build())
+                .build();
+
+        when(connectorRepository.findAll()).thenReturn(List.of(pending, noStatus));
+
+        assertEquals(List.of(pending, noStatus), connectorService.findAllByPhase(null));
+    }
+
+    @Test
     void shouldFindAllForNamespace() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
