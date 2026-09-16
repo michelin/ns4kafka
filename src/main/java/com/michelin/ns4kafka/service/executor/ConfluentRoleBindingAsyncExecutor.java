@@ -445,11 +445,16 @@ public class ConfluentRoleBindingAsyncExecutor {
         Optional<AccessControlEntry> existingAcl = aclService.findByName(
                 acl.getMetadata().getNamespace(), acl.getMetadata().getName());
         return existingAcl.isEmpty()
-                || !existingAcl
-                        .get()
-                        .getMetadata()
-                        .getUpdateTimestamp()
-                        .after(acl.getMetadata().getUpdateTimestamp());
+                || (existingAcl
+                                .get()
+                                .getMetadata()
+                                .getUpdateTimestamp()
+                                != null
+                        && !existingAcl
+                                .get()
+                                .getMetadata()
+                                .getUpdateTimestamp()
+                                .after(acl.getMetadata().getUpdateTimestamp()));
     }
 
     /**
@@ -466,11 +471,16 @@ public class ConfluentRoleBindingAsyncExecutor {
             Optional<KafkaStream> existingStream = streamService.findByName(
                     existingNamespace.get(), kafkaStream.getMetadata().getName());
             return existingStream.isEmpty()
-                    || !existingStream
-                            .get()
-                            .getMetadata()
-                            .getUpdateTimestamp()
-                            .after(kafkaStream.getMetadata().getUpdateTimestamp());
+                    || (existingStream
+                                    .get()
+                                    .getMetadata()
+                                    .getUpdateTimestamp()
+                                    != null
+                            && !existingStream
+                                    .get()
+                                    .getMetadata()
+                                    .getUpdateTimestamp()
+                                    .after(kafkaStream.getMetadata().getUpdateTimestamp()));
         }
         return true;
     }

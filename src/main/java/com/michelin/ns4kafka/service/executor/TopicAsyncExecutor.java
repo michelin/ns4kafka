@@ -589,10 +589,15 @@ public class TopicAsyncExecutor {
                 topic.getMetadata().getCluster(), topic.getMetadata().getName());
 
         return existingTopic.isEmpty()
-                || !existingTopic
-                        .get()
-                        .getMetadata()
-                        .getUpdateTimestamp()
-                        .after(topic.getMetadata().getUpdateTimestamp());
+                || (existingTopic
+                                .get()
+                                .getMetadata()
+                                .getUpdateTimestamp()
+                                != null
+                        && !existingTopic
+                                .get()
+                                .getMetadata()
+                                .getUpdateTimestamp()
+                                .after(topic.getMetadata().getUpdateTimestamp()));
     }
 }
