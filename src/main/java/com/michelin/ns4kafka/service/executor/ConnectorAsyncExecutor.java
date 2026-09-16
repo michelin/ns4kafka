@@ -304,11 +304,7 @@ public class ConnectorAsyncExecutor {
             Optional<Connector> existingConnector = connectorService.findByName(
                     existingNamespace.get(), connector.getMetadata().getName());
             return existingConnector.isEmpty()
-                    || (existingConnector
-                                    .get()
-                                    .getMetadata()
-                                    .getUpdateTimestamp()
-                                    != null
+                    || (existingConnector.get().getMetadata().getUpdateTimestamp() != null
                             && !existingConnector
                                     .get()
                                     .getMetadata()
