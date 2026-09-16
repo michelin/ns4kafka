@@ -263,11 +263,13 @@ public class TopicAsyncExecutor {
                 lastVersion.getMetadata().setGeneration(1);
 
                 boolean isUnchangedSinceLastApply = existingTopic.isEmpty()
-                        || !existingTopic
-                                .get()
-                                .getMetadata()
-                                .getUpdateTimestamp()
-                                .after(topicToCreate.getMetadata().getUpdateTimestamp());
+                        || existingTopic.get().getMetadata().getUpdateTimestamp() == null
+                        || (topicToCreate.getMetadata().getUpdateTimestamp() != null
+                                && !existingTopic
+                                        .get()
+                                        .getMetadata()
+                                        .getUpdateTimestamp()
+                                        .after(topicToCreate.getMetadata().getUpdateTimestamp()));
 
                 if (isUnchangedSinceLastApply) {
                     lastVersion.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
@@ -589,7 +591,8 @@ public class TopicAsyncExecutor {
                 topic.getMetadata().getCluster(), topic.getMetadata().getName());
 
         return existingTopic.isEmpty()
-                || (existingTopic.get().getMetadata().getUpdateTimestamp() != null
+                || existingTopic.get().getMetadata().getUpdateTimestamp() == null
+                || (topic.getMetadata().getUpdateTimestamp() != null
                         && !existingTopic
                                 .get()
                                 .getMetadata()
