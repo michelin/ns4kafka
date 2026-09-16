@@ -47,6 +47,8 @@ import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -161,6 +163,45 @@ class TopicAsyncExecutorTest {
         verify(topicRepository).create(argThat(a -> a.equals(newTopic) && a.isPending() && a.isCreated()));
     }
 
+    @ParameterizedTest
+    @CsvSource(
+            value = {"null, null, 0, true", "null, null, 1, true", "null, 1000, 1, false", "1000, null, 1, true"},
+            nullValues = "null")
+    void shouldHandleNullableUpdateTimestampsWhenCreating(
+            Long queuedTimestamp, Long latestTimestamp, int generation, boolean shouldMarkSuccess) {
+        Topic topic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("topic")
+                        .status(Resource.Metadata.Status.ofPending())
+                        .updateTimestamp(queuedTimestamp == null ? null : new Date(queuedTimestamp))
+                        .generation(generation)
+                        .build())
+                .spec(Topic.TopicSpec.builder().build())
+                .build();
+        Topic latestTopic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("topic")
+                        .status(Resource.Metadata.Status.ofPending())
+                        .updateTimestamp(latestTimestamp == null ? null : new Date(latestTimestamp))
+                        .generation(generation)
+                        .build())
+                .spec(Topic.TopicSpec.builder().build())
+                .build();
+        when(topicService.findByName("local", "topic")).thenReturn(Optional.of(latestTopic));
+        when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
+        when(managedClusterProperties.getTimeout()).thenReturn(new ManagedClusterProperties.TimeoutProperties());
+        when(adminClient.createTopics(anyList())).thenReturn(createTopicsResult);
+        when(createTopicsResult.values()).thenReturn(Map.of("topic", KafkaFuture.completedFuture(null)));
+
+        topicAsyncExecutor.createTopics(List.of(topic));
+
+        verify(topicRepository)
+                .create(argThat(
+                        t -> t == latestTopic && t.isCreated() && (shouldMarkSuccess ? t.isSuccess() : t.isPending())));
+    }
+
     @Test
     void shouldUpdateStatusWhenErrorCreating() throws ExecutionException, InterruptedException, TimeoutException {
         when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
@@ -273,6 +314,58 @@ class TopicAsyncExecutorTest {
 
         verify(topicRepository).delete(topic);
         verify(topicRepository, never()).create(topic);
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+            value = {
+                "null, null, true",
+                "1000, null, true",
+                "null, 1000, false",
+                "1000, 1000, true",
+                "1000, 2000, false",
+                "2000, 1000, true"
+            },
+            nullValues = "null")
+    void shouldHandleNullableUpdateTimestampsWhenDeleting(
+            Long queuedTimestamp, Long latestTimestamp, boolean shouldDelete) {
+        Topic topic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("topic")
+                        .status(Resource.Metadata.Status.ofDeleting())
+                        .updateTimestamp(queuedTimestamp == null ? null : new Date(queuedTimestamp))
+                        .build())
+                .build();
+        Topic latestTopic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("topic")
+                        .status(
+                                shouldDelete
+                                        ? Resource.Metadata.Status.ofDeleting()
+                                        : Resource.Metadata.Status.ofPending())
+                        .updateTimestamp(latestTimestamp == null ? null : new Date(latestTimestamp))
+                        .build())
+                .build();
+        when(topicService.findByName("local", "topic")).thenReturn(Optional.of(latestTopic));
+        if (shouldDelete) {
+            when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
+            when(managedClusterProperties.getTimeout()).thenReturn(new ManagedClusterProperties.TimeoutProperties());
+            when(adminClient.deleteTopics(List.of("topic"))).thenReturn(deleteTopicsResult);
+            when(deleteTopicsResult.topicNameValues()).thenReturn(Map.of("topic", KafkaFuture.completedFuture(null)));
+        }
+
+        topicAsyncExecutor.deleteTopics(List.of(topic));
+
+        if (shouldDelete) {
+            verify(adminClient).deleteTopics(List.of("topic"));
+            verify(topicRepository).delete(topic);
+        } else {
+            verify(adminClient, never()).deleteTopics(anyList());
+            verify(topicRepository, never()).delete(any());
+        }
+        verify(topicRepository, never()).create(any());
     }
 
     @Test
