@@ -55,6 +55,8 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -471,6 +473,236 @@ class ConfluentRoleBindingAsyncExecutorTest {
 
         verify(aclRepository).create(argThat(a -> a.equals(newAcl) && a.isPending() && a.isCreated()));
         verify(aclRepository, never()).delete(any());
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+            value = {"1000, null, true", "null, 1000, false"},
+            nullValues = "null")
+    void shouldHandleNullableUpdateTimestampsWhenCreatingAcl(
+            Long queuedTimestamp, Long latestTimestamp, boolean shouldMarkSuccess) {
+        Namespace namespace = Namespace.builder()
+                .metadata(Resource.Metadata.builder().name("ns1").build())
+                .spec(Namespace.NamespaceSpec.builder().kafkaUser("user1").build())
+                .build();
+
+        AccessControlEntry acl = AccessControlEntry.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-write")
+                        .namespace("ns1")
+                        .status(Resource.Metadata.Status.ofPending())
+                        .updateTimestamp(queuedTimestamp == null ? null : new Date(queuedTimestamp))
+                        .generation(0)
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resource("ns1-")
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.WRITE)
+                        .grantedTo("ns1")
+                        .build())
+                .build();
+
+        AccessControlEntry latestAcl = AccessControlEntry.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1-write")
+                        .namespace("ns1")
+                        .status(Resource.Metadata.Status.ofPending())
+                        .updateTimestamp(latestTimestamp == null ? null : new Date(latestTimestamp))
+                        .generation(0)
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resource("ns1-")
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.WRITE)
+                        .grantedTo("ns1")
+                        .build())
+                .build();
+
+        RoleBindingResponse response = RoleBindingResponse.builder().build();
+
+        when(confluentCloudClient.createRoleBinding(any(), any())).thenReturn(Mono.just(response));
+        when(namespaceService.findByName("ns1")).thenReturn(Optional.of(namespace));
+        when(aclService.findByName("ns1", "ns1-write")).thenReturn(Optional.of(latestAcl));
+        when(aclRepository.create(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        rbAsyncExecutor.createRoleBindingsFromAcls(List.of(acl));
+
+        verify(aclRepository)
+                .create(argThat(
+                        a -> a == latestAcl && a.isCreated() && (shouldMarkSuccess ? a.isSuccess() : a.isPending())));
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+            value = {"1000, null, true", "null, 1000, false"},
+            nullValues = "null")
+    void shouldHandleNullableUpdateTimestampsWhenDeletingAcl(
+            Long queuedTimestamp, Long latestTimestamp, boolean shouldDelete) {
+        Namespace namespace = Namespace.builder()
+                .metadata(Resource.Metadata.builder().name("ns1").build())
+                .spec(Namespace.NamespaceSpec.builder().kafkaUser("user1").build())
+                .build();
+
+        AccessControlEntry acl = AccessControlEntry.builder()
+                .metadata(Resource.Metadata.builder()
+                        .cluster("cluster")
+                        .name("ns1-read")
+                        .namespace("ns1")
+                        .status(Resource.Metadata.Status.ofDeleting())
+                        .updateTimestamp(queuedTimestamp == null ? null : new Date(queuedTimestamp))
+                        .generation(1)
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resource("ns1-")
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.READ)
+                        .grantedTo("ns1")
+                        .build())
+                .build();
+
+        AccessControlEntry latestAcl = AccessControlEntry.builder()
+                .metadata(Resource.Metadata.builder()
+                        .cluster("cluster")
+                        .name("ns1-read")
+                        .namespace("ns1")
+                        .status(
+                                shouldDelete
+                                        ? Resource.Metadata.Status.ofDeleting()
+                                        : Resource.Metadata.Status.ofPending())
+                        .updateTimestamp(latestTimestamp == null ? null : new Date(latestTimestamp))
+                        .generation(1)
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resource("ns1-")
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.READ)
+                        .grantedTo("ns1")
+                        .build())
+                .build();
+
+        RoleBinding readRoleBinding =
+                new RoleBinding("User:user1", DEVELOPER_READ, AccessControlEntry.ResourceType.TOPIC, "ns1-*");
+        RoleBindingResponse response = RoleBindingResponse.builder().build();
+
+        when(managedClusterProperties.getName()).thenReturn("cluster");
+        when(namespaceService.findByName("ns1")).thenReturn(Optional.of(namespace));
+        when(confluentCloudClient.deleteRoleBinding("cluster", readRoleBinding)).thenReturn(Mono.just(response));
+        when(aclService.findByName("ns1", "ns1-read")).thenReturn(Optional.of(latestAcl));
+
+        rbAsyncExecutor.deleteRoleBindingsFromAcls(List.of(acl));
+
+        if (shouldDelete) {
+            verify(aclRepository).delete(acl);
+        } else {
+            verify(aclRepository, never()).delete(any());
+        }
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+            value = {"1000, null, true", "null, 1000, false"},
+            nullValues = "null")
+    void shouldHandleNullableUpdateTimestampsWhenCreatingKafkaStream(
+            Long queuedTimestamp, Long latestTimestamp, boolean shouldMarkSuccess) {
+        Namespace namespace = Namespace.builder()
+                .metadata(Resource.Metadata.builder().name("ns1").build())
+                .spec(Namespace.NamespaceSpec.builder().kafkaUser("user1").build())
+                .build();
+
+        KafkaStream kafkaStream = KafkaStream.builder()
+                .metadata(Resource.Metadata.builder()
+                        .cluster("cluster")
+                        .namespace("ns1")
+                        .name("ns1-stream")
+                        .status(Resource.Metadata.Status.ofPending())
+                        .updateTimestamp(queuedTimestamp == null ? null : new Date(queuedTimestamp))
+                        .generation(0)
+                        .build())
+                .build();
+
+        KafkaStream latestKafkaStream = KafkaStream.builder()
+                .metadata(Resource.Metadata.builder()
+                        .cluster("cluster")
+                        .namespace("ns1")
+                        .name("ns1-stream")
+                        .status(Resource.Metadata.Status.ofPending())
+                        .updateTimestamp(latestTimestamp == null ? null : new Date(latestTimestamp))
+                        .generation(0)
+                        .build())
+                .build();
+
+        RoleBindingResponse response = RoleBindingResponse.builder().build();
+
+        when(confluentCloudClient.createRoleBinding(any(), any())).thenReturn(Mono.just(response));
+        when(namespaceService.findByName("ns1")).thenReturn(Optional.of(namespace));
+        when(streamService.findByName(namespace, "ns1-stream")).thenReturn(Optional.of(latestKafkaStream));
+        when(kafkaStreamRepository.create(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        rbAsyncExecutor.createRoleBindingsFromKafkaStreams(List.of(kafkaStream));
+
+        verify(kafkaStreamRepository)
+                .create(argThat(ks -> ks == latestKafkaStream
+                        && ks.isCreated()
+                        && (shouldMarkSuccess ? ks.isSuccess() : ks.isPending())));
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+            value = {"1000, null, true", "null, 1000, false"},
+            nullValues = "null")
+    void shouldHandleNullableUpdateTimestampsWhenDeletingKafkaStream(
+            Long queuedTimestamp, Long latestTimestamp, boolean shouldDelete) {
+        Namespace namespace = Namespace.builder()
+                .metadata(Resource.Metadata.builder().name("ns1").build())
+                .spec(Namespace.NamespaceSpec.builder().kafkaUser("user1").build())
+                .build();
+
+        KafkaStream kafkaStream = KafkaStream.builder()
+                .metadata(Resource.Metadata.builder()
+                        .cluster("cluster")
+                        .namespace("ns1")
+                        .name("ns1-stream")
+                        .status(Resource.Metadata.Status.ofDeleting())
+                        .updateTimestamp(queuedTimestamp == null ? null : new Date(queuedTimestamp))
+                        .generation(1)
+                        .build())
+                .build();
+
+        KafkaStream latestKafkaStream = KafkaStream.builder()
+                .metadata(Resource.Metadata.builder()
+                        .cluster("cluster")
+                        .namespace("ns1")
+                        .name("ns1-stream")
+                        .status(
+                                shouldDelete
+                                        ? Resource.Metadata.Status.ofDeleting()
+                                        : Resource.Metadata.Status.ofPending())
+                        .updateTimestamp(latestTimestamp == null ? null : new Date(latestTimestamp))
+                        .generation(1)
+                        .build())
+                .build();
+
+        RoleBinding manageTopicRoleBinding =
+                new RoleBinding("User:user1", DEVELOPER_MANAGE, AccessControlEntry.ResourceType.TOPIC, "ns1-stream*");
+        RoleBindingResponse response = RoleBindingResponse.builder().build();
+
+        when(managedClusterProperties.getName()).thenReturn("cluster");
+        when(namespaceService.findByName("ns1")).thenReturn(Optional.of(namespace));
+        when(confluentCloudClient.deleteRoleBinding("cluster", manageTopicRoleBinding))
+                .thenReturn(Mono.just(response));
+        when(streamService.findByName(namespace, "ns1-stream")).thenReturn(Optional.of(latestKafkaStream));
+
+        rbAsyncExecutor.deleteRoleBindingsFromKafkaStreams(List.of(kafkaStream));
+
+        if (shouldDelete) {
+            verify(kafkaStreamRepository).delete(kafkaStream);
+        } else {
+            verify(kafkaStreamRepository, never()).delete(any());
+        }
     }
 
     @Test

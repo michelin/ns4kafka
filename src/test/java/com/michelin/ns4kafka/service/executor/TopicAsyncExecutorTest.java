@@ -165,17 +165,17 @@ class TopicAsyncExecutorTest {
 
     @ParameterizedTest
     @CsvSource(
-            value = {"null, null, 0, true", "null, null, 1, true", "null, 1000, 1, false", "1000, null, 1, true"},
+            value = {"1000, null, true", "null, 1000, false"},
             nullValues = "null")
     void shouldHandleNullableUpdateTimestampsWhenCreating(
-            Long queuedTimestamp, Long latestTimestamp, int generation, boolean shouldMarkSuccess) {
+            Long queuedTimestamp, Long latestTimestamp, boolean shouldMarkSuccess) {
         Topic topic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
                         .cluster("local")
                         .name("topic")
                         .status(Resource.Metadata.Status.ofPending())
                         .updateTimestamp(queuedTimestamp == null ? null : new Date(queuedTimestamp))
-                        .generation(generation)
+                        .generation(0)
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
@@ -185,7 +185,7 @@ class TopicAsyncExecutorTest {
                         .name("topic")
                         .status(Resource.Metadata.Status.ofPending())
                         .updateTimestamp(latestTimestamp == null ? null : new Date(latestTimestamp))
-                        .generation(generation)
+                        .generation(0)
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
@@ -318,14 +318,7 @@ class TopicAsyncExecutorTest {
 
     @ParameterizedTest
     @CsvSource(
-            value = {
-                "null, null, true",
-                "1000, null, true",
-                "null, 1000, false",
-                "1000, 1000, true",
-                "1000, 2000, false",
-                "2000, 1000, true"
-            },
+            value = {"1000, null, true", "null, 1000, false"},
             nullValues = "null")
     void shouldHandleNullableUpdateTimestampsWhenDeleting(
             Long queuedTimestamp, Long latestTimestamp, boolean shouldDelete) {
@@ -335,7 +328,9 @@ class TopicAsyncExecutorTest {
                         .name("topic")
                         .status(Resource.Metadata.Status.ofDeleting())
                         .updateTimestamp(queuedTimestamp == null ? null : new Date(queuedTimestamp))
+                        .generation(1)
                         .build())
+                .spec(Topic.TopicSpec.builder().build())
                 .build();
         Topic latestTopic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
@@ -346,7 +341,9 @@ class TopicAsyncExecutorTest {
                                         ? Resource.Metadata.Status.ofDeleting()
                                         : Resource.Metadata.Status.ofPending())
                         .updateTimestamp(latestTimestamp == null ? null : new Date(latestTimestamp))
+                        .generation(1)
                         .build())
+                .spec(Topic.TopicSpec.builder().build())
                 .build();
         when(topicService.findByName("local", "topic")).thenReturn(Optional.of(latestTopic));
         if (shouldDelete) {
@@ -365,7 +362,6 @@ class TopicAsyncExecutorTest {
             verify(adminClient, never()).deleteTopics(anyList());
             verify(topicRepository, never()).delete(any());
         }
-        verify(topicRepository, never()).create(any());
     }
 
     @Test

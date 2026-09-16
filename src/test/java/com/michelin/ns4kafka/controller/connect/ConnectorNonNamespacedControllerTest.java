@@ -49,10 +49,26 @@ class ConnectorNonNamespacedControllerTest {
                 .metadata(Resource.Metadata.builder().name("connector2").build())
                 .build();
 
-        when(connectorService.findAll()).thenReturn(List.of(connector, connector2));
+        when(connectorService.findAllByPhase(null)).thenReturn(List.of(connector, connector2));
 
-        Collection<Connector> actual = connectorController.listAll();
+        Collection<Connector> actual = connectorController.listAll(null);
 
         assertEquals(List.of(connector, connector2), actual);
+    }
+
+    @Test
+    void shouldFindAllByPhase() {
+        Connector connector = Connector.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("connector1")
+                        .status(Resource.Metadata.Status.ofPending())
+                        .build())
+                .build();
+
+        when(connectorService.findAllByPhase(Resource.Metadata.Phase.PENDING)).thenReturn(List.of(connector));
+
+        Collection<Connector> actual = connectorController.listAll(Resource.Metadata.Phase.PENDING);
+
+        assertEquals(List.of(connector), actual);
     }
 }

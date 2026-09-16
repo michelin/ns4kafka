@@ -136,11 +136,13 @@ public class ConnectorAsyncExecutor {
 
                     // Only mark connector as success if it has not been re-applied since last deployment
                     boolean unchangedSinceLastApply = existingConnector.isEmpty()
-                            || !existingConnector
-                                    .get()
-                                    .getMetadata()
-                                    .getUpdateTimestamp()
-                                    .after(connector.getMetadata().getUpdateTimestamp());
+                            || existingConnector.get().getMetadata().getUpdateTimestamp() == null
+                            || (connector.getMetadata().getUpdateTimestamp() != null
+                                    && !existingConnector
+                                            .get()
+                                            .getMetadata()
+                                            .getUpdateTimestamp()
+                                            .after(connector.getMetadata().getUpdateTimestamp()));
                     if (unchangedSinceLastApply) {
                         lastVersion.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
                     }
@@ -304,7 +306,8 @@ public class ConnectorAsyncExecutor {
             Optional<Connector> existingConnector = connectorService.findByName(
                     existingNamespace.get(), connector.getMetadata().getName());
             return existingConnector.isEmpty()
-                    || (existingConnector.get().getMetadata().getUpdateTimestamp() != null
+                    || existingConnector.get().getMetadata().getUpdateTimestamp() == null
+                    || (connector.getMetadata().getUpdateTimestamp() != null
                             && !existingConnector
                                     .get()
                                     .getMetadata()
