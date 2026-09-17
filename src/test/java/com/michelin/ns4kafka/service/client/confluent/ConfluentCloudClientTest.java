@@ -21,6 +21,9 @@ package com.michelin.ns4kafka.service.client.confluent;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
@@ -184,13 +187,13 @@ class ConfluentCloudClientTest {
 
     @Test
     void shouldReportTimeoutWithoutRetry() {
-        var http = org.mockito.Mockito.mock(HttpClient.class);
-        org.mockito.Mockito.when(http.retrieve(
+        var http = mock(HttpClient.class);
+        when(http.retrieve(
                         org.mockito.ArgumentMatchers.any(),
                         org.mockito.ArgumentMatchers.eq(
                                 com.michelin.ns4kafka.service.client.confluent.entities.ApiKeyResponse.class)))
                 .thenReturn(Mono.error(ReadTimeoutException.TIMEOUT_EXCEPTION));
-        org.mockito.Mockito.when(http.retrieve(
+        when(http.retrieve(
                         org.mockito.ArgumentMatchers.any(),
                         org.mockito.ArgumentMatchers.eq(
                                 com.michelin.ns4kafka.service.client.confluent.entities.ApiKeyRequest.Owner.class)))
@@ -201,7 +204,7 @@ class ConfluentCloudClientTest {
                 HttpStatus.GATEWAY_TIMEOUT,
                 assertThrows(HttpStatusException.class, () -> timedOut.createApiKey("cloud", "sa-test"))
                         .getStatus());
-        org.mockito.Mockito.verify(http)
+        verify(http)
                 .retrieve(
                         org.mockito.ArgumentMatchers.any(),
                         org.mockito.ArgumentMatchers.eq(

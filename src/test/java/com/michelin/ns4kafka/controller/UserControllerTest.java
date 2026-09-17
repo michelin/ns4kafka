@@ -125,7 +125,7 @@ class UserControllerTest {
     }
 
     @Test
-    void shouldNotAuditFailedCreationAndUseExistingStatusEnvelope() throws Exception {
+    void shouldNotAuditFailedCreationAndUseExistingStatusEnvelope() {
         when(client.createApiKey("cloud", "sa-test"))
                 .thenThrow(new HttpStatusException(
                         HttpStatus.GATEWAY_TIMEOUT, "Creation timed out; existing keys are unchanged."));

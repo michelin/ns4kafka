@@ -50,6 +50,7 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @Singleton
 public class ConfluentCloudClient {
+    private static final String API_KEY_CREATION = "API key creation";
     private final HttpClient httpClient;
     private final List<ManagedClusterProperties> managedClusterProperties;
 
@@ -215,7 +216,7 @@ public class ConfluentCloudClient {
             if (account == null || !owner.equals(account.id())) {
                 throw new IllegalStateException("Invalid service account response");
             }
-            stage = "API key creation";
+            stage = API_KEY_CREATION;
             HttpRequest<?> request = HttpRequest.POST(
                             URI.create(StringUtils.prependUri(config.getUrl(), "/iam/v2/api-keys")), body)
                     .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
@@ -247,25 +248,29 @@ public class ConfluentCloudClient {
                     HttpStatus.BAD_GATEWAY,
                     "Confluent " + stage + " returned HTTP " + status + ". " + guidance
                             + " Existing keys are unchanged."
-                            + ("API key creation".equals(stage) && status >= 500
+                            + (API_KEY_CREATION.equals(stage) && status >= 500
                                     ? " Creation outcome is unknown; check Confluent before retrying."
                                     : ""));
         } catch (RuntimeException exception) {
-            boolean timeout = false;
-            for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
-                timeout |= cause instanceof ReadTimeoutException
-                        || cause instanceof ConnectTimeoutException
-                        || cause instanceof java.util.concurrent.TimeoutException
-                        || cause instanceof java.net.SocketTimeoutException;
-            }
-            // Never expose upstream response bodies or exception causes containing credentials.
-            throw new HttpStatusException(
-                    timeout ? HttpStatus.GATEWAY_TIMEOUT : HttpStatus.BAD_GATEWAY,
-                    "Confluent " + stage + " failed (" + exception.getClass().getSimpleName()
-                            + "). Existing keys are unchanged. "
-                            + ("API key creation".equals(stage)
-                                    ? "A new key may have been created; its secret cannot be retrieved. Check Confluent before retrying."
-                                    : "No key creation was attempted."));
+            throw apiKeyFailure(stage, exception);
         }
+    }
+
+    private HttpStatusException apiKeyFailure(String stage, RuntimeException exception) {
+        boolean timeout = false;
+        for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
+            timeout |= cause instanceof ReadTimeoutException
+                    || cause instanceof ConnectTimeoutException
+                    || cause instanceof java.util.concurrent.TimeoutException
+                    || cause instanceof java.net.SocketTimeoutException;
+        }
+        // Never expose upstream response bodies or exception causes containing credentials.
+        return new HttpStatusException(
+                timeout ? HttpStatus.GATEWAY_TIMEOUT : HttpStatus.BAD_GATEWAY,
+                "Confluent " + stage + " failed (" + exception.getClass().getSimpleName()
+                        + "). Existing keys are unchanged. "
+                        + (API_KEY_CREATION.equals(stage)
+                                ? "A new key may have been created; its secret cannot be retrieved. Check Confluent before retrying."
+                                : "No key creation was attempted."));
     }
 }
