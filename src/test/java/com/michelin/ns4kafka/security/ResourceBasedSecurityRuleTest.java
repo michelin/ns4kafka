@@ -53,6 +53,28 @@ class ResourceBasedSecurityRuleTest {
     private static final String VERBS = "verbs";
     private static final String RESOURCE_TYPES = "resourceTypes";
 
+    @ParameterizedTest
+    @CsvSource({
+        "users/api-keys,POST,ALLOWED",
+        "users,POST,UNKNOWN",
+        "users/reset-password,POST,UNKNOWN",
+        "users/api-keys,GET,UNKNOWN"
+    })
+    void shouldRequireCreateApiKeyPermissionAndPostVerb(String resource, String verb, SecurityRuleResult expected) {
+        when(namespaceRepository.findByName("test"))
+                .thenReturn(Optional.of(Namespace.builder().build()));
+        var binding = AuthenticationRoleBinding.builder()
+                .namespaces(List.of("test"))
+                .resourceTypes(List.of(resource))
+                .verbs(List.of(com.michelin.ns4kafka.model.RoleBinding.Verb.valueOf(verb)))
+                .build();
+        var authentication = Authentication.build("caller", Map.of(ROLE_BINDINGS, List.of(binding)));
+        assertEquals(
+                expected,
+                resourceBasedSecurityRule.checkSecurity(
+                        HttpRequest.POST("/api/namespaces/test/users/sa-test/api-keys", ""), authentication));
+    }
+
     @Mock
     NamespaceRepository namespaceRepository;
 
