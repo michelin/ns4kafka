@@ -34,6 +34,7 @@ import com.michelin.ns4kafka.model.connect.ConnectorResetOffsetsResponse;
 import com.michelin.ns4kafka.service.ConnectorService;
 import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.ResourceQuotaService;
+import com.michelin.ns4kafka.service.client.connect.entities.ConnectorOffsets;
 import com.michelin.ns4kafka.util.enumation.ApplyStatus;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.context.event.ApplicationEventPublisher;
@@ -384,6 +385,41 @@ public class ConnectorController extends NamespacedResourceController {
 
         return connectorService
                 .resetOffsets(ns, connectorToReset)
+                .map(_ -> ConnectorResetOffsetsResponse.builder()
+                        .metadata(connectorToReset.getMetadata())
+                        .status(ChangeConnectorState.ChangeConnectorStateStatus.builder()
+                                .code(ConnectorOperation.RESET)
+                                .build())
+                        .build());
+    }
+
+    /**
+     * Alter or partially reset the offsets of a connector.
+     *
+     * @param namespace The namespace
+     * @param connector The connector to alter offsets for
+     * @param offsetsRequest The offsets payload
+     * @return The connector offsets reset response
+     */
+    @Post("/{connector}/offsets")
+    public Mono<ConnectorResetOffsetsResponse> alterOffsets(
+            String namespace, String connector, @Body ConnectorOffsets offsetsRequest) {
+        Namespace ns = getNamespace(namespace);
+
+        if (!connectorService.isNamespaceOwnerOfConnect(ns, connector)) {
+            return Mono.error(new ResourceValidationException(CONNECTOR, connector, invalidOwner(connector)));
+        }
+
+        Optional<Connector> optionalConnector = connectorService.findByName(ns, connector);
+
+        if (optionalConnector.isEmpty()) {
+            return Mono.empty();
+        }
+
+        Connector connectorToReset = optionalConnector.get();
+
+        return connectorService
+                .alterOffsets(ns, connectorToReset, offsetsRequest)
                 .map(_ -> ConnectorResetOffsetsResponse.builder()
                         .metadata(connectorToReset.getMetadata())
                         .status(ChangeConnectorState.ChangeConnectorStateStatus.builder()

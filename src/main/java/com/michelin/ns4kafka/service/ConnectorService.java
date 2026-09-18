@@ -468,4 +468,31 @@ public class ConnectorService {
                         .build())
                 .build();
     }
+
+    /**
+     * Alter offsets for a given connector.
+     *
+     * @param namespace The namespace
+     * @param connector The connector
+     * @param offsetsRequest The offsets payload
+     * @return An HTTP response
+     */
+    public Mono<HttpResponse<ConnectorOffsetsResponse>> alterOffsets(
+            Namespace namespace, Connector connector, ConnectorOffsets offsetsRequest) {
+        return kafkaConnectClient
+                .alterOffsets(
+                        namespace.getMetadata().getCluster(),
+                        connector.getSpec().getConnectCluster(),
+                        connector.getMetadata().getName(),
+                        offsetsRequest)
+                .map(response -> {
+                    log.info(
+                            "Success altering offsets for Connector [{}] on Namespace [{}] Connect [{}]",
+                            connector.getMetadata().getName(),
+                            namespace.getMetadata().getName(),
+                            connector.getSpec().getConnectCluster());
+
+                    return HttpResponse.status(response.getStatus()).body(response.body());
+                });
+    }
 }
