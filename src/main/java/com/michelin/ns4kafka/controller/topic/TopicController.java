@@ -220,7 +220,7 @@ public class TopicController extends NamespacedResourceController {
         // deletion and will be deleted later by a background process.
         if (!async) {
             topics.forEach(topicToDelete -> {
-                topicService.delete(topicToDelete);
+                topicService.delete(topicToDelete, false);
                 sendEventLog(topicToDelete, ApplyStatus.DELETED, topicToDelete.getSpec(), null, EMPTY_STRING);
             });
             return HttpResponse.ok(topics);

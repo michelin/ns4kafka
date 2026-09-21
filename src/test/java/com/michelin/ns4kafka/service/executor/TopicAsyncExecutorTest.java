@@ -283,7 +283,7 @@ class TopicAsyncExecutorTest {
     }
 
     @Test
-    void shouldDeleteTopics() {
+    void shouldDeleteTopicsAsync() {
         when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
         when(adminClient.deleteTopics(anyList())).thenReturn(deleteTopicsResult);
         when(deleteTopicsResult.topicNameValues()).thenReturn(Map.of("topic", kafkaFuture));
@@ -310,10 +310,36 @@ class TopicAsyncExecutorTest {
 
         when(topicService.findByName("local", "topic")).thenReturn(Optional.of(topic));
 
-        topicAsyncExecutor.deleteTopics(List.of(topic));
+        topicAsyncExecutor.deleteTopics(List.of(topic), true);
 
         verify(topicRepository).delete(topic);
         verify(topicRepository, never()).create(topic);
+    }
+
+    @Test
+    void shouldDeleteTopics() {
+        when(deleteTopicsResult.all()).thenReturn(kafkaFuture);
+        when(adminClient.deleteTopics(anyList())).thenReturn(deleteTopicsResult);
+        when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
+        when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
+
+        ManagedClusterProperties.TimeoutProperties.TopicProperties topicProperties =
+                new ManagedClusterProperties.TimeoutProperties.TopicProperties();
+        topicProperties.setDelete(1000);
+
+        ManagedClusterProperties.TimeoutProperties timeoutProperties = new ManagedClusterProperties.TimeoutProperties();
+        timeoutProperties.setTopic(topicProperties);
+
+        when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
+
+        Topic topic = Topic.builder()
+                .metadata(Resource.Metadata.builder().name(TOPIC_NAME).build())
+                .spec(Topic.TopicSpec.builder().tags(List.of("TAG1")).build())
+                .build();
+
+        topicAsyncExecutor.deleteTopics(List.of(topic), false);
+
+        verify(adminClient).deleteTopics(anyList());
     }
 
     @ParameterizedTest
@@ -353,7 +379,7 @@ class TopicAsyncExecutorTest {
             when(deleteTopicsResult.topicNameValues()).thenReturn(Map.of("topic", KafkaFuture.completedFuture(null)));
         }
 
-        topicAsyncExecutor.deleteTopics(List.of(topic));
+        topicAsyncExecutor.deleteTopics(List.of(topic), true);
 
         if (shouldDelete) {
             verify(adminClient).deleteTopics(List.of("topic"));
@@ -390,7 +416,7 @@ class TopicAsyncExecutorTest {
 
         when(topicService.findByName("local", "topic")).thenReturn(Optional.of(newTopic));
 
-        topicAsyncExecutor.deleteTopics(List.of(topic));
+        topicAsyncExecutor.deleteTopics(List.of(topic), true);
 
         verify(adminClient, never()).deleteTopics(anyList());
         verify(topicRepository, never()).create(any());
@@ -427,7 +453,7 @@ class TopicAsyncExecutorTest {
 
         when(topicService.findByName("local", "topic")).thenReturn(Optional.of(topic));
 
-        topicAsyncExecutor.deleteTopics(List.of(topic));
+        topicAsyncExecutor.deleteTopics(List.of(topic), true);
 
         verify(topicRepository).create(argThat(a -> a.equals(topic) && a.isFailed()));
         verify(topicRepository, never()).delete(any());
@@ -463,7 +489,7 @@ class TopicAsyncExecutorTest {
 
         when(topicService.findByName("local", "topic")).thenReturn(Optional.of(topic));
 
-        topicAsyncExecutor.deleteTopics(List.of(topic));
+        topicAsyncExecutor.deleteTopics(List.of(topic), true);
 
         verify(topicRepository).delete(topic);
         verify(topicRepository, never()).create(any());
@@ -513,7 +539,7 @@ class TopicAsyncExecutorTest {
                 .thenReturn(Optional.of(topic))
                 .thenReturn(Optional.of(newTopic));
 
-        topicAsyncExecutor.deleteTopics(List.of(topic));
+        topicAsyncExecutor.deleteTopics(List.of(topic), true);
 
         verify(topicRepository, never()).delete(any());
         verify(topicRepository, never()).create(any());

@@ -144,11 +144,12 @@ public class TopicService {
      * Delete a given topic.
      *
      * @param topic The topic
+     * @param async Whether to delete asynchronously
      */
-    public void delete(Topic topic) throws InterruptedException, ExecutionException, TimeoutException {
+    public void delete(Topic topic, boolean async) {
         TopicAsyncExecutor topicAsyncExecutor = applicationContext.getBean(
                 TopicAsyncExecutor.class, Qualifiers.byName(topic.getMetadata().getCluster()));
-        topicAsyncExecutor.deleteTopics(List.of(topic));
+        topicAsyncExecutor.deleteTopics(List.of(topic), async);
 
         topicRepository.delete(topic);
     }

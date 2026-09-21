@@ -192,7 +192,7 @@ class TopicControllerTest {
         when(topicService.create(topic2)).thenReturn(topic2);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        HttpResponse<List<Topic>> actual = topicController.bulkDelete("test", "prefix1.*", false);
+        HttpResponse<List<Topic>> actual = topicController.bulkDelete("test", "prefix1.*", false, true);
         assertEquals(HttpStatus.OK, actual.getStatus());
     }
 
@@ -209,7 +209,7 @@ class TopicControllerTest {
 
         when(topicService.findByWildcardName(ns, "topic*")).thenReturn(List.of());
 
-        HttpResponse<List<Topic>> actual = topicController.bulkDelete("test", "topic*", false);
+        HttpResponse<List<Topic>> actual = topicController.bulkDelete("test", "topic*", false, true);
 
         assertEquals(HttpStatus.NOT_FOUND, actual.getStatus());
         verify(topicService, never()).create(any());
@@ -232,7 +232,7 @@ class TopicControllerTest {
 
         when(topicService.findByWildcardName(ns, "prefix.topic")).thenReturn(toDelete);
 
-        HttpResponse<List<Topic>> actual = topicController.bulkDelete("test", "prefix.topic", true);
+        HttpResponse<List<Topic>> actual = topicController.bulkDelete("test", "prefix.topic", true, true);
 
         assertEquals(HttpStatus.OK, actual.getStatus());
         verify(topicService, never()).create(any());

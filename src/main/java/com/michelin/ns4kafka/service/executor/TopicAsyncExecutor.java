@@ -26,16 +26,8 @@ import com.michelin.ns4kafka.repository.kafka.KafkaStoreException;
 import com.michelin.ns4kafka.service.TopicService;
 import io.micronaut.context.annotation.EachBean;
 import jakarta.inject.Singleton;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
@@ -59,6 +51,7 @@ import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 @Singleton
 public class TopicAsyncExecutor {
     public static final String ERROR = "Error";
+    private final Set<String> ignoredTopics = ConcurrentHashMap.newKeySet();
 
     private final ManagedClusterProperties managedClusterProperties;
     private final TopicService topicService;
@@ -92,10 +85,14 @@ public class TopicAsyncExecutor {
         log.debug("Starting topic collection for cluster {}", managedClusterProperties.getName());
 
         try {
+            ignoredTopics.clear();
+
             Map<Boolean, List<Topic>> partitioned =
                     topicService.findAllToDeployForCluster(managedClusterProperties.getName()).stream()
                             .collect(Collectors.partitioningBy(Resource::isCreated));
-            List<Topic> topicsToCreate = partitioned.get(false);
+            List<Topic> topicsToCreate = partitioned.get(false).stream()
+                    .filter(topic -> !ignoredTopics.contains(topic.getMetadata().getName()))
+                    .toList();
             List<Topic> topicsToUpdate = partitioned.get(true);
             List<Topic> topicsToDelete = topicService.findAllToDeleteForCluster(managedClusterProperties.getName());
 
@@ -106,7 +103,7 @@ public class TopicAsyncExecutor {
                                 .collect(Collectors.joining(",")))
                         .log("Topic(s) to delete: {}");
 
-                deleteTopics(topicsToDelete);
+                deleteTopics(topicsToDelete, true);
             }
 
             if (!topicsToCreate.isEmpty()) {
@@ -421,8 +418,38 @@ public class TopicAsyncExecutor {
      * Delete a list of topics.
      *
      * @param topics The topics to delete
+     * @param async Whether to delete asynchronously
      */
-    public void deleteTopics(List<Topic> topics) {
+    public void deleteTopics(List<Topic> topics, boolean async) {
+        if (!async) {
+            List<String> topicsNames =
+                    topics.stream().map(topic -> topic.getMetadata().getName()).toList();
+
+            try {
+                managedClusterProperties
+                        .getAdminClient()
+                        .deleteTopics(topicsNames)
+                        .all()
+                        .get(managedClusterProperties.getTimeout().getTopic().getDelete(), TimeUnit.MILLISECONDS);
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                log.error(ERROR, e);
+                throw new RuntimeException(e);
+            }
+
+            // Add topics to blacklist so the Kstream internal topics are not imported after deletion
+            // This could happen if such topic is deleted after the broker topics are listed
+            // but before the Ns4Kafka topics are listed during synchronization
+            if (managedClusterProperties.isSyncKstreamTopics()) {
+                ignoredTopics.addAll(topicsNames);
+            }
+
+            log.atInfo()
+                    .addArgument(String.join(", ", topicsNames))
+                    .addArgument(managedClusterProperties.getName())
+                    .log("Success deleting topics {} on cluster {}.");
+            return;
+        }
+
         // Topics reapplied since the deletion was requested are not deleted from the broker
         List<Topic> topicsToDelete =
                 topics.stream().filter(this::isUnchangedSinceLastApply).toList();
