@@ -51,7 +51,6 @@ import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 @Singleton
 public class TopicAsyncExecutor {
     public static final String ERROR = "Error";
-    private final Set<String> ignoredTopics = ConcurrentHashMap.newKeySet();
 
     private final ManagedClusterProperties managedClusterProperties;
     private final TopicService topicService;
@@ -85,14 +84,10 @@ public class TopicAsyncExecutor {
         log.debug("Starting topic collection for cluster {}", managedClusterProperties.getName());
 
         try {
-            ignoredTopics.clear();
-
             Map<Boolean, List<Topic>> partitioned =
                     topicService.findAllToDeployForCluster(managedClusterProperties.getName()).stream()
                             .collect(Collectors.partitioningBy(Resource::isCreated));
-            List<Topic> topicsToCreate = partitioned.get(false).stream()
-                    .filter(topic -> !ignoredTopics.contains(topic.getMetadata().getName()))
-                    .toList();
+            List<Topic> topicsToCreate = partitioned.get(false);
             List<Topic> topicsToUpdate = partitioned.get(true);
             List<Topic> topicsToDelete = topicService.findAllToDeleteForCluster(managedClusterProperties.getName());
 
@@ -434,13 +429,6 @@ public class TopicAsyncExecutor {
             } catch (InterruptedException | ExecutionException | TimeoutException e) {
                 log.error(ERROR, e);
                 throw new RuntimeException(e);
-            }
-
-            // Add topics to blacklist so the Kstream internal topics are not imported after deletion
-            // This could happen if such topic is deleted after the broker topics are listed
-            // but before the Ns4Kafka topics are listed during synchronization
-            if (managedClusterProperties.isSyncKstreamTopics()) {
-                ignoredTopics.addAll(topicsNames);
             }
 
             log.atInfo()
