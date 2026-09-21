@@ -202,7 +202,8 @@ public class TopicController extends NamespacedResourceController {
     public HttpResponse<List<Topic>> bulkDelete(
             String namespace,
             @QueryValue(defaultValue = "*") String name,
-            @QueryValue(defaultValue = "false") boolean dryrun) {
+            @QueryValue(defaultValue = "false") boolean dryrun,
+            @QueryValue(defaultValue = "false") boolean async) {
         Namespace ns = getNamespace(namespace);
         List<Topic> topics = topicService.findByWildcardName(ns, name);
 
@@ -211,6 +212,15 @@ public class TopicController extends NamespacedResourceController {
         }
 
         if (dryrun) {
+            return HttpResponse.ok(topics);
+        }
+
+        // By default, the deletion is synchronous, meaning that the topics will be deleted immediately. However, if the async parameter is set to true, the deletion will be asynchronous, meaning that the topics will be marked for deletion and will be deleted later by a background process.
+        if(!async) {
+            topics.forEach(topicToDelete -> {
+                topicService.delete(topicToDelete);
+                sendEventLog(topicToDelete, ApplyStatus.DELETED, topicToDelete.getSpec(), null, EMPTY_STRING);
+            });
             return HttpResponse.ok(topics);
         }
 
