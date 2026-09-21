@@ -88,9 +88,7 @@ public class ConfluentRoleBindingAsyncExecutor {
 
     /** Run the ACLs synchronization. */
     public void run() {
-        if (!this.managedClusterProperties.isManageAcls()
-                && this.managedClusterProperties.isConfluentCloud()
-                && this.managedClusterProperties.isManageRbac()) {
+        if (this.managedClusterProperties.isManageRbac()) {
             log.debug("Starting Role Bindings collection for cluster {}", managedClusterProperties.getName());
 
             // Public ACLs are handled by the ACL executor as Confluent Role Binding cannot manage "*"

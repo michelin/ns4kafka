@@ -65,9 +65,6 @@ public class Namespace extends Resource {
         private boolean protectionEnabled;
 
         @Builder.Default
-        private boolean transactionsEnabled = false;
-
-        @Builder.Default
         private List<SubjectNameStrategy> subjectNameStrategies = SubjectNameStrategy.defaultStrategies();
 
         @Builder.Default

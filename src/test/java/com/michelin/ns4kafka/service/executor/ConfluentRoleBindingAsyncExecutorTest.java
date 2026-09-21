@@ -1361,8 +1361,6 @@ class ConfluentRoleBindingAsyncExecutorTest {
         RoleBindingResponse response = RoleBindingResponse.builder().build();
 
         when(managedClusterProperties.getName()).thenReturn("cluster");
-        when(managedClusterProperties.isManageAcls()).thenReturn(false);
-        when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
         when(managedClusterProperties.isManageRbac()).thenReturn(true);
         when(aclService.findNonPublicToDeployForCluster("cluster")).thenReturn(List.of(acl));
         when(aclService.findNonPublicToDeleteForCluster("cluster")).thenReturn(List.of());
