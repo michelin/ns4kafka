@@ -181,7 +181,8 @@ class StreamIntegrationTest extends KafkaIntegrationTest {
 
         ns4KafkaClient
                 .toBlocking()
-                .exchange(HttpRequest.create(HttpMethod.DELETE, "/api/namespaces/nskafkastream/streams?name=kstream-appId")
+                .exchange(HttpRequest.create(
+                                HttpMethod.DELETE, "/api/namespaces/nskafkastream/streams?name=kstream-appId")
                         .bearerAuth(token)
                         .body(kafkaStream));
 
