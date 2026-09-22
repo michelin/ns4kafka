@@ -37,6 +37,7 @@ import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.StreamService;
 import com.michelin.ns4kafka.service.client.confluent.ConfluentCloudClient;
 import com.michelin.ns4kafka.service.client.confluent.entities.RoleBinding;
+import com.michelin.ns4kafka.service.client.confluent.entities.RoleBindingResponse;
 import io.micronaut.context.annotation.EachBean;
 import jakarta.inject.Singleton;
 import java.util.List;
@@ -99,15 +100,8 @@ public class ConfluentRoleBindingAsyncExecutor {
             List<KafkaStream> streamsToCreate =
                     streamService.findAllToDeployForCluster(managedClusterProperties.getName());
 
-            List<AccessControlEntry> aclsToDelete =
-                    aclService.findNonPublicToDeleteForCluster(managedClusterProperties.getName());
-            List<KafkaStream> streamsToDelete =
-                    streamService.findAllToDeleteForCluster(managedClusterProperties.getName());
-
             createRoleBindingsFromAcls(aclsToCreate);
             createRoleBindingsFromKafkaStreams(streamsToCreate);
-            deleteRoleBindingsFromAcls(aclsToDelete);
-            deleteRoleBindingsFromKafkaStreams(streamsToDelete);
         }
     }
 
@@ -235,40 +229,32 @@ public class ConfluentRoleBindingAsyncExecutor {
      */
     public void deleteRoleBindingsFromAcls(List<AccessControlEntry> acls) {
         // Not possible to batch delete Confluent Role Bindings
-        acls.forEach(acl -> convertAclToRoleBinding(acl)
-                .forEach(roleBinding -> confluentCloudClient
+        acls.forEach(acl -> convertAclToRoleBinding(acl).forEach(roleBinding -> {
+            try {
+                RoleBindingResponse roleBindingResponse = confluentCloudClient
                         .deleteRoleBinding(managedClusterProperties.getName(), roleBinding)
-                        .doOnSuccess(roleBindingResponse -> {
-                            if (roleBindingResponse == null) {
-                                log.info(
-                                        "No RoleBinding to delete for ACL {} on {}: ACL will be removed from Ns4Kafka.",
-                                        acl.getMetadata().getName(),
-                                        managedClusterProperties.getName());
+                        .block();
 
-                                aclRepository.delete(acl);
-                            } else if (isUnchangedSinceLastApply(acl)) {
-                                log.info(
-                                        "Success deleting RoleBinding {} for ACL {} on {}.",
-                                        roleBindingResponse.id(),
-                                        acl.getMetadata().getName(),
-                                        managedClusterProperties.getName());
-
-                                aclRepository.delete(acl);
-                            }
-                        })
-                        .doOnError(e -> {
-                            if (isUnchangedSinceLastApply(acl)) {
-                                log.error(
-                                        "Error deleting RoleBinding for ACL {} on {}.",
-                                        acl.getMetadata().getName(),
-                                        managedClusterProperties.getName(),
-                                        e);
-
-                                acl.getMetadata().setStatus(Resource.Metadata.Status.ofFailed(e.getMessage()));
-                                aclRepository.create(acl);
-                            }
-                        })
-                        .subscribe()));
+                if (roleBindingResponse == null) {
+                    log.info(
+                            "No RoleBinding to delete for ACL {} on {}.",
+                            acl.getMetadata().getName(),
+                            managedClusterProperties.getName());
+                } else {
+                    log.info(
+                            "Success deleting RoleBinding {} for ACL {} on {}.",
+                            roleBindingResponse.id(),
+                            acl.getMetadata().getName(),
+                            managedClusterProperties.getName());
+                }
+            } catch (Exception e) {
+                log.error(
+                        "Error while deleting RoleBinding for ACL {} on {}.",
+                        acl.getMetadata().getName(),
+                        managedClusterProperties.getName(),
+                        e);
+            }
+        }));
     }
 
     /**
@@ -278,39 +264,32 @@ public class ConfluentRoleBindingAsyncExecutor {
      */
     public void deleteRoleBindingsFromKafkaStreams(List<KafkaStream> kafkaStreams) {
         // Not possible to batch delete Confluent Role Bindings
-        kafkaStreams.forEach(ks -> confluentCloudClient
-                .deleteRoleBinding(managedClusterProperties.getName(), convertKafkaStreamToRoleBinding(ks))
-                .doOnSuccess(roleBindingResponse -> {
-                    if (roleBindingResponse == null) {
-                        log.info(
-                                "No RoleBinding to delete for KafkaStream {} on {}: KafkaStream will be removed from Ns4Kafka.",
-                                ks.getMetadata().getName(),
-                                managedClusterProperties.getName());
+        kafkaStreams.forEach(ks -> {
+            try {
+                RoleBindingResponse roleBindingResponse = confluentCloudClient
+                        .deleteRoleBinding(managedClusterProperties.getName(), convertKafkaStreamToRoleBinding(ks))
+                        .block();
 
-                        kafkaStreamRepository.delete(ks);
-                    } else if (isUnchangedSinceLastApply(ks)) {
-                        log.info(
-                                "Success deleting RoleBinding {} for KafkaStream {} on {}.",
-                                roleBindingResponse.id(),
-                                ks.getMetadata().getName(),
-                                managedClusterProperties.getName());
-
-                        kafkaStreamRepository.delete(ks);
-                    }
-                })
-                .doOnError(e -> {
-                    if (isUnchangedSinceLastApply(ks)) {
-                        log.error(
-                                "Error deleting RoleBinding for KafkaStream {} on {}",
-                                ks.getMetadata().getName(),
-                                managedClusterProperties.getName(),
-                                e);
-
-                        ks.getMetadata().setStatus(Resource.Metadata.Status.ofFailed(e.getMessage()));
-                        kafkaStreamRepository.create(ks);
-                    }
-                })
-                .subscribe());
+                if (roleBindingResponse == null) {
+                    log.info(
+                            "No RoleBinding to delete for KafkaStream {} on {}.",
+                            ks.getMetadata().getName(),
+                            managedClusterProperties.getName());
+                } else {
+                    log.info(
+                            "Success deleting RoleBinding {} for KafkaStream {} on {}.",
+                            roleBindingResponse.id(),
+                            ks.getMetadata().getName(),
+                            managedClusterProperties.getName());
+                }
+            } catch (Exception e) {
+                log.error(
+                        "Error while deleting RoleBinding for KafkaStream {} on {}.",
+                        ks.getMetadata().getName(),
+                        managedClusterProperties.getName(),
+                        e);
+            }
+        });
     }
 
     /**

@@ -44,6 +44,8 @@ import io.micronaut.http.annotation.Delete;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
+import io.micronaut.scheduling.TaskExecutors;
+import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -58,6 +60,7 @@ import org.apache.kafka.common.TopicPartition;
 /** Controller to manage topics. */
 @Tag(name = "Topics", description = "Manage the topics.")
 @Controller(value = "/api/namespaces/{namespace}/topics")
+@ExecuteOn(TaskExecutors.IO)
 public class TopicController extends NamespacedResourceController {
     private final TopicService topicService;
     private final ResourceQuotaService resourceQuotaService;

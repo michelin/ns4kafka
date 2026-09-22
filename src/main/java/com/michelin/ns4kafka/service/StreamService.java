@@ -26,6 +26,7 @@ import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.StreamRepository;
 import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
+import com.michelin.ns4kafka.service.executor.ConfluentRoleBindingAsyncExecutor;
 import com.michelin.ns4kafka.util.RegexUtils;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
@@ -89,18 +90,6 @@ public class StreamService {
     public List<KafkaStream> findAllToDeployForCluster(String cluster) {
         return streamRepository.findAllForCluster(cluster).stream()
                 .filter(Resource::isPending)
-                .toList();
-    }
-
-    /**
-     * Find all Kafka Streams to delete for a cluster.
-     *
-     * @param cluster The cluster
-     * @return A list of Kafka Streams
-     */
-    public List<KafkaStream> findAllToDeleteForCluster(String cluster) {
-        return streamRepository.findAllForCluster(cluster).stream()
-                .filter(Resource::isDeleting)
                 .toList();
     }
 
@@ -201,21 +190,6 @@ public class StreamService {
     }
 
     /**
-     * Check if the cluster manages Confluent Cloud RBAC.
-     *
-     * @param stream The Kafka Stream
-     * @return true if the cluster is Confluent Cloud with RBAC management enabled, false otherwise
-     */
-    public boolean isClusterManagingRbac(KafkaStream stream) {
-        String cluster = stream.getMetadata().getCluster();
-        return managedClusterProperties.stream()
-                .filter(clusterProperties -> clusterProperties.getName().equals(cluster))
-                .findFirst()
-                .map(clusterProperties -> clusterProperties.isConfluentCloud() && clusterProperties.isManageRbac())
-                .orElse(false);
-    }
-
-    /**
      * Delete a given Kafka Stream.
      *
      * @param stream The Kafka Stream
@@ -265,8 +239,12 @@ public class StreamService {
         if (streamCluster.isPresent()
                 && streamCluster.get().isConfluentCloud()
                 && streamCluster.get().isManageRbac()) {
-            stream.getMetadata().setStatus(Resource.Metadata.Status.ofDeleting());
-            streamRepository.create(stream);
+            ConfluentRoleBindingAsyncExecutor confluentRoleBindingAsyncExecutor = applicationContext.getBean(
+                    ConfluentRoleBindingAsyncExecutor.class,
+                    Qualifiers.byName(stream.getMetadata().getCluster()));
+            confluentRoleBindingAsyncExecutor.deleteRoleBindingsFromKafkaStreams(List.of(stream));
+
+            streamRepository.delete(stream);
         }
     }
 }

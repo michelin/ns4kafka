@@ -26,6 +26,8 @@ import com.michelin.ns4kafka.service.StreamService;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
+import io.micronaut.scheduling.TaskExecutors;
+import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
@@ -34,6 +36,7 @@ import java.util.List;
 /** Non-namespaced controller to manage Kafka Streams. */
 @Tag(name = "Kafka Streams", description = "Manage the Kafka Streams.")
 @Controller(value = "/api/streams")
+@ExecuteOn(TaskExecutors.IO)
 @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
 public class StreamNonNamespacedController extends ResourceController {
     private final StreamService streamService;

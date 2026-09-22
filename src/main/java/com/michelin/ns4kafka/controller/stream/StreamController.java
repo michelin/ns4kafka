@@ -38,6 +38,8 @@ import io.micronaut.http.annotation.Delete;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
+import io.micronaut.scheduling.TaskExecutors;
+import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -51,6 +53,7 @@ import java.util.concurrent.TimeoutException;
 /** Controller to manage Kafka Streams. */
 @Tag(name = "Kafka Streams", description = "Manage the Kafka Streams.")
 @Controller(value = "/api/namespaces/{namespace}/streams")
+@ExecuteOn(TaskExecutors.IO)
 public class StreamController extends NamespacedResourceController {
     private final StreamService streamService;
 
@@ -115,11 +118,8 @@ public class StreamController extends NamespacedResourceController {
                     stream, invalidOwner(stream.getMetadata().getName()));
         }
 
-        // When the cluster manages RBAC, a stream in "deleting" state is treated as non-existent,
-        // so that an apply-delete-apply flow transparently returns "created".
-        Optional<KafkaStream> existingStream = streamService
-                .findByName(ns, stream.getMetadata().getName())
-                .filter(existing -> !(streamService.isClusterManagingRbac(existing) && existing.isDeleting()));
+        Optional<KafkaStream> existingStream =
+                streamService.findByName(ns, stream.getMetadata().getName());
 
         assignResourceMetadata(stream, ns, existingStream.orElse(null));
 

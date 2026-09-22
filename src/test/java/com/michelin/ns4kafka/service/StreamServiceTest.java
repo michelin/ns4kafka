@@ -37,6 +37,7 @@ import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.StreamRepository;
 import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
+import com.michelin.ns4kafka.service.executor.ConfluentRoleBindingAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
 import java.util.List;
 import java.util.Optional;
@@ -67,6 +68,9 @@ class StreamServiceTest {
 
     @Mock
     AccessControlEntryAsyncExecutor aceAsyncExecutor;
+
+    @Mock
+    ConfluentRoleBindingAsyncExecutor confluentRoleBindingAsyncExecutor;
 
     @Mock
     List<ManagedClusterProperties> managedClusterProperties;
@@ -339,39 +343,6 @@ class StreamServiceTest {
         when(streamRepository.findAllForCluster("local")).thenReturn(List.of(stream1, stream2, stream3));
 
         List<KafkaStream> actual = streamService.findAllToDeployForCluster("local");
-
-        assertEquals(1, actual.size());
-        assertTrue(actual.contains(stream2));
-    }
-
-    @Test
-    void shouldFindAllToDeleteForCluster() {
-        KafkaStream stream1 = KafkaStream.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test_stream1")
-                        .namespace("test")
-                        .cluster("local")
-                        .build())
-                .build();
-        KafkaStream stream2 = KafkaStream.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test_stream2")
-                        .namespace("test")
-                        .cluster("local")
-                        .status(Resource.Metadata.Status.ofDeleting())
-                        .build())
-                .build();
-        KafkaStream stream3 = KafkaStream.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test_stream3")
-                        .namespace("test")
-                        .cluster("local")
-                        .build())
-                .build();
-
-        when(streamRepository.findAllForCluster("local")).thenReturn(List.of(stream1, stream2, stream3));
-
-        List<KafkaStream> actual = streamService.findAllToDeleteForCluster("local");
 
         assertEquals(1, actual.size());
         assertTrue(actual.contains(stream2));
@@ -669,12 +640,15 @@ class StreamServiceTest {
         when(managedClusterProperties.stream()).thenReturn(Stream.of(managedClusterProps));
         when(applicationContext.getBean(eq(AccessControlEntryAsyncExecutor.class), any()))
                 .thenReturn(aceAsyncExecutor);
+        when(applicationContext.getBean(eq(ConfluentRoleBindingAsyncExecutor.class), any()))
+                .thenReturn(confluentRoleBindingAsyncExecutor);
         when(streamRepository.findAllForCluster(any())).thenReturn(List.of());
         when(topicService.findByWildcardName(eq(namespace), anyString())).thenReturn(List.of());
 
         streamService.delete(namespace, stream);
 
         verify(aceAsyncExecutor).deleteKafkaStreams(namespace, stream);
-        verify(streamRepository).create(stream);
+        verify(confluentRoleBindingAsyncExecutor).deleteRoleBindingsFromKafkaStreams(List.of(stream));
+        verify(streamRepository).delete(stream);
     }
 }

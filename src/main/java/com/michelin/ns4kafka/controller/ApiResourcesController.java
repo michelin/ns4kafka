@@ -22,6 +22,8 @@ import com.michelin.ns4kafka.security.ResourceBasedSecurityRule;
 import com.michelin.ns4kafka.security.auth.AuthenticationInfo;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
+import io.micronaut.scheduling.TaskExecutors;
+import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.micronaut.security.rules.SecurityRule;
 import io.micronaut.serde.annotation.Serdeable;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -38,6 +40,7 @@ import org.jspecify.annotations.Nullable;
 @Tag(name = "Resources", description = "Manage the API resources.")
 @RolesAllowed(SecurityRule.IS_ANONYMOUS)
 @Controller("/api-resources")
+@ExecuteOn(TaskExecutors.IO)
 public class ApiResourcesController {
     /** ACL resource definition. */
     public static final ResourceDefinition ACL = ResourceDefinition.builder()
