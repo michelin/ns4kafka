@@ -163,9 +163,7 @@ public class TopicController extends NamespacedResourceController {
 
         assignResourceMetadata(topic, ns, existingTopic.orElse(null));
 
-        if (existingTopic.isPresent()
-                && existingTopic.get().equals(topic)
-                && !existingTopic.get().isDeleting()) {
+        if (existingTopic.isPresent() && existingTopic.get().equals(topic)) {
             return formatHttpResponse(existingTopic.get(), ApplyStatus.UNCHANGED, validationWarnings);
         }
 
@@ -202,7 +200,8 @@ public class TopicController extends NamespacedResourceController {
     public HttpResponse<List<Topic>> bulkDelete(
             String namespace,
             @QueryValue(defaultValue = "*") String name,
-            @QueryValue(defaultValue = "false") boolean dryrun) {
+            @QueryValue(defaultValue = "false") boolean dryrun)
+            throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = getNamespace(namespace);
         List<Topic> topics = topicService.findByWildcardName(ns, name);
 
@@ -214,11 +213,10 @@ public class TopicController extends NamespacedResourceController {
             return HttpResponse.ok(topics);
         }
 
-        topics.forEach(topicToDelete -> {
-            topicToDelete.getMetadata().setStatus(Resource.Metadata.Status.ofDeleting());
-            topicService.create(topicToDelete);
-            sendEventLog(topicToDelete, ApplyStatus.DELETED, topicToDelete.getSpec(), null, EMPTY_STRING);
-        });
+        topics.forEach(topicToDelete ->
+                sendEventLog(topicToDelete, ApplyStatus.DELETED, topicToDelete.getSpec(), null, EMPTY_STRING));
+
+        topicService.deleteTopics(topics);
 
         return HttpResponse.ok(topics);
     }
@@ -252,9 +250,10 @@ public class TopicController extends NamespacedResourceController {
         }
 
         Topic topicToDelete = optionalTopic.get();
-        topicToDelete.getMetadata().setStatus(Resource.Metadata.Status.ofDeleting());
-        topicService.create(topicToDelete);
+
         sendEventLog(topicToDelete, ApplyStatus.DELETED, topicToDelete.getSpec(), null, EMPTY_STRING);
+
+        topicService.delete(topicToDelete);
 
         return HttpResponse.noContent();
     }

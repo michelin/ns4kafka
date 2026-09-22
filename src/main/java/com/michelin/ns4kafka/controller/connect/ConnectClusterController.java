@@ -26,7 +26,6 @@ import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.Namespace;
-import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.connect.ConnectCluster;
 import com.michelin.ns4kafka.model.connect.Connector;
 import com.michelin.ns4kafka.model.connect.VaultResponse;
@@ -38,12 +37,14 @@ import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Delete;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
+import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.micronaut.security.utils.SecurityService;
@@ -284,36 +285,36 @@ public class ConnectClusterController extends NamespacedResourceController {
                     List<Connector> connectors = connectorsByConnectCluster.getOrDefault(
                             connectCluster.getMetadata().getName(), List.of());
 
-                    if (cascade) {
-                        return Flux.fromIterable(connectors)
-                                .doOnNext(connector -> {
-                                    sendEventLog(
-                                            connector, ApplyStatus.DELETED, connector.getSpec(), null, EMPTY_STRING);
-                                    connector
-                                            .getMetadata()
-                                            .setStatus(Resource.Metadata.Status.ofDeleting(
-                                                    Map.of("force", String.valueOf(force))));
-                                    connectorService.create(connector);
-                                })
-                                .doOnComplete(() -> {
-                                    sendEventLog(
-                                            connectCluster,
-                                            ApplyStatus.DELETED,
-                                            connectCluster.getSpec(),
-                                            null,
-                                            EMPTY_STRING);
-                                    connectCluster.getMetadata().setUpdateTimestamp(Date.from(Instant.now()));
-                                    connectCluster
-                                            .getMetadata()
-                                            .setStatus(Resource.Metadata.Status.ofDeleting(
-                                                    Map.of("force", String.valueOf(force))));
-                                    connectClusterService.create(connectCluster);
-                                });
-                    }
-
-                    sendEventLog(connectCluster, ApplyStatus.DELETED, connectCluster.getSpec(), null, EMPTY_STRING);
-                    connectClusterService.delete(connectCluster);
-                    return Flux.empty();
+                    return (cascade
+                                    ? Flux.fromIterable(connectors)
+                                            .flatMap(connector -> connectorService
+                                                    .delete(ns, connector, force)
+                                                    .doOnSuccess(_ -> sendEventLog(
+                                                            connector,
+                                                            ApplyStatus.DELETED,
+                                                            connector.getSpec(),
+                                                            null,
+                                                            EMPTY_STRING)))
+                                            .onErrorMap(
+                                                    error -> new HttpStatusException(
+                                                            HttpStatus.BAD_GATEWAY,
+                                                            "Failed to delete connectors from Connect cluster [%s]: %s. "
+                                                                            .formatted(
+                                                                                    connectCluster
+                                                                                            .getMetadata()
+                                                                                            .getName(),
+                                                                                    error.getMessage())
+                                                                    + "Please use cascade and force option to bypass the error and remove from Ns4kafka"))
+                                    : Flux.empty())
+                            .doOnComplete(() -> {
+                                sendEventLog(
+                                        connectCluster,
+                                        ApplyStatus.DELETED,
+                                        connectCluster.getSpec(),
+                                        null,
+                                        EMPTY_STRING);
+                                connectClusterService.delete(connectCluster);
+                            });
                 })
                 .then(Mono.just(HttpResponse.ok(connectClusters)));
     }

@@ -18,6 +18,7 @@
  */
 package com.michelin.ns4kafka.service.executor;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -44,7 +45,6 @@ import org.apache.kafka.clients.admin.CreateTopicsResult;
 import org.apache.kafka.clients.admin.DeleteTopicsResult;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.config.ConfigResource;
-import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -283,10 +283,10 @@ class TopicAsyncExecutorTest {
     }
 
     @Test
-    void shouldDeleteTopics() {
+    void shouldDeleteTopics() throws ExecutionException, InterruptedException, TimeoutException {
         when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
         when(adminClient.deleteTopics(anyList())).thenReturn(deleteTopicsResult);
-        when(deleteTopicsResult.topicNameValues()).thenReturn(Map.of("topic", kafkaFuture));
+        when(deleteTopicsResult.all()).thenReturn(kafkaFuture);
 
         ManagedClusterProperties.TimeoutProperties.TopicProperties topicProperties =
                 new ManagedClusterProperties.TimeoutProperties.TopicProperties();
@@ -297,112 +297,34 @@ class TopicAsyncExecutorTest {
 
         when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
 
-        Topic topic = Topic.builder()
+        Topic topic1 = Topic.builder()
                 .metadata(Resource.Metadata.builder()
-                        .cluster("local")
-                        .name("topic")
-                        .status(Resource.Metadata.Status.ofDeleting())
-                        .updateTimestamp(Date.from(instant))
-                        .generation(1)
+                        .cluster(LOCAL_CLUSTER)
+                        .name(TOPIC_NAME)
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
 
-        when(topicService.findByName("local", "topic")).thenReturn(Optional.of(topic));
-
-        topicAsyncExecutor.deleteTopics(List.of(topic));
-
-        verify(topicRepository).delete(topic);
-        verify(topicRepository, never()).create(topic);
-    }
-
-    @ParameterizedTest
-    @CsvSource(
-            value = {"1000, null, true", "null, 1000, false"},
-            nullValues = "null")
-    void shouldHandleNullableUpdateTimestampsWhenDeleting(
-            Long queuedTimestamp, Long latestTimestamp, boolean shouldDelete) {
-        Topic topic = Topic.builder()
+        Topic topic2 = Topic.builder()
                 .metadata(Resource.Metadata.builder()
-                        .cluster("local")
-                        .name("topic")
-                        .status(Resource.Metadata.Status.ofDeleting())
-                        .updateTimestamp(queuedTimestamp == null ? null : new Date(queuedTimestamp))
-                        .generation(1)
+                        .cluster(LOCAL_CLUSTER)
+                        .name("topic2")
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
-        Topic latestTopic = Topic.builder()
-                .metadata(Resource.Metadata.builder()
-                        .cluster("local")
-                        .name("topic")
-                        .status(
-                                shouldDelete
-                                        ? Resource.Metadata.Status.ofDeleting()
-                                        : Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(latestTimestamp == null ? null : new Date(latestTimestamp))
-                        .generation(1)
-                        .build())
-                .spec(Topic.TopicSpec.builder().build())
-                .build();
-        when(topicService.findByName("local", "topic")).thenReturn(Optional.of(latestTopic));
-        if (shouldDelete) {
-            when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
-            when(managedClusterProperties.getTimeout()).thenReturn(new ManagedClusterProperties.TimeoutProperties());
-            when(adminClient.deleteTopics(List.of("topic"))).thenReturn(deleteTopicsResult);
-            when(deleteTopicsResult.topicNameValues()).thenReturn(Map.of("topic", KafkaFuture.completedFuture(null)));
-        }
 
-        topicAsyncExecutor.deleteTopics(List.of(topic));
+        topicAsyncExecutor.deleteTopics(List.of(topic1, topic2));
 
-        if (shouldDelete) {
-            verify(adminClient).deleteTopics(List.of("topic"));
-            verify(topicRepository).delete(topic);
-        } else {
-            verify(adminClient, never()).deleteTopics(anyList());
-            verify(topicRepository, never()).delete(any());
-        }
+        verify(adminClient).deleteTopics(List.of(TOPIC_NAME, "topic2"));
+        verify(kafkaFuture).get(1000, TimeUnit.MILLISECONDS);
     }
 
     @Test
-    void shouldNotDeleteTopicWhenChangedSinceLastApply() {
-        Topic topic = Topic.builder()
-                .metadata(Resource.Metadata.builder()
-                        .cluster("local")
-                        .name("topic")
-                        .status(Resource.Metadata.Status.ofDeleting())
-                        .updateTimestamp(Date.from(instant))
-                        .generation(1)
-                        .build())
-                .spec(Topic.TopicSpec.builder().build())
-                .build();
-
-        Topic newTopic = Topic.builder()
-                .metadata(Resource.Metadata.builder()
-                        .cluster("local")
-                        .name("topic")
-                        .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(instant.plusSeconds(1)))
-                        .generation(1)
-                        .build())
-                .spec(Topic.TopicSpec.builder().build())
-                .build();
-
-        when(topicService.findByName("local", "topic")).thenReturn(Optional.of(newTopic));
-
-        topicAsyncExecutor.deleteTopics(List.of(topic));
-
-        verify(adminClient, never()).deleteTopics(anyList());
-        verify(topicRepository, never()).create(any());
-        verify(topicRepository, never()).delete(any());
-    }
-
-    @Test
-    void shouldNotDeleteTopicAndUpdateStatusWhenExecutionError()
+    void shouldThrowExceptionWhenDeletingTopicsFails()
             throws ExecutionException, InterruptedException, TimeoutException {
         when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
         when(adminClient.deleteTopics(anyList())).thenReturn(deleteTopicsResult);
-        when(deleteTopicsResult.topicNameValues()).thenReturn(Map.of("topic", kafkaFuture));
+        when(deleteTopicsResult.all()).thenReturn(kafkaFuture);
 
         ManagedClusterProperties.TimeoutProperties.TopicProperties topicProperties =
                 new ManagedClusterProperties.TimeoutProperties.TopicProperties();
@@ -416,107 +338,16 @@ class TopicAsyncExecutorTest {
 
         Topic topic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
-                        .cluster("local")
-                        .name("topic")
-                        .status(Resource.Metadata.Status.ofDeleting())
-                        .updateTimestamp(Date.from(instant))
-                        .generation(1)
+                        .cluster(LOCAL_CLUSTER)
+                        .name(TOPIC_NAME)
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
 
-        when(topicService.findByName("local", "topic")).thenReturn(Optional.of(topic));
+        List<Topic> topics = List.of(topic);
 
-        topicAsyncExecutor.deleteTopics(List.of(topic));
-
-        verify(topicRepository).create(argThat(a -> a.equals(topic) && a.isFailed()));
+        assertThrows(ExecutionException.class, () -> topicAsyncExecutor.deleteTopics(topics));
         verify(topicRepository, never()).delete(any());
-    }
-
-    @Test
-    void shouldDeleteTopicWhenNotExistInCluster() throws ExecutionException, InterruptedException, TimeoutException {
-        when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
-        when(adminClient.deleteTopics(anyList())).thenReturn(deleteTopicsResult);
-        when(deleteTopicsResult.topicNameValues()).thenReturn(Map.of("topic", kafkaFuture));
-
-        ManagedClusterProperties.TimeoutProperties.TopicProperties topicProperties =
-                new ManagedClusterProperties.TimeoutProperties.TopicProperties();
-        topicProperties.setDelete(1000);
-
-        ManagedClusterProperties.TimeoutProperties timeoutProperties = new ManagedClusterProperties.TimeoutProperties();
-        timeoutProperties.setTopic(topicProperties);
-
-        when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
-        when(kafkaFuture.get(1000, TimeUnit.MILLISECONDS))
-                .thenThrow(new ExecutionException("Error", new UnknownTopicOrPartitionException()));
-
-        Topic topic = Topic.builder()
-                .metadata(Resource.Metadata.builder()
-                        .cluster("local")
-                        .name("topic")
-                        .status(Resource.Metadata.Status.ofDeleting())
-                        .updateTimestamp(Date.from(instant))
-                        .generation(1)
-                        .build())
-                .spec(Topic.TopicSpec.builder().build())
-                .build();
-
-        when(topicService.findByName("local", "topic")).thenReturn(Optional.of(topic));
-
-        topicAsyncExecutor.deleteTopics(List.of(topic));
-
-        verify(topicRepository).delete(topic);
-        verify(topicRepository, never()).create(any());
-    }
-
-    @Test
-    void shouldNotDeleteTopicAndNotUpdateStatusWhenExecutionErrorAndChangedSinceLastApply()
-            throws ExecutionException, InterruptedException, TimeoutException {
-        when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
-        when(adminClient.deleteTopics(anyList())).thenReturn(deleteTopicsResult);
-        when(deleteTopicsResult.topicNameValues()).thenReturn(Map.of("topic", kafkaFuture));
-
-        ManagedClusterProperties.TimeoutProperties.TopicProperties topicProperties =
-                new ManagedClusterProperties.TimeoutProperties.TopicProperties();
-        topicProperties.setDelete(1000);
-
-        ManagedClusterProperties.TimeoutProperties timeoutProperties = new ManagedClusterProperties.TimeoutProperties();
-        timeoutProperties.setTopic(topicProperties);
-
-        when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
-        when(kafkaFuture.get(1000, TimeUnit.MILLISECONDS)).thenThrow(new ExecutionException("Error", new Exception()));
-
-        Topic topic = Topic.builder()
-                .metadata(Resource.Metadata.builder()
-                        .cluster("local")
-                        .name("topic")
-                        .status(Resource.Metadata.Status.ofDeleting())
-                        .updateTimestamp(Date.from(instant))
-                        .generation(1)
-                        .build())
-                .spec(Topic.TopicSpec.builder().build())
-                .build();
-
-        Topic newTopic = Topic.builder()
-                .metadata(Resource.Metadata.builder()
-                        .cluster("local")
-                        .name("topic")
-                        .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(instant.plusSeconds(1)))
-                        .generation(1)
-                        .build())
-                .spec(Topic.TopicSpec.builder().build())
-                .build();
-
-        // Reapplied while the broker deletion was in flight
-        when(topicService.findByName("local", "topic"))
-                .thenReturn(Optional.of(topic))
-                .thenReturn(Optional.of(newTopic));
-
-        topicAsyncExecutor.deleteTopics(List.of(topic));
-
-        verify(topicRepository, never()).delete(any());
-        verify(topicRepository, never()).create(any());
     }
 
     @Test

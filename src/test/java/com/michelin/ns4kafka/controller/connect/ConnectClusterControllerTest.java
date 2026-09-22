@@ -456,8 +456,7 @@ class ConnectClusterControllerTest {
         when(connectorService.findAllByConnectCluster(ns, "connect-cluster")).thenReturn(List.of(connector));
         when(connectClusterService.findByWildcardNameWithOwnerPermission(ns, "connect-cluster"))
                 .thenReturn(List.of(connectCluster));
-        when(connectorService.create(connector)).thenReturn(connector);
-        when(connectClusterService.create(connectCluster)).thenReturn(connectCluster);
+        when(connectorService.delete(ns, connector, false)).thenReturn(Mono.just(HttpResponse.noContent()));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
@@ -466,15 +465,8 @@ class ConnectClusterControllerTest {
                 .consumeNextWith(response -> assertEquals(HttpStatus.OK, response.getStatus()))
                 .verifyComplete();
 
-        assertEquals(
-                Resource.Metadata.Phase.DELETING,
-                connector.getMetadata().getStatus().getPhase());
-        assertEquals("false", connector.getMetadata().getStatus().getOptions().get("force"));
-        assertEquals(
-                Resource.Metadata.Phase.DELETING,
-                connectCluster.getMetadata().getStatus().getPhase());
-        assertEquals(
-                "false", connectCluster.getMetadata().getStatus().getOptions().get("force"));
+        verify(connectorService).delete(ns, connector, false);
+        verify(connectClusterService).delete(connectCluster);
     }
 
     @Test
@@ -501,8 +493,7 @@ class ConnectClusterControllerTest {
         when(connectorService.findAllByConnectCluster(ns, "connect-cluster")).thenReturn(List.of(connector));
         when(connectClusterService.findByWildcardNameWithOwnerPermission(ns, "connect-cluster"))
                 .thenReturn(List.of(connectCluster));
-        when(connectorService.create(connector)).thenReturn(connector);
-        when(connectClusterService.create(connectCluster)).thenReturn(connectCluster);
+        when(connectorService.delete(ns, connector, true)).thenReturn(Mono.just(HttpResponse.noContent()));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
@@ -511,15 +502,8 @@ class ConnectClusterControllerTest {
                 .consumeNextWith(response -> assertEquals(HttpStatus.OK, response.getStatus()))
                 .verifyComplete();
 
-        assertEquals(
-                Resource.Metadata.Phase.DELETING,
-                connector.getMetadata().getStatus().getPhase());
-        assertEquals("true", connector.getMetadata().getStatus().getOptions().get("force"));
-        assertEquals(
-                Resource.Metadata.Phase.DELETING,
-                connectCluster.getMetadata().getStatus().getPhase());
-        assertEquals(
-                "true", connectCluster.getMetadata().getStatus().getOptions().get("force"));
+        verify(connectorService).delete(ns, connector, true);
+        verify(connectClusterService).delete(connectCluster);
     }
 
     @Test

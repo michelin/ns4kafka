@@ -264,6 +264,47 @@ public class ConnectorService {
     }
 
     /**
+     * Delete a given connector.
+     *
+     * @param namespace The namespace
+     * @param connector The connector
+     * @param force Force delete or not?
+     * @return An HTTP response
+     */
+    public Mono<HttpResponse<Void>> delete(Namespace namespace, Connector connector, boolean force) {
+        return kafkaConnectClient
+                .delete(
+                        namespace.getMetadata().getCluster(),
+                        connector.getSpec().getConnectCluster(),
+                        connector.getMetadata().getName())
+                .defaultIfEmpty(HttpResponse.noContent())
+                .onErrorResume(error -> {
+                    if (force) {
+                        log.atInfo()
+                                .addArgument(connector.getMetadata().getName())
+                                .addArgument(namespace.getMetadata().getName())
+                                .addArgument(connector.getSpec().getConnectCluster())
+                                .addArgument(error.getMessage())
+                                .log("Success force deleting connector {} on namespace {} from repository."
+                                        + " Failed to delete from Kafka Connect {}: {}.");
+                        return Mono.just(HttpResponse.noContent());
+                    }
+                    return Mono.error(error);
+                })
+                .map(httpResponse -> {
+                    connectorRepository.delete(connector);
+
+                    log.atInfo()
+                            .addArgument(connector.getMetadata().getName())
+                            .addArgument(namespace.getMetadata().getName())
+                            .addArgument(connector.getSpec().getConnectCluster())
+                            .log("Success deleting connector {} on namespace {} and Kafka Connect {}.");
+
+                    return httpResponse;
+                });
+    }
+
+    /**
      * List all connectors of a given namespace that are not synchronized to Ns4Kafka, filtered by name parameter.
      *
      * @param namespace The namespace
