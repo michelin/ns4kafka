@@ -164,7 +164,7 @@ public class NamespaceController extends ResourceController {
     @Delete
     @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
     public HttpResponse<List<Namespace>> delete(
-            @QueryValue("name") @NotBlank(message = "Namespace name parameter is required for delete operation.") String name,
+            @QueryValue @NotBlank(message = "The namespace name parameter is required for deletion.") String name,
             @QueryValue(defaultValue = "false") boolean dryrun) {
         List<Namespace> namespaces = namespaceService.findByWildcardName(name);
 

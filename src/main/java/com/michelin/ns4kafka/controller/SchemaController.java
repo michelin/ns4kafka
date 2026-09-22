@@ -212,7 +212,7 @@ public class SchemaController extends NamespacedResourceController {
     @Delete
     public Mono<HttpResponse<List<Schema>>> bulkDelete(
             String namespace,
-            @QueryValue("name") @NotBlank(message = "Schema name parameter is required for delete operation.") String name,
+            @QueryValue @NotBlank(message = "The schema name parameter is required for deletion.") String name,
             @QueryValue("version") Optional<String> versionOptional,
             @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);

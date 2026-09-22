@@ -199,7 +199,7 @@ public class AclController extends NamespacedResourceController {
     public HttpResponse<List<AccessControlEntry>> bulkDelete(
             Authentication authentication,
             String namespace,
-            @QueryValue("name") @NotBlank(message = "ACL name parameter is required for delete operation.") String name,
+            @QueryValue @NotBlank(message = "The ACL name parameter is required for deletion.") String name,
             @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
         List<AccessControlEntry> acls = aclService.findAllGrantedByNamespaceByWildcardName(ns, name);

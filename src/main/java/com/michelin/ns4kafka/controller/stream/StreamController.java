@@ -191,7 +191,7 @@ public class StreamController extends NamespacedResourceController {
     @Delete
     HttpResponse<List<KafkaStream>> bulkDelete(
             String namespace,
-            @QueryValue("name") @NotBlank(message = "Kafka Stream name parameter is required for delete operation.") String name,
+            @QueryValue @NotBlank(message = "The Kafka stream name parameter is required for deletion.") String name,
             @QueryValue(defaultValue = "false") boolean dryrun)
             throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = getNamespace(namespace);
