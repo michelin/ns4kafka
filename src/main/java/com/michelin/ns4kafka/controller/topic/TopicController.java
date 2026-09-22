@@ -202,7 +202,7 @@ public class TopicController extends NamespacedResourceController {
     @Delete
     public HttpResponse<List<Topic>> bulkDelete(
             String namespace,
-            @NotBlank(message = "Topic name parameter is required for delete operation.") String name,
+            @QueryValue("name") @NotBlank(message = "Topic name parameter is required for delete operation.") String name,
             @QueryValue(defaultValue = "false") boolean dryrun) {
 
         Namespace ns = getNamespace(namespace);

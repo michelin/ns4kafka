@@ -250,7 +250,7 @@ public class ConnectorController extends NamespacedResourceController {
     @Delete
     public Mono<HttpResponse<List<Connector>>> delete(
             String namespace,
-            @NotBlank(message = "Connector name parameter is required for delete operation.") String name,
+            @QueryValue("name") @NotBlank(message = "Connector name parameter is required for delete operation.") String name,
             @QueryValue(defaultValue = "false") boolean dryrun,
             @QueryValue(defaultValue = "false") boolean force) {
         Namespace ns = getNamespace(namespace);

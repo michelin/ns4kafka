@@ -159,7 +159,7 @@ public class ResourceQuotaController extends NamespacedResourceController {
     @Delete
     public HttpResponse<List<ResourceQuota>> delete(
             String namespace,
-            @NotBlank(message = "Resource Quota name parameter is required for delete operation.") String name,
+            @QueryValue("name") @NotBlank(message = "Resource Quota name parameter is required for delete operation.") String name,
             @QueryValue(defaultValue = "false") boolean dryrun) {
         List<ResourceQuota> resourceQuotas = resourceQuotaService.findByWildcardName(namespace, name);
 

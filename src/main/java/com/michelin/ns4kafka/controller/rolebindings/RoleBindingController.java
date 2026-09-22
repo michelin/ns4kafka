@@ -134,7 +134,7 @@ public class RoleBindingController extends NamespacedResourceController {
     @Delete
     public HttpResponse<List<RoleBinding>> delete(
             String namespace,
-            @NotBlank(message = "Role Binding name parameter is required for delete operation.") String name,
+            @QueryValue("name") @NotBlank(message = "Role Binding name parameter is required for delete operation.") String name,
             @QueryValue(defaultValue = "false") boolean dryrun) {
         List<RoleBinding> roleBindings = roleBindingService.findByWildcardName(namespace, name);
 
