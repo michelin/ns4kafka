@@ -267,7 +267,7 @@ public class TopicAsyncExecutor {
                 topicRepository.create(lastVersion);
 
                 log.info(
-                        "Success creating topic {} on cluster {}",
+                        "Success creating topic {} on cluster {}.",
                         topicToCreate.getMetadata().getName(),
                         managedClusterProperties.getName());
             } catch (InterruptedException e) {
@@ -290,7 +290,7 @@ public class TopicAsyncExecutor {
                                     Resource.Metadata.Status.ofFailed("Error while creating topic: " + e.getMessage()));
                     topicRepository.create(topicToCreate);
                     log.error(
-                            "Error while creating topic {} on cluster {}",
+                            "Error while creating topic {} on cluster {}.",
                             topicToCreate.getMetadata().getName(),
                             managedClusterProperties.getName(),
                             e);
@@ -344,7 +344,7 @@ public class TopicAsyncExecutor {
                     topicRepository.create(topic);
 
                     log.info(
-                            "Topic {} configs are already up to date on cluster {}",
+                            "Topic {} configs are already up to date on cluster {}.",
                             topic.getMetadata().getName(),
                             managedClusterProperties.getName());
                 });
@@ -379,7 +379,7 @@ public class TopicAsyncExecutor {
                             .addArgument(topicConfigsToUpdate.get(key).stream()
                                     .map(AlterConfigOp::toString)
                                     .collect(Collectors.joining(",")))
-                            .log("Success updating topic {} configs on cluster {}: [{}]");
+                            .log("Success updating topic {} configs on cluster {}: [{}].");
                 }
             } catch (InterruptedException e) {
                 log.error(ERROR, e);
@@ -397,7 +397,7 @@ public class TopicAsyncExecutor {
                     topicRepository.create(updatedTopic);
 
                     log.error(
-                            "Error while updating topic configs {} on cluster {}",
+                            "Error while updating topic configs {} on cluster {}.",
                             updatedTopic.getMetadata().getName(),
                             managedClusterProperties.getName(),
                             e);
@@ -421,10 +421,8 @@ public class TopicAsyncExecutor {
                 .all()
                 .get(managedClusterProperties.getTimeout().getTopic().getDelete(), TimeUnit.MILLISECONDS);
 
-        log.atInfo()
-                .addArgument(String.join(", ", topicsNames))
-                .addArgument(managedClusterProperties.getName())
-                .log("Success deleting topics {} on cluster {}.");
+        topicsNames.forEach(topicName ->
+                log.info("Success deleting topic {} on cluster {}.", topicName, managedClusterProperties.getName()));
     }
 
     /**

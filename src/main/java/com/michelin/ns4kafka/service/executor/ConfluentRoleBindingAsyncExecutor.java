@@ -144,7 +144,7 @@ public class ConfluentRoleBindingAsyncExecutor {
                                     aclRepository.create(lastVersion);
 
                                     log.info(
-                                            "Success creating RoleBinding {} for ACL {} on {}.",
+                                            "Success creating role binding {} of ACL {} on cluster {}.",
                                             roleBindingResponse.id(),
                                             lastVersion.getMetadata().getName(),
                                             managedClusterProperties.getName());
@@ -152,7 +152,7 @@ public class ConfluentRoleBindingAsyncExecutor {
                                 e -> {
                                     if (isUnchangedSinceLastApply(acl)) {
                                         log.error(
-                                                "Error creating RoleBinding for ACL {} on {}.",
+                                                "Error while creating role binding of ACL {} on cluster {}.",
                                                 acl.getMetadata().getName(),
                                                 managedClusterProperties.getName(),
                                                 e);
@@ -202,7 +202,7 @@ public class ConfluentRoleBindingAsyncExecutor {
                                 kafkaStreamRepository.create(lastVersion);
 
                                 log.info(
-                                        "Success creating RoleBinding {} for KafkaStream {} on {}.",
+                                        "Success creating role binding {} of Kafka Stream {} on cluster {}.",
                                         roleBindingResponse.id(),
                                         lastVersion.getMetadata().getName(),
                                         managedClusterProperties.getName());
@@ -210,7 +210,7 @@ public class ConfluentRoleBindingAsyncExecutor {
                             e -> {
                                 if (isUnchangedSinceLastApply(ks)) {
                                     log.error(
-                                            "Error creating RoleBinding for KafkaStream {} on {}.",
+                                            "Error while creating role binding of Kafka Stream {} on cluster {}.",
                                             ks.getMetadata().getName(),
                                             managedClusterProperties.getName(),
                                             e);
@@ -237,19 +237,19 @@ public class ConfluentRoleBindingAsyncExecutor {
 
                 if (roleBindingResponse == null) {
                     log.info(
-                            "No RoleBinding to delete for ACL {} on {}.",
+                            "No role binding to delete for ACL {} on cluster {}.",
                             acl.getMetadata().getName(),
                             managedClusterProperties.getName());
                 } else {
                     log.info(
-                            "Success deleting RoleBinding {} for ACL {} on {}.",
+                            "Success deleting role binding {} of ACL {} on cluster {}.",
                             roleBindingResponse.id(),
                             acl.getMetadata().getName(),
                             managedClusterProperties.getName());
                 }
             } catch (Exception e) {
                 log.error(
-                        "Error while deleting RoleBinding for ACL {} on {}.",
+                        "Error while deleting role binding of ACL {} on cluster {}.",
                         acl.getMetadata().getName(),
                         managedClusterProperties.getName(),
                         e);
@@ -272,19 +272,19 @@ public class ConfluentRoleBindingAsyncExecutor {
 
                 if (roleBindingResponse == null) {
                     log.info(
-                            "No RoleBinding to delete for KafkaStream {} on {}.",
+                            "No role binding to delete for Kafka Stream {} on cluster {}.",
                             ks.getMetadata().getName(),
                             managedClusterProperties.getName());
                 } else {
                     log.info(
-                            "Success deleting RoleBinding {} for KafkaStream {} on {}.",
+                            "Success deleting role binding {} of Kafka Stream {} on cluster {}.",
                             roleBindingResponse.id(),
                             ks.getMetadata().getName(),
                             managedClusterProperties.getName());
                 }
             } catch (Exception e) {
                 log.error(
-                        "Error while deleting RoleBinding for KafkaStream {} on {}.",
+                        "Error while deleting role binding of Kafka Stream {} on cluster {}.",
                         ks.getMetadata().getName(),
                         managedClusterProperties.getName(),
                         e);

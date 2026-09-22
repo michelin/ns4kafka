@@ -128,7 +128,7 @@ public class ConnectorAsyncExecutor {
                     connectorRepository.create(lastVersion);
 
                     log.info(
-                            "Success creating connector {} on Kafka Connect {} of Kafka cluster {}.",
+                            "Success creating connector {} of Kafka Connect {} on cluster {}.",
                             lastVersion.getMetadata().getName(),
                             lastVersion.getSpec().getConnectCluster(),
                             managedClusterProperties.getName());
@@ -140,7 +140,7 @@ public class ConnectorAsyncExecutor {
                         connectorRepository.create(connector);
 
                         log.error(
-                                "Error creating connector {} on Kafka Connect {} of Kafka cluster {}: {}.",
+                                "Error while creating connector {} of Kafka Connect {} on cluster {}: {}.",
                                 connector.getMetadata().getName(),
                                 connector.getSpec().getConnectCluster(),
                                 managedClusterProperties.getName(),

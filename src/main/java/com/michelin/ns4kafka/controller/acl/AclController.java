@@ -48,9 +48,7 @@ import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.time.Instant;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -229,7 +227,6 @@ public class AclController extends NamespacedResourceController {
         }
 
         acls.forEach(acl -> {
-            acl.getMetadata().setUpdateTimestamp(Date.from(Instant.now()));
             sendEventLog(acl, ApplyStatus.DELETED, acl.getSpec(), null, EMPTY_STRING);
             aclService.delete(acl);
         });

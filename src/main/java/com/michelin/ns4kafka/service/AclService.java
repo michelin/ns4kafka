@@ -371,21 +371,6 @@ public class AclService {
     }
 
     /**
-     * Check if the cluster manages Confluent Cloud RBAC.
-     *
-     * @param accessControlEntry The ACL
-     * @return true if the cluster is Confluent Cloud with RBAC management enabled, false otherwise
-     */
-    public boolean isClusterManagingRbac(AccessControlEntry accessControlEntry) {
-        String cluster = accessControlEntry.getMetadata().getCluster();
-        return managedClusterProperties.stream()
-                .filter(clusterProperties -> clusterProperties.getName().equals(cluster))
-                .findFirst()
-                .map(clusterProperties -> clusterProperties.isConfluentCloud() && clusterProperties.isManageRbac())
-                .orElse(false);
-    }
-
-    /**
      * Find all ACLs granted to a given namespace. Will also return public granted ACLs.
      *
      * @param namespace The namespace

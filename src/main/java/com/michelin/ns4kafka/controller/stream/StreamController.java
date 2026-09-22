@@ -43,8 +43,6 @@ import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.time.Instant;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
@@ -217,7 +215,6 @@ public class StreamController extends NamespacedResourceController {
         }
 
         for (KafkaStream kafkaStream : kafkaStreams) {
-            kafkaStream.getMetadata().setUpdateTimestamp(Date.from(Instant.now()));
             sendEventLog(kafkaStream, ApplyStatus.DELETED, kafkaStream.getMetadata(), null, EMPTY_STRING);
             streamService.delete(ns, kafkaStream);
         }
