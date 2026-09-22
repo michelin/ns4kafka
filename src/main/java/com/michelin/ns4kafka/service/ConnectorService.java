@@ -283,10 +283,11 @@ public class ConnectorService {
                         log.atInfo()
                                 .addArgument(connector.getMetadata().getName())
                                 .addArgument(connector.getSpec().getConnectCluster())
+                                .addArgument(namespace.getMetadata().getName())
                                 .addArgument(namespace.getMetadata().getCluster())
                                 .addArgument(error.getMessage())
-                                .log("Success force deleting connector {} of Kafka Connect {} on cluster {}:"
-                                        + " deleted from Ns4Kafka only, Kafka Connect returned {}.");
+                                .log("Success force deleting connector {} of Kafka Connect {} in namespace {} on"
+                                        + " cluster {}: deleted from Ns4Kafka only, Kafka Connect returned {}.");
                         return Mono.just(HttpResponse.noContent());
                     }
                     return Mono.error(error);
@@ -297,8 +298,9 @@ public class ConnectorService {
                     log.atInfo()
                             .addArgument(connector.getMetadata().getName())
                             .addArgument(connector.getSpec().getConnectCluster())
+                            .addArgument(namespace.getMetadata().getName())
                             .addArgument(namespace.getMetadata().getCluster())
-                            .log("Success deleting connector {} of Kafka Connect {} on cluster {}.");
+                            .log("Success deleting connector {} of Kafka Connect {} in namespace {} on cluster {}.");
 
                     return httpResponse;
                 });
