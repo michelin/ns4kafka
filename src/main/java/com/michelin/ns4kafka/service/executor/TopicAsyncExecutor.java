@@ -97,17 +97,6 @@ public class TopicAsyncExecutor {
                             .collect(Collectors.partitioningBy(Resource::isCreated));
             List<Topic> topicsToCreate = partitioned.get(false);
             List<Topic> topicsToUpdate = partitioned.get(true);
-            List<Topic> topicsToDelete = topicService.findAllToDeleteForCluster(managedClusterProperties.getName());
-
-            if (!topicsToDelete.isEmpty()) {
-                log.atDebug()
-                        .addArgument(topicsToDelete.stream()
-                                .map(topic -> topic.getMetadata().getName())
-                                .collect(Collectors.joining(",")))
-                        .log("Topic(s) to delete: {}");
-
-                deleteTopics(topicsToDelete);
-            }
 
             if (!topicsToCreate.isEmpty()) {
                 log.atDebug()
@@ -278,7 +267,7 @@ public class TopicAsyncExecutor {
                 topicRepository.create(lastVersion);
 
                 log.info(
-                        "Success creating topic {} on cluster {}",
+                        "Success creating topic {} on cluster {}.",
                         topicToCreate.getMetadata().getName(),
                         managedClusterProperties.getName());
             } catch (InterruptedException e) {
@@ -301,7 +290,7 @@ public class TopicAsyncExecutor {
                                     Resource.Metadata.Status.ofFailed("Error while creating topic: " + e.getMessage()));
                     topicRepository.create(topicToCreate);
                     log.error(
-                            "Error while creating topic {} on cluster {}",
+                            "Error while creating topic {} on cluster {}.",
                             topicToCreate.getMetadata().getName(),
                             managedClusterProperties.getName(),
                             e);
@@ -355,7 +344,7 @@ public class TopicAsyncExecutor {
                     topicRepository.create(topic);
 
                     log.info(
-                            "Topic {} configs are already up to date on cluster {}",
+                            "Topic {} configs are already up to date on cluster {}.",
                             topic.getMetadata().getName(),
                             managedClusterProperties.getName());
                 });
@@ -390,7 +379,7 @@ public class TopicAsyncExecutor {
                             .addArgument(topicConfigsToUpdate.get(key).stream()
                                     .map(AlterConfigOp::toString)
                                     .collect(Collectors.joining(",")))
-                            .log("Success updating topic {} configs on cluster {}: [{}]");
+                            .log("Success updating topic {} configs on cluster {}: [{}].");
                 }
             } catch (InterruptedException e) {
                 log.error(ERROR, e);
@@ -408,7 +397,7 @@ public class TopicAsyncExecutor {
                     topicRepository.create(updatedTopic);
 
                     log.error(
-                            "Error while updating topic configs {} on cluster {}",
+                            "Error while updating topic configs {} on cluster {}.",
                             updatedTopic.getMetadata().getName(),
                             managedClusterProperties.getName(),
                             e);
@@ -422,65 +411,18 @@ public class TopicAsyncExecutor {
      *
      * @param topics The topics to delete
      */
-    public void deleteTopics(List<Topic> topics) {
-        // Topics reapplied since the deletion was requested are not deleted from the broker
-        List<Topic> topicsToDelete =
-                topics.stream().filter(this::isUnchangedSinceLastApply).toList();
+    public void deleteTopics(List<Topic> topics) throws InterruptedException, ExecutionException, TimeoutException {
+        List<String> topicsNames =
+                topics.stream().map(topic -> topic.getMetadata().getName()).toList();
 
-        if (topicsToDelete.isEmpty()) {
-            return;
-        }
-
-        List<String> topicsNames = topicsToDelete.stream()
-                .map(topic -> topic.getMetadata().getName())
-                .toList();
-
-        Map<String, KafkaFuture<Void>> deletedTopicsResult = managedClusterProperties
+        managedClusterProperties
                 .getAdminClient()
                 .deleteTopics(topicsNames)
-                .topicNameValues();
+                .all()
+                .get(managedClusterProperties.getTimeout().getTopic().getDelete(), TimeUnit.MILLISECONDS);
 
-        topicsToDelete.forEach(topicToDelete -> {
-            try {
-                deletedTopicsResult
-                        .get(topicToDelete.getMetadata().getName())
-                        .get(managedClusterProperties.getTimeout().getTopic().getDelete(), TimeUnit.MILLISECONDS);
-
-                if (isUnchangedSinceLastApply(topicToDelete)) {
-                    log.atInfo()
-                            .addArgument(topicToDelete.getMetadata().getName())
-                            .addArgument(managedClusterProperties.getName())
-                            .log("Success deleting topic {} on cluster {}.");
-                    topicRepository.delete(topicToDelete);
-                }
-            } catch (InterruptedException e) {
-                log.error(ERROR, e);
-                Thread.currentThread().interrupt();
-            } catch (Exception e) {
-                if (isUnchangedSinceLastApply(topicToDelete)) {
-                    if (e.getCause() instanceof UnknownTopicOrPartitionException) {
-                        log.info(
-                                "Topic {} does not exist on the cluster {}: Topic will be removed from Ns4Kafka.",
-                                topicToDelete.getMetadata().getName(),
-                                managedClusterProperties.getName());
-                        topicRepository.delete(topicToDelete);
-                        return;
-                    }
-
-                    topicToDelete
-                            .getMetadata()
-                            .setStatus(
-                                    Resource.Metadata.Status.ofFailed("Error while deleting topic: " + e.getMessage()));
-                    topicRepository.create(topicToDelete);
-
-                    log.error(
-                            "Error while deleting topic {} on cluster {}",
-                            topicToDelete.getMetadata().getName(),
-                            managedClusterProperties.getName(),
-                            e);
-                }
-            }
-        });
+        topicsNames.forEach(topicName ->
+                log.info("Success deleting topic {} on cluster {}.", topicName, managedClusterProperties.getName()));
     }
 
     /**

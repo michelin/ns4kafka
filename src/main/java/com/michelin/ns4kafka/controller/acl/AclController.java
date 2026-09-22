@@ -42,13 +42,13 @@ import io.micronaut.http.annotation.Delete;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
+import io.micronaut.scheduling.TaskExecutors;
+import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.time.Instant;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -56,6 +56,7 @@ import java.util.stream.Collectors;
 /** Controller to manage ACLs. */
 @Tag(name = "ACLs", description = "Manage the ACLs.")
 @Controller("/api/namespaces/{namespace}/acls")
+@ExecuteOn(TaskExecutors.IO)
 public class AclController extends NamespacedResourceController {
     private final AclService aclService;
 
@@ -163,7 +164,6 @@ public class AclController extends NamespacedResourceController {
 
         if (existingAcl.isPresent()
                 && !existingAcl.get().isFailed()
-                && !existingAcl.get().isDeleting()
                 && existingAcl.get().equals(accessControlEntry)) {
             return formatHttpResponse(existingAcl.get(), ApplyStatus.UNCHANGED);
         }
@@ -227,7 +227,6 @@ public class AclController extends NamespacedResourceController {
         }
 
         acls.forEach(acl -> {
-            acl.getMetadata().setUpdateTimestamp(Date.from(Instant.now()));
             sendEventLog(acl, ApplyStatus.DELETED, acl.getSpec(), null, EMPTY_STRING);
             aclService.delete(acl);
         });

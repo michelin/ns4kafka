@@ -36,6 +36,7 @@ import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.AccessControlEntryRepository;
 import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
+import com.michelin.ns4kafka.service.executor.ConfluentRoleBindingAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
 import java.util.Collection;
@@ -58,6 +59,9 @@ class AclServiceTest {
 
     @Mock
     AccessControlEntryAsyncExecutor accessControlEntryAsyncExecutor;
+
+    @Mock
+    ConfluentRoleBindingAsyncExecutor confluentRoleBindingAsyncExecutor;
 
     @Mock
     ApplicationContext applicationContext;
@@ -994,7 +998,7 @@ class AclServiceTest {
     }
 
     @Test
-    void shouldFindNonPublicAclsToDeployAndToDeleteForCluster() {
+    void shouldFindNonPublicAclsToDeployForCluster() {
         AccessControlEntry publicAcl1 = AccessControlEntry.builder()
                 .metadata(Resource.Metadata.builder()
                         .namespace("namespace4")
@@ -1020,7 +1024,7 @@ class AclServiceTest {
                 .metadata(Resource.Metadata.builder()
                         .namespace("namespace2")
                         .cluster("local")
-                        .status(Resource.Metadata.Status.ofDeleting())
+                        .status(Resource.Metadata.Status.ofSuccess())
                         .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .grantedTo("*")
@@ -1063,7 +1067,7 @@ class AclServiceTest {
                 .metadata(Resource.Metadata.builder()
                         .namespace("namespace3")
                         .cluster("local")
-                        .status(Resource.Metadata.Status.ofDeleting())
+                        .status(Resource.Metadata.Status.ofSuccess())
                         .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .grantedTo("namespace3")
@@ -1096,7 +1100,7 @@ class AclServiceTest {
                 .metadata(Resource.Metadata.builder()
                         .namespace("namespace5")
                         .cluster("other")
-                        .status(Resource.Metadata.Status.ofDeleting())
+                        .status(Resource.Metadata.Status.ofSuccess())
                         .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
                         .grantedTo("namespace5")
@@ -1119,10 +1123,6 @@ class AclServiceTest {
         List<AccessControlEntry> toDeploy = aclService.findNonPublicToDeployForCluster("local");
         assertEquals(1, toDeploy.size());
         assertTrue(toDeploy.contains(acl2));
-
-        List<AccessControlEntry> toDelete = aclService.findNonPublicToDeleteForCluster("local");
-        assertEquals(1, toDelete.size());
-        assertTrue(toDelete.contains(acl3));
     }
 
     @Test
@@ -2005,7 +2005,8 @@ class AclServiceTest {
         when(accessControlEntryRepository.findAll()).thenReturn(List.of(acl1, acl2));
         when(applicationContext.getBean(AccessControlEntryAsyncExecutor.class, Qualifiers.byName("cluster")))
                 .thenReturn(accessControlEntryAsyncExecutor);
-        when(accessControlEntryRepository.create(acl1)).thenReturn(acl1);
+        when(applicationContext.getBean(ConfluentRoleBindingAsyncExecutor.class, Qualifiers.byName("cluster")))
+                .thenReturn(confluentRoleBindingAsyncExecutor);
         doNothing().when(accessControlEntryRepository).delete(any());
 
         Namespace namespace = Namespace.builder()
@@ -2017,7 +2018,8 @@ class AclServiceTest {
 
         aclService.deleteAllGrantedToNamespace(namespace);
 
-        verify(accessControlEntryRepository).create(acl1);
+        verify(confluentRoleBindingAsyncExecutor).deleteRoleBindingsFromAcls(List.of(acl1));
+        verify(accessControlEntryRepository).delete(acl1);
         verify(accessControlEntryRepository).delete(acl2);
     }
 

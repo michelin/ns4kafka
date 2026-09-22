@@ -45,6 +45,8 @@ import io.micronaut.http.annotation.Delete;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
+import io.micronaut.scheduling.TaskExecutors;
+import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -59,6 +61,7 @@ import org.apache.kafka.common.TopicPartition;
 /** Controller to manage the consumer groups. */
 @Tag(name = "Consumer Groups", description = "Manage the consumer groups.")
 @Controller("/api/namespaces/{namespace}/consumer-groups")
+@ExecuteOn(TaskExecutors.IO)
 public class ConsumerGroupController extends NamespacedResourceController {
     private final ConsumerGroupService consumerGroupService;
     private final AclService aclService;

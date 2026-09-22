@@ -27,6 +27,8 @@ import com.michelin.ns4kafka.service.ResourceQuotaService;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
+import io.micronaut.scheduling.TaskExecutors;
+import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
@@ -35,6 +37,7 @@ import java.util.List;
 /** Non namespaced resource quota controller. */
 @Tag(name = "Quotas", description = "Manage the resource quotas.")
 @Controller(value = "/api/resource-quotas")
+@ExecuteOn(TaskExecutors.IO)
 @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
 public class ResourceQuotaNonNamespacedController extends ResourceController {
     private final ResourceQuotaService resourceQuotaService;

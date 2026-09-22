@@ -28,6 +28,8 @@ import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.QueryValue;
+import io.micronaut.scheduling.TaskExecutors;
+import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
@@ -37,6 +39,7 @@ import org.jspecify.annotations.Nullable;
 /** Non-namespaced controller to manage connectors. */
 @Tag(name = "Connectors", description = "Manage the connectors.")
 @Controller(value = "/api/connectors")
+@ExecuteOn(TaskExecutors.IO)
 @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
 public class ConnectorNonNamespacedController extends ResourceController {
     private final ConnectorService connectorService;

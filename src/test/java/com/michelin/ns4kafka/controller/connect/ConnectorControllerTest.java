@@ -21,6 +21,7 @@ package com.michelin.ns4kafka.controller.connect;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -268,7 +269,7 @@ class ConnectorControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1")).thenReturn(true);
         when(connectorService.findByName(ns, "connect1")).thenReturn(Optional.of(connector));
-        when(connectorService.create(connector)).thenReturn(connector);
+        when(connectorService.delete(ns, connector, false)).thenReturn(Mono.just(HttpResponse.noContent()));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
@@ -277,10 +278,7 @@ class ConnectorControllerTest {
                 .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
                 .verifyComplete();
 
-        assertEquals(
-                Resource.Metadata.Phase.DELETING,
-                connector.getMetadata().getStatus().getPhase());
-        verify(connectorService).create(connector);
+        verify(connectorService).delete(ns, connector, false);
     }
 
     @Test
@@ -305,7 +303,7 @@ class ConnectorControllerTest {
                 .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
                 .verifyComplete();
 
-        verify(connectorService, never()).create(any());
+        verify(connectorService, never()).delete(any(), any(), anyBoolean());
     }
 
     @Test
@@ -326,7 +324,7 @@ class ConnectorControllerTest {
                 .consumeNextWith(response -> assertEquals(HttpStatus.NOT_FOUND, response.getStatus()))
                 .verifyComplete();
 
-        verify(connectorService, never()).create(any());
+        verify(connectorService, never()).delete(any(), any(), anyBoolean());
     }
 
     @Test
@@ -349,8 +347,8 @@ class ConnectorControllerTest {
         when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1")).thenReturn(true);
         when(connectorService.isNamespaceOwnerOfConnect(ns, "connect2")).thenReturn(true);
         when(connectorService.findByWildcardName(ns, "connect*")).thenReturn(List.of(connector1, connector2));
-        when(connectorService.create(connector1)).thenReturn(connector1);
-        when(connectorService.create(connector2)).thenReturn(connector2);
+        when(connectorService.delete(ns, connector1, false)).thenReturn(Mono.just(HttpResponse.noContent()));
+        when(connectorService.delete(ns, connector2, false)).thenReturn(Mono.just(HttpResponse.noContent()));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
@@ -359,16 +357,8 @@ class ConnectorControllerTest {
                 .consumeNextWith(response -> assertEquals(HttpStatus.OK, response.getStatus()))
                 .verifyComplete();
 
-        assertEquals(
-                Resource.Metadata.Phase.DELETING,
-                connector1.getMetadata().getStatus().getPhase());
-        assertEquals("false", connector1.getMetadata().getStatus().getOptions().get("force"));
-        assertEquals(
-                Resource.Metadata.Phase.DELETING,
-                connector2.getMetadata().getStatus().getPhase());
-        assertEquals("false", connector2.getMetadata().getStatus().getOptions().get("force"));
-        verify(connectorService).create(connector1);
-        verify(connectorService).create(connector2);
+        verify(connectorService).delete(ns, connector1, false);
+        verify(connectorService).delete(ns, connector2, false);
     }
 
     @Test
@@ -390,8 +380,8 @@ class ConnectorControllerTest {
         when(connectorService.isNamespaceOwnerOfConnect(ns, "connect1")).thenReturn(true);
         when(connectorService.isNamespaceOwnerOfConnect(ns, "connect2")).thenReturn(true);
         when(connectorService.findByWildcardName(ns, "connect*")).thenReturn(List.of(connector1, connector2));
-        when(connectorService.create(connector1)).thenReturn(connector1);
-        when(connectorService.create(connector2)).thenReturn(connector2);
+        when(connectorService.delete(ns, connector1, true)).thenReturn(Mono.just(HttpResponse.noContent()));
+        when(connectorService.delete(ns, connector2, true)).thenReturn(Mono.just(HttpResponse.noContent()));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
@@ -400,16 +390,8 @@ class ConnectorControllerTest {
                 .consumeNextWith(response -> assertEquals(HttpStatus.OK, response.getStatus()))
                 .verifyComplete();
 
-        assertEquals(
-                Resource.Metadata.Phase.DELETING,
-                connector1.getMetadata().getStatus().getPhase());
-        assertEquals("true", connector1.getMetadata().getStatus().getOptions().get("force"));
-        assertEquals(
-                Resource.Metadata.Phase.DELETING,
-                connector2.getMetadata().getStatus().getPhase());
-        assertEquals("true", connector2.getMetadata().getStatus().getOptions().get("force"));
-        verify(connectorService).create(connector1);
-        verify(connectorService).create(connector2);
+        verify(connectorService).delete(ns, connector1, true);
+        verify(connectorService).delete(ns, connector2, true);
     }
 
     @Test
@@ -428,7 +410,7 @@ class ConnectorControllerTest {
                 .consumeNextWith(response -> assertEquals(HttpStatus.NOT_FOUND, response.getStatus()))
                 .verifyComplete();
 
-        verify(connectorService, never()).create(any());
+        verify(connectorService, never()).delete(any(), any(), anyBoolean());
     }
 
     @Test
@@ -457,7 +439,7 @@ class ConnectorControllerTest {
                 .consumeNextWith(response -> assertEquals(HttpStatus.OK, response.getStatus()))
                 .verifyComplete();
 
-        verify(connectorService, never()).create(any());
+        verify(connectorService, never()).delete(any(), any(), anyBoolean());
     }
 
     @Test

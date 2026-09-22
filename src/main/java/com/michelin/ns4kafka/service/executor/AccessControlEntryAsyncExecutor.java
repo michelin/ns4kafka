@@ -506,12 +506,12 @@ public class AccessControlEntryAsyncExecutor {
         getAdminClient().createAcls(toCreate).values().forEach((key, value) -> {
             try {
                 value.get(managedClusterProperties.getTimeout().getAcl().getCreate(), TimeUnit.MILLISECONDS);
-                log.info("Success creating ACL {} on {}", key, managedClusterProperties.getName());
+                log.info("Success creating ACL {} on cluster {}.", key, managedClusterProperties.getName());
             } catch (InterruptedException e) {
                 log.error("Error", e);
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
-                log.error("Error while creating ACL {} on {}", key, managedClusterProperties.getName(), e);
+                log.error("Error while creating ACL {} on cluster {}.", key, managedClusterProperties.getName(), e);
             }
         });
     }

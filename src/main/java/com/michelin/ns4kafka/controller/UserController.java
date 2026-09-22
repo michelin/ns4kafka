@@ -37,6 +37,8 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.inject.qualifiers.Qualifiers;
+import io.micronaut.scheduling.TaskExecutors;
+import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.Instant;
@@ -47,6 +49,7 @@ import java.util.concurrent.TimeoutException;
 /** Controller to manage users. */
 @Tag(name = "Users", description = "Manage the users.")
 @Controller(value = "/api/namespaces/{namespace}/users")
+@ExecuteOn(TaskExecutors.IO)
 public class UserController extends NamespacedResourceController {
     private final ApplicationContext applicationContext;
 

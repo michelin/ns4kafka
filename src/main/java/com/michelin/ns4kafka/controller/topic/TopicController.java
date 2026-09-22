@@ -44,6 +44,8 @@ import io.micronaut.http.annotation.Delete;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
+import io.micronaut.scheduling.TaskExecutors;
+import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -58,6 +60,7 @@ import org.apache.kafka.common.TopicPartition;
 /** Controller to manage topics. */
 @Tag(name = "Topics", description = "Manage the topics.")
 @Controller(value = "/api/namespaces/{namespace}/topics")
+@ExecuteOn(TaskExecutors.IO)
 public class TopicController extends NamespacedResourceController {
     private final TopicService topicService;
     private final ResourceQuotaService resourceQuotaService;
@@ -163,9 +166,7 @@ public class TopicController extends NamespacedResourceController {
 
         assignResourceMetadata(topic, ns, existingTopic.orElse(null));
 
-        if (existingTopic.isPresent()
-                && existingTopic.get().equals(topic)
-                && !existingTopic.get().isDeleting()) {
+        if (existingTopic.isPresent() && existingTopic.get().equals(topic)) {
             return formatHttpResponse(existingTopic.get(), ApplyStatus.UNCHANGED, validationWarnings);
         }
 
@@ -202,7 +203,8 @@ public class TopicController extends NamespacedResourceController {
     public HttpResponse<List<Topic>> bulkDelete(
             String namespace,
             @QueryValue(defaultValue = "*") String name,
-            @QueryValue(defaultValue = "false") boolean dryrun) {
+            @QueryValue(defaultValue = "false") boolean dryrun)
+            throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = getNamespace(namespace);
         List<Topic> topics = topicService.findByWildcardName(ns, name);
 
@@ -214,11 +216,10 @@ public class TopicController extends NamespacedResourceController {
             return HttpResponse.ok(topics);
         }
 
-        topics.forEach(topicToDelete -> {
-            topicToDelete.getMetadata().setStatus(Resource.Metadata.Status.ofDeleting());
-            topicService.create(topicToDelete);
-            sendEventLog(topicToDelete, ApplyStatus.DELETED, topicToDelete.getSpec(), null, EMPTY_STRING);
-        });
+        topics.forEach(topicToDelete ->
+                sendEventLog(topicToDelete, ApplyStatus.DELETED, topicToDelete.getSpec(), null, EMPTY_STRING));
+
+        topicService.deleteTopics(topics);
 
         return HttpResponse.ok(topics);
     }
@@ -252,9 +253,10 @@ public class TopicController extends NamespacedResourceController {
         }
 
         Topic topicToDelete = optionalTopic.get();
-        topicToDelete.getMetadata().setStatus(Resource.Metadata.Status.ofDeleting());
-        topicService.create(topicToDelete);
+
         sendEventLog(topicToDelete, ApplyStatus.DELETED, topicToDelete.getSpec(), null, EMPTY_STRING);
+
+        topicService.delete(topicToDelete);
 
         return HttpResponse.noContent();
     }

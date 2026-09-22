@@ -103,18 +103,6 @@ public class Resource {
                         .message("Awaiting processing by executor")
                         .build();
             }
-
-            public static Status ofDeleting(Map<String, String> options) {
-                return Status.builder()
-                        .phase(Phase.DELETING)
-                        .message("Awaiting deletion by executor")
-                        .options(options)
-                        .build();
-            }
-
-            public static Status ofDeleting() {
-                return ofDeleting(Map.of());
-            }
         }
 
         @Serdeable
@@ -122,6 +110,7 @@ public class Resource {
             PENDING("Pending"),
             FAIL("Fail"),
             SUCCESS("Success"),
+            // No longer set: kept so that resources written by Ns4Kafka 1.22 still deserialize
             DELETING("Deleting");
 
             private final String name;
@@ -151,20 +140,6 @@ public class Resource {
         }
 
         return metadata.getStatus().getPhase().equals(Metadata.Phase.PENDING);
-    }
-
-    /**
-     * Indicates whether the resource is pending deletion.
-     *
-     * @return {@code true} if it is, {@code false} otherwise
-     */
-    @JsonIgnore
-    public boolean isDeleting() {
-        if (metadata == null || metadata.getStatus() == null) {
-            return false;
-        }
-
-        return metadata.getStatus().getPhase().equals(Metadata.Phase.DELETING);
     }
 
     /**

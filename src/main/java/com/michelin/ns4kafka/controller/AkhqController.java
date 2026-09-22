@@ -26,6 +26,8 @@ import com.michelin.ns4kafka.service.NamespaceService;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Post;
+import io.micronaut.scheduling.TaskExecutors;
+import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.micronaut.security.rules.SecurityRule;
 import io.micronaut.serde.annotation.Serdeable;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -48,6 +50,7 @@ import lombok.Getter;
 @Tag(name = "AKHQ", description = "Manage the AKHQ endpoints.")
 @RolesAllowed(SecurityRule.IS_ANONYMOUS)
 @Controller("/akhq-claim")
+@ExecuteOn(TaskExecutors.IO)
 public class AkhqController {
     private static final List<String> EMPTY_REGEXP = List.of("^none$");
     private static final List<String> ADMIN_REGEXP = List.of(".*");
