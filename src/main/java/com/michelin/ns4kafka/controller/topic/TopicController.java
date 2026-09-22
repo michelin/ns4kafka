@@ -200,9 +200,13 @@ public class TopicController extends NamespacedResourceController {
      */
     @Delete
     public HttpResponse<List<Topic>> bulkDelete(
-            String namespace,
-            @QueryValue(defaultValue = "*") String name,
-            @QueryValue(defaultValue = "false") boolean dryrun) {
+            String namespace, String name, @QueryValue(defaultValue = "false") boolean dryrun) {
+
+        if (name.isBlank()) {
+            throw new ResourceValidationException(
+                    TOPIC, name, "Topic name parameter is required for delete operation.");
+        }
+
         Namespace ns = getNamespace(namespace);
         List<Topic> topics = topicService.findByWildcardName(ns, name);
 
