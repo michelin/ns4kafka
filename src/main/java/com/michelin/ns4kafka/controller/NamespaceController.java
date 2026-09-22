@@ -38,6 +38,8 @@ import io.micronaut.http.annotation.Delete;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
+import io.micronaut.scheduling.TaskExecutors;
+import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import io.micronaut.security.utils.SecurityService;
@@ -57,6 +59,7 @@ import java.util.stream.Collectors;
 /** Controller to manage the namespaces. */
 @Tag(name = "Namespaces", description = "Manage the namespaces.")
 @Controller("/api/namespaces")
+@ExecuteOn(TaskExecutors.IO)
 public class NamespaceController extends ResourceController {
     private final NamespaceService namespaceService;
 

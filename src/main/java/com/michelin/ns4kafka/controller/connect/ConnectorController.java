@@ -54,7 +54,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -157,7 +156,6 @@ public class ConnectorController extends NamespacedResourceController {
 
                 if (existingConnector.isPresent()
                         && !existingConnector.get().isFailed()
-                        && !existingConnector.get().isDeleting()
                         && existingConnector.get().equals(connector)) {
                     return Mono.just(formatHttpResponse(existingConnector.get(), ApplyStatus.UNCHANGED, warnings));
                 }
@@ -168,18 +166,9 @@ public class ConnectorController extends NamespacedResourceController {
                                 : ApplyStatus.CREATED;
 
                 if (status.equals(ApplyStatus.CREATED)) {
-                    // Skip quota check if we are replacing a connector that is being deleted,
-                    // since it is already counted in the quota.
-                    boolean replacingDeletingConnector = connectorService
-                            .findByName(ns, connector.getMetadata().getName())
-                            .map(Resource::isDeleting)
-                            .orElse(false);
-
-                    if (!replacingDeletingConnector) {
-                        List<String> quotaErrors = resourceQuotaService.validateConnectorQuota(ns);
-                        if (!quotaErrors.isEmpty()) {
-                            return Mono.error(new ResourceValidationException(connector, quotaErrors));
-                        }
+                    List<String> quotaErrors = resourceQuotaService.validateConnectorQuota(ns);
+                    if (!quotaErrors.isEmpty()) {
+                        return Mono.error(new ResourceValidationException(connector, quotaErrors));
                     }
                 }
 
@@ -231,11 +220,10 @@ public class ConnectorController extends NamespacedResourceController {
         }
 
         Connector connectorToDelete = optionalConnector.get();
-        sendEventLog(connectorToDelete, ApplyStatus.DELETED, connectorToDelete.getSpec(), null, EMPTY_STRING);
-        connectorToDelete.getMetadata().setStatus(Resource.Metadata.Status.ofDeleting(Map.of()));
-        connectorService.create(connectorToDelete);
 
-        return Mono.just(HttpResponse.noContent());
+        sendEventLog(connectorToDelete, ApplyStatus.DELETED, connectorToDelete.getSpec(), null, EMPTY_STRING);
+
+        return connectorService.delete(ns, connectorToDelete, false).map(_ -> HttpResponse.noContent());
     }
 
     /**
@@ -276,13 +264,9 @@ public class ConnectorController extends NamespacedResourceController {
         }
 
         return Flux.fromIterable(connectors)
-                .doOnNext(connector -> {
-                    connector.getMetadata().setUpdateTimestamp(Date.from(Instant.now()));
-                    connector
-                            .getMetadata()
-                            .setStatus(Resource.Metadata.Status.ofDeleting(Map.of("force", String.valueOf(force))));
+                .flatMap(connector -> {
                     sendEventLog(connector, ApplyStatus.DELETED, connector.getSpec(), null, EMPTY_STRING);
-                    connectorService.create(connector);
+                    return connectorService.delete(ns, connector, force);
                 })
                 .then(Mono.just(HttpResponse.ok(connectors)));
     }

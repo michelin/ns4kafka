@@ -38,6 +38,7 @@ import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.AccessControlEntryRepository;
 import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
+import com.michelin.ns4kafka.service.executor.ConfluentRoleBindingAsyncExecutor;
 import com.michelin.ns4kafka.util.RegexUtils;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.inject.qualifiers.Qualifiers;
@@ -359,28 +360,14 @@ public class AclService {
                 && aclCluster.get().isConfluentCloud()
                 && aclCluster.get().isManageRbac()) {
             if (RESOURCE_TYPES_TO_DEPLOY.contains(accessControlEntry.getSpec().getResourceType())) {
-                accessControlEntry.getMetadata().setStatus(Resource.Metadata.Status.ofDeleting());
-                accessControlEntryRepository.create(accessControlEntry);
-                return;
+                ConfluentRoleBindingAsyncExecutor confluentRoleBindingAsyncExecutor = applicationContext.getBean(
+                        ConfluentRoleBindingAsyncExecutor.class,
+                        Qualifiers.byName(accessControlEntry.getMetadata().getCluster()));
+                confluentRoleBindingAsyncExecutor.deleteRoleBindingsFromAcls(List.of(accessControlEntry));
             }
 
             accessControlEntryRepository.delete(accessControlEntry);
         }
-    }
-
-    /**
-     * Check if the cluster manages Confluent Cloud RBAC.
-     *
-     * @param accessControlEntry The ACL
-     * @return true if the cluster is Confluent Cloud with RBAC management enabled, false otherwise
-     */
-    public boolean isClusterManagingRbac(AccessControlEntry accessControlEntry) {
-        String cluster = accessControlEntry.getMetadata().getCluster();
-        return managedClusterProperties.stream()
-                .filter(clusterProperties -> clusterProperties.getName().equals(cluster))
-                .findFirst()
-                .map(clusterProperties -> clusterProperties.isConfluentCloud() && clusterProperties.isManageRbac())
-                .orElse(false);
     }
 
     /**
@@ -579,19 +566,6 @@ public class AclService {
         return accessControlEntryRepository.findAll().stream()
                 .filter(acl -> acl.getMetadata().getCluster().equals(cluster) && !isPublicAcl(acl))
                 .filter(Resource::isPending)
-                .toList();
-    }
-
-    /**
-     * Find all non-public ACLs to delete for a cluster.
-     *
-     * @param cluster The cluster
-     * @return A list of ACLs to delete
-     */
-    public List<AccessControlEntry> findNonPublicToDeleteForCluster(String cluster) {
-        return accessControlEntryRepository.findAll().stream()
-                .filter(acl -> acl.getMetadata().getCluster().equals(cluster) && !isPublicAcl(acl))
-                .filter(Resource::isDeleting)
                 .toList();
     }
 

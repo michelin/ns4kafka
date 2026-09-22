@@ -264,6 +264,49 @@ public class ConnectorService {
     }
 
     /**
+     * Delete a given connector.
+     *
+     * @param namespace The namespace
+     * @param connector The connector
+     * @param force Force delete or not?
+     * @return An HTTP response
+     */
+    public Mono<HttpResponse<Void>> delete(Namespace namespace, Connector connector, boolean force) {
+        return kafkaConnectClient
+                .delete(
+                        namespace.getMetadata().getCluster(),
+                        connector.getSpec().getConnectCluster(),
+                        connector.getMetadata().getName())
+                .defaultIfEmpty(HttpResponse.noContent())
+                .onErrorResume(error -> {
+                    if (force) {
+                        log.atInfo()
+                                .addArgument(connector.getMetadata().getName())
+                                .addArgument(connector.getSpec().getConnectCluster())
+                                .addArgument(namespace.getMetadata().getName())
+                                .addArgument(namespace.getMetadata().getCluster())
+                                .addArgument(error.getMessage())
+                                .log("Success force deleting connector {} of Kafka Connect {} in namespace {} on"
+                                        + " cluster {}: deleted from Ns4Kafka only, Kafka Connect returned {}.");
+                        return Mono.just(HttpResponse.noContent());
+                    }
+                    return Mono.error(error);
+                })
+                .map(httpResponse -> {
+                    connectorRepository.delete(connector);
+
+                    log.atInfo()
+                            .addArgument(connector.getMetadata().getName())
+                            .addArgument(connector.getSpec().getConnectCluster())
+                            .addArgument(namespace.getMetadata().getName())
+                            .addArgument(namespace.getMetadata().getCluster())
+                            .log("Success deleting connector {} of Kafka Connect {} in namespace {} on cluster {}.");
+
+                    return httpResponse;
+                });
+    }
+
+    /**
      * List all connectors of a given namespace that are not synchronized to Ns4Kafka, filtered by name parameter.
      *
      * @param namespace The namespace

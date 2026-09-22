@@ -169,7 +169,7 @@ class TopicControllerTest {
     }
 
     @Test
-    void shouldBulkDeleteTopics() {
+    void shouldBulkDeleteTopics() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test")
@@ -188,8 +188,7 @@ class TopicControllerTest {
         when(topicService.findByWildcardName(ns, "prefix1.*")).thenReturn(List.of(topic1, topic2));
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
-        when(topicService.create(topic1)).thenReturn(topic1);
-        when(topicService.create(topic2)).thenReturn(topic2);
+        doNothing().when(topicService).deleteTopics(List.of(topic1, topic2));
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         HttpResponse<List<Topic>> actual = topicController.bulkDelete("test", "prefix1.*", false);
@@ -197,7 +196,7 @@ class TopicControllerTest {
     }
 
     @Test
-    void shouldNotBulkDeleteTopicsWhenNotFound() {
+    void shouldNotBulkDeleteTopicsWhenNotFound() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test")
@@ -212,11 +211,11 @@ class TopicControllerTest {
         HttpResponse<List<Topic>> actual = topicController.bulkDelete("test", "topic*", false);
 
         assertEquals(HttpStatus.NOT_FOUND, actual.getStatus());
-        verify(topicService, never()).create(any());
+        verify(topicService, never()).deleteTopics(any());
     }
 
     @Test
-    void shouldNotBulkDeleteTopicsInDryRunMode() {
+    void shouldNotBulkDeleteTopicsInDryRunMode() throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test")
@@ -235,7 +234,7 @@ class TopicControllerTest {
         HttpResponse<List<Topic>> actual = topicController.bulkDelete("test", "prefix.topic", true);
 
         assertEquals(HttpStatus.OK, actual.getStatus());
-        verify(topicService, never()).create(any());
+        verify(topicService, never()).deleteTopics(any());
     }
 
     @Test
@@ -256,7 +255,7 @@ class TopicControllerTest {
         when(topicService.isNamespaceOwnerOfTopic("test", "topic.delete")).thenReturn(true);
         when(securityService.username()).thenReturn(Optional.of("test-user"));
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
-        when(topicService.create(toDelete.get())).thenReturn(toDelete.get());
+        doNothing().when(topicService).delete(toDelete.get());
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
         HttpResponse<Void> actual = topicController.delete("test", "topic.delete", false);
@@ -285,7 +284,7 @@ class TopicControllerTest {
 
         topicController.delete("test", "topic.delete", true);
 
-        verify(topicService, never()).create(any());
+        verify(topicService, never()).delete(any());
     }
 
     @Test

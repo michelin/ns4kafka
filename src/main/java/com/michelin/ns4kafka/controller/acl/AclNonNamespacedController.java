@@ -26,6 +26,8 @@ import com.michelin.ns4kafka.service.AclService;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
+import io.micronaut.scheduling.TaskExecutors;
+import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
@@ -34,6 +36,7 @@ import java.util.Collection;
 /** Non-namespaced controller to manage ACLs. */
 @Tag(name = "ACLs", description = "Manage the ACLs.")
 @Controller("/api/acls")
+@ExecuteOn(TaskExecutors.IO)
 @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
 public class AclNonNamespacedController extends ResourceController {
     private final AclService aclService;

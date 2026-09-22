@@ -22,6 +22,8 @@ import com.michelin.ns4kafka.model.AppInfo;
 import com.michelin.ns4kafka.property.Ns4KafkaProperties;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
+import io.micronaut.scheduling.TaskExecutors;
+import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.micronaut.security.rules.SecurityRule;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
@@ -29,6 +31,7 @@ import jakarta.annotation.security.RolesAllowed;
 @Tag(name = "Version", description = "Get the version.")
 @RolesAllowed(SecurityRule.IS_ANONYMOUS)
 @Controller(value = "/api/app-info")
+@ExecuteOn(TaskExecutors.IO)
 public class AppInfoController {
     private final Ns4KafkaProperties ns4KafkaProperties;
 

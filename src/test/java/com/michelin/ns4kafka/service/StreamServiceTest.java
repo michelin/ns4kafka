@@ -22,8 +22,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -31,9 +33,11 @@ import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.KafkaStream;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Resource;
+import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.StreamRepository;
 import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
+import com.michelin.ns4kafka.service.executor.ConfluentRoleBindingAsyncExecutor;
 import io.micronaut.context.ApplicationContext;
 import java.util.List;
 import java.util.Optional;
@@ -64,6 +68,9 @@ class StreamServiceTest {
 
     @Mock
     AccessControlEntryAsyncExecutor aceAsyncExecutor;
+
+    @Mock
+    ConfluentRoleBindingAsyncExecutor confluentRoleBindingAsyncExecutor;
 
     @Mock
     List<ManagedClusterProperties> managedClusterProperties;
@@ -342,39 +349,6 @@ class StreamServiceTest {
     }
 
     @Test
-    void shouldFindAllToDeleteForCluster() {
-        KafkaStream stream1 = KafkaStream.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test_stream1")
-                        .namespace("test")
-                        .cluster("local")
-                        .build())
-                .build();
-        KafkaStream stream2 = KafkaStream.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test_stream2")
-                        .namespace("test")
-                        .cluster("local")
-                        .status(Resource.Metadata.Status.ofDeleting())
-                        .build())
-                .build();
-        KafkaStream stream3 = KafkaStream.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test_stream3")
-                        .namespace("test")
-                        .cluster("local")
-                        .build())
-                .build();
-
-        when(streamRepository.findAllForCluster("local")).thenReturn(List.of(stream1, stream2, stream3));
-
-        List<KafkaStream> actual = streamService.findAllToDeleteForCluster("local");
-
-        assertEquals(1, actual.size());
-        assertTrue(actual.contains(stream2));
-    }
-
-    @Test
     void shouldNamespaceBeOwnerOfStreams() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
@@ -515,6 +489,48 @@ class StreamServiceTest {
                         .build())
                 .build();
 
+        Topic topic1 = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("prefix1.stream_app_id1-topic1-repartition")
+                        .build())
+                .build();
+
+        Topic topic2 = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("prefix1.stream_app_id1-topic1-changelog")
+                        .build())
+                .build();
+
+        Topic topic3 = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("prefix1.stream_app_id1-topic1-norepartition")
+                        .build())
+                .build();
+
+        Topic topic4 = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("prefix1.stream_app_id1-topic1-nochangelog")
+                        .build())
+                .build();
+
+        Topic topic5 = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("prefix2.stream_app_id2-topic1-norepartition")
+                        .build())
+                .build();
+
+        Topic topic6 = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("prefix2.stream_app_id2-topic2-nochangelog")
+                        .build())
+                .build();
+
+        Topic topic7 = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("prefix1.stream_app_id1-sub-appid-overlap-topic1-repartition")
+                        .build())
+                .build();
+
         KafkaStream kafkaStream = KafkaStream.builder()
                 .metadata(Resource.Metadata.builder()
                         .namespace("ns")
@@ -534,13 +550,68 @@ class StreamServiceTest {
         List<KafkaStream> kafkaStreams = List.of(kafkaStream);
         when(streamRepository.findAllForCluster(any())).thenReturn(kafkaStreams);
 
-        doNothing()
-                .when(topicService)
-                .deleteKafkaStream(
-                        namespace, "prefix1.stream_app_id1", List.of("prefix1.stream_app_id1-sub-appid-overlap"));
+        List<Topic> allTopics = List.of(topic1, topic2, topic3, topic4, topic5, topic6, topic7);
+        when(topicService.findByWildcardName(eq(namespace), anyString())).thenReturn(allTopics);
 
         streamService.delete(namespace, stream);
+
         verify(aceAsyncExecutor).deleteKafkaStreams(namespace, stream);
+        verify(topicService)
+                .deleteTopics(argThat(topics -> topics.stream()
+                                .anyMatch(topic -> topic.getMetadata()
+                                        .getName()
+                                        .equals("prefix1.stream_app_id1-topic1-repartition"))
+                        && topics.stream()
+                                .anyMatch(topic ->
+                                        topic.getMetadata().getName().equals("prefix1.stream_app_id1-topic1-changelog"))
+                        && topics.stream()
+                                .noneMatch(topic -> topic.getMetadata()
+                                        .getName()
+                                        .equals("prefix1.stream_app_id1-topic1-norepartition"))
+                        && topics.stream()
+                                .noneMatch(topic -> topic.getMetadata()
+                                        .getName()
+                                        .equals("prefix1.stream_app_id1-topic1-nochangelog"))
+                        && topics.stream()
+                                .noneMatch(
+                                        topic -> topic.getMetadata().getName().startsWith("prefix2.stream_app_id2"))
+                        && topics.stream()
+                                .noneMatch(topic -> topic.getMetadata()
+                                        .getName()
+                                        .startsWith("prefix1.stream_app_id1-sub-appid-topic1-repartition"))));
+
+        verify(streamRepository).delete(stream);
+    }
+
+    @Test
+    void shouldNotCallDeleteTopicsWhenStreamTopicListIsEmpty() throws Exception {
+        Namespace ns = Namespace.builder()
+                .metadata(
+                        Resource.Metadata.builder().name("ns").cluster("local").build())
+                .build();
+
+        KafkaStream stream = KafkaStream.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("prefix.stream_app_id")
+                        .namespace("ns")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        ManagedClusterProperties managedClusterProps =
+                new ManagedClusterProperties("local", ManagedClusterProperties.KafkaProvider.SELF_MANAGED);
+        Properties properties = new Properties();
+        managedClusterProps.setConfig(properties);
+        managedClusterProps.setManageAcls(true);
+
+        when(managedClusterProperties.stream()).thenReturn(Stream.of(managedClusterProps));
+        when(applicationContext.getBean(eq(AccessControlEntryAsyncExecutor.class), any()))
+                .thenReturn(aceAsyncExecutor);
+        when(topicService.findByWildcardName(eq(ns), anyString())).thenReturn(List.of());
+
+        streamService.delete(ns, stream);
+
+        verify(topicService, never()).deleteTopics(any());
         verify(streamRepository).delete(stream);
     }
 
@@ -569,12 +640,15 @@ class StreamServiceTest {
         when(managedClusterProperties.stream()).thenReturn(Stream.of(managedClusterProps));
         when(applicationContext.getBean(eq(AccessControlEntryAsyncExecutor.class), any()))
                 .thenReturn(aceAsyncExecutor);
+        when(applicationContext.getBean(eq(ConfluentRoleBindingAsyncExecutor.class), any()))
+                .thenReturn(confluentRoleBindingAsyncExecutor);
         when(streamRepository.findAllForCluster(any())).thenReturn(List.of());
-        doNothing().when(topicService).deleteKafkaStream(namespace, "prefix.stream_app_id", List.of());
+        when(topicService.findByWildcardName(eq(namespace), anyString())).thenReturn(List.of());
 
         streamService.delete(namespace, stream);
 
         verify(aceAsyncExecutor).deleteKafkaStreams(namespace, stream);
-        verify(streamRepository).create(stream);
+        verify(confluentRoleBindingAsyncExecutor).deleteRoleBindingsFromKafkaStreams(List.of(stream));
+        verify(streamRepository).delete(stream);
     }
 }
