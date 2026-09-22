@@ -204,7 +204,7 @@ public class TopicController extends NamespacedResourceController {
     public HttpResponse<List<Topic>> bulkDelete(
             String namespace,
             @QueryValue("name") @NotBlank(message = "Topic name parameter is required for delete operation.") String name,
-            @QueryValue(defaultValue = "false") boolean dryrun) 
+            @QueryValue(defaultValue = "false") boolean dryrun)
             throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = getNamespace(namespace);
         List<Topic> topics = topicService.findByWildcardName(ns, name);
