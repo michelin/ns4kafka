@@ -1103,6 +1103,48 @@ class ConnectorServiceTest {
     }
 
     @Test
+    void shouldListUnsynchronizedConnectorsWhenOneConnectClusterIsDown() {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(NamespaceSpec.builder()
+                        .connectClusters(List.of("down-connect", "up-connect"))
+                        .build())
+                .build();
+
+        ConnectorStatus c1 =
+                new ConnectorStatus(new ConnectorInfo("ns-connect1", Map.of(), List.of(), ConnectorType.SINK), null);
+
+        List<AccessControlEntry> acls = List.of(AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .grantedTo("namespace")
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                        .resource("ns-")
+                        .build())
+                .build());
+
+        when(kafkaConnectClient.listAll("local", "down-connect"))
+                .thenReturn(Mono.error(new HttpClientException("Connect Error: Connection refused")));
+        when(kafkaConnectClient.listAll("local", "up-connect")).thenReturn(Mono.just(Map.of("ns-connect1", c1)));
+        when(connectorRepository.findAllForCluster("local")).thenReturn(List.of());
+        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns-connect1"))
+                .thenReturn(true);
+        when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.CONNECT))
+                .thenReturn(acls);
+
+        StepVerifier.create(connectorService.listUnsynchronizedConnectorsByWildcardName(ns, "*"))
+                .consumeNextWith(connector -> {
+                    assertEquals("ns-connect1", connector.getMetadata().getName());
+                    assertEquals("up-connect", connector.getSpec().getConnectCluster());
+                })
+                .verifyComplete();
+    }
+
+    @Test
     void shouldListUnsynchronizedConnectorsWhenNotAllExisting() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()

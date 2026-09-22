@@ -347,7 +347,18 @@ public class ConnectorService {
                                                 .isEmpty()
                                         // ...and match the name parameter
                                         && RegexUtils.isResourceCoveredByRegex(
-                                                connector.getMetadata().getName(), nameFilterPatterns)));
+                                                connector.getMetadata().getName(), nameFilterPatterns))
+                        .onErrorResume(error -> {
+                            log.error(
+                                    "Error while listing connectors of Kafka Connect {} in namespace {} on cluster {}:"
+                                            + " {}.",
+                                    connectClusterName,
+                                    namespace.getMetadata().getName(),
+                                    namespace.getMetadata().getCluster(),
+                                    error.getMessage());
+
+                            return Flux.empty();
+                        }));
     }
 
     /**
