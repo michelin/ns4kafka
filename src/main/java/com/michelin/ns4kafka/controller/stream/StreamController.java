@@ -41,6 +41,7 @@ import io.micronaut.http.annotation.QueryValue;
 import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
@@ -192,7 +193,7 @@ public class StreamController extends NamespacedResourceController {
     @Delete
     HttpResponse<List<KafkaStream>> bulkDelete(
             String namespace,
-            @QueryValue(defaultValue = "*") String name,
+            @NotBlank(message = "Kafka Stream name parameter is required for delete operation.") String name,
             @QueryValue(defaultValue = "false") boolean dryrun)
             throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = getNamespace(namespace);

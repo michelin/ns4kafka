@@ -525,8 +525,6 @@ class TopicServiceTest {
         assertTrue(topicService.findByWildcardName(ns, "*.???").isEmpty());
         assertTrue(topicService.findByWildcardName(ns, ".*").isEmpty()); // .* is regex
         assertTrue(topicService.findByWildcardName(ns, "......").isEmpty()); // . is regex
-        assertTrue(topicService.findByWildcardName(ns, "").isEmpty()); // no regex provided = nothing
-        assertTrue(topicService.findByWildcardName(ns, null).isEmpty()); // no regex provided = nothing
     }
 
     @Test

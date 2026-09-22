@@ -149,12 +149,6 @@ public class TopicService {
      */
     public List<Topic> findByWildcardName(Namespace namespace, String name) {
 
-        // If the name is null or blank, return an empty list as this would match all topics, which is not the intended
-        // behavior for this method.
-        if (name == null || name.isBlank()) {
-            return List.of();
-        }
-
         List<String> nameFilterPatterns = RegexUtils.convertWildcardStringsToRegex(List.of(name));
         return findAllForNamespace(namespace).stream()
                 .filter(topic ->

@@ -47,6 +47,7 @@ import io.micronaut.http.annotation.QueryValue;
 import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -200,12 +201,9 @@ public class TopicController extends NamespacedResourceController {
      */
     @Delete
     public HttpResponse<List<Topic>> bulkDelete(
-            String namespace, String name, @QueryValue(defaultValue = "false") boolean dryrun) {
-
-        if (name.isBlank()) {
-            throw new ResourceValidationException(
-                    TOPIC, name, "Topic name parameter is required for delete operation.");
-        }
+            String namespace,
+            @NotBlank(message = "Topic name parameter is required for delete operation.") String name,
+            @QueryValue(defaultValue = "false") boolean dryrun) {
 
         Namespace ns = getNamespace(namespace);
         List<Topic> topics = topicService.findByWildcardName(ns, name);

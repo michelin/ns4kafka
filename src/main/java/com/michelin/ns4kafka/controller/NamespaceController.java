@@ -44,6 +44,7 @@ import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -160,7 +161,8 @@ public class NamespaceController extends ResourceController {
     @Delete
     @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
     public HttpResponse<List<Namespace>> delete(
-            @QueryValue(defaultValue = "*") String name, @QueryValue(defaultValue = "false") boolean dryrun) {
+            @NotBlank(message = "Namespace name parameter is required for delete operation.") String name,
+            @QueryValue(defaultValue = "false") boolean dryrun) {
         List<Namespace> namespaces = namespaceService.findByWildcardName(name);
 
         if (namespaces.isEmpty()) {

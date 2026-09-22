@@ -40,6 +40,7 @@ import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
@@ -133,7 +134,7 @@ public class RoleBindingController extends NamespacedResourceController {
     @Delete
     public HttpResponse<List<RoleBinding>> delete(
             String namespace,
-            @QueryValue(defaultValue = "*") String name,
+            @NotBlank(message = "Role Binding name parameter is required for delete operation.") String name,
             @QueryValue(defaultValue = "false") boolean dryrun) {
         List<RoleBinding> roleBindings = roleBindingService.findByWildcardName(namespace, name);
 
