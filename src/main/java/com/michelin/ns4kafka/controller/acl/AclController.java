@@ -48,6 +48,7 @@ import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -198,7 +199,7 @@ public class AclController extends NamespacedResourceController {
     public HttpResponse<List<AccessControlEntry>> bulkDelete(
             Authentication authentication,
             String namespace,
-            @QueryValue(defaultValue = "*") String name,
+            @QueryValue @NotBlank(message = "The ACL name parameter is required for deletion.") String name,
             @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
         List<AccessControlEntry> acls = aclService.findAllGrantedByNamespaceByWildcardName(ns, name);

@@ -47,6 +47,7 @@ import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.Date;
@@ -211,7 +212,7 @@ public class SchemaController extends NamespacedResourceController {
     @Delete
     public Mono<HttpResponse<List<Schema>>> bulkDelete(
             String namespace,
-            @QueryValue(defaultValue = "*") String name,
+            @QueryValue @NotBlank(message = "The schema name parameter is required for deletion.") String name,
             @QueryValue("version") Optional<String> versionOptional,
             @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);

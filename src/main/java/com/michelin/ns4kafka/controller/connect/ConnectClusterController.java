@@ -50,6 +50,7 @@ import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
@@ -245,10 +246,11 @@ public class ConnectClusterController extends NamespacedResourceController {
     @Delete
     public Mono<HttpResponse<List<ConnectCluster>>> bulkDelete(
             String namespace,
-            @QueryValue(defaultValue = "*") String name,
+            @QueryValue @NotBlank(message = "The Kafka Connect cluster name parameter is required for deletion.") String name,
             @QueryValue(defaultValue = "false") boolean dryrun,
             @QueryValue(defaultValue = "false") boolean force,
             @QueryValue(defaultValue = "false") boolean cascade) {
+
         Namespace ns = getNamespace(namespace);
         List<ConnectCluster> connectClusters = connectClusterService.findByWildcardNameWithOwnerPermission(ns, name);
 

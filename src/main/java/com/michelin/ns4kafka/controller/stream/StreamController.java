@@ -43,6 +43,7 @@ import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
@@ -190,7 +191,7 @@ public class StreamController extends NamespacedResourceController {
     @Delete
     HttpResponse<List<KafkaStream>> bulkDelete(
             String namespace,
-            @QueryValue(defaultValue = "*") String name,
+            @QueryValue @NotBlank(message = "The Kafka stream name parameter is required for deletion.") String name,
             @QueryValue(defaultValue = "false") boolean dryrun)
             throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = getNamespace(namespace);

@@ -49,6 +49,7 @@ import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -202,7 +203,7 @@ public class TopicController extends NamespacedResourceController {
     @Delete
     public HttpResponse<List<Topic>> bulkDelete(
             String namespace,
-            @QueryValue(defaultValue = "*") String name,
+            @QueryValue @NotBlank(message = "The topic name parameter is required for deletion.") String name,
             @QueryValue(defaultValue = "false") boolean dryrun)
             throws InterruptedException, ExecutionException, TimeoutException {
         Namespace ns = getNamespace(namespace);

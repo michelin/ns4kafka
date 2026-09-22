@@ -136,6 +136,7 @@ public class TopicService {
      * @return A list of topics
      */
     public List<Topic> findByWildcardName(Namespace namespace, String name) {
+
         List<String> nameFilterPatterns = RegexUtils.convertWildcardStringsToRegex(List.of(name));
         return findAllForNamespace(namespace).stream()
                 .filter(topic ->
@@ -153,7 +154,6 @@ public class TopicService {
     public Optional<Topic> findByName(Namespace namespace, String topicName) {
         return topicRepository.findByName(namespace.getMetadata().getCluster(), topicName);
     }
-
     /**
      * Find a topic by cluster.
      *

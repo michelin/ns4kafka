@@ -49,6 +49,7 @@ import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
@@ -237,7 +238,7 @@ public class ConnectorController extends NamespacedResourceController {
     @Delete
     public Mono<HttpResponse<List<Connector>>> delete(
             String namespace,
-            @QueryValue(defaultValue = "*") String name,
+            @QueryValue @NotBlank(message = "The connector name parameter is required for deletion.") String name,
             @QueryValue(defaultValue = "false") boolean dryrun,
             @QueryValue(defaultValue = "false") boolean force) {
         Namespace ns = getNamespace(namespace);
