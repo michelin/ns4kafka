@@ -234,7 +234,7 @@ public class TopicController extends NamespacedResourceController {
      * @return An HTTP response
      * @deprecated use {@link #bulkDelete(String, String, boolean)} instead.
      */
-    @Delete("/{topic}{?dryrun}")
+    @Delete("/{topic}")
     @Deprecated(since = "1.13.0")
     public HttpResponse<Void> delete(String namespace, String topic, @QueryValue(defaultValue = "false") boolean dryrun)
             throws InterruptedException, ExecutionException, TimeoutException {
@@ -307,7 +307,7 @@ public class TopicController extends NamespacedResourceController {
      * @throws ExecutionException Any execution exception
      * @throws InterruptedException Any interrupted exception
      */
-    @Post("{topic}/delete-records{?dryrun}")
+    @Post("{topic}/delete-records")
     public List<DeleteRecordsResponse> deleteRecords(
             String namespace, String topic, @QueryValue(defaultValue = "false") boolean dryrun)
             throws InterruptedException, ExecutionException {

@@ -123,7 +123,7 @@ public class ConnectClusterController extends NamespacedResourceController {
      * @param dryrun Is dry run mode or not?
      * @return The created Kafka Connect cluster
      */
-    @Post("/{?dryrun}")
+    @Post
     public Mono<HttpResponse<ConnectCluster>> apply(
             String namespace,
             @Body @Valid ConnectCluster connectCluster,
@@ -190,7 +190,7 @@ public class ConnectClusterController extends NamespacedResourceController {
      * @return A HTTP response
      * @deprecated use {@link #bulkDelete(String, String, boolean, boolean, boolean)} instead.
      */
-    @Delete("/{connectCluster}{?dryrun}")
+    @Delete("/{connectCluster}")
     @Deprecated(since = "1.13.0")
     public HttpResponse<Void> delete(
             String namespace, String connectCluster, @QueryValue(defaultValue = "false") boolean dryrun) {

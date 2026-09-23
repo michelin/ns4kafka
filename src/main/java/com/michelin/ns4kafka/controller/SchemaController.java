@@ -205,7 +205,7 @@ public class SchemaController extends NamespacedResourceController {
      *
      * @param namespace The namespace
      * @param name The subject name parameter
-     * @param versionOptional The version of the schemas to delete
+     * @param version The version of the schemas to delete
      * @param dryrun Run in dry mode or not?
      * @return A HTTP response
      */
@@ -213,15 +213,16 @@ public class SchemaController extends NamespacedResourceController {
     public Mono<HttpResponse<List<Schema>>> bulkDelete(
             String namespace,
             @QueryValue @NotBlank(message = "The schema name parameter is required for deletion.") String name,
-            @QueryValue("version") Optional<String> versionOptional,
+            @QueryValue @Nullable String version,
             @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
+        Optional<String> versionOptional = Optional.ofNullable(version);
 
         return schemaService
                 .findByWildcardName(ns, name)
                 .flatMap(schema -> versionOptional
-                        .map(version -> schemaService.getSubjectByVersion(
-                                ns, schema.getMetadata().getName(), version))
+                        .map(requestedVersion -> schemaService.getSubjectByVersion(
+                                ns, schema.getMetadata().getName(), requestedVersion))
                         .orElseGet(() -> schemaService.getSubjectLatestVersion(
                                 ns, schema.getMetadata().getName()))
                         .map(Optional::of)
@@ -265,17 +266,17 @@ public class SchemaController extends NamespacedResourceController {
      *
      * @param namespace The namespace
      * @param subject The subject
-     * @param versionOptional The version of the schema to delete
+     * @param version The version of the schema to delete
      * @param dryrun Run in dry mode or not?
      * @return A HTTP response
-     * @deprecated use {@link #bulkDelete(String, String, Optional, boolean)} instead.
+     * @deprecated use {@link #bulkDelete(String, String, String, boolean)} instead.
      */
     @Delete("/{subject}")
     @Deprecated(since = "1.13.0")
     public Mono<HttpResponse<Void>> delete(
             String namespace,
             @PathVariable String subject,
-            @QueryValue("version") Optional<String> versionOptional,
+            @QueryValue @Nullable String version,
             @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
 
@@ -284,9 +285,11 @@ public class SchemaController extends NamespacedResourceController {
             return Mono.error(new ResourceValidationException(SCHEMA, subject, invalidOwner(subject)));
         }
 
+        Optional<String> versionOptional = Optional.ofNullable(version);
+
         return versionOptional
                 // If version is specified, get the schema with the version
-                .map(version -> schemaService.getSubjectByVersion(ns, subject, version))
+                .map(requestedVersion -> schemaService.getSubjectByVersion(ns, subject, requestedVersion))
                 // If version is not specified, get the latest schema
                 .orElseGet(() -> schemaService.getSubjectLatestVersion(ns, subject))
                 .map(Optional::of)

@@ -114,7 +114,7 @@ public class ResourceQuotaController extends NamespacedResourceController {
      * @param dryrun Is dry run mode or not?
      * @return The created quota
      */
-    @Post("{?dryrun}")
+    @Post
     public HttpResponse<ResourceQuota> apply(
             String namespace, @Body @Valid ResourceQuota quota, @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);

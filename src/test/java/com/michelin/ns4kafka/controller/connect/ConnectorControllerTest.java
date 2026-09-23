@@ -876,10 +876,11 @@ class ConnectorControllerTest {
         when(connectorService.create(connector2)).thenReturn(connector2);
 
         StepVerifier.create(connectorController.importResources("test", "*", false))
-                .consumeNextWith(connect1 ->
-                        assertEquals("connect1", connect1.getMetadata().getName()))
-                .consumeNextWith(connect2 ->
-                        assertEquals("connect2", connect2.getMetadata().getName()))
+                .consumeNextWith(connectors -> {
+                    assertEquals(2, connectors.size());
+                    assertEquals("connect1", connectors.get(0).getMetadata().getName());
+                    assertEquals("connect2", connectors.get(1).getMetadata().getName());
+                })
                 .verifyComplete();
     }
 
@@ -902,8 +903,10 @@ class ConnectorControllerTest {
         when(connectorService.create(connector1)).thenReturn(connector1);
 
         StepVerifier.create(connectorController.importResources("test", "connect1", false))
-                .consumeNextWith(connect1 ->
-                        assertEquals("connect1", connect1.getMetadata().getName()))
+                .consumeNextWith(connectors -> {
+                    assertEquals(1, connectors.size());
+                    assertEquals("connect1", connectors.get(0).getMetadata().getName());
+                })
                 .verifyComplete();
     }
 
@@ -931,10 +934,11 @@ class ConnectorControllerTest {
                 .thenReturn(Flux.fromIterable(List.of(connector1, connector2)));
 
         StepVerifier.create(connectorController.importResources("test", "*", true))
-                .consumeNextWith(connect1 ->
-                        assertEquals("connect1", connect1.getMetadata().getName()))
-                .consumeNextWith(connect2 ->
-                        assertEquals("connect2", connect2.getMetadata().getName()))
+                .consumeNextWith(connectors -> {
+                    assertEquals(2, connectors.size());
+                    assertEquals("connect1", connectors.get(0).getMetadata().getName());
+                    assertEquals("connect2", connectors.get(1).getMetadata().getName());
+                })
                 .verifyComplete();
 
         verify(connectorService, never()).create(connector1);
