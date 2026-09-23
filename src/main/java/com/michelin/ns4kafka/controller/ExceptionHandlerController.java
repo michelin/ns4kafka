@@ -34,7 +34,6 @@ import io.micronaut.http.annotation.Error;
 import io.micronaut.http.client.exceptions.HttpClientException;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.client.exceptions.ReadTimeoutException;
-import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.NotAllowedException;
 import io.micronaut.security.authentication.AuthenticationException;
 import io.micronaut.security.authentication.AuthorizationException;
@@ -238,27 +237,6 @@ public class ExceptionHandlerController {
                 .build();
 
         return HttpResponse.badRequest().body(status);
-    }
-
-    /**
-     * Handle http status exception.
-     *
-     * @param request the request
-     * @param exception the exception
-     * @return the http response
-     */
-    @Error(global = true)
-    public HttpResponse<Status> error(HttpRequest<?> request, HttpStatusException exception) {
-        Status status = Status.builder()
-                .status(FAILED)
-                .message(exception.getStatus().getReason())
-                .httpStatus(exception.getStatus())
-                .details(StatusDetails.builder()
-                        .causes(List.of(exception.getMessage()))
-                        .build())
-                .build();
-
-        return HttpResponse.status(exception.getStatus()).body(status);
     }
 
     /**

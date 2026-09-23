@@ -34,7 +34,6 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientException;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
-import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.NotAllowedException;
 import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.authentication.AuthenticationException;
@@ -111,20 +110,6 @@ class ExceptionHandlerControllerTest {
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatus());
         assertNotNull(response.body());
         assertEquals(HttpStatus.UNAUTHORIZED.getCode(), response.body().getCode());
-    }
-
-    @Test
-    void shouldHandleHttpStatusException() {
-        HttpResponse<Status> response = exceptionHandlerController.error(
-                HttpRequest.create(HttpMethod.POST, "local"),
-                new HttpStatusException(HttpStatus.BAD_GATEWAY, "Connect cluster unreachable"));
-        assertEquals(HttpStatus.BAD_GATEWAY, response.getStatus());
-        assertNotNull(response.body());
-        assertEquals(HttpStatus.BAD_GATEWAY.getCode(), response.body().getCode());
-        assertEquals("Bad Gateway", response.body().getMessage());
-        assertEquals(
-                "Connect cluster unreachable",
-                response.body().getDetails().getCauses().getFirst());
     }
 
     @Test
