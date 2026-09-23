@@ -19,23 +19,28 @@
 package com.michelin.ns4kafka.controller;
 
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidKafkaUser;
+import static com.michelin.ns4kafka.util.enumation.Kind.KAFKA_USER_API_KEY;
 import static com.michelin.ns4kafka.util.enumation.Kind.KAFKA_USER_RESET_PASSWORD;
 import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 
 import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.model.AuditLog;
+import com.michelin.ns4kafka.model.KafkaUserApiKey;
 import com.michelin.ns4kafka.model.KafkaUserResetPassword;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.service.NamespaceService;
+import com.michelin.ns4kafka.service.client.confluent.ConfluentCloudClient;
 import com.michelin.ns4kafka.service.executor.UserAsyncExecutor;
 import com.michelin.ns4kafka.util.enumation.ApplyStatus;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Post;
+import io.micronaut.http.annotation.Status;
 import io.micronaut.inject.qualifiers.Qualifiers;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
@@ -52,10 +57,12 @@ import java.util.concurrent.TimeoutException;
 @ExecuteOn(TaskExecutors.IO)
 public class UserController extends NamespacedResourceController {
     private final ApplicationContext applicationContext;
+    private final ConfluentCloudClient confluentCloudClient;
 
     /**
      * Constructor.
      *
+     * @param confluentCloudClient The Confluent Cloud client
      * @param applicationContext The application context
      * @param namespaceService The namespace service
      * @param securityService The security service
@@ -65,9 +72,11 @@ public class UserController extends NamespacedResourceController {
             ApplicationContext applicationContext,
             NamespaceService namespaceService,
             SecurityService securityService,
-            ApplicationEventPublisher<AuditLog> applicationEventPublisher) {
+            ApplicationEventPublisher<AuditLog> applicationEventPublisher,
+            ConfluentCloudClient confluentCloudClient) {
         super(namespaceService, securityService, applicationEventPublisher);
         this.applicationContext = applicationContext;
+        this.confluentCloudClient = confluentCloudClient;
     }
 
     /**
@@ -109,5 +118,31 @@ public class UserController extends NamespacedResourceController {
         sendEventLog(response, ApplyStatus.CHANGED, null, response.getSpec(), EMPTY_STRING);
 
         return HttpResponse.ok(response);
+    }
+
+    /** Create an additional cluster-scoped API key for the namespace's service account. */
+    @Post("/{user}/api-keys")
+    @Status(HttpStatus.CREATED)
+    @ExecuteOn(TaskExecutors.IO)
+    public HttpResponse<KafkaUserApiKey> createApiKey(String namespace, String user) {
+        Namespace ns = getNamespace(namespace);
+        if (!ns.getSpec().getKafkaUser().equals(user)) {
+            throw new ResourceValidationException(KAFKA_USER_API_KEY, user, invalidKafkaUser(user));
+        }
+        var key = confluentCloudClient.createApiKey(ns.getMetadata().getCluster(), user);
+        KafkaUserApiKey response = KafkaUserApiKey.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name(user)
+                        .namespace(namespace)
+                        .cluster(ns.getMetadata().getCluster())
+                        .creationTimestamp(Date.from(Instant.now()))
+                        .build())
+                .spec(KafkaUserApiKey.KafkaUserApiKeySpec.builder()
+                        .apiKey(key.id())
+                        .apiSecret(key.spec().secret())
+                        .build())
+                .build();
+        sendEventLog(response, ApplyStatus.CREATED, null, null, EMPTY_STRING);
+        return HttpResponse.created(response).header("Cache-Control", "no-store");
     }
 }
