@@ -89,36 +89,39 @@ public class TopicAsyncExecutor {
                     brokerTopicNames.isEmpty() ? Map.of() : collectBrokerTopicsFromNames(brokerTopicNames);
             List<Topic> topics = topicRepository.findAllForCluster(managedClusterProperties.getName());
 
-            List<Topic> topicsToCreate = topics.stream()
+            List<Topic> toCreate = topics.stream()
                     .filter(topic ->
                             !brokerTopics.containsKey(topic.getMetadata().getName()))
                     .toList();
 
-            List<Topic> topicsToUpdate = topics.stream()
+            List<Topic> toUpdate = topics.stream()
                     .filter(topic ->
                             brokerTopics.containsKey(topic.getMetadata().getName()))
                     .toList();
 
-            if (!topicsToCreate.isEmpty()) {
+            if (!toCreate.isEmpty()) {
                 log.atDebug()
-                        .addArgument(topicsToCreate.stream()
+                        .addArgument(() -> toCreate.stream()
                                 .map(topic -> topic.getMetadata().getName())
                                 .collect(Collectors.joining(",")))
                         .log("Topic(s) to create: {}");
 
-                createTopics(topicsToCreate);
+                createTopics(toCreate);
             }
 
-            if (!topicsToUpdate.isEmpty()) {
+            if (!toUpdate.isEmpty()) {
                 Map<ConfigResource, Collection<AlterConfigOp>> configChanges = new HashMap<>();
-                topicsToUpdate.forEach(topic -> {
+                toUpdate.forEach(topic -> {
                     String topicName = topic.getMetadata().getName();
                     Collection<AlterConfigOp> changes = computeConfigChanges(
                             topic.getSpec().getConfigs(),
                             brokerTopics.get(topicName).getSpec().getConfigs());
                     if (!changes.isEmpty()) {
                         configChanges.put(new ConfigResource(ConfigResource.Type.TOPIC, topicName), changes);
-                    } else if (!topic.isSuccess() && isUnchangedSinceLastApply(topic)) {
+                        return;
+                    }
+
+                    if (!topic.isSuccess() && isUnchangedSinceLastApply(topic)) {
                         // Configs already match the broker, only resolve the pending or failed status
                         topic.getMetadata().setGeneration(topic.getMetadata().getGeneration() + 1);
                         topic.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
@@ -128,19 +131,19 @@ public class TopicAsyncExecutor {
 
                 if (!configChanges.isEmpty()) {
                     log.atDebug()
-                            .addArgument(configChanges.keySet().stream()
+                            .addArgument(() -> configChanges.keySet().stream()
                                     .map(ConfigResource::name)
                                     .collect(Collectors.joining(",")))
                             .log("Topic(s) to update: {}");
 
-                    alterTopics(configChanges, topicsToUpdate);
+                    alterTopics(configChanges, toUpdate);
                 }
             }
-        } catch (InterruptedException e) {
-            log.error("Exception ", e);
-            Thread.currentThread().interrupt();
         } catch (CancellationException | KafkaStoreException | ExecutionException | TimeoutException e) {
             log.error("An error occurred during the topic synchronization", e);
+        } catch (InterruptedException e) {
+            log.error("An error occurred during the topic synchronization", e);
+            Thread.currentThread().interrupt();
         }
     }
 
@@ -215,10 +218,10 @@ public class TopicAsyncExecutor {
     /**
      * Create topics.
      *
-     * @param topics The topics to create
+     * @param toCreate The list of topics to create
      */
-    public void createTopics(List<Topic> topics) {
-        List<NewTopic> newTopics = topics.stream()
+    public void createTopics(List<Topic> toCreate) {
+        List<NewTopic> newTopics = toCreate.stream()
                 .map(topic -> {
                     log.debug(
                             "Creating topic {} on cluster {}",
@@ -237,7 +240,7 @@ public class TopicAsyncExecutor {
                 .createTopics(newTopics)
                 .values();
 
-        topics.forEach(topicToCreate -> {
+        toCreate.forEach(topicToCreate -> {
             try {
                 createTopicsResult
                         .get(topicToCreate.getMetadata().getName())
@@ -272,14 +275,14 @@ public class TopicAsyncExecutor {
     /**
      * Alter topics.
      *
-     * @param toUpdate The topic config changes
-     * @param topics The current topics
+     * @param configChanges The topic config changes
+     * @param toUpdate The list of topics to update
      */
-    private void alterTopics(Map<ConfigResource, Collection<AlterConfigOp>> toUpdate, List<Topic> topics) {
+    private void alterTopics(Map<ConfigResource, Collection<AlterConfigOp>> configChanges, List<Topic> toUpdate) {
         AlterConfigsResult alterConfigsResult =
-                managedClusterProperties.getAdminClient().incrementalAlterConfigs(toUpdate);
+                managedClusterProperties.getAdminClient().incrementalAlterConfigs(configChanges);
         alterConfigsResult.values().forEach((key, value) -> {
-            Topic updatedTopic = topics.stream()
+            Topic updatedTopic = toUpdate.stream()
                     .filter(topic -> topic.getMetadata().getName().equals(key.name()))
                     .findFirst()
                     .get();
@@ -295,7 +298,7 @@ public class TopicAsyncExecutor {
                 log.atInfo()
                         .addArgument(key.name())
                         .addArgument(managedClusterProperties.getName())
-                        .addArgument(toUpdate.get(key).stream()
+                        .addArgument(() -> configChanges.get(key).stream()
                                 .map(AlterConfigOp::toString)
                                 .collect(Collectors.joining(",")))
                         .log("Success updating topic {} configs on cluster {}: [{}].");
@@ -309,7 +312,7 @@ public class TopicAsyncExecutor {
                                 "Error while updating topic configs: " + e.getMessage()));
 
                 log.error(
-                        "Error while updating topic configs {} on cluster {}.",
+                        "Error while updating topic {} configs on cluster {}.",
                         updatedTopic.getMetadata().getName(),
                         managedClusterProperties.getName(),
                         e);
