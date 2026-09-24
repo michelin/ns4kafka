@@ -187,6 +187,8 @@ public class TopicController extends NamespacedResourceController {
         sendEventLog(
                 topic, status, existingTopic.<Object>map(Topic::getSpec).orElse(null), topic.getSpec(), EMPTY_STRING);
 
+        topic.getMetadata().setStatus(Resource.Metadata.Status.ofPending());
+
         return formatHttpResponse(topicService.create(topic), status, validationWarnings);
     }
 

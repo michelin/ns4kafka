@@ -35,11 +35,14 @@ import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.TopicRepository;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Stream;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AlterConfigsResult;
 import org.apache.kafka.clients.admin.Config;
@@ -55,6 +58,8 @@ import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.config.ConfigResource;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -134,6 +139,7 @@ class TopicAsyncExecutorTest {
 
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
         when(topicRepository.findAllForCluster(LOCAL_CLUSTER)).thenReturn(List.of(topicToCreate, topicToUpdate));
+        when(topicRepository.findByName(LOCAL_CLUSTER, TOPIC_NAME)).thenReturn(Optional.of(topicToUpdate));
         when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
         when(adminClient.incrementalAlterConfigs(any())).thenReturn(alterConfigsResult);
         when(alterConfigsResult.values()).thenReturn(Map.of(topicResource, kafkaFuture));
@@ -232,6 +238,9 @@ class TopicAsyncExecutorTest {
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
 
+        when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
+        when(topicRepository.findByName(LOCAL_CLUSTER, TOPIC_NAME)).thenReturn(Optional.of(topic));
+
         topicAsyncExecutor.createTopics(List.of(topic));
 
         verify(topicRepository).create(argThat(a -> a.equals(topic) && a.isSuccess() && a.isCreated()));
@@ -262,6 +271,9 @@ class TopicAsyncExecutorTest {
                         .build())
                 .spec(Topic.TopicSpec.builder().build())
                 .build();
+
+        when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
+        when(topicRepository.findByName(LOCAL_CLUSTER, TOPIC_NAME)).thenReturn(Optional.of(topic));
 
         topicAsyncExecutor.createTopics(List.of(topic));
 
@@ -374,6 +386,7 @@ class TopicAsyncExecutorTest {
 
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
         when(topicRepository.findAllForCluster(LOCAL_CLUSTER)).thenReturn(List.of(topic));
+        when(topicRepository.findByName(LOCAL_CLUSTER, TOPIC_NAME)).thenReturn(Optional.of(topic));
 
         TopicAsyncExecutor executor = spy(topicAsyncExecutor);
         doReturn(List.of(TOPIC_NAME)).when(executor).listBrokerTopicNames();
@@ -385,12 +398,97 @@ class TopicAsyncExecutorTest {
     }
 
     @Test
+    void shouldNotPersistCreatedTopicWhenDeletedDuringSynchronization() {
+        ManagedClusterProperties.TimeoutProperties.TopicProperties topicProperties =
+                new ManagedClusterProperties.TimeoutProperties.TopicProperties();
+        topicProperties.setCreate(1000);
+        ManagedClusterProperties.TimeoutProperties timeoutProperties = new ManagedClusterProperties.TimeoutProperties();
+        timeoutProperties.setTopic(topicProperties);
+
+        Topic topic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .cluster(LOCAL_CLUSTER)
+                        .name(TOPIC_NAME)
+                        .generation(0)
+                        .build())
+                .spec(Topic.TopicSpec.builder().build())
+                .build();
+
+        when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
+        when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
+        when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
+        when(adminClient.createTopics(anyList())).thenReturn(createTopicsResult);
+        when(createTopicsResult.values()).thenReturn(Map.of(TOPIC_NAME, kafkaFuture));
+        when(topicRepository.findByName(LOCAL_CLUSTER, TOPIC_NAME)).thenReturn(Optional.empty());
+
+        topicAsyncExecutor.createTopics(List.of(topic));
+
+        verify(topicRepository, never()).create(any());
+    }
+
+    @Test
+    void shouldNotPersistUpdatedTopicWhenReappliedDuringSynchronization() throws Exception {
+        Topic topic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .cluster(LOCAL_CLUSTER)
+                        .name(TOPIC_NAME)
+                        .updateTimestamp(new Date(1000))
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .configs(Map.of("retention.ms", "60000"))
+                        .build())
+                .build();
+
+        Topic reappliedTopic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .cluster(LOCAL_CLUSTER)
+                        .name(TOPIC_NAME)
+                        .updateTimestamp(new Date(2000))
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .configs(Map.of("retention.ms", "120000"))
+                        .build())
+                .build();
+
+        Topic brokerTopic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .cluster(LOCAL_CLUSTER)
+                        .name(TOPIC_NAME)
+                        .build())
+                .spec(Topic.TopicSpec.builder().build())
+                .build();
+
+        ConfigResource cr = new ConfigResource(ConfigResource.Type.TOPIC, TOPIC_NAME);
+        ManagedClusterProperties.TimeoutProperties.TopicProperties topicProperties =
+                new ManagedClusterProperties.TimeoutProperties.TopicProperties();
+        topicProperties.setAlterConfigs(1000);
+        ManagedClusterProperties.TimeoutProperties timeoutProperties = new ManagedClusterProperties.TimeoutProperties();
+        timeoutProperties.setTopic(topicProperties);
+
+        when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
+        when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
+        when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
+        when(adminClient.incrementalAlterConfigs(any())).thenReturn(alterConfigsResult);
+        when(alterConfigsResult.values()).thenReturn(Map.of(cr, kafkaFuture));
+        when(topicRepository.findAllForCluster(LOCAL_CLUSTER)).thenReturn(List.of(topic));
+        when(topicRepository.findByName(LOCAL_CLUSTER, TOPIC_NAME)).thenReturn(Optional.of(reappliedTopic));
+
+        TopicAsyncExecutor executor = spy(topicAsyncExecutor);
+        doReturn(List.of(TOPIC_NAME)).when(executor).listBrokerTopicNames();
+        doReturn(Map.of(TOPIC_NAME, brokerTopic)).when(executor).collectBrokerTopicsFromNames(List.of(TOPIC_NAME));
+
+        executor.synchronizeTopics();
+
+        verify(topicRepository, never()).create(any());
+    }
+
+    @Test
     void shouldNotCallBrokerWhenNoConfigChanges() throws Exception {
         Topic topic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
                         .cluster(LOCAL_CLUSTER)
                         .name(TOPIC_NAME)
-                        .status(Resource.Metadata.Status.ofPending())
+                        .status(Resource.Metadata.Status.ofSuccess())
                         .generation(1)
                         .build())
                 .spec(Topic.TopicSpec.builder()
@@ -418,6 +516,101 @@ class TopicAsyncExecutorTest {
         executor.synchronizeTopics();
 
         verify(adminClient, never()).incrementalAlterConfigs(any());
+        verify(topicRepository, never()).create(any());
+    }
+
+    @ParameterizedTest
+    @MethodSource("unresolvedStatuses")
+    void shouldResolveStatusWhenNoConfigChanges(Resource.Metadata.Status status) throws Exception {
+        Topic topic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .cluster(LOCAL_CLUSTER)
+                        .name(TOPIC_NAME)
+                        .status(status)
+                        .generation(1)
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .configs(Map.of("cleanup.policy", "delete"))
+                        .build())
+                .build();
+
+        Topic brokerTopic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .cluster(LOCAL_CLUSTER)
+                        .name(TOPIC_NAME)
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .configs(Map.of("cleanup.policy", "delete"))
+                        .build())
+                .build();
+
+        when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
+        when(topicRepository.findAllForCluster(LOCAL_CLUSTER)).thenReturn(List.of(topic));
+        when(topicRepository.findByName(LOCAL_CLUSTER, TOPIC_NAME)).thenReturn(Optional.of(topic));
+
+        TopicAsyncExecutor executor = spy(topicAsyncExecutor);
+        doReturn(List.of(TOPIC_NAME)).when(executor).listBrokerTopicNames();
+        doReturn(Map.of(TOPIC_NAME, brokerTopic)).when(executor).collectBrokerTopicsFromNames(List.of(TOPIC_NAME));
+
+        executor.synchronizeTopics();
+
+        verify(adminClient, never()).incrementalAlterConfigs(any());
+        verify(topicRepository)
+                .create(argThat(resolved -> resolved == topic
+                        && resolved.isSuccess()
+                        && resolved.getMetadata().getGeneration() == 2));
+    }
+
+    static Stream<Resource.Metadata.Status> unresolvedStatuses() {
+        return Stream.of(Resource.Metadata.Status.ofPending(), Resource.Metadata.Status.ofFailed("Error"), null);
+    }
+
+    @Test
+    void shouldNotResolveStatusWhenReappliedDuringSynchronization() throws Exception {
+        Topic topic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .cluster(LOCAL_CLUSTER)
+                        .name(TOPIC_NAME)
+                        .status(Resource.Metadata.Status.ofPending())
+                        .updateTimestamp(new Date(1000))
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .configs(Map.of("cleanup.policy", "delete"))
+                        .build())
+                .build();
+
+        Topic reappliedTopic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .cluster(LOCAL_CLUSTER)
+                        .name(TOPIC_NAME)
+                        .status(Resource.Metadata.Status.ofPending())
+                        .updateTimestamp(new Date(2000))
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .configs(Map.of("cleanup.policy", "compact"))
+                        .build())
+                .build();
+
+        Topic brokerTopic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .cluster(LOCAL_CLUSTER)
+                        .name(TOPIC_NAME)
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .configs(Map.of("cleanup.policy", "delete"))
+                        .build())
+                .build();
+
+        when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
+        when(topicRepository.findAllForCluster(LOCAL_CLUSTER)).thenReturn(List.of(topic));
+        when(topicRepository.findByName(LOCAL_CLUSTER, TOPIC_NAME)).thenReturn(Optional.of(reappliedTopic));
+
+        TopicAsyncExecutor executor = spy(topicAsyncExecutor);
+        doReturn(List.of(TOPIC_NAME)).when(executor).listBrokerTopicNames();
+        doReturn(Map.of(TOPIC_NAME, brokerTopic)).when(executor).collectBrokerTopicsFromNames(List.of(TOPIC_NAME));
+
+        executor.synchronizeTopics();
+
         verify(topicRepository, never()).create(any());
     }
 }

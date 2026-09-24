@@ -31,6 +31,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -117,6 +118,11 @@ public class TopicAsyncExecutor {
                             brokerTopics.get(topicName).getSpec().getConfigs());
                     if (!changes.isEmpty()) {
                         configChanges.put(new ConfigResource(ConfigResource.Type.TOPIC, topicName), changes);
+                    } else if (!topic.isSuccess() && isUnchangedSinceLastApply(topic)) {
+                        // Configs already match the broker, only resolve the pending or failed status
+                        topic.getMetadata().setGeneration(topic.getMetadata().getGeneration() + 1);
+                        topic.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
+                        topicRepository.create(topic);
                     }
                 });
 
@@ -257,7 +263,9 @@ public class TopicAsyncExecutor {
                         e);
             }
 
-            topicRepository.create(topicToCreate);
+            if (isUnchangedSinceLastApply(topicToCreate)) {
+                topicRepository.create(topicToCreate);
+            }
         });
     }
 
@@ -307,7 +315,9 @@ public class TopicAsyncExecutor {
                         e);
             }
 
-            topicRepository.create(updatedTopic);
+            if (isUnchangedSinceLastApply(updatedTopic)) {
+                topicRepository.create(updatedTopic);
+            }
         });
     }
 
@@ -355,6 +365,26 @@ public class TopicAsyncExecutor {
         });
 
         return changes;
+    }
+
+    /**
+     * Check the topic has been neither deleted nor reapplied since it was read.
+     *
+     * @param topic The synchronized topic
+     * @return True if unchanged, false otherwise
+     */
+    private boolean isUnchangedSinceLastApply(Topic topic) {
+        Optional<Topic> existingTopic = topicRepository.findByName(
+                managedClusterProperties.getName(), topic.getMetadata().getName());
+
+        return existingTopic.isPresent()
+                && (existingTopic.get().getMetadata().getUpdateTimestamp() == null
+                        || (topic.getMetadata().getUpdateTimestamp() != null
+                                && !existingTopic
+                                        .get()
+                                        .getMetadata()
+                                        .getUpdateTimestamp()
+                                        .after(topic.getMetadata().getUpdateTimestamp())));
     }
 
     /**

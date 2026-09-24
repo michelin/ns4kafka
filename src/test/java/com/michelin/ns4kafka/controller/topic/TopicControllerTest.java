@@ -21,7 +21,6 @@ package com.michelin.ns4kafka.controller.topic;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertLinesMatch;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -341,7 +340,7 @@ class TopicControllerTest {
         Topic actual = response.body();
         assertEquals("created", response.header("X-Ns4kafka-Result"));
         assertEquals("test.topic", actual.getMetadata().getName());
-        assertNull(actual.getMetadata().getStatus());
+        assertTrue(actual.isPending());
     }
 
     @Test
@@ -430,7 +429,7 @@ class TopicControllerTest {
         Topic actual = response.body();
         assertEquals("changed", response.header("X-Ns4kafka-Result"));
         assertEquals("test.topic", actual.getMetadata().getName());
-        assertTrue(actual.isSuccess());
+        assertTrue(actual.isPending());
     }
 
     @Test
