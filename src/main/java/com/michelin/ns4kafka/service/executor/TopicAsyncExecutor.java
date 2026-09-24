@@ -23,7 +23,7 @@ import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.TopicRepository;
 import com.michelin.ns4kafka.repository.kafka.KafkaStoreException;
-import com.michelin.ns4kafka.service.TopicService;
+import com.michelin.ns4kafka.util.TopicConfigUtils;
 import io.micronaut.context.annotation.EachBean;
 import jakarta.inject.Singleton;
 import java.util.ArrayList;
@@ -31,7 +31,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -50,8 +49,6 @@ import org.apache.kafka.clients.admin.TopicListing;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.config.ConfigResource;
-import org.apache.kafka.common.errors.TopicExistsException;
-import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 
 /** Topic executor. */
 @Slf4j
@@ -61,22 +58,16 @@ public class TopicAsyncExecutor {
     public static final String ERROR = "Error";
 
     private final ManagedClusterProperties managedClusterProperties;
-    private final TopicService topicService;
     private final TopicRepository topicRepository;
 
     /**
      * Constructor.
      *
      * @param managedClusterProperties The managed cluster properties
-     * @param topicService The topic service
      * @param topicRepository The topic repository
      */
-    public TopicAsyncExecutor(
-            ManagedClusterProperties managedClusterProperties,
-            TopicService topicService,
-            TopicRepository topicRepository) {
+    public TopicAsyncExecutor(ManagedClusterProperties managedClusterProperties, TopicRepository topicRepository) {
         this.managedClusterProperties = managedClusterProperties;
-        this.topicService = topicService;
         this.topicRepository = topicRepository;
     }
 
@@ -92,11 +83,20 @@ public class TopicAsyncExecutor {
         log.debug("Starting topic collection for cluster {}", managedClusterProperties.getName());
 
         try {
-            Map<Boolean, List<Topic>> partitioned =
-                    topicService.findAllToDeployForCluster(managedClusterProperties.getName()).stream()
-                            .collect(Collectors.partitioningBy(Resource::isCreated));
-            List<Topic> topicsToCreate = partitioned.get(false);
-            List<Topic> topicsToUpdate = partitioned.get(true);
+            List<String> brokerTopicNames = listBrokerTopicNames();
+            Map<String, Topic> brokerTopics =
+                    brokerTopicNames.isEmpty() ? Map.of() : collectBrokerTopicsFromNames(brokerTopicNames);
+            List<Topic> topics = topicRepository.findAllForCluster(managedClusterProperties.getName());
+
+            List<Topic> topicsToCreate = topics.stream()
+                    .filter(topic ->
+                            !brokerTopics.containsKey(topic.getMetadata().getName()))
+                    .toList();
+
+            List<Topic> topicsToUpdate = topics.stream()
+                    .filter(topic ->
+                            brokerTopics.containsKey(topic.getMetadata().getName()))
+                    .toList();
 
             if (!topicsToCreate.isEmpty()) {
                 log.atDebug()
@@ -104,20 +104,31 @@ public class TopicAsyncExecutor {
                                 .map(topic -> topic.getMetadata().getName())
                                 .collect(Collectors.joining(",")))
                         .log("Topic(s) to create: {}");
+
                 createTopics(topicsToCreate);
             }
 
             if (!topicsToUpdate.isEmpty()) {
-                log.atDebug()
-                        .addArgument(topicsToUpdate.stream()
-                                .map(topic -> topic.getMetadata().getName())
-                                .collect(Collectors.joining(",")))
-                        .log("Topic(s) to update: {}");
+                Map<ConfigResource, Collection<AlterConfigOp>> configChanges = new HashMap<>();
+                topicsToUpdate.forEach(topic -> {
+                    String topicName = topic.getMetadata().getName();
+                    Collection<AlterConfigOp> changes = computeConfigChanges(
+                            topic.getSpec().getConfigs(),
+                            brokerTopics.get(topicName).getSpec().getConfigs());
+                    if (!changes.isEmpty()) {
+                        configChanges.put(new ConfigResource(ConfigResource.Type.TOPIC, topicName), changes);
+                    }
+                });
 
-                List<String> topicsNames = topicsToUpdate.stream()
-                        .map(topic -> topic.getMetadata().getName())
-                        .toList();
-                alterTopics(topicsToUpdate, collectBrokerTopicsFromNames(topicsNames));
+                if (!configChanges.isEmpty()) {
+                    log.atDebug()
+                            .addArgument(configChanges.keySet().stream()
+                                    .map(ConfigResource::name)
+                                    .collect(Collectors.joining(",")))
+                            .log("Topic(s) to update: {}");
+
+                    alterTopics(configChanges, topicsToUpdate);
+                }
             }
         } catch (InterruptedException e) {
             log.error("Exception ", e);
@@ -154,34 +165,15 @@ public class TopicAsyncExecutor {
      */
     public Map<String, Topic> collectBrokerTopicsFromNames(List<String> topicNames)
             throws InterruptedException, ExecutionException, TimeoutException {
-        Map<String, KafkaFuture<TopicDescription>> describeTopicsResult = managedClusterProperties
+        Map<String, TopicDescription> topicDescriptions = managedClusterProperties
                 .getAdminClient()
                 .describeTopics(topicNames)
-                .topicNameValues();
-
-        Map<String, TopicDescription> topicDescriptions = new HashMap<>();
-        for (Map.Entry<String, KafkaFuture<TopicDescription>> entry : describeTopicsResult.entrySet()) {
-            try {
-                topicDescriptions.put(
-                        entry.getKey(),
-                        entry.getValue()
-                                .get(
-                                        managedClusterProperties
-                                                .getTimeout()
-                                                .getTopic()
-                                                .getDescribeConfigs(),
-                                        TimeUnit.MILLISECONDS));
-            } catch (ExecutionException e) {
-                // Topics that no longer exist on the broker are left out, so that they get recreated
-                if (!(e.getCause() instanceof UnknownTopicOrPartitionException)) {
-                    throw e;
-                }
-            }
-        }
+                .allTopicNames()
+                .get();
 
         return managedClusterProperties
                 .getAdminClient()
-                .describeConfigs(topicDescriptions.keySet().stream()
+                .describeConfigs(topicNames.stream()
                         .map(topicName -> new ConfigResource(ConfigResource.Type.TOPIC, topicName))
                         .toList())
                 .all()
@@ -244,27 +236,8 @@ public class TopicAsyncExecutor {
                 createTopicsResult
                         .get(topicToCreate.getMetadata().getName())
                         .get(managedClusterProperties.getTimeout().getTopic().getCreate(), TimeUnit.MILLISECONDS);
-
-                Optional<Topic> existingTopic = topicService.findByName(
-                        topicToCreate.getMetadata().getCluster(),
-                        topicToCreate.getMetadata().getName());
-                Topic lastVersion = existingTopic.orElse(topicToCreate);
-                lastVersion.getMetadata().setGeneration(1);
-
-                boolean isUnchangedSinceLastApply = existingTopic.isEmpty()
-                        || existingTopic.get().getMetadata().getUpdateTimestamp() == null
-                        || (topicToCreate.getMetadata().getUpdateTimestamp() != null
-                                && !existingTopic
-                                        .get()
-                                        .getMetadata()
-                                        .getUpdateTimestamp()
-                                        .after(topicToCreate.getMetadata().getUpdateTimestamp()));
-
-                if (isUnchangedSinceLastApply) {
-                    lastVersion.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
-                }
-
-                topicRepository.create(lastVersion);
+                topicToCreate.getMetadata().setGeneration(1);
+                topicToCreate.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
 
                 log.info(
                         "Success creating topic {} on cluster {}.",
@@ -274,91 +247,31 @@ public class TopicAsyncExecutor {
                 log.error(ERROR, e);
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
-                if (isUnchangedSinceLastApply(topicToCreate)) {
-                    if (e.getCause() instanceof TopicExistsException) {
-                        // Let the next executor update topic, because if update here with alterTopics, we would need
-                        // collectBrokerTopicsFromNames which can throw errors we don't want to handle in createTopics
-                        topicToCreate.getMetadata().setStatus(Resource.Metadata.Status.ofPending());
-                        topicToCreate.getMetadata().setGeneration(1);
-                        topicRepository.create(topicToCreate);
-                        return;
-                    }
-
-                    topicToCreate
-                            .getMetadata()
-                            .setStatus(
-                                    Resource.Metadata.Status.ofFailed("Error while creating topic: " + e.getMessage()));
-                    topicRepository.create(topicToCreate);
-                    log.error(
-                            "Error while creating topic {} on cluster {}.",
-                            topicToCreate.getMetadata().getName(),
-                            managedClusterProperties.getName(),
-                            e);
-                }
+                topicToCreate
+                        .getMetadata()
+                        .setStatus(Resource.Metadata.Status.ofFailed("Error while creating topic: " + e.getMessage()));
+                log.error(
+                        "Error while creating topic {} on cluster {}.",
+                        topicToCreate.getMetadata().getName(),
+                        managedClusterProperties.getName(),
+                        e);
             }
+
+            topicRepository.create(topicToCreate);
         });
     }
 
     /**
      * Alter topics.
      *
-     * @param targetTopics The target topics
-     * @param brokerTopics The current topics
+     * @param toUpdate The topic config changes
+     * @param topics The current topics
      */
-    public void alterTopics(List<Topic> targetTopics, Map<String, Topic> brokerTopics) {
-        Map<Boolean, List<Topic>> partitioned = targetTopics.stream()
-                .collect(Collectors.partitioningBy(
-                        topic -> brokerTopics.containsKey(topic.getMetadata().getName())));
-
-        // Topics missing from the broker cannot be altered, they are recreated instead
-        if (!partitioned.get(false).isEmpty()) {
-            createTopics(partitioned.get(false));
-        }
-
-        List<Topic> topicsToAlter = partitioned.get(true);
-
-        Map<ConfigResource, Collection<AlterConfigOp>> topicConfigsToUpdate = topicsToAlter.stream()
-                .collect(Collectors.toMap(
-                        topic -> new ConfigResource(
-                                ConfigResource.Type.TOPIC, topic.getMetadata().getName()),
-                        topic -> {
-                            Map<String, String> currentConfig = brokerTopics
-                                    .get(topic.getMetadata().getName())
-                                    .getSpec()
-                                    .getConfigs();
-
-                            return computeConfigChanges(topic.getSpec().getConfigs(), currentConfig);
-                        }));
-
-        // Topics with no config changes are deployed without calling the broker.
-        // Can happen on delete -> applying an existing topic with the same config.
-        topicsToAlter.stream()
-                .filter(topic -> topicConfigsToUpdate
-                        .get(new ConfigResource(
-                                ConfigResource.Type.TOPIC, topic.getMetadata().getName()))
-                        .isEmpty())
-                .filter(this::isUnchangedSinceLastApply)
-                .forEach(topic -> {
-                    topic.getMetadata().setGeneration(topic.getMetadata().getGeneration() + 1);
-                    topic.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
-                    topicRepository.create(topic);
-
-                    log.info(
-                            "Topic {} configs are already up to date on cluster {}.",
-                            topic.getMetadata().getName(),
-                            managedClusterProperties.getName());
-                });
-
-        topicConfigsToUpdate.values().removeIf(Collection::isEmpty);
-
-        if (topicConfigsToUpdate.isEmpty()) {
-            return;
-        }
-
+    private void alterTopics(Map<ConfigResource, Collection<AlterConfigOp>> toUpdate, List<Topic> topics) {
         AlterConfigsResult alterConfigsResult =
-                managedClusterProperties.getAdminClient().incrementalAlterConfigs(topicConfigsToUpdate);
+                managedClusterProperties.getAdminClient().incrementalAlterConfigs(toUpdate);
         alterConfigsResult.values().forEach((key, value) -> {
-            Topic updatedTopic = topicsToAlter.stream()
+            Topic updatedTopic = topics.stream()
                     .filter(topic -> topic.getMetadata().getName().equals(key.name()))
                     .findFirst()
                     .get();
@@ -366,43 +279,35 @@ public class TopicAsyncExecutor {
             try {
                 value.get(managedClusterProperties.getTimeout().getTopic().getAlterConfigs(), TimeUnit.MILLISECONDS);
 
-                if (isUnchangedSinceLastApply(updatedTopic)) {
-                    updatedTopic
-                            .getMetadata()
-                            .setGeneration(updatedTopic.getMetadata().getGeneration() + 1);
-                    updatedTopic.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
-                    topicRepository.create(updatedTopic);
+                updatedTopic
+                        .getMetadata()
+                        .setGeneration(updatedTopic.getMetadata().getGeneration() + 1);
+                updatedTopic.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
 
-                    log.atInfo()
-                            .addArgument(key.name())
-                            .addArgument(managedClusterProperties.getName())
-                            .addArgument(topicConfigsToUpdate.get(key).stream()
-                                    .map(AlterConfigOp::toString)
-                                    .collect(Collectors.joining(",")))
-                            .log("Success updating topic {} configs on cluster {}: [{}].");
-                }
+                log.atInfo()
+                        .addArgument(key.name())
+                        .addArgument(managedClusterProperties.getName())
+                        .addArgument(toUpdate.get(key).stream()
+                                .map(AlterConfigOp::toString)
+                                .collect(Collectors.joining(",")))
+                        .log("Success updating topic {} configs on cluster {}: [{}].");
             } catch (InterruptedException e) {
                 log.error(ERROR, e);
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
-                if (isUnchangedSinceLastApply(updatedTopic)) {
-                    if (e.getCause() instanceof UnknownTopicOrPartitionException) {
-                        createTopics(List.of(updatedTopic));
-                        return;
-                    }
-                    updatedTopic
-                            .getMetadata()
-                            .setStatus(Resource.Metadata.Status.ofFailed(
-                                    "Error while updating topic configs: " + e.getMessage()));
-                    topicRepository.create(updatedTopic);
+                updatedTopic
+                        .getMetadata()
+                        .setStatus(Resource.Metadata.Status.ofFailed(
+                                "Error while updating topic configs: " + e.getMessage()));
 
-                    log.error(
-                            "Error while updating topic configs {} on cluster {}.",
-                            updatedTopic.getMetadata().getName(),
-                            managedClusterProperties.getName(),
-                            e);
-                }
+                log.error(
+                        "Error while updating topic configs {} on cluster {}.",
+                        updatedTopic.getMetadata().getName(),
+                        managedClusterProperties.getName(),
+                        e);
             }
+
+            topicRepository.create(updatedTopic);
         });
     }
 
@@ -437,7 +342,8 @@ public class TopicAsyncExecutor {
         List<AlterConfigOp> changes = new ArrayList<>();
 
         configToApply.forEach((key, value) -> {
-            if (!currentConfig.containsKey(key) || !value.equals(currentConfig.get(key))) {
+            if (!currentConfig.containsKey(key)
+                    || !TopicConfigUtils.areEquivalent(key, value, currentConfig.get(key))) {
                 changes.add(new AlterConfigOp(new ConfigEntry(key, value), AlterConfigOp.OpType.SET));
             }
         });
@@ -519,26 +425,5 @@ public class TopicAsyncExecutor {
                         return -1L;
                     }
                 }));
-    }
-
-    /**
-     * Checks whether the topic has been reapplied since the last deployment. Avoids publishing over a topic that has
-     * already been changed.
-     *
-     * @param topic The deployed or deleted topic
-     * @return True if it has been reapplied, false otherwise
-     */
-    private boolean isUnchangedSinceLastApply(Topic topic) {
-        Optional<Topic> existingTopic = topicService.findByName(
-                topic.getMetadata().getCluster(), topic.getMetadata().getName());
-
-        return existingTopic.isEmpty()
-                || existingTopic.get().getMetadata().getUpdateTimestamp() == null
-                || (topic.getMetadata().getUpdateTimestamp() != null
-                        && !existingTopic
-                                .get()
-                                .getMetadata()
-                                .getUpdateTimestamp()
-                                .after(topic.getMetadata().getUpdateTimestamp()));
     }
 }

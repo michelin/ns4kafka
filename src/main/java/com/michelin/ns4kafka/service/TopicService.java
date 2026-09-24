@@ -27,7 +27,6 @@ import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_DELETE;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Namespace;
-import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.Resource.Metadata.Phase;
 import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
@@ -98,18 +97,6 @@ public class TopicService {
                         || (topic.getMetadata() != null
                                 && topic.getMetadata().getStatus() != null
                                 && phase == topic.getMetadata().getStatus().getPhase()))
-                .toList();
-    }
-
-    /**
-     * Find all topics to create for a cluster.
-     *
-     * @param cluster The cluster
-     * @return A list of topics
-     */
-    public List<Topic> findAllToDeployForCluster(String cluster) {
-        return topicRepository.findAllForCluster(cluster).stream()
-                .filter(Resource::isPending)
                 .toList();
     }
 

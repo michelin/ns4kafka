@@ -77,6 +77,11 @@ public abstract class NamespacedResourceController extends ResourceController {
                         existingResource != null
                                 ? existingResource.getMetadata().getGeneration()
                                 : 0);
+        resource.getMetadata()
+                .setStatus(
+                        existingResource != null
+                                ? existingResource.getMetadata().getStatus()
+                                : null);
         resource.getMetadata().setCluster(ns.getMetadata().getCluster());
         resource.getMetadata().setNamespace(ns.getMetadata().getName());
     }
