@@ -400,4 +400,22 @@ public class TopicService {
             throw new InterruptedException(e.getMessage());
         }
     }
+    /**
+     * Find all topics of a given namespace filtered by tag.
+     *
+     * @param namespace The namespace
+     * @param tag The tag filter
+     * @return A list of topics
+     */
+    public List<Topic> findByTag(Namespace namespace, String tag) {
+        String normalizedTag = tag == null ? "" : tag.trim();
+
+        return findAllForNamespace(namespace).stream()
+                .filter(topic -> !normalizedTag.isEmpty()
+                        && topic.getSpec() != null
+                        && topic.getSpec().getTags() != null
+                        && topic.getSpec().getTags().stream()
+                        .anyMatch(topicTag -> topicTag.equalsIgnoreCase(normalizedTag)))
+                .toList();
+    }
 }
