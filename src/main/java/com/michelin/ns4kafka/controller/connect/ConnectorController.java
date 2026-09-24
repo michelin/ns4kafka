@@ -120,7 +120,7 @@ public class ConnectorController extends NamespacedResourceController {
      * @param dryrun Is dry run mode or not?
      * @return The created connector
      */
-    @Post("{?dryrun}")
+    @Post
     public Mono<HttpResponse<Connector>> apply(
             String namespace, @Valid @Body Connector connector, @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
@@ -199,7 +199,7 @@ public class ConnectorController extends NamespacedResourceController {
      * @return A HTTP response
      * @deprecated use {@link #delete(String, String, boolean, boolean)} instead.
      */
-    @Delete("/{connector}{?dryrun}")
+    @Delete("/{connector}")
     @Deprecated(since = "1.13.0")
     public Mono<HttpResponse<Void>> delete(
             String namespace, String connector, @QueryValue(defaultValue = "false") boolean dryrun) {
@@ -386,7 +386,7 @@ public class ConnectorController extends NamespacedResourceController {
      * @return The list of imported connectors
      */
     @Post("/_/import")
-    public Flux<Connector> importResources(
+    public Mono<List<Connector>> importResources(
             String namespace,
             @QueryValue(defaultValue = "*") String name,
             @QueryValue(defaultValue = "false") boolean dryrun) {
@@ -415,6 +415,7 @@ public class ConnectorController extends NamespacedResourceController {
                             EMPTY_STRING);
 
                     return connectorService.create(unsynchronizedConnector);
-                });
+                })
+                .collectList();
     }
 }

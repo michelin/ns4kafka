@@ -85,11 +85,13 @@ public class AclController extends NamespacedResourceController {
      * @param limit The ACL scope
      * @return A list of ACLs
      */
-    @Get("{?limit}")
+    @Get
     public List<AccessControlEntry> list(
-            String namespace, Optional<AclLimit> limit, @QueryValue(defaultValue = "*") String name) {
+            String namespace,
+            @QueryValue(defaultValue = "ALL") AclLimit limit,
+            @QueryValue(defaultValue = "*") String name) {
         Namespace ns = getNamespace(namespace);
-        return switch (limit.orElse(AclLimit.ALL)) {
+        return switch (limit) {
             case GRANTEE ->
                 aclService.findAllGrantedToNamespaceByWildcardName(ns, name).stream()
                         .sorted(Comparator.comparing(
@@ -114,7 +116,7 @@ public class AclController extends NamespacedResourceController {
      * @param namespace The name
      * @param acl The ACL name
      * @return The ACL
-     * @deprecated use {@link #list(String, Optional, String)} instead.
+     * @deprecated use {@link #list(String, AclLimit, String)} instead.
      */
     @Get("/{acl}")
     @Deprecated(since = "1.12.0")
@@ -134,7 +136,7 @@ public class AclController extends NamespacedResourceController {
      * @param dryrun Is dry run mode or not?
      * @return An HTTP response
      */
-    @Post("{?dryrun}")
+    @Post
     public HttpResponse<AccessControlEntry> apply(
             Authentication authentication,
             String namespace,
@@ -245,7 +247,7 @@ public class AclController extends NamespacedResourceController {
      * @return An HTTP response
      * @deprecated use {@link #bulkDelete(Authentication, String, String, boolean)} instead.
      */
-    @Delete("/{name}{?dryrun}")
+    @Delete("/{name}")
     @Deprecated(since = "1.13.0")
     public HttpResponse<Void> delete(
             Authentication authentication,

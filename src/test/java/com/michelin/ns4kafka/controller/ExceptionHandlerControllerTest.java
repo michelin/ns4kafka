@@ -32,7 +32,8 @@ import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
-import io.micronaut.http.exceptions.HttpStatusException;
+import io.micronaut.http.client.exceptions.HttpClientException;
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.server.exceptions.NotAllowedException;
 import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.authentication.AuthenticationException;
@@ -112,16 +113,30 @@ class ExceptionHandlerControllerTest {
     }
 
     @Test
-    void shouldHandleHttpStatusException() {
+    void shouldHandleHttpClientResponseException() {
         HttpResponse<Status> response = exceptionHandlerController.error(
                 HttpRequest.create(HttpMethod.POST, "local"),
-                new HttpStatusException(HttpStatus.BAD_GATEWAY, "Connect cluster unreachable"));
-        assertEquals(HttpStatus.BAD_GATEWAY, response.getStatus());
+                new HttpClientResponseException("Unknown Error", HttpResponse.status(520, "Unknown Error")));
+        assertEquals(520, response.code());
+        assertEquals("Unknown Error", response.reason());
         assertNotNull(response.body());
-        assertEquals(HttpStatus.BAD_GATEWAY.getCode(), response.body().getCode());
-        assertEquals("Bad Gateway", response.body().getMessage());
+        assertEquals(520, response.body().getCode());
+        assertEquals("Unknown Error", response.body().getReason());
+        assertEquals("Remote service error", response.body().getMessage());
+        assertEquals("Unknown Error", response.body().getDetails().getCauses().getFirst());
+    }
+
+    @Test
+    void shouldHandleHttpClientException() {
+        HttpResponse<Status> response = exceptionHandlerController.error(
+                HttpRequest.create(HttpMethod.POST, "local"),
+                new HttpClientException("Connect Error: Connection refused"));
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, response.getStatus());
+        assertNotNull(response.body());
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE.getCode(), response.body().getCode());
+        assertEquals("Remote service error", response.body().getMessage());
         assertEquals(
-                "Connect cluster unreachable",
+                "Connect Error: Connection refused",
                 response.body().getDetails().getCauses().getFirst());
     }
 

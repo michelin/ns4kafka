@@ -45,7 +45,9 @@ import jakarta.inject.Singleton;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
@@ -316,25 +318,26 @@ public class ConnectorService {
     public Flux<Connector> listUnsynchronizedConnectorsByWildcardName(Namespace namespace, String name) {
         List<String> nameFilterPatterns = RegexUtils.convertWildcardStringsToRegex(List.of(name));
 
-        // Get all connectors from all connect clusters
         Stream<String> connectClusters = Stream.concat(
                 namespace.getSpec().getConnectClusters().stream(),
                 connectClusterService.findAllForNamespaceWithWritePermission(namespace).stream()
                         .map(connectCluster -> connectCluster.getMetadata().getName()));
 
+        AtomicReference<Throwable> connectClusterError = new AtomicReference<>();
+
         return Flux.fromStream(connectClusters)
                 .flatMap(connectClusterName -> kafkaConnectClient
                         .listAll(namespace.getMetadata().getCluster(), connectClusterName)
-                        .flatMapMany(connectors -> Flux.fromIterable(connectors.values())
-                                .map(connectorStatus -> Connector.builder()
-                                        .metadata(Resource.Metadata.builder()
-                                                .name(connectorStatus.info().name())
-                                                .build())
-                                        .spec(Connector.ConnectorSpec.builder()
-                                                .connectCluster(connectClusterName)
-                                                .config(connectorStatus.info().config())
-                                                .build())
-                                        .build()))
+                        .flatMapIterable(Map::values)
+                        .map(connectorStatus -> Connector.builder()
+                                .metadata(Resource.Metadata.builder()
+                                        .name(connectorStatus.info().name())
+                                        .build())
+                                .spec(Connector.ConnectorSpec.builder()
+                                        .connectCluster(connectClusterName)
+                                        .config(connectorStatus.info().config())
+                                        .build())
+                                .build())
                         .filter(connector ->
                                 // ...that belongs to this namespace
                                 isNamespaceOwnerOfConnect(
@@ -347,7 +350,13 @@ public class ConnectorService {
                                                 .isEmpty()
                                         // ...and match the name parameter
                                         && RegexUtils.isResourceCoveredByRegex(
-                                                connector.getMetadata().getName(), nameFilterPatterns)));
+                                                connector.getMetadata().getName(), nameFilterPatterns))
+                        .onErrorResume(error -> {
+                            connectClusterError.compareAndSet(null, error);
+                            return Flux.empty();
+                        }))
+                .switchIfEmpty(Flux.defer(() ->
+                        connectClusterError.get() == null ? Flux.empty() : Flux.error(connectClusterError.get())));
     }
 
     /**

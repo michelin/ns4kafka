@@ -125,7 +125,7 @@ public class ConsumerGroupController extends NamespacedResourceController {
      * @param dryrun Is dry run mode or not?
      * @return The reset offsets response
      */
-    @Post("/{consumerGroup}/reset{?dryrun}")
+    @Post("/{consumerGroup}/reset")
     public List<ConsumerGroupResetOffsetsResponse> resetOffsets(
             String namespace,
             String consumerGroup,
@@ -218,7 +218,7 @@ public class ConsumerGroupController extends NamespacedResourceController {
      * @throws ExecutionException Any execution exception
      * @throws InterruptedException Any interrupted exception
      */
-    @Delete("/{consumerGroup}{?dryrun}")
+    @Delete("/{consumerGroup}")
     public HttpResponse<Void> deleteConsumerGroup(
             String namespace, String consumerGroup, @QueryValue(defaultValue = "false") boolean dryrun)
             throws ExecutionException, InterruptedException {

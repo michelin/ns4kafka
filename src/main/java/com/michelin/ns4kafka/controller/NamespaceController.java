@@ -105,7 +105,7 @@ public class NamespaceController extends ResourceController {
      * @param dryrun Is dry run mode or not?
      * @return The created namespace
      */
-    @Post("{?dryrun}")
+    @Post
     @RolesAllowed(ResourceBasedSecurityRule.IS_ADMIN)
     public HttpResponse<Namespace> apply(
             @Valid @Body Namespace namespace, @QueryValue(defaultValue = "false") boolean dryrun) {

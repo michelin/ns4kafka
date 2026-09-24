@@ -165,8 +165,7 @@ class AclControllerTest {
                         aceTopicPrefixedReadNamespaceOtherToTest,
                         aceTopicPrefixedReadAdminToAll));
 
-        List<AccessControlEntry> actual =
-                accessControlListController.list("test", Optional.of(AclController.AclLimit.GRANTEE), "*");
+        List<AccessControlEntry> actual = accessControlListController.list("test", AclController.AclLimit.GRANTEE, "*");
 
         assertEquals(4, actual.size());
         assertTrue(actual.contains(aceTopicPrefixedOwnerAdminToTest));
@@ -174,11 +173,11 @@ class AclControllerTest {
         assertTrue(actual.contains(aceTopicPrefixedReadNamespaceOtherToTest));
         assertTrue(actual.contains(aceTopicPrefixedReadAdminToAll));
 
-        actual = accessControlListController.list("test", Optional.of(AclController.AclLimit.GRANTOR), "*");
+        actual = accessControlListController.list("test", AclController.AclLimit.GRANTOR, "*");
         assertEquals(1, actual.size());
         assertTrue(actual.contains(aceTopicPrefixedReadTestToNamespaceOther));
 
-        actual = accessControlListController.list("test", Optional.of(AclController.AclLimit.ALL), "*");
+        actual = accessControlListController.list("test", AclController.AclLimit.ALL, "*");
         assertEquals(5, actual.size());
         assertTrue(actual.contains(aceTopicPrefixedOwnerAdminToTest));
         assertTrue(actual.contains(aceConnectPrefixedOwnerAdminToTest));
@@ -255,25 +254,18 @@ class AclControllerTest {
 
         assertEquals(
                 List.of(aclGrantedToNamespace),
-                accessControlListController.list(
-                        "test", Optional.of(AclController.AclLimit.GRANTEE), "aclGrantedToNamespace"));
+                accessControlListController.list("test", AclController.AclLimit.GRANTEE, "aclGrantedToNamespace"));
 
-        assertEquals(
-                List.of(),
-                accessControlListController.list("test", Optional.of(AclController.AclLimit.GRANTEE), "ownerAcl"));
+        assertEquals(List.of(), accessControlListController.list("test", AclController.AclLimit.GRANTEE, "ownerAcl"));
 
         assertEquals(
                 List.of(aclGrantedByNamespace),
-                accessControlListController.list(
-                        "test", Optional.of(AclController.AclLimit.GRANTOR), "aclGrantedByNamespace"));
+                accessControlListController.list("test", AclController.AclLimit.GRANTOR, "aclGrantedByNamespace"));
+
+        assertEquals(List.of(), accessControlListController.list("test", AclController.AclLimit.GRANTOR, "ownerAcl"));
 
         assertEquals(
-                List.of(),
-                accessControlListController.list("test", Optional.of(AclController.AclLimit.GRANTOR), "ownerAcl"));
-
-        assertEquals(
-                List.of(ownerAcl),
-                accessControlListController.list("test", Optional.of(AclController.AclLimit.ALL), "ownerAcl"));
+                List.of(ownerAcl), accessControlListController.list("test", AclController.AclLimit.ALL, "ownerAcl"));
     }
 
     @Test

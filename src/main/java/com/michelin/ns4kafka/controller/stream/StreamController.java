@@ -107,7 +107,7 @@ public class StreamController extends NamespacedResourceController {
      * @param dryrun Is dry run mode or not?
      * @return An HTTP response
      */
-    @Post("/{?dryrun}")
+    @Post
     HttpResponse<KafkaStream> apply(
             String namespace, @Body @Valid KafkaStream stream, @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
@@ -153,7 +153,7 @@ public class StreamController extends NamespacedResourceController {
      * @return An HTTP response
      * @deprecated use {@link #bulkDelete(String, String, boolean)} instead.
      */
-    @Delete("/{stream}{?dryrun}")
+    @Delete("/{stream}")
     @Deprecated(since = "1.13.0")
     HttpResponse<Void> delete(String namespace, String stream, @QueryValue(defaultValue = "false") boolean dryrun)
             throws ExecutionException, InterruptedException, TimeoutException {

@@ -31,7 +31,9 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Error;
-import io.micronaut.http.exceptions.HttpStatusException;
+import io.micronaut.http.client.exceptions.HttpClientException;
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
+import io.micronaut.http.client.exceptions.ReadTimeoutException;
 import io.micronaut.http.server.exceptions.NotAllowedException;
 import io.micronaut.security.authentication.AuthenticationException;
 import io.micronaut.security.authentication.AuthorizationException;
@@ -238,24 +240,40 @@ public class ExceptionHandlerController {
     }
 
     /**
-     * Handle http status exception.
+     * Handle HTTP client exception. Happens when a remote service responds with an error or does not respond
+     * (connection refused, unknown host, timeout).
      *
      * @param request the request
      * @param exception the exception
      * @return the http response
      */
     @Error(global = true)
-    public HttpResponse<Status> error(HttpRequest<?> request, HttpStatusException exception) {
+    public HttpResponse<Status> error(HttpRequest<?> request, HttpClientException exception) {
+        StatusDetails details = exception.getMessage() != null
+                ? StatusDetails.builder()
+                        .causes(List.of(exception.getMessage()))
+                        .build()
+                : null;
+
+        if (exception instanceof HttpClientResponseException responseException) {
+            Status status = new Status(
+                    FAILED, "Remote service error", responseException.reason(), details, responseException.code());
+
+            return HttpResponse.<Status>status(responseException.code(), responseException.reason())
+                    .body(status);
+        }
+
+        HttpStatus httpStatus =
+                exception instanceof ReadTimeoutException ? HttpStatus.GATEWAY_TIMEOUT : HttpStatus.SERVICE_UNAVAILABLE;
+
         Status status = Status.builder()
                 .status(FAILED)
-                .message(exception.getStatus().getReason())
-                .httpStatus(exception.getStatus())
-                .details(StatusDetails.builder()
-                        .causes(List.of(exception.getMessage()))
-                        .build())
+                .message("Remote service error")
+                .httpStatus(httpStatus)
+                .details(details)
                 .build();
 
-        return HttpResponse.status(exception.getStatus()).body(status);
+        return HttpResponse.<Status>status(httpStatus).body(status);
     }
 
     /**

@@ -62,7 +62,7 @@ public class ConnectClusterNonNamespacedController extends ResourceController {
      *
      * @return A list of Kafka Connect clusters
      */
-    @Get("{?all}")
+    @Get
     public Flux<ConnectCluster> listAll(
             @QueryValue(defaultValue = "false") boolean all, @QueryValue(defaultValue = "false") boolean status) {
         return connectClusterService.findAll(all, status);

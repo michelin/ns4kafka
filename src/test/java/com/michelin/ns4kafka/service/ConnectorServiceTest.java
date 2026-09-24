@@ -55,6 +55,7 @@ import com.michelin.ns4kafka.validation.ConnectValidator;
 import com.michelin.ns4kafka.validation.ResourceValidator;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
+import io.micronaut.http.client.exceptions.HttpClientException;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import java.util.List;
 import java.util.Map;
@@ -950,7 +951,6 @@ class ConnectorServiceTest {
         when(kafkaConnectClient.listAll("local", "ns-connect-cluster"))
                 .thenReturn(Mono.just(Map.of("ns1-connect2", c5)));
 
-        // list of existing Ns4Kafka access control entries
         when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns-connect1"))
                 .thenReturn(true);
         when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns-connect2"))
@@ -968,7 +968,6 @@ class ConnectorServiceTest {
         when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.CONNECT))
                 .thenReturn(acls);
 
-        // no connects exists into Ns4Kafka
         when(connectorRepository.findAllForCluster("local")).thenReturn(List.of());
 
         StepVerifier.create(connectorService
@@ -1100,6 +1099,72 @@ class ConnectorServiceTest {
 
         StepVerifier.create(connectorService.listUnsynchronizedConnectorsByWildcardName(ns, "*"))
                 .verifyComplete();
+    }
+
+    @Test
+    void shouldListUnsynchronizedConnectorsWhenOneConnectClusterIsDown() {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(NamespaceSpec.builder()
+                        .connectClusters(List.of("down-connect", "up-connect"))
+                        .build())
+                .build();
+
+        ConnectorStatus c1 =
+                new ConnectorStatus(new ConnectorInfo("ns-connect1", Map.of(), List.of(), ConnectorType.SINK), null);
+
+        List<AccessControlEntry> acls = List.of(AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .grantedTo("namespace")
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .resourceType(AccessControlEntry.ResourceType.CONNECT)
+                        .resource("ns-")
+                        .build())
+                .build());
+
+        when(kafkaConnectClient.listAll("local", "down-connect"))
+                .thenReturn(Mono.error(new HttpClientException("Connect Error: Connection refused")));
+        when(kafkaConnectClient.listAll("local", "up-connect")).thenReturn(Mono.just(Map.of("ns-connect1", c1)));
+        when(connectorRepository.findAllForCluster("local")).thenReturn(List.of());
+        when(aclService.isNamespaceOwnerOfResource("namespace", AccessControlEntry.ResourceType.CONNECT, "ns-connect1"))
+                .thenReturn(true);
+        when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.CONNECT))
+                .thenReturn(acls);
+
+        StepVerifier.create(connectorService.listUnsynchronizedConnectorsByWildcardName(ns, "*"))
+                .consumeNextWith(connector -> {
+                    assertEquals("ns-connect1", connector.getMetadata().getName());
+                    assertEquals("up-connect", connector.getSpec().getConnectCluster());
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void shouldNotListUnsynchronizedConnectorsWhenConnectClusterIsDownAndNothingToImport() {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(NamespaceSpec.builder()
+                        .connectClusters(List.of("down-connect", "up-connect"))
+                        .build())
+                .build();
+
+        when(kafkaConnectClient.listAll("local", "down-connect"))
+                .thenReturn(Mono.error(new HttpClientException("Connect Error: Connection refused")));
+        when(kafkaConnectClient.listAll("local", "up-connect")).thenReturn(Mono.just(Map.of()));
+
+        StepVerifier.create(connectorService.listUnsynchronizedConnectorsByWildcardName(ns, "*"))
+                .consumeErrorWith(error -> {
+                    assertEquals(HttpClientException.class, error.getClass());
+                    assertEquals("Connect Error: Connection refused", error.getMessage());
+                })
+                .verify();
     }
 
     @Test

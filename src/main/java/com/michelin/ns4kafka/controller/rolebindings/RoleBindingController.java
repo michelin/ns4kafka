@@ -90,7 +90,7 @@ public class RoleBindingController extends NamespacedResourceController {
      * @param dryrun Is dry run mode or not?
      * @return The created role binding
      */
-    @Post("{?dryrun}")
+    @Post
     public HttpResponse<RoleBinding> apply(
             String namespace,
             @Valid @Body RoleBinding roleBinding,

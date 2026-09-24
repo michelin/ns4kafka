@@ -632,7 +632,7 @@ class SchemaControllerTest {
         when(schemaService.isNamespaceOwnerOfSubject(namespace, "prefix.subject-value"))
                 .thenReturn(false);
 
-        StepVerifier.create(schemaController.delete("myNamespace", "prefix.subject-value", Optional.empty(), false))
+        StepVerifier.create(schemaController.delete("myNamespace", "prefix.subject-value", null, false))
                 .consumeErrorWith(error -> {
                     assertEquals(ResourceValidationException.class, error.getClass());
                     assertEquals(
@@ -662,7 +662,7 @@ class SchemaControllerTest {
         when(schemaService.isNamespaceOwnerOfSubject(namespace, "prefix.subject-value"))
                 .thenReturn(false);
 
-        StepVerifier.create(schemaController.delete("myNamespace", "prefix.subject-value", Optional.of("1"), false))
+        StepVerifier.create(schemaController.delete("myNamespace", "prefix.subject-value", "1", false))
                 .consumeErrorWith(error -> {
                     assertEquals(ResourceValidationException.class, error.getClass());
                     assertEquals(
@@ -699,7 +699,7 @@ class SchemaControllerTest {
         when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
         doNothing().when(applicationEventPublisher).publishEvent(any());
 
-        StepVerifier.create(schemaController.delete("myNamespace", "prefix.subject-value", Optional.empty(), false))
+        StepVerifier.create(schemaController.delete("myNamespace", "prefix.subject-value", null, false))
                 .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
                 .verifyComplete();
 
@@ -720,7 +720,7 @@ class SchemaControllerTest {
         when(schemaService.deleteVersion(namespace, "prefix.subject-value", "1"))
                 .thenReturn(Mono.just(1));
 
-        StepVerifier.create(schemaController.delete("myNamespace", "prefix.subject-value", Optional.of("1"), false))
+        StepVerifier.create(schemaController.delete("myNamespace", "prefix.subject-value", "1", false))
                 .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
                 .verifyComplete();
 
@@ -738,7 +738,7 @@ class SchemaControllerTest {
         when(schemaService.getSubjectLatestVersion(namespace, "prefix.subject-value"))
                 .thenReturn(Mono.empty());
 
-        StepVerifier.create(schemaController.delete("myNamespace", "prefix.subject-value", Optional.empty(), false))
+        StepVerifier.create(schemaController.delete("myNamespace", "prefix.subject-value", null, false))
                 .consumeNextWith(response -> assertEquals(HttpStatus.NOT_FOUND, response.getStatus()))
                 .verifyComplete();
 
@@ -756,7 +756,7 @@ class SchemaControllerTest {
         when(schemaService.getSubjectByVersion(namespace, "prefix.subject-value", "1"))
                 .thenReturn(Mono.empty());
 
-        StepVerifier.create(schemaController.delete("myNamespace", "prefix.subject-value", Optional.of("1"), false))
+        StepVerifier.create(schemaController.delete("myNamespace", "prefix.subject-value", "1", false))
                 .consumeNextWith(response -> assertEquals(HttpStatus.NOT_FOUND, response.getStatus()))
                 .verifyComplete();
 
@@ -775,7 +775,7 @@ class SchemaControllerTest {
         when(schemaService.getSubjectLatestVersion(namespace, "prefix.subject-value"))
                 .thenReturn(Mono.just(schema));
 
-        StepVerifier.create(schemaController.delete("myNamespace", "prefix.subject-value", Optional.empty(), true))
+        StepVerifier.create(schemaController.delete("myNamespace", "prefix.subject-value", null, true))
                 .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
                 .verifyComplete();
 
@@ -794,7 +794,7 @@ class SchemaControllerTest {
         when(schemaService.getSubjectByVersion(namespace, "prefix.subject-value", "1"))
                 .thenReturn(Mono.just(schema));
 
-        StepVerifier.create(schemaController.delete("myNamespace", "prefix.subject-value", Optional.of("1"), true))
+        StepVerifier.create(schemaController.delete("myNamespace", "prefix.subject-value", "1", true))
                 .consumeNextWith(response -> assertEquals(HttpStatus.NO_CONTENT, response.getStatus()))
                 .verifyComplete();
 
@@ -813,7 +813,7 @@ class SchemaControllerTest {
                 .thenReturn(Mono.just(schema));
         when(schemaService.deleteAllVersions(namespace, "prefix.subject-value")).thenReturn(Mono.just(new Integer[1]));
 
-        StepVerifier.create(schemaController.bulkDelete("myNamespace", "prefix.subject-value", Optional.empty(), false))
+        StepVerifier.create(schemaController.bulkDelete("myNamespace", "prefix.subject-value", null, false))
                 .consumeNextWith(response -> assertEquals(HttpStatus.OK, response.getStatus()))
                 .verifyComplete();
 
@@ -833,7 +833,7 @@ class SchemaControllerTest {
         when(schemaService.deleteVersion(namespace, "prefix.subject-value", "1"))
                 .thenReturn(Mono.just(1));
 
-        StepVerifier.create(schemaController.bulkDelete("myNamespace", "prefix.subject-value", Optional.of("1"), false))
+        StepVerifier.create(schemaController.bulkDelete("myNamespace", "prefix.subject-value", "1", false))
                 .consumeNextWith(response -> assertEquals(HttpStatus.OK, response.getStatus()))
                 .verifyComplete();
 
@@ -848,7 +848,7 @@ class SchemaControllerTest {
         when(schemaService.findByWildcardName(namespace, "prefix.subject-value"))
                 .thenReturn(Flux.fromIterable(List.of()));
 
-        StepVerifier.create(schemaController.bulkDelete("myNamespace", "prefix.subject-value", Optional.empty(), false))
+        StepVerifier.create(schemaController.bulkDelete("myNamespace", "prefix.subject-value", null, false))
                 .consumeNextWith(response -> assertEquals(HttpStatus.NOT_FOUND, response.getStatus()))
                 .verifyComplete();
 
@@ -863,7 +863,7 @@ class SchemaControllerTest {
         when(schemaService.findByWildcardName(namespace, "prefix.subject-value"))
                 .thenReturn(Flux.fromIterable(List.of()));
 
-        StepVerifier.create(schemaController.bulkDelete("myNamespace", "prefix.subject-value", Optional.of("1"), false))
+        StepVerifier.create(schemaController.bulkDelete("myNamespace", "prefix.subject-value", "1", false))
                 .consumeNextWith(response -> assertEquals(HttpStatus.NOT_FOUND, response.getStatus()))
                 .verifyComplete();
 
@@ -884,7 +884,7 @@ class SchemaControllerTest {
         when(schemaService.getSubjectLatestVersion(namespace, "prefix.subject2-value"))
                 .thenReturn(Mono.empty());
 
-        StepVerifier.create(schemaController.bulkDelete("myNamespace", "prefix.subject*", Optional.empty(), false))
+        StepVerifier.create(schemaController.bulkDelete("myNamespace", "prefix.subject*", null, false))
                 .consumeNextWith(response -> assertEquals(HttpStatus.NOT_FOUND, response.getStatus()))
                 .verifyComplete();
 
@@ -906,7 +906,7 @@ class SchemaControllerTest {
         when(schemaService.getSubjectByVersion(namespace, "prefix.subject2-value", "1"))
                 .thenReturn(Mono.empty());
 
-        StepVerifier.create(schemaController.bulkDelete("myNamespace", "prefix.subject*", Optional.of("1"), false))
+        StepVerifier.create(schemaController.bulkDelete("myNamespace", "prefix.subject*", "1", false))
                 .consumeNextWith(response -> assertEquals(HttpStatus.NOT_FOUND, response.getStatus()))
                 .verifyComplete();
 
@@ -925,7 +925,7 @@ class SchemaControllerTest {
         when(schemaService.getSubjectLatestVersion(namespace, "prefix.subject-value"))
                 .thenReturn(Mono.just(schema));
 
-        StepVerifier.create(schemaController.bulkDelete("myNamespace", "prefix.subject-value", Optional.empty(), true))
+        StepVerifier.create(schemaController.bulkDelete("myNamespace", "prefix.subject-value", null, true))
                 .consumeNextWith(response -> assertEquals(HttpStatus.OK, response.getStatus()))
                 .verifyComplete();
 
@@ -943,7 +943,7 @@ class SchemaControllerTest {
         when(schemaService.getSubjectByVersion(namespace, "prefix.subject-value", "1"))
                 .thenReturn(Mono.just(schema));
 
-        StepVerifier.create(schemaController.bulkDelete("myNamespace", "prefix.subject-value", Optional.of("1"), true))
+        StepVerifier.create(schemaController.bulkDelete("myNamespace", "prefix.subject-value", "1", true))
                 .consumeNextWith(response -> assertEquals(HttpStatus.OK, response.getStatus()))
                 .verifyComplete();
 
