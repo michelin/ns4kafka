@@ -89,13 +89,13 @@ class TopicControllerTest {
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(topicService.findByWildcardName(ns, "*")).thenReturn(List.of());
+        when(topicService.findByTag(ns, "")).thenReturn(List.of());
 
-        assertEquals(List.of(), topicController.list("test", "*"));
+        assertEquals(List.of(), topicController.list("test", ""));
     }
 
     @Test
-    void shouldListTopicsWithWildcardParameter() {
+    void shouldListTopicsByTagQueryParameterForWildcardTag() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test")
@@ -112,13 +112,13 @@ class TopicControllerTest {
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(topicService.findByWildcardName(ns, "*")).thenReturn(List.of(topic1, topic2));
+        when(topicService.findByTag(ns, "*")).thenReturn(List.of(topic1, topic2));
 
         assertEquals(List.of(topic1, topic2), topicController.list("test", "*"));
     }
 
     @Test
-    void shouldListTopicWithNoWildcardParameter() {
+    void shouldListTopicByTagValue() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test")
@@ -131,7 +131,7 @@ class TopicControllerTest {
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(topicService.findByWildcardName(ns, "topic1")).thenReturn(List.of(topic1));
+        when(topicService.findByTag(ns, "topic1")).thenReturn(List.of(topic1));
 
         assertEquals(List.of(topic1), topicController.list("test", "topic1"));
     }
@@ -1007,5 +1007,28 @@ class TopicControllerTest {
         assertLinesMatch(
                 List.of("Invalid value \"test.topic\" for field \"name\": collision with existing topic test_topic."),
                 actual.getValidationErrors());
+    }
+    @Test
+    void shouldListTopicsByTagForNamespace() {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Topic topic1 = Topic.builder()
+                .metadata(Resource.Metadata.builder().name("topic1").build())
+                .spec(Topic.TopicSpec.builder().tags(List.of("PLAY")).build())
+                .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(topicService.findByTag(ns, "PLAY")).thenReturn(List.of(topic1));
+        when(topicService.findByTag(ns, "play")).thenReturn(List.of(topic1));
+        when(topicService.findByTag(ns, "missing")).thenReturn(List.of());
+
+        assertEquals(List.of(topic1), topicController.list("test", "PLAY"));
+        assertEquals(List.of(topic1), topicController.list("test", "play"));
+        assertEquals(List.of(), topicController.list("test", "missing"));
     }
 }

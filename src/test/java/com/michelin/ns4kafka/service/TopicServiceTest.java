@@ -1023,4 +1023,48 @@ class TopicServiceTest {
         assertEquals(1, actual.size());
         assertTrue(actual.contains(t2));
     }
+
+    @Test
+    void shouldListTopicsByTagForNamespace() {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Topic topic1 = Topic.builder()
+                .metadata(Resource.Metadata.builder().name("ns-topic1").build())
+                .spec(Topic.TopicSpec.builder().tags(List.of("play", "prod")).build())
+                .build();
+
+        Topic topic2 = Topic.builder()
+                .metadata(Resource.Metadata.builder().name("ns-topic2").build())
+                .spec(Topic.TopicSpec.builder().tags(List.of("ops")).build())
+                .build();
+
+        Topic topic3 = Topic.builder()
+                .metadata(Resource.Metadata.builder().name("ns-topic3").build())
+                .spec(Topic.TopicSpec.builder().tags(List.of("PLAY")).build())
+                .build();
+
+        List<AccessControlEntry> acls = List.of(AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .grantedTo("namespace")
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resource("ns-")
+                        .build())
+                .build());
+
+        when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.TOPIC))
+                .thenReturn(acls);
+        when(topicRepository.findAllForCluster("local")).thenReturn(List.of(topic1, topic2, topic3));
+        when(aclService.isResourceCoveredByAcls(acls, "ns-topic1")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, "ns-topic2")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, "ns-topic3")).thenReturn(true);
+
+        assertEquals(List.of(topic1, topic3), topicService.findByTag(ns, "play"));
+    }
 }

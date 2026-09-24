@@ -87,15 +87,15 @@ public class TopicController extends NamespacedResourceController {
     }
 
     /**
-     * List topics by namespace, filtered by name parameter.
+     * List topics by namespace filtered by tag.
      *
      * @param namespace The namespace
-     * @param name The name parameter
+     * @param tag The tag filter
      * @return A list of topics
      */
     @Get
-    public List<Topic> list(String namespace, @QueryValue(defaultValue = "*") String name) {
-        return topicService.findByWildcardName(getNamespace(namespace), name);
+    public List<Topic> list(String namespace, @QueryValue(defaultValue = "") String tag) {
+        return topicService.findByTag(getNamespace(namespace), tag);
     }
 
     /**
