@@ -348,4 +348,15 @@ public class TopicController extends NamespacedResourceController {
                         .build())
                 .toList();
     }
+    /**
+     * List topics by namespace filtered by tag.
+     *
+     * @param namespace The namespace
+     * @param tag The tag filter
+     * @return A list of topics
+     */
+    @Get("/tags")
+    public List<Topic> listByTag(String namespace, @QueryValue(defaultValue = "") String tag) {
+        return topicService.findByTag(getNamespace(namespace), tag);
+    }
 }
