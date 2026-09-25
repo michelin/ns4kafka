@@ -419,7 +419,11 @@ This is the name you need to set in the `metadata.cluster` field of your namespa
 
 The configuration will depend on the authentication method selected for your broker, schema registry and Kafka Connect.
 
-#### Role Binding
+#### Confluent Cloud
+
+The following features are only available when using Confluent Cloud as the provider.
+
+##### Role Binding
 
 Confluent role bindings can be synchronized with Ns4Kafka.
 
