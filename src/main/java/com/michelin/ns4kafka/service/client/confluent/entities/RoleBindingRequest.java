@@ -35,10 +35,19 @@ public record RoleBindingRequest(
         this(
                 roleBinding.principal(),
                 roleBinding.roleName().toString(),
-                "crn://confluent.cloud/organization=" + properties.getOrganizationId() + "/environment="
-                        + properties.getEnvironmentId() + "/cloud-cluster=" + properties.getClusterId() + "/kafka="
-                        + properties.getClusterId() + "/" + getResourceTypeString(roleBinding) + "="
-                        + roleBinding.resource());
+                clusterCrnPattern(properties) + getResourceTypeString(roleBinding) + "=" + roleBinding.resource());
+    }
+
+    /**
+     * Build the CRN pattern prefix of all the resources of a Kafka cluster.
+     *
+     * @param properties The Confluent Cloud properties
+     * @return The CRN pattern prefix
+     */
+    public static String clusterCrnPattern(ConfluentCloudProperties properties) {
+        return "crn://confluent.cloud/organization=" + properties.getOrganizationId() + "/environment="
+                + properties.getEnvironmentId() + "/cloud-cluster=" + properties.getClusterId() + "/kafka="
+                + properties.getClusterId() + "/";
     }
 
     private static String getResourceTypeString(RoleBinding roleBinding) {

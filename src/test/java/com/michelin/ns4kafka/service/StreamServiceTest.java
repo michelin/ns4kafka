@@ -316,7 +316,7 @@ class StreamServiceTest {
     }
 
     @Test
-    void shouldFindAllToDeployForCluster() {
+    void shouldFindAllStreamsForCluster() {
         KafkaStream stream1 = KafkaStream.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test_stream1")
@@ -342,10 +342,9 @@ class StreamServiceTest {
 
         when(streamRepository.findAllForCluster("local")).thenReturn(List.of(stream1, stream2, stream3));
 
-        List<KafkaStream> actual = streamService.findAllToDeployForCluster("local");
+        List<KafkaStream> actual = streamService.findAllForCluster("local");
 
-        assertEquals(1, actual.size());
-        assertTrue(actual.contains(stream2));
+        assertEquals(List.of(stream1, stream2, stream3), actual);
     }
 
     @Test

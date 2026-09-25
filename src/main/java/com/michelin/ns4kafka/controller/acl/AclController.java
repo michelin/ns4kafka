@@ -165,14 +165,11 @@ public class AclController extends NamespacedResourceController {
 
         assignResourceMetadata(accessControlEntry, ns, existingAcl.orElse(null));
 
-        if (existingAcl.isPresent()
-                && !existingAcl.get().isFailed()
-                && existingAcl.get().equals(accessControlEntry)) {
+        if (existingAcl.isPresent() && existingAcl.get().equals(accessControlEntry)) {
             return formatHttpResponse(existingAcl.get(), ApplyStatus.UNCHANGED);
         }
 
-        ApplyStatus status =
-                existingAcl.isPresent() && existingAcl.get().isCreated() ? ApplyStatus.CHANGED : ApplyStatus.CREATED;
+        ApplyStatus status = existingAcl.isPresent() ? ApplyStatus.CHANGED : ApplyStatus.CREATED;
 
         if (dryrun) {
             return formatHttpResponse(accessControlEntry, status);

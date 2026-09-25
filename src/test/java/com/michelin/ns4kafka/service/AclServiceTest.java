@@ -998,7 +998,7 @@ class AclServiceTest {
     }
 
     @Test
-    void shouldFindNonPublicAclsToDeployForCluster() {
+    void shouldFindAllNonPublicAclsForCluster() {
         AccessControlEntry publicAcl1 = AccessControlEntry.builder()
                 .metadata(Resource.Metadata.builder()
                         .namespace("namespace4")
@@ -1120,9 +1120,8 @@ class AclServiceTest {
                         otherClusterAcl1,
                         otherClusterAcl2));
 
-        List<AccessControlEntry> toDeploy = aclService.findNonPublicToDeployForCluster("local");
-        assertEquals(1, toDeploy.size());
-        assertTrue(toDeploy.contains(acl2));
+        List<AccessControlEntry> actual = aclService.findAllNonPublicForCluster("local");
+        assertEquals(List.of(acl1, acl2, acl3, acl4), actual);
     }
 
     @Test

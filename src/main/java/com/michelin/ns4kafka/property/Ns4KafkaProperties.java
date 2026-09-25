@@ -92,12 +92,20 @@ public class Ns4KafkaProperties {
     @ConfigurationProperties("scheduler")
     public static class SchedulerProperties {
         private ConnectorProperties connector = new ConnectorProperties();
+        private RoleBindingProperties roleBinding = new RoleBindingProperties();
 
         @Getter
         @Setter
         @ConfigurationProperties("connector")
         public static class ConnectorProperties {
             private int intervalMs = 30000;
+        }
+
+        @Getter
+        @Setter
+        @ConfigurationProperties("role-binding")
+        public static class RoleBindingProperties {
+            private int intervalMs = 20000;
         }
     }
 

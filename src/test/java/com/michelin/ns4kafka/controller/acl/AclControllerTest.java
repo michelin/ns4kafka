@@ -532,7 +532,7 @@ class AclControllerTest {
     }
 
     @Test
-    void shouldChangeAclWhenExistingFailedEvenIfSpecUnchanged() {
+    void shouldNotChangeAclWhenExistingFailedAndSpecUnchanged() {
         Namespace namespace = Namespace.builder()
                 .spec(Namespace.NamespaceSpec.builder()
                         .protectionEnabled(Boolean.FALSE)
@@ -578,12 +578,12 @@ class AclControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(namespace));
         when(aclService.validate(accessControlEntry, namespace)).thenReturn(List.of());
         when(aclService.findByName("test", "ace1")).thenReturn(Optional.of(failedAcl));
-        when(aclService.create(accessControlEntry)).thenReturn(accessControlEntry);
 
         HttpResponse<AccessControlEntry> response =
                 accessControlListController.apply(authentication, "test", accessControlEntry, false);
 
-        assertEquals("changed", response.header("X-Ns4kafka-Result"));
+        assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
+        verify(aclService, never()).create(any());
     }
 
     @Test

@@ -116,7 +116,6 @@ public class ManagedClusterProperties {
         private String organizationId;
         private String environmentId;
         private String clusterId;
-        private String url;
         private String basicAuthUsername;
         private String basicAuthPassword;
     }

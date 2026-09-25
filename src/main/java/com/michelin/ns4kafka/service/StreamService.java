@@ -21,7 +21,6 @@ package com.michelin.ns4kafka.service;
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.KafkaStream;
 import com.michelin.ns4kafka.model.Namespace;
-import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.StreamRepository;
@@ -82,15 +81,13 @@ public class StreamService {
     }
 
     /**
-     * Find all Kafka Streams to deploy for a cluster.
+     * Find all Kafka Streams of a cluster.
      *
      * @param cluster The cluster
      * @return A list of Kafka Streams
      */
-    public List<KafkaStream> findAllToDeployForCluster(String cluster) {
-        return streamRepository.findAllForCluster(cluster).stream()
-                .filter(Resource::isPending)
-                .toList();
+    public List<KafkaStream> findAllForCluster(String cluster) {
+        return streamRepository.findAllForCluster(cluster);
     }
 
     /**
@@ -177,15 +174,6 @@ public class StreamService {
      * @return The created Kafka Stream
      */
     public KafkaStream create(KafkaStream stream) {
-        Optional<ManagedClusterProperties> streamCluster = managedClusterProperties.stream()
-                .filter(cluster -> cluster.getName().equals(stream.getMetadata().getCluster()))
-                .findFirst();
-
-        if (streamCluster.isPresent()
-                && streamCluster.get().isConfluentCloud()
-                && streamCluster.get().isManageRbac()) {
-            stream.getMetadata().setStatus(Resource.Metadata.Status.ofPending());
-        }
         return streamRepository.create(stream);
     }
 

@@ -34,7 +34,6 @@ import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidProtectedNamesp
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Namespace;
-import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.AccessControlEntryRepository;
 import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
@@ -325,13 +324,6 @@ public class AclService {
      * @return The created ACL
      */
     public AccessControlEntry create(AccessControlEntry accessControlEntry) {
-        accessControlEntry
-                .getMetadata()
-                .setStatus(
-                        RESOURCE_TYPES_TO_DEPLOY.contains(
-                                        accessControlEntry.getSpec().getResourceType())
-                                ? Resource.Metadata.Status.ofPending()
-                                : Resource.Metadata.Status.ofSuccess());
         return accessControlEntryRepository.create(accessControlEntry);
     }
 
@@ -557,15 +549,14 @@ public class AclService {
     }
 
     /**
-     * Find all non-public ACLs to deploy for a cluster.
+     * Find all non-public ACLs of a cluster.
      *
      * @param cluster The cluster
-     * @return A list of ACLs to deploy
+     * @return A list of ACLs
      */
-    public List<AccessControlEntry> findNonPublicToDeployForCluster(String cluster) {
+    public List<AccessControlEntry> findAllNonPublicForCluster(String cluster) {
         return accessControlEntryRepository.findAll().stream()
                 .filter(acl -> acl.getMetadata().getCluster().equals(cluster) && !isPublicAcl(acl))
-                .filter(Resource::isPending)
                 .toList();
     }
 
