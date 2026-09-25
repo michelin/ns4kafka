@@ -141,16 +141,6 @@ public class TopicService {
     public Optional<Topic> findByName(Namespace namespace, String topicName) {
         return topicRepository.findByName(namespace.getMetadata().getCluster(), topicName);
     }
-    /**
-     * Find a topic by cluster.
-     *
-     * @param cluster The cluster
-     * @param topicName The topic name
-     * @return An optional topic
-     */
-    public Optional<Topic> findByName(String cluster, String topicName) {
-        return topicRepository.findByName(cluster, topicName);
-    }
 
     /**
      * Is given namespace owner of the given topic.

@@ -554,7 +554,7 @@ class StreamServiceTest {
 
         streamService.delete(namespace, stream);
 
-        verify(aceAsyncExecutor).deleteKafkaStreams(namespace, stream);
+        verify(aceAsyncExecutor).deleteKafkaStreams(stream);
         verify(topicService)
                 .deleteTopics(argThat(topics -> topics.stream()
                                 .anyMatch(topic -> topic.getMetadata()
@@ -646,7 +646,7 @@ class StreamServiceTest {
 
         streamService.delete(namespace, stream);
 
-        verify(aceAsyncExecutor).deleteKafkaStreams(namespace, stream);
+        verify(aceAsyncExecutor).deleteKafkaStreams(stream);
         verify(confluentRoleBindingAsyncExecutor).deleteRoleBindingsFromKafkaStreams(List.of(stream));
         verify(streamRepository).delete(stream);
     }

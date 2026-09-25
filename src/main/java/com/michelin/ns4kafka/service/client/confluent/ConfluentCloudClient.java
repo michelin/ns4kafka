@@ -46,6 +46,7 @@ import reactor.core.publisher.Mono;
 public class ConfluentCloudClient {
     private static final String CONFLUENT_CLOUD_API_URL = "https://api.confluent.cloud";
     private static final String PAGE_TOKEN_PARAM = "page_token=";
+    private static final int PAGE_SIZE = 1000;
 
     private final HttpClient httpClient;
     private final List<ManagedClusterProperties> managedClusterProperties;
@@ -64,9 +65,10 @@ public class ConfluentCloudClient {
     }
 
     /**
-     * List all the role bindings on the resources of a Kafka cluster.
+     * List all the role bindings matching a crn pattern, following the pagination.
      *
      * @param kafkaCluster The Kafka cluster
+     * @param crnPattern The crn pattern, partially matched
      * @return The role bindings list
      */
     @Retryable(
@@ -74,20 +76,9 @@ public class ConfluentCloudClient {
             attempts = "${ns4kafka.retry.attempt}",
             multiplier = "${ns4kafka.retry.multiplier}",
             includes = ReadTimeoutException.class)
-    public Flux<RoleBindingResponse> listRoleBindings(String kafkaCluster) {
+    public Flux<RoleBindingResponse> listRoleBindings(String kafkaCluster, String crnPattern) {
         ManagedClusterProperties.ConfluentCloudProperties config = getConfluentCloud(kafkaCluster);
-        return listRoleBindings(config, RoleBindingRequest.clusterCrnPattern(config) + "*");
-    }
 
-    /**
-     * List all the role bindings matching a crn pattern, following the pagination.
-     *
-     * @param config The Confluent Cloud properties
-     * @param crnPattern The crn pattern
-     * @return The role bindings list
-     */
-    private Flux<RoleBindingResponse> listRoleBindings(
-            ManagedClusterProperties.ConfluentCloudProperties config, String crnPattern) {
         return listRoleBindingsPage(config, crnPattern, null)
                 .expand(response -> {
                     String pageToken = response.metadata() != null
@@ -96,44 +87,6 @@ public class ConfluentCloudClient {
                     return pageToken != null ? listRoleBindingsPage(config, crnPattern, pageToken) : Mono.empty();
                 })
                 .flatMapIterable(response -> response.data() != null ? response.data() : List.of());
-    }
-
-    /**
-     * List one page of role bindings matching a crn pattern.
-     *
-     * @param config The Confluent Cloud properties
-     * @param crnPattern The crn pattern
-     * @param pageToken The page token, or null for the first page
-     * @return The role bindings page
-     */
-    private Mono<RoleBindingListResponse> listRoleBindingsPage(
-            ManagedClusterProperties.ConfluentCloudProperties config, String crnPattern, @Nullable String pageToken) {
-        HttpRequest<?> request = HttpRequest.GET(URI.create(StringUtils.prependUri(
-                        CONFLUENT_CLOUD_API_URL,
-                        "/iam/v2/role-bindings?crn_pattern=" + crnPattern
-                                + (pageToken != null ? "&page_token=" + pageToken : ""))))
-                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
-
-        return Mono.from(httpClient.retrieve(request, RoleBindingListResponse.class));
-    }
-
-    /**
-     * Extract the page token from the link to the next page.
-     *
-     * @param next The link to the next page
-     * @return The raw page token, or null if there is no next page
-     */
-    static @Nullable String extractPageToken(@Nullable String next) {
-        if (next == null || URI.create(next).getRawQuery() == null) {
-            return null;
-        }
-
-        return Arrays.stream(URI.create(next).getRawQuery().split("&"))
-                .filter(param -> param.startsWith(PAGE_TOKEN_PARAM))
-                .map(param -> param.substring(PAGE_TOKEN_PARAM.length()))
-                .filter(pageToken -> !pageToken.isEmpty())
-                .findFirst()
-                .orElse(null);
     }
 
     /**
@@ -182,22 +135,41 @@ public class ConfluentCloudClient {
     }
 
     /**
-     * Delete the Confluent role binding.
+     * List one page of role bindings matching a crn pattern.
      *
-     * @param kafkaCluster The Kafka cluster
-     * @param roleBinding The role binding to delete
-     * @return The deleted role binding
+     * @param config The Confluent Cloud properties
+     * @param crnPattern The crn pattern
+     * @param pageToken The page token, or null for the first page
+     * @return The role bindings page
      */
-    public Mono<RoleBindingResponse> deleteRoleBinding(String kafkaCluster, RoleBinding roleBinding) {
-        ManagedClusterProperties.ConfluentCloudProperties config = getConfluentCloud(kafkaCluster);
-        RoleBindingRequest rbRequest = new RoleBindingRequest(roleBinding, config);
+    private Mono<RoleBindingListResponse> listRoleBindingsPage(
+            ManagedClusterProperties.ConfluentCloudProperties config, String crnPattern, @Nullable String pageToken) {
+        HttpRequest<?> request = HttpRequest.GET(URI.create(StringUtils.prependUri(
+                        CONFLUENT_CLOUD_API_URL,
+                        "/iam/v2/role-bindings?crn_pattern=" + crnPattern
+                                + (pageToken != null ? "&page_token=" + pageToken : "&page_size=" + PAGE_SIZE))))
+                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
 
-        return listRoleBindings(config, rbRequest.crnPattern())
-                .filter(response -> response.crnPattern().equals(rbRequest.crnPattern())
-                        && response.principal().equals(rbRequest.principal())
-                        && response.roleName().equals(rbRequest.roleName()))
-                .next()
-                .flatMap(response -> deleteRoleBinding(kafkaCluster, response.id()));
+        return Mono.from(httpClient.retrieve(request, RoleBindingListResponse.class));
+    }
+
+    /**
+     * Extract the page token from the link to the next page.
+     *
+     * @param next The link to the next page
+     * @return The raw page token, or null if there is no next page
+     */
+    private static @Nullable String extractPageToken(@Nullable String next) {
+        if (next == null || URI.create(next).getRawQuery() == null) {
+            return null;
+        }
+
+        return Arrays.stream(URI.create(next).getRawQuery().split("&"))
+                .filter(param -> param.startsWith(PAGE_TOKEN_PARAM))
+                .map(param -> param.substring(PAGE_TOKEN_PARAM.length()))
+                .filter(pageToken -> !pageToken.isEmpty())
+                .findFirst()
+                .orElse(null);
     }
 
     /**

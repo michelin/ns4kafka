@@ -441,7 +441,6 @@ ns4kafka:
         organization-id: "xxx"
         environment-id: "env-xxx"
         cluster-id: "lkc-xxx"
-        url: "https://api.confluent.cloud"
         basic-auth-username: "username"
         basic-auth-password: "password"
 ```
@@ -452,7 +451,6 @@ ns4kafka:
 | confluent-cloud.organization-id      | string  | No       | Confluent Cloud Organization ID. Required to use [Confluent Cloud Role Binding](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html).                                         |
 | confluent-cloud.environment-id       | string  | No       | Confluent Cloud environment ID. Required to use [Confluent Cloud Role Binding](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html).                                          |
 | confluent-cloud.cluster-id           | string  | No       | Confluent Cloud cluster ID. Required to use [Confluent Cloud Role Binding](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html).                                              |
-| confluent-cloud.url                  | string  | No       | Confluent Cloud API hostname. Required to use [Confluent Cloud Role Binding](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html).                                            |
 | confluent-cloud.basic-auth-username  | string  | No       | Basic authentication password to the Confluent Cloud API. Required to use [Confluent Cloud Role Binding](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html).                |
 | confluent-cloud.basic-auth-password  | string  | No       | Basic authentication password to the Confluent Cloud API. Required to use [Confluent Cloud Role Binding](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html).                |
 
@@ -601,6 +599,7 @@ The key must be 256 bits long (32 characters).
 #### HTTP Client
 
 Ns4Kafka includes multiple HTTP clients:
+- Confluent Cloud, for role bindings
 - GitLab, for authentication
 - Kafka Connect
 - Schema Registry
@@ -613,6 +612,10 @@ HTTP client timeouts can be configured individually using the following properti
 micronaut:
   http:
     services:
+      confluent-cloud:
+        connect-timeout: '10s'
+        read-idle-timeout: '10s'
+        read-timeout: '10s'
       gitlab:
         connect-timeout: '5s'
         read-idle-timeout: '5s'
@@ -627,11 +630,12 @@ micronaut:
         read-timeout: '10s'
 ```
 
-| Client                     | Description                                                                                                                                        |
-|----------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| GitLab                     | Client used to connect to GitLab for user authentication.                                                                                          |
-| Kafka Connect              | Client used to connect to Kafka Connect clusters to manage connectors.                                                                             |
-| Schema Registry            | Client used to connect to the Schema Registry to manage schemas.                                                                                   |
+| Client                     | Description                                                                                                                                       |
+|----------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|
+| Confluent Cloud            | Client used to connect to the Confluent Cloud API.                                                                         |
+| GitLab                     | Client used to connect to GitLab for user authentication.                                                                                         |
+| Kafka Connect              | Client used to connect to Kafka Connect clusters to manage connectors.                                                                            |
+| Schema Registry            | Client used to connect to the Schema Registry to manage schemas.                                                                                  |
 
 ##### Retry
 
@@ -647,13 +651,15 @@ ns4kafka:
 
 #### Scheduler
 
-Ns4Kafka schedules the deployment of connectors and performs health checks on Kafka Connect platforms. The scheduling frequency can be configured using the following properties:
+Ns4Kafka schedules the deployment of connectors and the synchronization of Confluent role bindings. The scheduling frequency can be configured using the following properties:
 
 ```yaml
 ns4kafka:
   scheduler:
     connector:
       interval-ms: 30000
+    role-binding:
+      interval-ms: 20000
 ```
 
 #### Sensitive Endpoints

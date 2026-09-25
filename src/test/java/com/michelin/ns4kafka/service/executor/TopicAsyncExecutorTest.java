@@ -168,10 +168,14 @@ class TopicAsyncExecutorTest {
                 .create(argThat(updated -> updated == topicToUpdate
                         && updated.isSuccess()
                         && updated.getMetadata().getGeneration() == 3));
+        // Kafka Streams internal topics are no longer imported from the broker
+        verify(topicRepository, never())
+                .create(argThat(topic ->
+                        "application-changelog".equals(topic.getMetadata().getName())));
     }
 
     @Test
-    void shouldCollectBrokerTopicsUsingPre122BulkDescribeFlow() throws Exception {
+    void shouldCollectBrokerTopicsFromNames() throws Exception {
         DescribeTopicsResult describeTopicsResult = mock(DescribeTopicsResult.class);
         DescribeConfigsResult describeConfigsResult = mock(DescribeConfigsResult.class);
         TopicDescription topicDescription = mock(TopicDescription.class);
@@ -209,8 +213,6 @@ class TopicAsyncExecutorTest {
         assertEquals(
                 Map.of("cleanup.policy", "compact"),
                 topics.get(TOPIC_NAME).getSpec().getConfigs());
-        verify(adminClient).describeTopics(List.of(TOPIC_NAME));
-        verify(adminClient).describeConfigs(List.of(configResource));
     }
 
     @Test

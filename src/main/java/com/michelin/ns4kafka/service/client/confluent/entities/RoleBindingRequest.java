@@ -50,6 +50,12 @@ public record RoleBindingRequest(
                 + properties.getClusterId() + "/";
     }
 
+    /**
+     * Get the CRN resource type of role binding.
+     *
+     * @param roleBinding The role binding
+     * @return The CRN resource type
+     */
     private static String getResourceTypeString(RoleBinding roleBinding) {
         return switch (roleBinding.resourceType()) {
             case TOPIC -> "topic";

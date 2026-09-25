@@ -187,7 +187,7 @@ public class StreamService {
         AccessControlEntryAsyncExecutor accessControlEntryAsyncExecutor = applicationContext.getBean(
                 AccessControlEntryAsyncExecutor.class,
                 Qualifiers.byName(stream.getMetadata().getCluster()));
-        accessControlEntryAsyncExecutor.deleteKafkaStreams(namespace, stream);
+        accessControlEntryAsyncExecutor.deleteKafkaStreams(stream);
 
         List<KafkaStream> overlapKafkaStreams = findAllForNamespace(namespace).stream()
                 .filter(kafkaStream -> kafkaStream

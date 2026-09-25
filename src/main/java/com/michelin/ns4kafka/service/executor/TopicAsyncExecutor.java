@@ -56,7 +56,7 @@ import org.apache.kafka.common.config.ConfigResource;
 @EachBean(ManagedClusterProperties.class)
 @Singleton
 public class TopicAsyncExecutor {
-    public static final String ERROR = "Error";
+    public static final String ERROR = "Error.";
 
     private final ManagedClusterProperties managedClusterProperties;
     private final TopicRepository topicRepository;
@@ -81,7 +81,7 @@ public class TopicAsyncExecutor {
 
     /** Start the topic synchronization. */
     public void synchronizeTopics() {
-        log.debug("Starting topic collection for cluster {}", managedClusterProperties.getName());
+        log.debug("Starting topic collection for cluster {}.", managedClusterProperties.getName());
 
         try {
             List<String> brokerTopicNames = listBrokerTopicNames();
@@ -104,7 +104,7 @@ public class TopicAsyncExecutor {
                         .addArgument(() -> toCreate.stream()
                                 .map(topic -> topic.getMetadata().getName())
                                 .collect(Collectors.joining(",")))
-                        .log("Topic(s) to create: {}");
+                        .log("Topic(s) to create: {}.");
 
                 createTopics(toCreate);
             }
@@ -134,15 +134,15 @@ public class TopicAsyncExecutor {
                             .addArgument(() -> configChanges.keySet().stream()
                                     .map(ConfigResource::name)
                                     .collect(Collectors.joining(",")))
-                            .log("Topic(s) to update: {}");
+                            .log("Topic(s) to update: {}.");
 
                     alterTopics(configChanges, toUpdate);
                 }
             }
         } catch (CancellationException | KafkaStoreException | ExecutionException | TimeoutException e) {
-            log.error("An error occurred during the topic synchronization", e);
+            log.error("An error occurred during the topic synchronization.", e);
         } catch (InterruptedException e) {
-            log.error("An error occurred during the topic synchronization", e);
+            log.error("An error occurred during the topic synchronization.", e);
             Thread.currentThread().interrupt();
         }
     }
@@ -224,7 +224,7 @@ public class TopicAsyncExecutor {
         List<NewTopic> newTopics = toCreate.stream()
                 .map(topic -> {
                     log.debug(
-                            "Creating topic {} on cluster {}",
+                            "Creating topic {} on cluster {}.",
                             topic.getMetadata().getName(),
                             topic.getMetadata().getCluster());
                     NewTopic newTopic = new NewTopic(
@@ -295,13 +295,10 @@ public class TopicAsyncExecutor {
                         .setGeneration(updatedTopic.getMetadata().getGeneration() + 1);
                 updatedTopic.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
 
-                log.atInfo()
-                        .addArgument(key.name())
-                        .addArgument(managedClusterProperties.getName())
-                        .addArgument(() -> configChanges.get(key).stream()
-                                .map(AlterConfigOp::toString)
-                                .collect(Collectors.joining(",")))
-                        .log("Success updating topic {} configs on cluster {}: [{}].");
+                log.info(
+                        "Success updating topic {} configs on cluster {}.",
+                        key.name(),
+                        managedClusterProperties.getName());
             } catch (InterruptedException e) {
                 log.error(ERROR, e);
                 Thread.currentThread().interrupt();
@@ -444,17 +441,17 @@ public class TopicAsyncExecutor {
                 .collect(Collectors.toMap(Map.Entry::getKey, kv -> {
                     try {
                         long newValue = kv.getValue().get().lowWatermark();
-                        log.info("Deleting records {} of topic-partition {}", newValue, kv.getKey());
+                        log.info("Deleting records {} of topic-partition {}.", newValue, kv.getKey());
                         return newValue;
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
-                        log.error("Thread interrupted deleting records of topic-partition {}", kv.getKey(), e);
+                        log.error("Thread interrupted deleting records of topic-partition {}.", kv.getKey(), e);
                         return -1L;
                     } catch (ExecutionException e) {
-                        log.error("Execution error deleting records of topic-partition {}", kv.getKey(), e);
+                        log.error("Execution error deleting records of topic-partition {}.", kv.getKey(), e);
                         return -1L;
                     } catch (Exception e) {
-                        log.error("Error deleting records of topic-partition {}", kv.getKey(), e);
+                        log.error("Error deleting records of topic-partition {}.", kv.getKey(), e);
                         return -1L;
                     }
                 }));

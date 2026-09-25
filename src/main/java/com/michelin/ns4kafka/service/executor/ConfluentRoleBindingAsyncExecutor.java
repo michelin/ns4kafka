@@ -30,11 +30,8 @@ import com.michelin.ns4kafka.model.KafkaStream;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
-import com.michelin.ns4kafka.repository.AccessControlEntryRepository;
 import com.michelin.ns4kafka.repository.NamespaceRepository;
-import com.michelin.ns4kafka.repository.kafka.KafkaStreamRepository;
 import com.michelin.ns4kafka.service.AclService;
-import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.StreamService;
 import com.michelin.ns4kafka.service.client.confluent.ConfluentCloudClient;
 import com.michelin.ns4kafka.service.client.confluent.entities.RoleBinding;
@@ -68,10 +65,7 @@ public class ConfluentRoleBindingAsyncExecutor {
     private final ManagedClusterProperties managedClusterProperties;
     private final ConfluentCloudClient confluentCloudClient;
     private final AclService aclService;
-    private final NamespaceService namespaceService;
     private final StreamService streamService;
-    private final AccessControlEntryRepository aclRepository;
-    private final KafkaStreamRepository kafkaStreamRepository;
     private final NamespaceRepository namespaceRepository;
 
     /**
@@ -80,28 +74,19 @@ public class ConfluentRoleBindingAsyncExecutor {
      * @param managedClusterProperties The managed cluster properties
      * @param confluentCloudClient The Confluent Cloud client
      * @param aclService The ACL service
-     * @param namespaceService The namespace service
      * @param streamService The stream service
-     * @param aclRepository The ACL repository
-     * @param kafkaStreamRepository The Kafka Stream repository
      * @param namespaceRepository The namespace repository
      */
     public ConfluentRoleBindingAsyncExecutor(
             ManagedClusterProperties managedClusterProperties,
             ConfluentCloudClient confluentCloudClient,
             AclService aclService,
-            NamespaceService namespaceService,
             StreamService streamService,
-            AccessControlEntryRepository aclRepository,
-            KafkaStreamRepository kafkaStreamRepository,
             NamespaceRepository namespaceRepository) {
         this.managedClusterProperties = managedClusterProperties;
         this.confluentCloudClient = confluentCloudClient;
         this.aclService = aclService;
-        this.namespaceService = namespaceService;
         this.streamService = streamService;
-        this.aclRepository = aclRepository;
-        this.kafkaStreamRepository = kafkaStreamRepository;
         this.namespaceRepository = namespaceRepository;
     }
 
@@ -126,7 +111,7 @@ public class ConfluentRoleBindingAsyncExecutor {
      * @return A mono completing when the synchronization is done
      */
     public Mono<Void> synchronizeRoleBindings() {
-        log.debug("Starting role binding collection for cluster {}", managedClusterProperties.getName());
+        log.debug("Starting role binding collection for cluster {}.", managedClusterProperties.getName());
 
         return collectBrokerRoleBindings()
                 .flatMap(brokerRoleBindings -> {
@@ -150,7 +135,7 @@ public class ConfluentRoleBindingAsyncExecutor {
                                 .addArgument(() -> toCreate.stream()
                                         .map(RoleBinding::toString)
                                         .collect(Collectors.joining(",")))
-                                .log("Role binding(s) to create: {}");
+                                .log("Role binding(s) to create: {}.");
                     }
 
                     return createRoleBindings(toCreate)
@@ -172,14 +157,14 @@ public class ConfluentRoleBindingAsyncExecutor {
                                             .addArgument(() -> toDelete.stream()
                                                     .map(RoleBindingResponse::crnPattern)
                                                     .collect(Collectors.joining(",")))
-                                            .log("Role binding(s) to delete: {}");
+                                            .log("Role binding(s) to delete: {}.");
                                 }
 
                                 return deleteRoleBindings(toDelete);
                             }));
                 })
                 .doOnError(e -> log.error(
-                        "An error occurred during the role binding synchronization on cluster {}",
+                        "An error occurred during the role binding synchronization on cluster {}.",
                         managedClusterProperties.getName(),
                         e))
                 .onErrorComplete();
@@ -200,7 +185,9 @@ public class ConfluentRoleBindingAsyncExecutor {
                             .collect(Collectors.toSet());
 
             return confluentCloudClient
-                    .listRoleBindings(managedClusterProperties.getName())
+                    .listRoleBindings(
+                            managedClusterProperties.getName(),
+                            RoleBindingRequest.clusterCrnPattern(managedClusterProperties.getConfluentCloud()) + "*")
                     .filter(response ->
                             MANAGED_ROLES.contains(response.roleName()) && managedUsers.contains(response.principal()))
                     .collectMap(response ->
@@ -216,11 +203,19 @@ public class ConfluentRoleBindingAsyncExecutor {
     Map<Resource, List<RoleBinding>> collectNs4KafkaRoleBindings() {
         Map<Resource, List<RoleBinding>> ns4KafkaRoleBindings = new HashMap<>();
 
+        // Skip ACLs and Kafka Streams of namespaces that no longer exist, they cannot be converted
+        Set<String> namespaces = namespaceRepository.findAllForCluster(managedClusterProperties.getName()).stream()
+                .map(namespace -> namespace.getMetadata().getName())
+                .collect(Collectors.toSet());
+
         // Public ACLs are handled by the ACL executor as Confluent role bindings cannot manage "*"
         ns4KafkaRoleBindings.putAll(aclService.findAllNonPublicForCluster(managedClusterProperties.getName()).stream()
+                .filter(acl -> namespaces.contains(acl.getSpec().getGrantedTo()))
                 .collect(Collectors.toMap(Function.identity(), this::convertAclToRoleBinding)));
 
         ns4KafkaRoleBindings.putAll(streamService.findAllForCluster(managedClusterProperties.getName()).stream()
+                .filter(kafkaStream ->
+                        namespaces.contains(kafkaStream.getMetadata().getNamespace()))
                 .collect(Collectors.toMap(
                         Function.identity(), kafkaStream -> List.of(convertKafkaStreamsToRoleBinding(kafkaStream)))));
 
@@ -278,23 +273,30 @@ public class ConfluentRoleBindingAsyncExecutor {
                     .map(creationErrors::get)
                     .findFirst();
 
-            if (creationError.isPresent()) {
-                resource.getMetadata().setStatus(Resource.Metadata.Status.ofFailed(creationError.get()));
-            } else {
-                // Role bindings already exist and the status is up to date
-                if (roleBindings.stream().noneMatch(toCreate::contains) && resource.isSuccess()) {
-                    return;
-                }
-
-                resource.getMetadata().setGeneration(resource.getMetadata().getGeneration() + 1);
-                resource.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
+            // Role bindings already exist and the status is up to date
+            if (creationError.isEmpty()
+                    && roleBindings.stream().noneMatch(toCreate::contains)
+                    && resource.isSuccess()) {
+                return;
             }
+
+            if (creationError.isEmpty()) {
+                resource.getMetadata().setGeneration(resource.getMetadata().getGeneration() + 1);
+            }
+
+            resource.getMetadata()
+                    .setStatus(creationError
+                            .map(Resource.Metadata.Status::ofFailed)
+                            .orElseGet(Resource.Metadata.Status::ofSuccess));
 
             // Do not overwrite a resource deleted or reapplied since it was read
             if (resource instanceof AccessControlEntry acl && isUnchangedSinceLastApply(acl)) {
-                aclRepository.create(acl);
-            } else if (resource instanceof KafkaStream ks && isUnchangedSinceLastApply(ks)) {
-                kafkaStreamRepository.create(ks);
+                aclService.create(acl);
+                return;
+            }
+
+            if (resource instanceof KafkaStream ks && isUnchangedSinceLastApply(ks)) {
+                streamService.create(ks);
             }
         });
     }
@@ -326,30 +328,48 @@ public class ConfluentRoleBindingAsyncExecutor {
     }
 
     /**
+     * Find the Confluent Cloud role binding matching a role binding and delete it.
+     *
+     * @param roleBinding The role binding to delete
+     * @return The deleted role binding, or empty if none matched
+     */
+    private Mono<RoleBindingResponse> deleteRoleBinding(RoleBinding roleBinding) {
+        RoleBindingRequest request = new RoleBindingRequest(roleBinding, managedClusterProperties.getConfluentCloud());
+
+        return confluentCloudClient
+                .listRoleBindings(managedClusterProperties.getName(), request.crnPattern())
+                .filter(response -> response.crnPattern().equals(request.crnPattern())
+                        && response.principal().equals(request.principal())
+                        && response.roleName().equals(request.roleName()))
+                .next()
+                .flatMap(response ->
+                        confluentCloudClient.deleteRoleBinding(managedClusterProperties.getName(), response.id()));
+    }
+
+    /**
      * Delete role bindings associated to Ns4Kafka ACLs.
      *
      * @param acls The Ns4Kafka ACLs
      */
     public void deleteRoleBindingsFromAcls(List<AccessControlEntry> acls) {
-        // Not possible to batch delete Confluent role bindings
         acls.forEach(acl -> convertAclToRoleBinding(acl).forEach(roleBinding -> {
             try {
-                RoleBindingResponse roleBindingResponse = confluentCloudClient
-                        .deleteRoleBinding(managedClusterProperties.getName(), roleBinding)
-                        .block();
+                RoleBindingResponse roleBindingResponse =
+                        deleteRoleBinding(roleBinding).block();
 
                 if (roleBindingResponse == null) {
                     log.info(
                             "No role binding to delete for ACL {} on cluster {}.",
                             acl.getMetadata().getName(),
                             managedClusterProperties.getName());
-                } else {
-                    log.info(
-                            "Success deleting role binding {} of ACL {} on cluster {}.",
-                            roleBindingResponse,
-                            acl.getMetadata().getName(),
-                            managedClusterProperties.getName());
+                    return;
                 }
+
+                log.info(
+                        "Success deleting role binding {} of ACL {} on cluster {}.",
+                        roleBindingResponse,
+                        acl.getMetadata().getName(),
+                        managedClusterProperties.getName());
             } catch (Exception e) {
                 log.error(
                         "Error while deleting role binding of ACL {} on cluster {}.",
@@ -366,25 +386,24 @@ public class ConfluentRoleBindingAsyncExecutor {
      * @param kafkaStreams The Kafka Streams
      */
     public void deleteRoleBindingsFromKafkaStreams(List<KafkaStream> kafkaStreams) {
-        // Not possible to batch delete Confluent role bindings
         kafkaStreams.forEach(ks -> {
             try {
-                RoleBindingResponse roleBindingResponse = confluentCloudClient
-                        .deleteRoleBinding(managedClusterProperties.getName(), convertKafkaStreamsToRoleBinding(ks))
-                        .block();
+                RoleBindingResponse roleBindingResponse =
+                        deleteRoleBinding(convertKafkaStreamsToRoleBinding(ks)).block();
 
                 if (roleBindingResponse == null) {
                     log.info(
                             "No role binding to delete for Kafka Stream {} on cluster {}.",
                             ks.getMetadata().getName(),
                             managedClusterProperties.getName());
-                } else {
-                    log.info(
-                            "Success deleting role binding {} of Kafka Stream {} on cluster {}.",
-                            roleBindingResponse,
-                            ks.getMetadata().getName(),
-                            managedClusterProperties.getName());
+                    return;
                 }
+
+                log.info(
+                        "Success deleting role binding {} of Kafka Stream {} on cluster {}.",
+                        roleBindingResponse,
+                        ks.getMetadata().getName(),
+                        managedClusterProperties.getName());
             } catch (Exception e) {
                 log.error(
                         "Error while deleting role binding of Kafka Stream {} on cluster {}.",
@@ -417,7 +436,7 @@ public class ConfluentRoleBindingAsyncExecutor {
      */
     List<RoleBinding> convertTopicAclToRoleBinding(AccessControlEntry acl) {
         Namespace namespace =
-                namespaceService.findByName(acl.getSpec().getGrantedTo()).orElseThrow();
+                namespaceRepository.findByName(acl.getSpec().getGrantedTo()).orElseThrow();
         String principal = USER_PRINCIPAL + namespace.getSpec().getKafkaUser();
         String resource = computeResourcePattern(acl);
 
@@ -439,7 +458,7 @@ public class ConfluentRoleBindingAsyncExecutor {
      */
     List<RoleBinding> convertGroupAclToRoleBinding(AccessControlEntry acl) {
         Namespace namespace =
-                namespaceService.findByName(acl.getSpec().getGrantedTo()).orElseThrow();
+                namespaceRepository.findByName(acl.getSpec().getGrantedTo()).orElseThrow();
         String principal = USER_PRINCIPAL + namespace.getSpec().getKafkaUser();
 
         if (acl.getSpec().getPermission() == AccessControlEntry.Permission.OWNER
@@ -458,7 +477,7 @@ public class ConfluentRoleBindingAsyncExecutor {
      */
     List<RoleBinding> convertConnectAclToRoleBinding(AccessControlEntry acl) {
         Namespace namespace =
-                namespaceService.findByName(acl.getSpec().getGrantedTo()).orElseThrow();
+                namespaceRepository.findByName(acl.getSpec().getGrantedTo()).orElseThrow();
         String principal = USER_PRINCIPAL + namespace.getSpec().getKafkaUser();
         String resource = "connect-" + computeResourcePattern(acl);
 
@@ -477,7 +496,7 @@ public class ConfluentRoleBindingAsyncExecutor {
      */
     List<RoleBinding> convertTransAclToRoleBinding(AccessControlEntry acl) {
         Namespace namespace =
-                namespaceService.findByName(acl.getSpec().getGrantedTo()).orElseThrow();
+                namespaceRepository.findByName(acl.getSpec().getGrantedTo()).orElseThrow();
         String principal = USER_PRINCIPAL + namespace.getSpec().getKafkaUser();
         String resource = computeResourcePattern(acl);
 
@@ -512,8 +531,9 @@ public class ConfluentRoleBindingAsyncExecutor {
      * @return A role binding
      */
     RoleBinding convertKafkaStreamsToRoleBinding(KafkaStream stream) {
-        Namespace namespace =
-                namespaceService.findByName(stream.getMetadata().getNamespace()).orElseThrow();
+        Namespace namespace = namespaceRepository
+                .findByName(stream.getMetadata().getNamespace())
+                .orElseThrow();
         String principal = USER_PRINCIPAL + namespace.getSpec().getKafkaUser();
 
         return new RoleBinding(
@@ -546,7 +566,7 @@ public class ConfluentRoleBindingAsyncExecutor {
      * @return True if unchanged, false otherwise
      */
     private boolean isUnchangedSinceLastApply(KafkaStream kafkaStream) {
-        Optional<KafkaStream> existingStream = namespaceService
+        Optional<KafkaStream> existingStream = namespaceRepository
                 .findByName(kafkaStream.getMetadata().getNamespace())
                 .flatMap(namespace -> streamService.findByName(
                         namespace, kafkaStream.getMetadata().getName()));

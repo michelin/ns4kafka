@@ -52,7 +52,6 @@ import lombok.Setter;
 @ConfigurationProperties("ns4kafka")
 public class Ns4KafkaProperties {
     private AkhqProperties akhq = new AkhqProperties();
-    private ConfluentCloudProperties confluentCloud = new ConfluentCloudProperties();
     private SchedulerProperties scheduler = new SchedulerProperties();
     private SecurityProperties security = new SecurityProperties();
     private StoreProperties store = new StoreProperties();
@@ -70,21 +69,6 @@ public class Ns4KafkaProperties {
         private String adminGroup;
         private Map<AccessControlEntry.ResourceType, String> adminRoles;
         private List<String> formerAdminRoles;
-    }
-
-    @Getter
-    @Setter
-    @ConfigurationProperties("confluent-cloud")
-    public static class ConfluentCloudProperties {
-        private StreamCatalogProperties streamCatalog = new StreamCatalogProperties();
-
-        @Getter
-        @Setter
-        @ConfigurationProperties("stream-catalog")
-        public static class StreamCatalogProperties {
-            private int pageSize = 500;
-            private boolean syncCatalog;
-        }
     }
 
     @Getter
