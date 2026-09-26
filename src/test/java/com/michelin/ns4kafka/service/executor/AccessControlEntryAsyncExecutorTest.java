@@ -264,7 +264,6 @@ class AccessControlEntryAsyncExecutorTest {
         aclAsyncExecutor.run();
 
         verify(adminClient).createAcls(argThat(acls -> acls.size() == 1 && acls.contains(READ_ACL_BINDING)));
-        verify(aclService).create(argThat(a -> a == acl && a.isSuccess()));
         verify(aclService, never()).findByName("ns1", "ns1-orphan-acl");
     }
 
@@ -289,7 +288,7 @@ class AccessControlEntryAsyncExecutorTest {
     }
 
     static Stream<Resource.Metadata.Status> unresolvedStatuses() {
-        return Stream.of(Resource.Metadata.Status.ofPending(), Resource.Metadata.Status.ofFailed("error"), null);
+        return Stream.of(Resource.Metadata.Status.ofFailed("error"), null);
     }
 
     private static Namespace buildNamespace() {

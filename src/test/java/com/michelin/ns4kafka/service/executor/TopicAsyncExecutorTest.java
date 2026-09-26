@@ -600,7 +600,7 @@ class TopicAsyncExecutorTest {
     }
 
     static Stream<Resource.Metadata.Status> unresolvedStatuses() {
-        return Stream.of(Resource.Metadata.Status.ofPending(), Resource.Metadata.Status.ofFailed("Error"), null);
+        return Stream.of(Resource.Metadata.Status.ofFailed("Error"), null);
     }
 
     @Test

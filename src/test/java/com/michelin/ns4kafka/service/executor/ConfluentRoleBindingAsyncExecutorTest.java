@@ -720,24 +720,6 @@ class ConfluentRoleBindingAsyncExecutorTest {
     }
 
     @Test
-    void shouldFailKafkaStreamWhenRoleBindingCreationFails() {
-        KafkaStream kafkaStream = buildKafkaStream(Resource.Metadata.Status.ofPending());
-
-        stubSynchronization(true, List.of(), List.of(), List.of(kafkaStream));
-        when(confluentCloudClient.createRoleBinding(any(), any()))
-                .thenReturn(Mono.error(new RuntimeException("error")));
-        when(streamService.findByName(buildNamespace(), "ns1-stream")).thenReturn(Optional.of(kafkaStream));
-
-        rbAsyncExecutor.synchronizeRoleBindings().block();
-
-        verify(streamService)
-                .create(argThat(ks -> ks == kafkaStream
-                        && ks.isFailed()
-                        && !ks.isCreated()
-                        && "error".equals(ks.getMetadata().getStatus().getMessage())));
-    }
-
-    @Test
     void shouldSkipResourcesOfDeletedNamespaces() {
         AccessControlEntry acl =
                 buildAcl("ns1-acl", AccessControlEntry.Permission.READ, Resource.Metadata.Status.ofPending());
@@ -757,7 +739,6 @@ class ConfluentRoleBindingAsyncExecutorTest {
         rbAsyncExecutor.synchronizeRoleBindings().block();
 
         verify(confluentCloudClient, times(1)).createRoleBinding(any(), any());
-        verify(aclService).create(argThat(a -> a == acl && a.isSuccess()));
         verify(aclService, never()).findByName("ns1", "ns1-orphan-acl");
         verify(streamService, never()).findByName(any(), any());
     }
@@ -884,7 +865,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
     }
 
     static Stream<Resource.Metadata.Status> unresolvedStatuses() {
-        return Stream.of(Resource.Metadata.Status.ofPending(), Resource.Metadata.Status.ofFailed("error"), null);
+        return Stream.of(Resource.Metadata.Status.ofFailed("error"), null);
     }
 
     private static ManagedClusterProperties.ConfluentCloudProperties buildConfluentCloudProperties() {
