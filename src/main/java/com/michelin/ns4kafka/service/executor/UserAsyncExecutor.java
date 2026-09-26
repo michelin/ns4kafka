@@ -104,7 +104,7 @@ public class UserAsyncExecutor {
         } catch (ExecutionException | TimeoutException | CancellationException | KafkaStoreException e) {
             log.error("An error occurred during the user synchronization.", e);
         } catch (InterruptedException e) {
-            log.error("Thread interrupted during the user synchronization.", e);
+            log.error("Interrupted during the user synchronization.", e);
             Thread.currentThread().interrupt();
         }
     }
@@ -248,7 +248,7 @@ public class UserAsyncExecutor {
 
                 log.info("Success applying quotas {} for user {}.", clientQuota.ops(), user);
             } catch (InterruptedException e) {
-                log.error("Error.", e);
+                log.error("Interrupted while applying quotas for user {}.", user, e);
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
                 log.error("Error while applying quotas for user {}.", user, e);

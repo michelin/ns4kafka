@@ -125,8 +125,7 @@ public class AccessControlEntryAsyncExecutor {
                     .flatMap(List::stream)
                     .collect(Collectors.toSet());
 
-            // Add ACLs before delete to avoid breaking ACL
-            // such as deleting <LITERAL "toto.titi"> only to add one second later <PREFIX "toto.">
+            // Create before delete, so replacing LITERAL "abc.orders" with PREFIXED "abc." never loses access
             List<AclBinding> toCreate = ns4KafkaAcls.stream()
                     .filter(aclBinding -> !brokerAcls.contains(aclBinding))
                     .toList();
@@ -172,15 +171,13 @@ public class AccessControlEntryAsyncExecutor {
         } catch (KafkaStoreException | ExecutionException | TimeoutException e) {
             log.error("An error occurred collecting ACLs from broker during ACLs synchronization.", e);
         } catch (InterruptedException e) {
-            log.error("An error occurred during ACLs synchronization.", e);
+            log.error("Interrupted during the ACL synchronization.", e);
             Thread.currentThread().interrupt();
         }
     }
 
     /**
-     * Collect the ACLs from Ns4Kafka. Whenever the permission is OWNER, create 2 entries (one READ and one WRITE) This
-     * is necessary to translate Ns4Kafka grouped AccessControlEntry (OWNER, WRITE, READ) into Kafka Atomic ACLs (READ
-     * and WRITE)
+     * Collect the ACLs from Ns4Kafka.
      *
      * @return The Kafka ACLs by ACL or Kafka Stream
      */
@@ -245,55 +242,43 @@ public class AccessControlEntryAsyncExecutor {
             Map<Resource, List<AclBinding>> ns4KafkaAcls,
             List<AclBinding> toCreate,
             Map<AclBinding, String> creationErrors) {
-        // Non-public ACLs and Kafka Streams are handled by the Confluent role binding executor
-        // when the cluster does not manage ACLs
-        ns4KafkaAcls.entrySet().stream()
-                .filter(entry -> managedClusterProperties.isManageAcls()
-                        || (entry.getKey() instanceof AccessControlEntry acl && aclService.isPublicAcl(acl)))
-                .forEach(entry -> updateStatus(entry.getKey(), entry.getValue(), toCreate, creationErrors));
-    }
+        ns4KafkaAcls.forEach((resource, aclBindings) -> {
+            // Non-public ACLs and Kafka Streams are handled by the Confluent role binding executor
+            // when the cluster does not manage ACLs
+            if (!managedClusterProperties.isManageAcls()
+                    && !(resource instanceof AccessControlEntry publicAcl && aclService.isPublicAcl(publicAcl))) {
+                return;
+            }
 
-    /**
-     * Update the status of an ACL or a Kafka Stream according to its Kafka ACLs.
-     *
-     * @param resource The ACL or Kafka Stream
-     * @param aclBindings The Kafka ACLs of the resource
-     * @param toCreate The Kafka ACLs that had to be created
-     * @param creationErrors The error message of each Kafka ACL that could not be created
-     */
-    private void updateStatus(
-            Resource resource,
-            List<AclBinding> aclBindings,
-            List<AclBinding> toCreate,
-            Map<AclBinding, String> creationErrors) {
-        Optional<String> creationError = aclBindings.stream()
-                .filter(creationErrors::containsKey)
-                .map(creationErrors::get)
-                .findFirst();
+            Optional<String> creationError = aclBindings.stream()
+                    .filter(creationErrors::containsKey)
+                    .map(creationErrors::get)
+                    .findFirst();
 
-        // Kafka ACLs already exist and the status is up to date
-        if (creationError.isEmpty() && aclBindings.stream().noneMatch(toCreate::contains) && resource.isSuccess()) {
-            return;
-        }
+            // Kafka ACLs already exist and the status is up to date
+            if (creationError.isEmpty() && aclBindings.stream().noneMatch(toCreate::contains) && resource.isSuccess()) {
+                return;
+            }
 
-        if (creationError.isEmpty()) {
-            resource.getMetadata().setGeneration(resource.getMetadata().getGeneration() + 1);
-        }
+            if (creationError.isEmpty()) {
+                resource.getMetadata().setGeneration(resource.getMetadata().getGeneration() + 1);
+            }
 
-        resource.getMetadata()
-                .setStatus(creationError
-                        .map(Resource.Metadata.Status::ofFailed)
-                        .orElseGet(Resource.Metadata.Status::ofSuccess));
+            resource.getMetadata()
+                    .setStatus(creationError
+                            .map(Resource.Metadata.Status::ofFailed)
+                            .orElseGet(Resource.Metadata.Status::ofSuccess));
 
-        // Do not overwrite a resource deleted or reapplied since it was read
-        if (resource instanceof AccessControlEntry acl && isUnchangedSinceLastApply(acl)) {
-            aclService.create(acl);
-            return;
-        }
+            // Do not overwrite a resource deleted or reapplied since it was read
+            if (resource instanceof AccessControlEntry acl && isUnchangedSinceLastApply(acl)) {
+                aclService.create(acl);
+                return;
+            }
 
-        if (resource instanceof KafkaStream ks && isUnchangedSinceLastApply(ks)) {
-            streamService.create(ks);
-        }
+            if (resource instanceof KafkaStream ks && isUnchangedSinceLastApply(ks)) {
+                streamService.create(ks);
+            }
+        });
     }
 
     /**
@@ -579,7 +564,11 @@ public class AccessControlEntryAsyncExecutor {
                         value.get(managedClusterProperties.getTimeout().getAcl().getDelete(), TimeUnit.MILLISECONDS);
                         log.info("Success deleting ACL {} on cluster {}.", key, managedClusterProperties.getName());
                     } catch (InterruptedException e) {
-                        log.error("Error.", e);
+                        log.error(
+                                "Interrupted while deleting ACL {} on cluster {}.",
+                                key,
+                                managedClusterProperties.getName(),
+                                e);
                         Thread.currentThread().interrupt();
                     } catch (Exception e) {
                         log.error(
@@ -634,8 +623,8 @@ public class AccessControlEntryAsyncExecutor {
                 value.get(managedClusterProperties.getTimeout().getAcl().getCreate(), TimeUnit.MILLISECONDS);
                 log.info("Success creating ACL {} on cluster {}.", key, managedClusterProperties.getName());
             } catch (InterruptedException e) {
-                log.error("Error.", e);
-                // Not known to be created, so the ACL must not be marked as success
+                log.error(
+                        "Interrupted while creating ACL {} on cluster {}.", key, managedClusterProperties.getName(), e);
                 creationErrors.put(key, "Interrupted while creating ACL");
                 Thread.currentThread().interrupt();
             } catch (Exception e) {

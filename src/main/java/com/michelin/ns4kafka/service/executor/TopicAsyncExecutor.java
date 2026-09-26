@@ -141,7 +141,7 @@ public class TopicAsyncExecutor {
         } catch (CancellationException | KafkaStoreException | ExecutionException | TimeoutException e) {
             log.error("An error occurred during the topic synchronization.", e);
         } catch (InterruptedException e) {
-            log.error("An error occurred during the topic synchronization.", e);
+            log.error("Interrupted during the topic synchronization.", e);
             Thread.currentThread().interrupt();
         }
     }
@@ -252,7 +252,14 @@ public class TopicAsyncExecutor {
                         topicToCreate.getMetadata().getName(),
                         managedClusterProperties.getName());
             } catch (InterruptedException e) {
-                log.error("Error.", e);
+                topicToCreate
+                        .getMetadata()
+                        .setStatus(Resource.Metadata.Status.ofFailed("Interrupted while creating topic"));
+                log.error(
+                        "Interrupted while creating topic {} on cluster {}.",
+                        topicToCreate.getMetadata().getName(),
+                        managedClusterProperties.getName(),
+                        e);
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
                 topicToCreate
@@ -299,7 +306,14 @@ public class TopicAsyncExecutor {
                         key.name(),
                         managedClusterProperties.getName());
             } catch (InterruptedException e) {
-                log.error("Error.", e);
+                updatedTopic
+                        .getMetadata()
+                        .setStatus(Resource.Metadata.Status.ofFailed("Interrupted while updating topic configs"));
+                log.error(
+                        "Interrupted while updating topic {} configs on cluster {}.",
+                        updatedTopic.getMetadata().getName(),
+                        managedClusterProperties.getName(),
+                        e);
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
                 updatedTopic
@@ -443,8 +457,8 @@ public class TopicAsyncExecutor {
                         log.info("Deleting records {} of topic-partition {}.", newValue, kv.getKey());
                         return newValue;
                     } catch (InterruptedException e) {
+                        log.error("Interrupted while deleting records of topic-partition {}.", kv.getKey(), e);
                         Thread.currentThread().interrupt();
-                        log.error("Thread interrupted deleting records of topic-partition {}.", kv.getKey(), e);
                         return -1L;
                     } catch (ExecutionException e) {
                         log.error("Execution error deleting records of topic-partition {}.", kv.getKey(), e);

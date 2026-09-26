@@ -20,8 +20,10 @@ package com.michelin.ns4kafka.service.executor;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
@@ -246,6 +248,40 @@ class TopicAsyncExecutorTest {
         topicAsyncExecutor.createTopics(List.of(topic));
 
         verify(topicRepository).create(argThat(a -> a.equals(topic) && a.isSuccess() && a.isCreated()));
+    }
+
+    @Test
+    void shouldMarkTopicAsFailedWhenCreationInterrupted()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
+        when(adminClient.createTopics(anyList())).thenReturn(createTopicsResult);
+        when(createTopicsResult.values()).thenReturn(Map.of("topic", kafkaFuture));
+        when(managedClusterProperties.getTimeout()).thenReturn(new ManagedClusterProperties.TimeoutProperties());
+        when(kafkaFuture.get(anyLong(), any(TimeUnit.class))).thenThrow(new InterruptedException("interrupted"));
+
+        Topic topic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .name("topic")
+                        .status(Resource.Metadata.Status.ofPending())
+                        .generation(0)
+                        .build())
+                .spec(Topic.TopicSpec.builder().build())
+                .build();
+
+        when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
+        when(topicRepository.findByName(LOCAL_CLUSTER, TOPIC_NAME)).thenReturn(Optional.of(topic));
+
+        topicAsyncExecutor.createTopics(List.of(topic));
+
+        // Clear the interrupt flag restored by the executor, so that it does not leak into other tests
+        assertTrue(Thread.interrupted());
+        verify(topicRepository)
+                .create(argThat(a -> a == topic
+                        && a.isFailed()
+                        && !a.isCreated()
+                        && "Interrupted while creating topic"
+                                .equals(a.getMetadata().getStatus().getMessage())));
     }
 
     @Test
