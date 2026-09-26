@@ -91,7 +91,7 @@ public class UserAsyncExecutor {
 
     /** Start the user synchronization. */
     public void synchronizeUsers() {
-        log.debug("Starting user collection for cluster {}", managedClusterProperties.getName());
+        log.debug("Starting user collection for cluster {}.", managedClusterProperties.getName());
 
         try {
             Map<String, Map<String, Double>> brokerQuotas = userExecutor.listQuotas();
@@ -102,9 +102,9 @@ public class UserAsyncExecutor {
                 }
             });
         } catch (ExecutionException | TimeoutException | CancellationException | KafkaStoreException e) {
-            log.error("An error occurred during the user synchronization", e);
+            log.error("An error occurred during the user synchronization.", e);
         } catch (InterruptedException e) {
-            log.error("Thread interrupted during the user synchronization", e);
+            log.error("Thread interrupted during the user synchronization.", e);
             Thread.currentThread().interrupt();
         }
     }
@@ -248,7 +248,7 @@ public class UserAsyncExecutor {
 
                 log.info("Success applying quotas {} for user {}.", clientQuota.ops(), user);
             } catch (InterruptedException e) {
-                log.error("Error", e);
+                log.error("Error.", e);
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
                 log.error("Error while applying quotas for user {}.", user, e);

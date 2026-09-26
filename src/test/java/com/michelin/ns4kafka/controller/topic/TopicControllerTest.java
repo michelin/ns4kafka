@@ -340,6 +340,7 @@ class TopicControllerTest {
         Topic actual = response.body();
         assertEquals("created", response.header("X-Ns4kafka-Result"));
         assertEquals("test.topic", actual.getMetadata().getName());
+        assertTrue(actual.isPending());
     }
 
     @Test
@@ -394,7 +395,10 @@ class TopicControllerTest {
                 .build();
 
         Topic existing = Topic.builder()
-                .metadata(Resource.Metadata.builder().name("test.topic").build())
+                .metadata(Resource.Metadata.builder()
+                        .name("test.topic")
+                        .status(Resource.Metadata.Status.ofSuccess())
+                        .build())
                 .spec(Topic.TopicSpec.builder()
                         .replicationFactor(3)
                         .partitions(3)
@@ -425,6 +429,7 @@ class TopicControllerTest {
         Topic actual = response.body();
         assertEquals("changed", response.header("X-Ns4kafka-Result"));
         assertEquals("test.topic", actual.getMetadata().getName());
+        assertTrue(actual.isPending());
     }
 
     @Test

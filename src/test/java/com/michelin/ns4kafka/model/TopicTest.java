@@ -34,7 +34,6 @@ class TopicTest {
                         .partitions(3)
                         .configs(Map.of("k1", "v1", "k2", "v2"))
                         .build())
-                .status(Topic.TopicStatus.ofPending())
                 .build();
 
         Topic same = Topic.builder()
@@ -44,7 +43,6 @@ class TopicTest {
                         .partitions(3)
                         .configs(Map.of("k1", "v1", "k2", "v2"))
                         .build())
-                .status(Topic.TopicStatus.ofSuccess("Created !"))
                 .build();
 
         assertEquals(original, same);
@@ -56,7 +54,6 @@ class TopicTest {
                         .partitions(3)
                         .configs(Map.of("k1", "v1", "k2", "v2"))
                         .build())
-                .status(Topic.TopicStatus.ofPending())
                 .build();
 
         assertNotEquals(original, differentByMetadata);
@@ -68,7 +65,6 @@ class TopicTest {
                         .partitions(3)
                         .configs(Map.of("k1", "v1", "k2", "v2"))
                         .build())
-                .status(Topic.TopicStatus.ofPending())
                 .build();
 
         assertNotEquals(original, differentByReplicationFactor);
@@ -80,7 +76,6 @@ class TopicTest {
                         .partitions(99)
                         .configs(Map.of("k1", "v1", "k2", "v2"))
                         .build())
-                .status(Topic.TopicStatus.ofPending())
                 .build();
 
         assertNotEquals(original, differentByPartitions);
@@ -92,7 +87,6 @@ class TopicTest {
                         .partitions(3)
                         .configs(Map.of("k1", "v1"))
                         .build())
-                .status(Topic.TopicStatus.ofPending())
                 .build();
 
         assertNotEquals(original, differentByConfigs);

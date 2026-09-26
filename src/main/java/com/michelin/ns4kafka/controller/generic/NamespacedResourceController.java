@@ -77,6 +77,8 @@ public abstract class NamespacedResourceController extends ResourceController {
                         existingResource != null
                                 ? existingResource.getMetadata().getGeneration()
                                 : 0);
+        // The status is resolved by the executor once the resource is deployed
+        resource.getMetadata().setStatus(Resource.Metadata.Status.ofPending());
         resource.getMetadata().setCluster(ns.getMetadata().getCluster());
         resource.getMetadata().setNamespace(ns.getMetadata().getName());
     }

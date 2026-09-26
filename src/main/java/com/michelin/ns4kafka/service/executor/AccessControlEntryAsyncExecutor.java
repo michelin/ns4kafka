@@ -21,11 +21,11 @@ package com.michelin.ns4kafka.service.executor;
 import static com.michelin.ns4kafka.model.AccessControlEntry.ResourceType.CONNECT;
 import static com.michelin.ns4kafka.model.AccessControlEntry.ResourceType.GROUP;
 import static com.michelin.ns4kafka.model.AccessControlEntry.ResourceType.TOPIC;
-import static com.michelin.ns4kafka.service.AclService.PUBLIC_GRANTED_TO;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.KafkaStream;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.NamespaceRepository;
 import com.michelin.ns4kafka.repository.kafka.KafkaStoreException;
@@ -35,14 +35,17 @@ import io.micronaut.context.annotation.EachBean;
 import jakarta.inject.Singleton;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.common.acl.AccessControlEntryFilter;
@@ -113,11 +116,14 @@ public class AccessControlEntryAsyncExecutor {
 
     /** Start the ACLs synchronization. */
     private void synchronizeAcls() {
-        log.debug("Starting ACL collection for cluster {}", managedClusterProperties.getName());
+        log.debug("Starting ACL collection for cluster {}.", managedClusterProperties.getName());
 
         try {
             Set<AclBinding> brokerAcls = collectBrokerAcls();
-            Set<AclBinding> ns4KafkaAcls = collectNs4KafkaAcls();
+            Map<Resource, List<AclBinding>> ns4KafkaAclsByResource = collectNs4KafkaAcls();
+            Set<AclBinding> ns4KafkaAcls = ns4KafkaAclsByResource.values().stream()
+                    .flatMap(List::stream)
+                    .collect(Collectors.toSet());
 
             // Add ACLs before delete to avoid breaking ACL
             // such as deleting <LITERAL "toto.titi"> only to add one second later <PREFIX "toto.">
@@ -125,25 +131,29 @@ public class AccessControlEntryAsyncExecutor {
                     .filter(aclBinding -> !brokerAcls.contains(aclBinding))
                     .toList();
 
+            Map<AclBinding, String> creationErrors = new HashMap<>();
+
             if (!toCreate.isEmpty()) {
                 log.atDebug()
                         .addArgument(() ->
                                 toCreate.stream().map(AclBinding::toString).collect(Collectors.joining(",")))
-                        .log("ACL(s) to create: {}");
+                        .log("ACL(s) to create: {}.");
 
                 Map<Boolean, List<AclBinding>> partitions = toCreate.stream()
                         .collect(Collectors.partitioningBy(aclBinding ->
-                                PUBLIC_GRANTED_TO.equals(aclBinding.entry().principal())));
+                                USER_PRINCIPAL_PUBLIC.equals(aclBinding.entry().principal())));
 
-                // Create Kafka ACL only for public ACLs because not possible with Confluent Role Bindings
+                // Create Kafka ACL only for public ACLs because not possible with Confluent role bindings
                 List<AclBinding> publicAclsToCreate = partitions.get(true);
-                createAcls(publicAclsToCreate);
+                createAcls(publicAclsToCreate, creationErrors);
 
                 if (managedClusterProperties.isManageAcls()) {
                     List<AclBinding> nonPublicAclsToCreate = partitions.get(false);
-                    createAcls(nonPublicAclsToCreate);
+                    createAcls(nonPublicAclsToCreate, creationErrors);
                 }
             }
+
+            updateStatuses(ns4KafkaAclsByResource, toCreate, creationErrors);
 
             if (managedClusterProperties.isManageAcls() && managedClusterProperties.isDropUnsyncAcls()) {
                 List<AclBinding> toDelete = brokerAcls.stream()
@@ -154,15 +164,15 @@ public class AccessControlEntryAsyncExecutor {
                     log.atDebug()
                             .addArgument(() ->
                                     toDelete.stream().map(AclBinding::toString).collect(Collectors.joining(",")))
-                            .log("ACL(s) to delete: {}");
+                            .log("ACL(s) to delete: {}.");
 
                     deleteAcls(toDelete);
                 }
             }
         } catch (KafkaStoreException | ExecutionException | TimeoutException e) {
-            log.error("An error occurred collecting ACLs from broker during ACLs synchronization", e);
+            log.error("An error occurred collecting ACLs from broker during ACLs synchronization.", e);
         } catch (InterruptedException e) {
-            log.error("An error occurred during ACLs synchronization", e);
+            log.error("An error occurred during ACLs synchronization.", e);
             Thread.currentThread().interrupt();
         }
     }
@@ -172,47 +182,160 @@ public class AccessControlEntryAsyncExecutor {
      * is necessary to translate Ns4Kafka grouped AccessControlEntry (OWNER, WRITE, READ) into Kafka Atomic ACLs (READ
      * and WRITE)
      *
-     * @return A set of ACLs
+     * @return The Kafka ACLs by ACL or Kafka Stream
      */
-    private Set<AclBinding> collectNs4KafkaAcls() {
-        Stream<AclBinding> aclBindings = aclService.findAllForCluster(managedClusterProperties.getName()).stream()
-                .flatMap(acl -> {
-                    // Converts topic and group Ns4Kafka ACLs to topic & group & transactional AclBindings
-                    if (TOPIC_GROUP_RESOURCE_TYPES.contains(acl.getSpec().getResourceType())) {
-                        return convertAclToAclBindings(acl).stream();
-                    }
+    private Map<Resource, List<AclBinding>> collectNs4KafkaAcls() {
+        Map<Resource, List<AclBinding>> ns4KafkaAcls = new HashMap<>();
 
-                    // Converts connector ACLs to group AclBindings (connect-)
-                    if (acl.getSpec().getResourceType() == CONNECT
-                            && acl.getSpec().getPermission() == AccessControlEntry.Permission.OWNER) {
-                        return Stream.of(convertConnectorAclToAclBinding(acl));
-                    }
+        // Skip ACLs and Kafka Streams of namespaces that no longer exist, they cannot be converted
+        Set<String> namespaces = namespaceRepository.findAllForCluster(managedClusterProperties.getName()).stream()
+                .map(namespace -> namespace.getMetadata().getName())
+                .collect(Collectors.toSet());
 
-                    return Stream.empty();
-                });
+        List<KafkaStream> kafkaStreams = streamService.findAllForCluster(managedClusterProperties.getName());
+        Set<String> namespacesWithKafkaStreams = kafkaStreams.stream()
+                .map(kafkaStream -> kafkaStream.getMetadata().getNamespace())
+                .collect(Collectors.toSet());
+
+        ns4KafkaAcls.putAll(aclService.findAllForCluster(managedClusterProperties.getName()).stream()
+                .filter(acl -> aclService.isPublicAcl(acl)
+                        || namespaces.contains(acl.getSpec().getGrantedTo()))
+                .collect(Collectors.toMap(
+                        Function.identity(), acl -> convertToAclBindings(acl, namespacesWithKafkaStreams))));
 
         // Converts KafkaStream resources to topic (CREATE/DELETE) AclBindings
-        // Looping over namespaces because some Kafka Streams might have a non-existing namespace
-        Stream<AclBinding> streamAclBindings =
-                namespaceRepository.findAllForCluster(managedClusterProperties.getName()).stream()
-                        .flatMap(namespace -> {
-                            String principal =
-                                    USER_PRINCIPAL + namespace.getSpec().getKafkaUser();
-                            return streamService.findAllForNamespace(namespace).stream()
-                                    .flatMap(kafkaStream -> buildAclBindingsFromKafkaStream(kafkaStream, principal));
-                        });
-
-        Set<AclBinding> ns4KafkaAcls =
-                Stream.concat(aclBindings, streamAclBindings).collect(Collectors.toSet());
-
-        if (!ns4KafkaAcls.isEmpty()) {
-            log.atTrace()
-                    .addArgument(() ->
-                            ns4KafkaAcls.stream().map(AclBinding::toString).collect(Collectors.joining(",")))
-                    .log("ACL(s) found in Ns4Kafka: {}");
-        }
+        ns4KafkaAcls.putAll(kafkaStreams.stream()
+                .filter(kafkaStream ->
+                        namespaces.contains(kafkaStream.getMetadata().getNamespace()))
+                .collect(Collectors.toMap(Function.identity(), this::buildAclBindingsFromKafkaStream)));
 
         return ns4KafkaAcls;
+    }
+
+    /**
+     * Convert a Ns4Kafka ACL into the Kafka ACLs deployed by this executor.
+     *
+     * @param acl The Ns4Kafka ACL
+     * @param namespacesWithKafkaStreams The namespaces having Kafka Streams
+     * @return A list of Kafka ACLs
+     */
+    private List<AclBinding> convertToAclBindings(AccessControlEntry acl, Set<String> namespacesWithKafkaStreams) {
+        // Converts topic and group Ns4Kafka ACLs to topic & group & transactional AclBindings
+        if (TOPIC_GROUP_RESOURCE_TYPES.contains(acl.getSpec().getResourceType())) {
+            return convertAclToAclBindings(acl, namespacesWithKafkaStreams);
+        }
+
+        // Converts connector ACLs to group AclBindings (connect-)
+        if (acl.getSpec().getResourceType() == CONNECT
+                && acl.getSpec().getPermission() == AccessControlEntry.Permission.OWNER) {
+            return List.of(convertConnectorAclToAclBinding(acl));
+        }
+
+        return List.of();
+    }
+
+    /**
+     * Update the status of the Ns4Kafka ACLs and Kafka Streams deployed by this executor.
+     *
+     * @param ns4KafkaAcls The Kafka ACLs by ACL or Kafka Stream
+     * @param toCreate The Kafka ACLs that had to be created
+     * @param creationErrors The error message of each Kafka ACL that could not be created
+     */
+    private void updateStatuses(
+            Map<Resource, List<AclBinding>> ns4KafkaAcls,
+            List<AclBinding> toCreate,
+            Map<AclBinding, String> creationErrors) {
+        // Non-public ACLs and Kafka Streams are handled by the Confluent role binding executor
+        // when the cluster does not manage ACLs
+        ns4KafkaAcls.entrySet().stream()
+                .filter(entry -> managedClusterProperties.isManageAcls()
+                        || (entry.getKey() instanceof AccessControlEntry acl && aclService.isPublicAcl(acl)))
+                .forEach(entry -> updateStatus(entry.getKey(), entry.getValue(), toCreate, creationErrors));
+    }
+
+    /**
+     * Update the status of an ACL or a Kafka Stream according to its Kafka ACLs.
+     *
+     * @param resource The ACL or Kafka Stream
+     * @param aclBindings The Kafka ACLs of the resource
+     * @param toCreate The Kafka ACLs that had to be created
+     * @param creationErrors The error message of each Kafka ACL that could not be created
+     */
+    private void updateStatus(
+            Resource resource,
+            List<AclBinding> aclBindings,
+            List<AclBinding> toCreate,
+            Map<AclBinding, String> creationErrors) {
+        Optional<String> creationError = aclBindings.stream()
+                .filter(creationErrors::containsKey)
+                .map(creationErrors::get)
+                .findFirst();
+
+        // Kafka ACLs already exist and the status is up to date
+        if (creationError.isEmpty() && aclBindings.stream().noneMatch(toCreate::contains) && resource.isSuccess()) {
+            return;
+        }
+
+        if (creationError.isEmpty()) {
+            resource.getMetadata().setGeneration(resource.getMetadata().getGeneration() + 1);
+        }
+
+        resource.getMetadata()
+                .setStatus(creationError
+                        .map(Resource.Metadata.Status::ofFailed)
+                        .orElseGet(Resource.Metadata.Status::ofSuccess));
+
+        // Do not overwrite a resource deleted or reapplied since it was read
+        if (resource instanceof AccessControlEntry acl && isUnchangedSinceLastApply(acl)) {
+            aclService.create(acl);
+            return;
+        }
+
+        if (resource instanceof KafkaStream ks && isUnchangedSinceLastApply(ks)) {
+            streamService.create(ks);
+        }
+    }
+
+    /**
+     * Check the ACL has been neither deleted nor reapplied since it was read.
+     *
+     * @param acl The synchronized ACL
+     * @return True if unchanged, false otherwise
+     */
+    private boolean isUnchangedSinceLastApply(AccessControlEntry acl) {
+        Optional<AccessControlEntry> existingAcl = aclService.findByName(
+                acl.getMetadata().getNamespace(), acl.getMetadata().getName());
+
+        return existingAcl.isPresent()
+                && (existingAcl.get().getMetadata().getUpdateTimestamp() == null
+                        || (acl.getMetadata().getUpdateTimestamp() != null
+                                && !existingAcl
+                                        .get()
+                                        .getMetadata()
+                                        .getUpdateTimestamp()
+                                        .after(acl.getMetadata().getUpdateTimestamp())));
+    }
+
+    /**
+     * Check the Kafka Stream has been neither deleted nor reapplied since it was read.
+     *
+     * @param kafkaStream The synchronized Kafka Stream
+     * @return True if unchanged, false otherwise
+     */
+    private boolean isUnchangedSinceLastApply(KafkaStream kafkaStream) {
+        Optional<KafkaStream> existingStream = namespaceRepository
+                .findByName(kafkaStream.getMetadata().getNamespace())
+                .flatMap(namespace -> streamService.findByName(
+                        namespace, kafkaStream.getMetadata().getName()));
+
+        return existingStream.isPresent()
+                && (existingStream.get().getMetadata().getUpdateTimestamp() == null
+                        || (kafkaStream.getMetadata().getUpdateTimestamp() != null
+                                && !existingStream
+                                        .get()
+                                        .getMetadata()
+                                        .getUpdateTimestamp()
+                                        .after(kafkaStream.getMetadata().getUpdateTimestamp())));
     }
 
     /**
@@ -245,9 +368,10 @@ public class AccessControlEntryAsyncExecutor {
      * Convert Ns4Kafka topic and group ACL into Kafka ACL.
      *
      * @param acl The Ns4Kafka ACL
+     * @param namespacesWithKafkaStreams The namespaces having Kafka Streams
      * @return A list of Kafka ACLs
      */
-    private List<AclBinding> convertAclToAclBindings(AccessControlEntry acl) {
+    private List<AclBinding> convertAclToAclBindings(AccessControlEntry acl, Set<String> namespacesWithKafkaStreams) {
         // Convert pattern & resource type from Ns4Kafka to org.apache.kafka.common types
         PatternType patternType =
                 PatternType.fromString(acl.getSpec().getResourcePatternType().toString());
@@ -261,7 +385,11 @@ public class AccessControlEntryAsyncExecutor {
         // Generate the required AclOperation and principal based on the permission
         Set<AclOperation> aclOperations;
         if (acl.getSpec().getPermission() == AccessControlEntry.Permission.OWNER) {
-            aclOperations = computeAclOperationForOwner(resourceType);
+            aclOperations = switch (resourceType) {
+                case TOPIC -> TOPIC_ACL_OPERATIONS;
+                case GROUP -> GROUP_ACL_OPERATIONS;
+                default -> throw new IllegalArgumentException("Not implemented yet: " + resourceType);
+            };
         } else {
             aclOperations = EnumSet.of(
                     AclOperation.fromString(acl.getSpec().getPermission().toString()));
@@ -287,12 +415,14 @@ public class AccessControlEntryAsyncExecutor {
                 new org.apache.kafka.common.acl.AccessControlEntry(
                         principal, "*", aclOperation, AclPermissionType.ALLOW))));
 
-        if (GROUP.equals(acl.getSpec().getResourceType())) {
-            if (namespace.getSpec().isTransactionsEnabled()) {
-                addEosConnectorAclBindings(results, acl, principal);
-            } else if (streamService.hasKafkaStream(namespace)) {
-                addKafkaStreamAclBindings(results, acl, principal);
-            }
+        if (GROUP.equals(acl.getSpec().getResourceType()) && namespace.getSpec().isTransactionsEnabled()) {
+            addEosConnectorAclBindings(results, acl, principal);
+            return results;
+        }
+
+        if (GROUP.equals(acl.getSpec().getResourceType())
+                && namespacesWithKafkaStreams.contains(namespace.getMetadata().getName())) {
+            addKafkaStreamAclBindings(results, acl, principal);
         }
 
         return results;
@@ -302,14 +432,18 @@ public class AccessControlEntryAsyncExecutor {
      * Convert Kafka Stream to ACL Bindings.
      *
      * @param stream The Kafka Stream resource
-     * @param principal The Kafka principal
-     * @return A stream of Kafka ACLs
+     * @return A list of Kafka ACLs
      * @see <a
      *     href="https://docs.confluent.io/platform/current/streams/developer-guide/security.html#required-acl-setting-for-secure-ak-clusters">Required
      *     ACL setting for secure Kafka clusters</a>
      */
-    private Stream<AclBinding> buildAclBindingsFromKafkaStream(KafkaStream stream, String principal) {
-        return Stream.of(
+    private List<AclBinding> buildAclBindingsFromKafkaStream(KafkaStream stream) {
+        Namespace namespace = namespaceRepository
+                .findByName(stream.getMetadata().getNamespace())
+                .orElseThrow();
+        String principal = USER_PRINCIPAL + namespace.getSpec().getKafkaUser();
+
+        return List.of(
                 // Kafka Stream needs to create & delete changelog/repartition topics with the application id as prefix
                 new AclBinding(
                         new ResourcePattern(
@@ -432,20 +566,6 @@ public class AccessControlEntryAsyncExecutor {
     }
 
     /**
-     * Get ACL operations from given resource type.
-     *
-     * @param resourceType The resource type
-     * @return A list of ACL operations
-     */
-    private Set<AclOperation> computeAclOperationForOwner(ResourceType resourceType) {
-        return switch (resourceType) {
-            case TOPIC -> TOPIC_ACL_OPERATIONS;
-            case GROUP -> GROUP_ACL_OPERATIONS;
-            default -> throw new IllegalArgumentException("Not implemented yet: " + resourceType);
-        };
-    }
-
-    /**
      * Delete a given list of ACLs.
      *
      * @param toDelete The list of ACLs to delete
@@ -459,7 +579,7 @@ public class AccessControlEntryAsyncExecutor {
                         value.get(managedClusterProperties.getTimeout().getAcl().getDelete(), TimeUnit.MILLISECONDS);
                         log.info("Success deleting ACL {} on cluster {}.", key, managedClusterProperties.getName());
                     } catch (InterruptedException e) {
-                        log.error("Error", e);
+                        log.error("Error.", e);
                         Thread.currentThread().interrupt();
                     } catch (Exception e) {
                         log.error(
@@ -481,7 +601,11 @@ public class AccessControlEntryAsyncExecutor {
             List<AclBinding> results = new ArrayList<>();
 
             if (TOPIC_GROUP_RESOURCE_TYPES.contains(accessControlEntry.getSpec().getResourceType())) {
-                results.addAll(convertAclToAclBindings(accessControlEntry));
+                Set<String> namespacesWithKafkaStreams =
+                        streamService.findAllForCluster(managedClusterProperties.getName()).stream()
+                                .map(kafkaStream -> kafkaStream.getMetadata().getNamespace())
+                                .collect(Collectors.toSet());
+                results.addAll(convertAclToAclBindings(accessControlEntry, namespacesWithKafkaStreams));
             }
 
             if (accessControlEntry.getSpec().getResourceType() == CONNECT
@@ -490,10 +614,11 @@ public class AccessControlEntryAsyncExecutor {
             }
 
             deleteAcls(results);
-        } else {
-            if (aclService.isPublicAcl(accessControlEntry) && managedClusterProperties.isManageRbac()) {
-                deleteAcls(List.of(convertPublicAcl(accessControlEntry)));
-            }
+            return;
+        }
+
+        if (aclService.isPublicAcl(accessControlEntry) && managedClusterProperties.isManageRbac()) {
+            deleteAcls(List.of(convertPublicAcl(accessControlEntry)));
         }
     }
 
@@ -501,16 +626,21 @@ public class AccessControlEntryAsyncExecutor {
      * Create a given list of ACLs.
      *
      * @param toCreate The list of ACLs to create
+     * @param creationErrors The error message of each ACL that could not be created
      */
-    private void createAcls(List<AclBinding> toCreate) {
+    private void createAcls(List<AclBinding> toCreate, Map<AclBinding, String> creationErrors) {
         getAdminClient().createAcls(toCreate).values().forEach((key, value) -> {
             try {
                 value.get(managedClusterProperties.getTimeout().getAcl().getCreate(), TimeUnit.MILLISECONDS);
                 log.info("Success creating ACL {} on cluster {}.", key, managedClusterProperties.getName());
             } catch (InterruptedException e) {
-                log.error("Error", e);
+                log.error("Error.", e);
+                // Not known to be created, so the ACL must not be marked as success
+                creationErrors.put(key, "Interrupted while creating ACL");
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
+                creationErrors.put(
+                        key, Objects.toString(e.getMessage(), e.getClass().getName()));
                 log.error("Error while creating ACL {} on cluster {}.", key, managedClusterProperties.getName(), e);
             }
         });
@@ -521,12 +651,9 @@ public class AccessControlEntryAsyncExecutor {
      *
      * @param kafkaStream The Kafka Streams
      */
-    public void deleteKafkaStreams(Namespace namespace, KafkaStream kafkaStream) {
+    public void deleteKafkaStreams(KafkaStream kafkaStream) {
         if (managedClusterProperties.isManageAcls()) {
-            String principal = USER_PRINCIPAL + namespace.getSpec().getKafkaUser();
-            List<AclBinding> results =
-                    buildAclBindingsFromKafkaStream(kafkaStream, principal).toList();
-            deleteAcls(results);
+            deleteAcls(buildAclBindingsFromKafkaStream(kafkaStream));
         }
     }
 

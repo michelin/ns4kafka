@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertLinesMatch;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -998,7 +999,7 @@ class AclServiceTest {
     }
 
     @Test
-    void shouldFindNonPublicAclsToDeployForCluster() {
+    void shouldFindAllNonPublicAclsForCluster() {
         AccessControlEntry publicAcl1 = AccessControlEntry.builder()
                 .metadata(Resource.Metadata.builder()
                         .namespace("namespace4")
@@ -1120,9 +1121,8 @@ class AclServiceTest {
                         otherClusterAcl1,
                         otherClusterAcl2));
 
-        List<AccessControlEntry> toDeploy = aclService.findNonPublicToDeployForCluster("local");
-        assertEquals(1, toDeploy.size());
-        assertTrue(toDeploy.contains(acl2));
+        List<AccessControlEntry> actual = aclService.findAllNonPublicForCluster("local");
+        assertEquals(List.of(acl1, acl2, acl3, acl4), actual);
     }
 
     @Test
@@ -1971,6 +1971,32 @@ class AclServiceTest {
 
         verify(accessControlEntryRepository, times(2)).delete(argThat(arg -> arg.equals(acl1) || arg.equals(acl2)));
         verify(accessControlEntryRepository, never()).delete(publicAcl);
+    }
+
+    @Test
+    void shouldDeletePublicAclAsKafkaAclWhenManagingRbac() {
+        AccessControlEntry publicAcl = AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .grantedTo("*")
+                        .build())
+                .metadata(Resource.Metadata.builder().cluster("cluster").build())
+                .build();
+
+        ManagedClusterProperties managedClusterProps =
+                new ManagedClusterProperties("cluster", ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
+        managedClusterProps.setManageAcls(false);
+        managedClusterProps.setManageRbac(true);
+
+        when(managedClusterProperties.stream()).thenReturn(Stream.of(managedClusterProps));
+        when(applicationContext.getBean(AccessControlEntryAsyncExecutor.class, Qualifiers.byName("cluster")))
+                .thenReturn(accessControlEntryAsyncExecutor);
+
+        aclService.delete(publicAcl);
+
+        verify(accessControlEntryAsyncExecutor).deleteAcl(publicAcl);
+        verify(applicationContext, never()).getBean(eq(ConfluentRoleBindingAsyncExecutor.class), any());
+        verify(accessControlEntryRepository).delete(publicAcl);
     }
 
     @Test

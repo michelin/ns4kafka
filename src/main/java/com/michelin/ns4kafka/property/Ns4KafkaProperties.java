@@ -52,7 +52,6 @@ import lombok.Setter;
 @ConfigurationProperties("ns4kafka")
 public class Ns4KafkaProperties {
     private AkhqProperties akhq = new AkhqProperties();
-    private ConfluentCloudProperties confluentCloud = new ConfluentCloudProperties();
     private SchedulerProperties scheduler = new SchedulerProperties();
     private SecurityProperties security = new SecurityProperties();
     private StoreProperties store = new StoreProperties();
@@ -74,30 +73,23 @@ public class Ns4KafkaProperties {
 
     @Getter
     @Setter
-    @ConfigurationProperties("confluent-cloud")
-    public static class ConfluentCloudProperties {
-        private StreamCatalogProperties streamCatalog = new StreamCatalogProperties();
-
-        @Getter
-        @Setter
-        @ConfigurationProperties("stream-catalog")
-        public static class StreamCatalogProperties {
-            private int pageSize = 500;
-            private boolean syncCatalog;
-        }
-    }
-
-    @Getter
-    @Setter
     @ConfigurationProperties("scheduler")
     public static class SchedulerProperties {
         private ConnectorProperties connector = new ConnectorProperties();
+        private RoleBindingProperties roleBinding = new RoleBindingProperties();
 
         @Getter
         @Setter
         @ConfigurationProperties("connector")
         public static class ConnectorProperties {
             private int intervalMs = 30000;
+        }
+
+        @Getter
+        @Setter
+        @ConfigurationProperties("role-binding")
+        public static class RoleBindingProperties {
+            private int intervalMs = 20000;
         }
     }
 

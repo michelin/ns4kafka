@@ -25,11 +25,12 @@ import static com.michelin.ns4kafka.util.enumation.ConfluentRole.DEVELOPER_MANAG
 import static com.michelin.ns4kafka.util.enumation.ConfluentRole.DEVELOPER_READ;
 import static com.michelin.ns4kafka.util.enumation.ConfluentRole.DEVELOPER_WRITE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -38,10 +39,8 @@ import com.michelin.ns4kafka.model.KafkaStream;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
-import com.michelin.ns4kafka.repository.AccessControlEntryRepository;
-import com.michelin.ns4kafka.repository.kafka.KafkaStreamRepository;
+import com.michelin.ns4kafka.repository.NamespaceRepository;
 import com.michelin.ns4kafka.service.AclService;
-import com.michelin.ns4kafka.service.NamespaceService;
 import com.michelin.ns4kafka.service.StreamService;
 import com.michelin.ns4kafka.service.client.confluent.ConfluentCloudClient;
 import com.michelin.ns4kafka.service.client.confluent.entities.RoleBinding;
@@ -51,13 +50,16 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @ExtendWith(MockitoExtension.class)
@@ -74,19 +76,13 @@ class ConfluentRoleBindingAsyncExecutorTest {
     ConfluentRoleBindingAsyncExecutor rbAsyncExecutor;
 
     @Mock
-    KafkaStreamRepository kafkaStreamRepository;
-
-    @Mock
-    AccessControlEntryRepository aclRepository;
-
-    @Mock
-    NamespaceService namespaceService;
-
-    @Mock
     AclService aclService;
 
     @Mock
     StreamService streamService;
+
+    @Mock
+    NamespaceRepository namespaceRepository;
 
     @Test
     void shouldConvertTopicAclToRoleBinding() {
@@ -137,7 +133,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
         RoleBinding writeRoleBinding =
                 new RoleBinding("User:user1", DEVELOPER_WRITE, AccessControlEntry.ResourceType.TOPIC, "ns1-*");
 
-        when(namespaceService.findByName("ns1"))
+        when(namespaceRepository.findByName("ns1"))
                 .thenReturn(Optional.of(Namespace.builder()
                         .spec(Namespace.NamespaceSpec.builder()
                                 .kafkaUser("user1")
@@ -174,7 +170,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
 
         RoleBinding readGroupRoleBinding = new RoleBinding("User:user1", DEVELOPER_READ, GROUP, "connect-ns1-*");
 
-        when(namespaceService.findByName("ns1"))
+        when(namespaceRepository.findByName("ns1"))
                 .thenReturn(Optional.of(Namespace.builder()
                         .spec(Namespace.NamespaceSpec.builder()
                                 .kafkaUser("user1")
@@ -188,7 +184,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
     }
 
     @Test
-    void shouldNotConvertWrongConnectorAclToRoleBinding() {
+    void shouldNotConvertNonOwnerConnectorAclToRoleBinding() {
         AccessControlEntry writeAcl = AccessControlEntry.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("ns1-owner")
@@ -217,15 +213,15 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .build())
                 .build();
 
-        when(namespaceService.findByName("ns1"))
+        when(namespaceRepository.findByName("ns1"))
                 .thenReturn(Optional.of(Namespace.builder()
                         .spec(Namespace.NamespaceSpec.builder()
                                 .kafkaUser("user1")
                                 .build())
                         .build()));
 
-        assertThrows(IllegalArgumentException.class, () -> rbAsyncExecutor.convertAclToRoleBinding(writeAcl));
-        assertThrows(IllegalArgumentException.class, () -> rbAsyncExecutor.convertAclToRoleBinding(readAcl));
+        assertEquals(List.of(), rbAsyncExecutor.convertAclToRoleBinding(writeAcl));
+        assertEquals(List.of(), rbAsyncExecutor.convertAclToRoleBinding(readAcl));
     }
 
     @Test
@@ -250,7 +246,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                 .spec(Namespace.NamespaceSpec.builder().kafkaUser("user1").build())
                 .build();
 
-        when(namespaceService.findByName("ns1")).thenReturn(Optional.of(ns));
+        when(namespaceRepository.findByName("ns1")).thenReturn(Optional.of(ns));
 
         List<RoleBinding> ownerRoleBindings = rbAsyncExecutor.convertAclToRoleBinding(ownerAcl);
 
@@ -259,7 +255,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
     }
 
     @Test
-    void shouldNotConvertWrongGroupAclToRoleBinding() {
+    void shouldNotConvertWriteGroupAclToRoleBinding() {
         AccessControlEntry writeAcl = AccessControlEntry.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("ns1-owner")
@@ -274,14 +270,14 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .build())
                 .build();
 
-        when(namespaceService.findByName("ns1"))
+        when(namespaceRepository.findByName("ns1"))
                 .thenReturn(Optional.of(Namespace.builder()
                         .spec(Namespace.NamespaceSpec.builder()
                                 .kafkaUser("user1")
                                 .build())
                         .build()));
 
-        assertThrows(IllegalArgumentException.class, () -> rbAsyncExecutor.convertAclToRoleBinding(writeAcl));
+        assertEquals(List.of(), rbAsyncExecutor.convertAclToRoleBinding(writeAcl));
     }
 
     @Test
@@ -302,7 +298,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
 
         RoleBinding readGroupRoleBinding = new RoleBinding("User:user1", DEVELOPER_WRITE, TRANSACTIONAL_ID, "ns1-*");
 
-        when(namespaceService.findByName("ns1"))
+        when(namespaceRepository.findByName("ns1"))
                 .thenReturn(Optional.of(Namespace.builder()
                         .spec(Namespace.NamespaceSpec.builder()
                                 .kafkaUser("user1")
@@ -316,7 +312,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
     }
 
     @Test
-    void shouldNotConvertWrongTransactionalIdAclToRoleBinding() {
+    void shouldNotConvertReadTransactionalIdAclToRoleBinding() {
         AccessControlEntry readAcl = AccessControlEntry.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("ns1-owner")
@@ -331,14 +327,14 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .build())
                 .build();
 
-        when(namespaceService.findByName("ns1"))
+        when(namespaceRepository.findByName("ns1"))
                 .thenReturn(Optional.of(Namespace.builder()
                         .spec(Namespace.NamespaceSpec.builder()
                                 .kafkaUser("user1")
                                 .build())
                         .build()));
 
-        assertThrows(IllegalArgumentException.class, () -> rbAsyncExecutor.convertAclToRoleBinding(readAcl));
+        assertEquals(List.of(), rbAsyncExecutor.convertAclToRoleBinding(readAcl));
     }
 
     @Test
@@ -361,7 +357,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
     }
 
     @Test
-    void shouldConvertKafkaStreamToRoleBinding() {
+    void shouldConvertKafkaStreamsToRoleBinding() {
         KafkaStream kafkaStream = KafkaStream.builder()
                 .metadata(Resource.Metadata.builder()
                         .namespace("ns1")
@@ -372,303 +368,14 @@ class ConfluentRoleBindingAsyncExecutorTest {
         RoleBinding readGroupRoleBinding =
                 new RoleBinding("User:user1", DEVELOPER_MANAGE, AccessControlEntry.ResourceType.TOPIC, "ns1-stream*");
 
-        when(namespaceService.findByName("ns1"))
+        when(namespaceRepository.findByName("ns1"))
                 .thenReturn(Optional.of(Namespace.builder()
                         .spec(Namespace.NamespaceSpec.builder()
                                 .kafkaUser("user1")
                                 .build())
                         .build()));
 
-        assertEquals(readGroupRoleBinding, rbAsyncExecutor.convertKafkaStreamToRoleBinding(kafkaStream));
-    }
-
-    @Test
-    void shouldCreateAcl() {
-        Namespace namespace = Namespace.builder()
-                .metadata(Resource.Metadata.builder().name("ns1").build())
-                .spec(Namespace.NamespaceSpec.builder().kafkaUser("user1").build())
-                .build();
-
-        AccessControlEntry acl = AccessControlEntry.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("ns1-write")
-                        .namespace("ns1")
-                        .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(instant))
-                        .generation(0)
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resource("ns1-")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.WRITE)
-                        .grantedTo("ns1")
-                        .build())
-                .build();
-
-        RoleBindingResponse response = RoleBindingResponse.builder().build();
-
-        when(confluentCloudClient.createRoleBinding(any(), any())).thenReturn(Mono.just(response));
-        when(namespaceService.findByName("ns1")).thenReturn(Optional.of(namespace));
-        when(aclService.findByName("ns1", "ns1-write")).thenReturn(Optional.empty());
-        when(aclRepository.create(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-        rbAsyncExecutor.createRoleBindingsFromAcls(List.of(acl));
-
-        verify(aclRepository).create(argThat(a -> a.equals(acl) && a.isSuccess() && a.isCreated()));
-        verify(aclRepository, never()).delete(any());
-    }
-
-    @Test
-    void shouldCreateAclButNotUpdateStatusWhenChangedSinceLastApply() {
-        Namespace namespace = Namespace.builder()
-                .metadata(Resource.Metadata.builder().name("ns1").build())
-                .spec(Namespace.NamespaceSpec.builder().kafkaUser("user1").build())
-                .build();
-
-        AccessControlEntry acl = AccessControlEntry.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("ns1-write")
-                        .namespace("ns1")
-                        .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(instant))
-                        .generation(0)
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resource("ns1-")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.WRITE)
-                        .grantedTo("ns1")
-                        .build())
-                .build();
-
-        AccessControlEntry newAcl = AccessControlEntry.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("ns1-write")
-                        .namespace("ns1")
-                        .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(instant.plusSeconds(1)))
-                        .generation(0)
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resource("ns1-")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .permission(AccessControlEntry.Permission.WRITE)
-                        .grantedTo("ns1")
-                        .build())
-                .build();
-
-        RoleBindingResponse response = RoleBindingResponse.builder().build();
-
-        when(confluentCloudClient.createRoleBinding(any(), any())).thenReturn(Mono.just(response));
-        when(namespaceService.findByName("ns1")).thenReturn(Optional.of(namespace));
-        when(aclService.findByName("ns1", "ns1-write")).thenReturn(Optional.of(newAcl));
-        when(aclRepository.create(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-        rbAsyncExecutor.createRoleBindingsFromAcls(List.of(acl));
-
-        verify(aclRepository).create(argThat(a -> a.equals(newAcl) && a.isPending() && a.isCreated()));
-        verify(aclRepository, never()).delete(any());
-    }
-
-    @ParameterizedTest
-    @CsvSource(
-            value = {"1000, null, true", "null, 1000, false"},
-            nullValues = "null")
-    void shouldHandleNullableUpdateTimestampsWhenCreatingAcl(
-            Long queuedTimestamp, Long latestTimestamp, boolean shouldMarkSuccess) {
-        Namespace namespace = Namespace.builder()
-                .metadata(Resource.Metadata.builder().name("ns1").build())
-                .spec(Namespace.NamespaceSpec.builder().kafkaUser("user1").build())
-                .build();
-
-        AccessControlEntry acl = AccessControlEntry.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("ns1-write")
-                        .namespace("ns1")
-                        .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(queuedTimestamp == null ? null : new Date(queuedTimestamp))
-                        .generation(0)
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resource("ns1-")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.WRITE)
-                        .grantedTo("ns1")
-                        .build())
-                .build();
-
-        AccessControlEntry latestAcl = AccessControlEntry.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("ns1-write")
-                        .namespace("ns1")
-                        .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(latestTimestamp == null ? null : new Date(latestTimestamp))
-                        .generation(0)
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resource("ns1-")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.WRITE)
-                        .grantedTo("ns1")
-                        .build())
-                .build();
-
-        RoleBindingResponse response = RoleBindingResponse.builder().build();
-
-        when(confluentCloudClient.createRoleBinding(any(), any())).thenReturn(Mono.just(response));
-        when(namespaceService.findByName("ns1")).thenReturn(Optional.of(namespace));
-        when(aclService.findByName("ns1", "ns1-write")).thenReturn(Optional.of(latestAcl));
-        when(aclRepository.create(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-        rbAsyncExecutor.createRoleBindingsFromAcls(List.of(acl));
-
-        verify(aclRepository)
-                .create(argThat(
-                        a -> a == latestAcl && a.isCreated() && (shouldMarkSuccess ? a.isSuccess() : a.isPending())));
-    }
-
-    @ParameterizedTest
-    @CsvSource(
-            value = {"1000, null, true", "null, 1000, false"},
-            nullValues = "null")
-    void shouldHandleNullableUpdateTimestampsWhenCreatingKafkaStream(
-            Long queuedTimestamp, Long latestTimestamp, boolean shouldMarkSuccess) {
-        Namespace namespace = Namespace.builder()
-                .metadata(Resource.Metadata.builder().name("ns1").build())
-                .spec(Namespace.NamespaceSpec.builder().kafkaUser("user1").build())
-                .build();
-
-        KafkaStream kafkaStream = KafkaStream.builder()
-                .metadata(Resource.Metadata.builder()
-                        .cluster("cluster")
-                        .namespace("ns1")
-                        .name("ns1-stream")
-                        .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(queuedTimestamp == null ? null : new Date(queuedTimestamp))
-                        .generation(0)
-                        .build())
-                .build();
-
-        KafkaStream latestKafkaStream = KafkaStream.builder()
-                .metadata(Resource.Metadata.builder()
-                        .cluster("cluster")
-                        .namespace("ns1")
-                        .name("ns1-stream")
-                        .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(latestTimestamp == null ? null : new Date(latestTimestamp))
-                        .generation(0)
-                        .build())
-                .build();
-
-        RoleBindingResponse response = RoleBindingResponse.builder().build();
-
-        when(confluentCloudClient.createRoleBinding(any(), any())).thenReturn(Mono.just(response));
-        when(namespaceService.findByName("ns1")).thenReturn(Optional.of(namespace));
-        when(streamService.findByName(namespace, "ns1-stream")).thenReturn(Optional.of(latestKafkaStream));
-        when(kafkaStreamRepository.create(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-        rbAsyncExecutor.createRoleBindingsFromKafkaStreams(List.of(kafkaStream));
-
-        verify(kafkaStreamRepository)
-                .create(argThat(ks -> ks == latestKafkaStream
-                        && ks.isCreated()
-                        && (shouldMarkSuccess ? ks.isSuccess() : ks.isPending())));
-    }
-
-    @Test
-    void shouldUpdateAclWhenErrorCreating() {
-        Namespace namespace = Namespace.builder()
-                .metadata(Resource.Metadata.builder().name("ns1").build())
-                .spec(Namespace.NamespaceSpec.builder().kafkaUser("user1").build())
-                .build();
-
-        AccessControlEntry acl = AccessControlEntry.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("ns1-write")
-                        .namespace("ns1")
-                        .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(instant))
-                        .generation(0)
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resource("ns1-")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.WRITE)
-                        .grantedTo("ns1")
-                        .build())
-                .build();
-
-        when(confluentCloudClient.createRoleBinding(any(), any()))
-                .thenReturn(Mono.error(new RuntimeException("error")));
-        when(namespaceService.findByName("ns1")).thenReturn(Optional.of(namespace));
-        when(aclService.findByName("ns1", "ns1-write")).thenReturn(Optional.empty());
-        when(aclRepository.create(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-        rbAsyncExecutor.createRoleBindingsFromAcls(List.of(acl));
-
-        verify(aclRepository)
-                .create(argThat(a -> a.isFailed()
-                        && !a.isCreated()
-                        && "error".equals(a.getMetadata().getStatus().getMessage())));
-        verify(aclRepository, never()).delete(any());
-    }
-
-    @Test
-    void shouldNotUpdateAclWhenErrorCreatingAndChangedSinceLastApply() {
-        Namespace namespace = Namespace.builder()
-                .metadata(Resource.Metadata.builder().name("ns1").build())
-                .spec(Namespace.NamespaceSpec.builder().kafkaUser("user1").build())
-                .build();
-
-        AccessControlEntry acl = AccessControlEntry.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("ns1-write")
-                        .namespace("ns1")
-                        .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(instant))
-                        .generation(0)
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resource("ns1-")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.WRITE)
-                        .grantedTo("ns1")
-                        .build())
-                .build();
-
-        AccessControlEntry newAcl = AccessControlEntry.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("ns1-write")
-                        .namespace("ns1")
-                        .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(instant.plusSeconds(1)))
-                        .generation(0)
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resource("ns1-")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.LITERAL)
-                        .permission(AccessControlEntry.Permission.WRITE)
-                        .grantedTo("ns1")
-                        .build())
-                .build();
-
-        when(confluentCloudClient.createRoleBinding(any(), any()))
-                .thenReturn(Mono.error(new RuntimeException("error")));
-        when(namespaceService.findByName("ns1")).thenReturn(Optional.of(namespace));
-        when(aclService.findByName("ns1", "ns1-write")).thenReturn(Optional.of(newAcl));
-
-        rbAsyncExecutor.createRoleBindingsFromAcls(List.of(acl));
-
-        verify(aclRepository, never()).create(any());
-        verify(aclRepository, never()).delete(any());
+        assertEquals(readGroupRoleBinding, rbAsyncExecutor.convertKafkaStreamsToRoleBinding(kafkaStream));
     }
 
     @Test
@@ -714,20 +421,29 @@ class ConfluentRoleBindingAsyncExecutorTest {
                 new RoleBinding("User:user1", DEVELOPER_READ, AccessControlEntry.ResourceType.TOPIC, "ns1-*");
         RoleBinding readEmptyRoleBinding =
                 new RoleBinding("User:user1", DEVELOPER_READ, AccessControlEntry.ResourceType.TOPIC, "ns-empty*");
-        RoleBindingResponse response = RoleBindingResponse.builder().build();
+        RoleBindingRequest readRequest = new RoleBindingRequest(readRoleBinding, buildConfluentCloudProperties());
+        RoleBindingRequest readEmptyRequest =
+                new RoleBindingRequest(readEmptyRoleBinding, buildConfluentCloudProperties());
 
         when(managedClusterProperties.getName()).thenReturn("cluster");
-        when(namespaceService.findByName("ns1")).thenReturn(Optional.of(namespace));
-        when(confluentCloudClient.deleteRoleBinding("cluster", readRoleBinding)).thenReturn(Mono.just(response));
-        when(confluentCloudClient.deleteRoleBinding("cluster", readEmptyRoleBinding))
-                .thenReturn(Mono.empty());
+        when(managedClusterProperties.getConfluentCloud()).thenReturn(buildConfluentCloudProperties());
+        when(namespaceRepository.findByName("ns1")).thenReturn(Optional.of(namespace));
+        when(confluentCloudClient.listRoleBindings("cluster", readRequest.crnPattern()))
+                .thenReturn(Flux.just(
+                        // Same resource, but other principal or other role
+                        toResponse("rb-other-user", new RoleBinding("User:user2", DEVELOPER_READ, TOPIC, "ns1-*")),
+                        toResponse("rb-other-role", new RoleBinding("User:user1", DEVELOPER_WRITE, TOPIC, "ns1-*")),
+                        toResponse("rb-match", readRoleBinding)));
+        when(confluentCloudClient.listRoleBindings("cluster", readEmptyRequest.crnPattern()))
+                .thenReturn(Flux.empty());
+        when(confluentCloudClient.deleteRoleBinding("cluster", "rb-match"))
+                .thenReturn(Mono.just(toResponse("rb-match", readRoleBinding)));
 
         rbAsyncExecutor.deleteRoleBindingsFromAcls(List.of(acl, emptyResponseAcl));
 
-        verify(confluentCloudClient).deleteRoleBinding("cluster", readRoleBinding);
-        verify(confluentCloudClient).deleteRoleBinding("cluster", readEmptyRoleBinding);
-        verify(aclRepository, never()).create(any());
-        verify(aclRepository, never()).delete(any());
+        verify(confluentCloudClient).deleteRoleBinding("cluster", "rb-match");
+        verify(confluentCloudClient, times(1)).deleteRoleBinding(any(), anyString());
+        verify(aclService, never()).create(any());
     }
 
     @Test
@@ -757,164 +473,18 @@ class ConfluentRoleBindingAsyncExecutorTest {
                 new RoleBinding("User:user1", DEVELOPER_WRITE, AccessControlEntry.ResourceType.TOPIC, "ns1-*");
 
         when(managedClusterProperties.getName()).thenReturn("cluster");
-        when(namespaceService.findByName("ns1")).thenReturn(Optional.of(namespace));
-        when(confluentCloudClient.deleteRoleBinding("cluster", writeRoleBinding))
+        when(namespaceRepository.findByName("ns1")).thenReturn(Optional.of(namespace));
+        when(managedClusterProperties.getConfluentCloud()).thenReturn(buildConfluentCloudProperties());
+        when(confluentCloudClient.listRoleBindings(
+                        "cluster",
+                        new RoleBindingRequest(writeRoleBinding, buildConfluentCloudProperties()).crnPattern()))
+                .thenReturn(Flux.just(toResponse("rb-write", writeRoleBinding)));
+        when(confluentCloudClient.deleteRoleBinding("cluster", "rb-write"))
                 .thenReturn(Mono.error(new RuntimeException("error")));
 
         rbAsyncExecutor.deleteRoleBindingsFromAcls(List.of(acl));
 
-        verify(aclRepository, never()).create(any());
-        verify(aclRepository, never()).delete(any());
-    }
-
-    @Test
-    void shouldCreateKafkaStream() {
-        Namespace namespace = Namespace.builder()
-                .metadata(Resource.Metadata.builder().name("ns1").build())
-                .spec(Namespace.NamespaceSpec.builder().kafkaUser("user1").build())
-                .build();
-
-        KafkaStream kafkaStream = KafkaStream.builder()
-                .metadata(Resource.Metadata.builder()
-                        .cluster("cluster")
-                        .namespace("ns1")
-                        .name("ns1-stream")
-                        .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(instant))
-                        .generation(0)
-                        .build())
-                .build();
-
-        RoleBindingResponse response = RoleBindingResponse.builder().build();
-
-        when(namespaceService.findByName("ns1"))
-                .thenReturn(Optional.of(Namespace.builder()
-                        .spec(Namespace.NamespaceSpec.builder()
-                                .kafkaUser("user1")
-                                .build())
-                        .build()));
-        when(confluentCloudClient.createRoleBinding(any(), any())).thenReturn(Mono.just(response));
-        when(namespaceService.findByName("ns1")).thenReturn(Optional.of(namespace));
-        when(streamService.findByName(namespace, "ns1-stream")).thenReturn(Optional.empty());
-        when(kafkaStreamRepository.create(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-        rbAsyncExecutor.createRoleBindingsFromKafkaStreams(List.of(kafkaStream));
-
-        verify(kafkaStreamRepository).create(argThat(ks -> ks.equals(kafkaStream) && ks.isSuccess() && ks.isCreated()));
-        verify(kafkaStreamRepository, never()).delete(any());
-    }
-
-    @Test
-    void shouldCreateKafkaStreamButNotUpdateStatusWhenChangedSinceLastApply() {
-        Namespace namespace = Namespace.builder()
-                .metadata(Resource.Metadata.builder().name("ns1").build())
-                .spec(Namespace.NamespaceSpec.builder().kafkaUser("user1").build())
-                .build();
-
-        KafkaStream kafkaStream = KafkaStream.builder()
-                .metadata(Resource.Metadata.builder()
-                        .cluster("cluster")
-                        .namespace("ns1")
-                        .name("ns1-stream")
-                        .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(instant))
-                        .generation(0)
-                        .build())
-                .build();
-
-        KafkaStream newKafkaStream = KafkaStream.builder()
-                .metadata(Resource.Metadata.builder()
-                        .cluster("cluster")
-                        .namespace("ns1")
-                        .name("ns1-stream")
-                        .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(instant.plusSeconds(1)))
-                        .generation(0)
-                        .build())
-                .build();
-
-        RoleBindingResponse response = RoleBindingResponse.builder().build();
-
-        when(confluentCloudClient.createRoleBinding(any(), any())).thenReturn(Mono.just(response));
-        when(namespaceService.findByName("ns1")).thenReturn(Optional.of(namespace));
-        when(streamService.findByName(namespace, "ns1-stream")).thenReturn(Optional.of(newKafkaStream));
-        when(kafkaStreamRepository.create(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-        rbAsyncExecutor.createRoleBindingsFromKafkaStreams(List.of(kafkaStream));
-
-        verify(kafkaStreamRepository)
-                .create(argThat(ks -> ks.equals(newKafkaStream) && ks.isPending() && ks.isCreated()));
-        verify(kafkaStreamRepository, never()).delete(any());
-    }
-
-    @Test
-    void shouldUpdateKafkaStreamsWhenErrorCreating() {
-        Namespace namespace = Namespace.builder()
-                .metadata(Resource.Metadata.builder().name("ns1").build())
-                .spec(Namespace.NamespaceSpec.builder().kafkaUser("user1").build())
-                .build();
-
-        KafkaStream kafkaStream = KafkaStream.builder()
-                .metadata(Resource.Metadata.builder()
-                        .cluster("cluster")
-                        .namespace("ns1")
-                        .name("ns1-stream")
-                        .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(instant))
-                        .generation(0)
-                        .build())
-                .build();
-
-        when(confluentCloudClient.createRoleBinding(any(), any()))
-                .thenReturn(Mono.error(new RuntimeException("error")));
-        when(namespaceService.findByName("ns1")).thenReturn(Optional.of(namespace));
-        when(streamService.findByName(namespace, "ns1-stream")).thenReturn(Optional.empty());
-        when(kafkaStreamRepository.create(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-        rbAsyncExecutor.createRoleBindingsFromKafkaStreams(List.of(kafkaStream));
-
-        verify(kafkaStreamRepository).create(argThat(ks -> ks.equals(kafkaStream) && ks.isFailed() && !ks.isCreated()));
-        verify(kafkaStreamRepository, never()).delete(any());
-    }
-
-    @Test
-    void shouldNotUpdateKafkaStreamsWhenErrorCreatingAndChangedSinceLastApply() {
-        Namespace namespace = Namespace.builder()
-                .metadata(Resource.Metadata.builder().name("ns1").build())
-                .spec(Namespace.NamespaceSpec.builder().kafkaUser("user1").build())
-                .build();
-
-        KafkaStream kafkaStream = KafkaStream.builder()
-                .metadata(Resource.Metadata.builder()
-                        .cluster("cluster")
-                        .namespace("ns1")
-                        .name("ns1-stream")
-                        .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(instant))
-                        .generation(0)
-                        .build())
-                .build();
-
-        KafkaStream newKafkaStream = KafkaStream.builder()
-                .metadata(Resource.Metadata.builder()
-                        .cluster("cluster")
-                        .namespace("ns1")
-                        .name("ns1-stream")
-                        .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(instant.plusSeconds(1)))
-                        .generation(0)
-                        .build())
-                .build();
-
-        when(confluentCloudClient.createRoleBinding(any(), any()))
-                .thenReturn(Mono.error(new RuntimeException("error")));
-        when(namespaceService.findByName("ns1")).thenReturn(Optional.of(namespace));
-        when(streamService.findByName(namespace, "ns1-stream")).thenReturn(Optional.of(newKafkaStream));
-
-        rbAsyncExecutor.createRoleBindingsFromKafkaStreams(List.of(kafkaStream));
-
-        verify(kafkaStreamRepository, never()).create(any());
-        verify(kafkaStreamRepository, never()).delete(any());
+        verify(aclService, never()).create(any());
     }
 
     @Test
@@ -946,21 +516,27 @@ class ConfluentRoleBindingAsyncExecutorTest {
                 new RoleBinding("User:user1", DEVELOPER_MANAGE, AccessControlEntry.ResourceType.TOPIC, "ns1-stream*");
         RoleBinding manageTopicRoleBindingEmpty = new RoleBinding(
                 "User:user1", DEVELOPER_MANAGE, AccessControlEntry.ResourceType.TOPIC, "ns1-stream-empty*");
-        RoleBindingResponse response = RoleBindingResponse.builder().build();
 
         when(managedClusterProperties.getName()).thenReturn("cluster");
-        when(namespaceService.findByName("ns1")).thenReturn(Optional.of(namespace));
-        when(confluentCloudClient.deleteRoleBinding("cluster", manageTopicRoleBinding))
-                .thenReturn(Mono.just(response));
-        when(confluentCloudClient.deleteRoleBinding("cluster", manageTopicRoleBindingEmpty))
-                .thenReturn(Mono.empty());
+        when(managedClusterProperties.getConfluentCloud()).thenReturn(buildConfluentCloudProperties());
+        when(namespaceRepository.findByName("ns1")).thenReturn(Optional.of(namespace));
+        when(confluentCloudClient.listRoleBindings(
+                        "cluster",
+                        new RoleBindingRequest(manageTopicRoleBinding, buildConfluentCloudProperties()).crnPattern()))
+                .thenReturn(Flux.just(toResponse("rb-manage", manageTopicRoleBinding)));
+        when(confluentCloudClient.listRoleBindings(
+                        "cluster",
+                        new RoleBindingRequest(manageTopicRoleBindingEmpty, buildConfluentCloudProperties())
+                                .crnPattern()))
+                .thenReturn(Flux.empty());
+        when(confluentCloudClient.deleteRoleBinding("cluster", "rb-manage"))
+                .thenReturn(Mono.just(toResponse("rb-manage", manageTopicRoleBinding)));
 
         rbAsyncExecutor.deleteRoleBindingsFromKafkaStreams(List.of(kafkaStream, emptyResponseKafkaStream));
 
-        verify(confluentCloudClient).deleteRoleBinding("cluster", manageTopicRoleBinding);
-        verify(confluentCloudClient).deleteRoleBinding("cluster", manageTopicRoleBindingEmpty);
-        verify(kafkaStreamRepository, never()).create(any());
-        verify(kafkaStreamRepository, never()).delete(any());
+        verify(confluentCloudClient).deleteRoleBinding("cluster", "rb-manage");
+        verify(confluentCloudClient, times(1)).deleteRoleBinding(any(), anyString());
+        verify(streamService, never()).create(any());
     }
 
     @Test
@@ -983,56 +559,300 @@ class ConfluentRoleBindingAsyncExecutorTest {
                 new RoleBinding("User:user1", DEVELOPER_MANAGE, AccessControlEntry.ResourceType.TOPIC, "ns1-stream*");
 
         when(managedClusterProperties.getName()).thenReturn("cluster");
-        when(namespaceService.findByName("ns1")).thenReturn(Optional.of(namespace));
-        when(confluentCloudClient.deleteRoleBinding("cluster", manageTopicRoleBinding))
+        when(namespaceRepository.findByName("ns1")).thenReturn(Optional.of(namespace));
+        when(managedClusterProperties.getConfluentCloud()).thenReturn(buildConfluentCloudProperties());
+        when(confluentCloudClient.listRoleBindings(
+                        "cluster",
+                        new RoleBindingRequest(manageTopicRoleBinding, buildConfluentCloudProperties()).crnPattern()))
+                .thenReturn(Flux.just(toResponse("rb-manage", manageTopicRoleBinding)));
+        when(confluentCloudClient.deleteRoleBinding("cluster", "rb-manage"))
                 .thenReturn(Mono.error(new RuntimeException("error")));
 
         rbAsyncExecutor.deleteRoleBindingsFromKafkaStreams(List.of(kafkaStream));
 
-        verify(kafkaStreamRepository, never()).create(any());
-        verify(kafkaStreamRepository, never()).delete(any());
+        verify(streamService, never()).create(any());
     }
 
     @Test
-    void shouldSynchronizeRoleBindings() {
-        AccessControlEntry acl = AccessControlEntry.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("ns1-write")
-                        .namespace("ns1")
-                        .cluster("cluster")
-                        .status(Resource.Metadata.Status.ofPending())
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resource("ns1-")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.WRITE)
-                        .grantedTo("ns1")
-                        .build())
-                .build();
-        RoleBindingResponse response = RoleBindingResponse.builder().build();
+    void shouldCreateMissingAndDeleteUnsynchronizedRoleBindings() {
+        AccessControlEntry acl =
+                buildAcl("ns1-acl", AccessControlEntry.Permission.OWNER, Resource.Metadata.Status.ofPending());
+        KafkaStream kafkaStream = buildKafkaStream(Resource.Metadata.Status.ofSuccess());
+        RoleBinding readRoleBinding = new RoleBinding("User:user1", DEVELOPER_READ, TOPIC, "ns1-*");
+        RoleBinding writeRoleBinding = new RoleBinding("User:user1", DEVELOPER_WRITE, TOPIC, "ns1-*");
+        RoleBinding manageRoleBinding = new RoleBinding("User:user1", DEVELOPER_MANAGE, TOPIC, "ns1-stream*");
+        RoleBindingResponse unsyncRoleBinding =
+                toResponse("rb-unsync", new RoleBinding("User:user1", DEVELOPER_READ, TOPIC, "ns1-old*"));
 
+        stubSynchronization(
+                true,
+                List.of(
+                        toResponse("rb-read", readRoleBinding),
+                        toResponse("rb-manage", manageRoleBinding),
+                        unsyncRoleBinding,
+                        // Not managed by Ns4Kafka: other role or other principal
+                        RoleBindingResponse.builder()
+                                .id("rb-owner")
+                                .principal("User:user1")
+                                .roleName("ResourceOwner")
+                                .crnPattern(RoleBindingRequest.clusterCrnPattern(buildConfluentCloudProperties())
+                                        + "topic=*")
+                                .build(),
+                        toResponse("rb-other", new RoleBinding("User:other", DEVELOPER_READ, TOPIC, "other-*"))),
+                List.of(acl),
+                List.of(kafkaStream));
+        when(confluentCloudClient.createRoleBinding("cluster", writeRoleBinding))
+                .thenReturn(
+                        Mono.just(RoleBindingResponse.builder().id("rb-write").build()));
+        when(confluentCloudClient.deleteRoleBinding("cluster", "rb-unsync")).thenReturn(Mono.just(unsyncRoleBinding));
+        when(aclService.findByName("ns1", "ns1-acl")).thenReturn(Optional.of(acl));
+
+        rbAsyncExecutor.synchronizeRoleBindings().block();
+
+        verify(confluentCloudClient).createRoleBinding("cluster", writeRoleBinding);
+        verify(confluentCloudClient, times(1)).createRoleBinding(any(), any());
+        verify(confluentCloudClient).deleteRoleBinding("cluster", "rb-unsync");
+        verify(confluentCloudClient, times(1)).deleteRoleBinding(any(), anyString());
+        verify(aclService)
+                .create(argThat(
+                        a -> a == acl && a.isSuccess() && a.getMetadata().getGeneration() == 1));
+        verify(streamService, never()).create(any());
+    }
+
+    @Test
+    void shouldContinueCreatingAndDeletingAfterErrors() {
+        AccessControlEntry acl =
+                buildAcl("ns1-acl", AccessControlEntry.Permission.OWNER, Resource.Metadata.Status.ofPending());
+        RoleBinding readRoleBinding = new RoleBinding("User:user1", DEVELOPER_READ, TOPIC, "ns1-*");
+        RoleBinding writeRoleBinding = new RoleBinding("User:user1", DEVELOPER_WRITE, TOPIC, "ns1-*");
+
+        stubSynchronization(
+                true,
+                List.of(
+                        toResponse("rb-unsync-1", new RoleBinding("User:user1", DEVELOPER_READ, TOPIC, "old1-*")),
+                        toResponse("rb-unsync-2", new RoleBinding("User:user1", DEVELOPER_READ, TOPIC, "old2-*"))),
+                List.of(acl),
+                List.of());
+        when(confluentCloudClient.createRoleBinding("cluster", readRoleBinding))
+                .thenReturn(Mono.error(new RuntimeException("read error")));
+        when(confluentCloudClient.createRoleBinding("cluster", writeRoleBinding))
+                .thenReturn(
+                        Mono.just(RoleBindingResponse.builder().id("rb-write").build()));
+        when(confluentCloudClient.deleteRoleBinding(any(), anyString()))
+                .thenReturn(Mono.error(new RuntimeException("delete error")));
+        when(aclService.findByName("ns1", "ns1-acl")).thenReturn(Optional.of(acl));
+
+        rbAsyncExecutor.synchronizeRoleBindings().block();
+
+        verify(confluentCloudClient).createRoleBinding("cluster", readRoleBinding);
+        verify(confluentCloudClient).createRoleBinding("cluster", writeRoleBinding);
+        verify(confluentCloudClient).deleteRoleBinding("cluster", "rb-unsync-1");
+        verify(confluentCloudClient).deleteRoleBinding("cluster", "rb-unsync-2");
+        verify(aclService)
+                .create(argThat(a -> a == acl
+                        && a.isFailed()
+                        && "read error".equals(a.getMetadata().getStatus().getMessage())));
+    }
+
+    @Test
+    void shouldNotDeleteUnsynchronizedRoleBindingsWhenDropUnsyncDisabled() {
+        stubSynchronization(
+                false,
+                List.of(toResponse("rb-unsync", new RoleBinding("User:user1", DEVELOPER_READ, TOPIC, "ns1-old*"))),
+                List.of(),
+                List.of());
+
+        rbAsyncExecutor.synchronizeRoleBindings().block();
+
+        verify(confluentCloudClient, never()).deleteRoleBinding(any(), anyString());
+        verify(confluentCloudClient, never()).createRoleBinding(any(), any());
+    }
+
+    @ParameterizedTest
+    @MethodSource("unresolvedStatuses")
+    void shouldUpdateStatusWhenRoleBindingsAlreadyExist(Resource.Metadata.Status status) {
+        AccessControlEntry acl = buildAcl("ns1-acl", AccessControlEntry.Permission.READ, status);
+        KafkaStream kafkaStream = buildKafkaStream(status);
+        Namespace namespace = buildNamespace();
+
+        stubSynchronization(
+                true,
+                List.of(
+                        toResponse("rb-read", new RoleBinding("User:user1", DEVELOPER_READ, TOPIC, "ns1-*")),
+                        toResponse("rb-manage", new RoleBinding("User:user1", DEVELOPER_MANAGE, TOPIC, "ns1-stream*"))),
+                List.of(acl),
+                List.of(kafkaStream));
+        when(aclService.findByName("ns1", "ns1-acl")).thenReturn(Optional.of(acl));
+        when(streamService.findByName(namespace, "ns1-stream")).thenReturn(Optional.of(kafkaStream));
+
+        rbAsyncExecutor.synchronizeRoleBindings().block();
+
+        verify(confluentCloudClient, never()).createRoleBinding(any(), any());
+        verify(confluentCloudClient, never()).deleteRoleBinding(any(), anyString());
+        verify(aclService)
+                .create(argThat(
+                        a -> a == acl && a.isSuccess() && a.getMetadata().getGeneration() == 1));
+        verify(streamService)
+                .create(argThat(ks ->
+                        ks == kafkaStream && ks.isSuccess() && ks.getMetadata().getGeneration() == 1));
+    }
+
+    @Test
+    void shouldCreateSharedRoleBindingOnce() {
+        AccessControlEntry acl1 =
+                buildAcl("ns1-acl", AccessControlEntry.Permission.READ, Resource.Metadata.Status.ofPending());
+        AccessControlEntry acl2 =
+                buildAcl("ns1-acl-2", AccessControlEntry.Permission.READ, Resource.Metadata.Status.ofPending());
+        RoleBinding readRoleBinding = new RoleBinding("User:user1", DEVELOPER_READ, TOPIC, "ns1-*");
+
+        stubSynchronization(true, List.of(), List.of(acl1, acl2), List.of());
+        when(confluentCloudClient.createRoleBinding("cluster", readRoleBinding))
+                .thenReturn(
+                        Mono.just(RoleBindingResponse.builder().id("rb-read").build()));
+        when(aclService.findByName("ns1", "ns1-acl")).thenReturn(Optional.of(acl1));
+        when(aclService.findByName("ns1", "ns1-acl-2")).thenReturn(Optional.of(acl2));
+
+        rbAsyncExecutor.synchronizeRoleBindings().block();
+
+        verify(confluentCloudClient, times(1)).createRoleBinding("cluster", readRoleBinding);
+        verify(aclService).create(argThat(a -> a == acl1 && a.isSuccess()));
+        verify(aclService).create(argThat(a -> a == acl2 && a.isSuccess()));
+    }
+
+    @Test
+    void shouldFailKafkaStreamWhenRoleBindingCreationFails() {
+        KafkaStream kafkaStream = buildKafkaStream(Resource.Metadata.Status.ofPending());
+
+        stubSynchronization(true, List.of(), List.of(), List.of(kafkaStream));
+        when(confluentCloudClient.createRoleBinding(any(), any()))
+                .thenReturn(Mono.error(new RuntimeException("error")));
+        when(streamService.findByName(buildNamespace(), "ns1-stream")).thenReturn(Optional.of(kafkaStream));
+
+        rbAsyncExecutor.synchronizeRoleBindings().block();
+
+        verify(streamService)
+                .create(argThat(ks -> ks == kafkaStream
+                        && ks.isFailed()
+                        && !ks.isCreated()
+                        && "error".equals(ks.getMetadata().getStatus().getMessage())));
+    }
+
+    @Test
+    void shouldSkipResourcesOfDeletedNamespaces() {
+        AccessControlEntry acl =
+                buildAcl("ns1-acl", AccessControlEntry.Permission.READ, Resource.Metadata.Status.ofPending());
+        AccessControlEntry orphanAcl =
+                buildAcl("ns1-orphan-acl", AccessControlEntry.Permission.WRITE, Resource.Metadata.Status.ofPending());
+        orphanAcl.getSpec().setGrantedTo("deleted-namespace");
+        KafkaStream orphanKafkaStream = buildKafkaStream(Resource.Metadata.Status.ofPending());
+        orphanKafkaStream.getMetadata().setNamespace("deleted-namespace");
+        RoleBinding readRoleBinding = new RoleBinding("User:user1", DEVELOPER_READ, TOPIC, "ns1-*");
+
+        stubSynchronization(true, List.of(), List.of(acl, orphanAcl), List.of(orphanKafkaStream));
+        when(confluentCloudClient.createRoleBinding("cluster", readRoleBinding))
+                .thenReturn(
+                        Mono.just(RoleBindingResponse.builder().id("rb-read").build()));
+        when(aclService.findByName("ns1", "ns1-acl")).thenReturn(Optional.of(acl));
+
+        rbAsyncExecutor.synchronizeRoleBindings().block();
+
+        verify(confluentCloudClient, times(1)).createRoleBinding(any(), any());
+        verify(aclService).create(argThat(a -> a == acl && a.isSuccess()));
+        verify(aclService, never()).findByName("ns1", "ns1-orphan-acl");
+        verify(streamService, never()).findByName(any(), any());
+    }
+
+    @Test
+    void shouldNotPersistWhenSuccessAndRoleBindingsAlreadyExist() {
+        AccessControlEntry acl =
+                buildAcl("ns1-acl", AccessControlEntry.Permission.READ, Resource.Metadata.Status.ofSuccess());
+
+        stubSynchronization(
+                true,
+                List.of(toResponse("rb-read", new RoleBinding("User:user1", DEVELOPER_READ, TOPIC, "ns1-*"))),
+                List.of(acl),
+                List.of());
+
+        rbAsyncExecutor.synchronizeRoleBindings().block();
+
+        verify(confluentCloudClient, never()).createRoleBinding(any(), any());
+        verify(aclService, never()).findByName(any(), any());
+        verify(aclService, never()).create(any());
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+            value = {"deleted, false", "reapplied, false", "nullStoredTimestamp, true", "nullReadTimestamp, false"},
+            nullValues = "null")
+    void shouldPersistOnlyWhenUnchangedSinceLastApply(String scenario, boolean shouldPersist) {
+        AccessControlEntry acl =
+                buildAcl("ns1-acl", AccessControlEntry.Permission.WRITE, Resource.Metadata.Status.ofPending());
+        AccessControlEntry storedAcl =
+                buildAcl("ns1-acl", AccessControlEntry.Permission.WRITE, Resource.Metadata.Status.ofPending());
+
+        switch (scenario) {
+            case "reapplied" -> storedAcl.getMetadata().setUpdateTimestamp(Date.from(instant.plusSeconds(1)));
+            case "nullStoredTimestamp" -> storedAcl.getMetadata().setUpdateTimestamp(null);
+            case "nullReadTimestamp" -> acl.getMetadata().setUpdateTimestamp(null);
+            default -> {
+                // Deleted
+            }
+        }
+
+        stubSynchronization(true, List.of(), List.of(acl), List.of());
+        when(confluentCloudClient.createRoleBinding(any(), any()))
+                .thenReturn(Mono.just(RoleBindingResponse.builder().build()));
+        when(aclService.findByName("ns1", "ns1-acl"))
+                .thenReturn("deleted".equals(scenario) ? Optional.empty() : Optional.of(storedAcl));
+
+        rbAsyncExecutor.synchronizeRoleBindings().block();
+
+        verify(aclService, times(shouldPersist ? 1 : 0)).create(argThat(a -> a == acl && a.isSuccess()));
+    }
+
+    @Test
+    void shouldNotSynchronizeRoleBindingsWhenListingFails() {
         when(managedClusterProperties.getName()).thenReturn("cluster");
+        when(managedClusterProperties.getConfluentCloud()).thenReturn(buildConfluentCloudProperties());
+        when(namespaceRepository.findAllForCluster("cluster")).thenReturn(List.of(buildNamespace()));
+        when(confluentCloudClient.listRoleBindings(
+                        "cluster", RoleBindingRequest.clusterCrnPattern(buildConfluentCloudProperties()) + "*"))
+                .thenReturn(Flux.error(new RuntimeException("error")));
+
+        rbAsyncExecutor.synchronizeRoleBindings().block();
+
+        verify(confluentCloudClient, never()).createRoleBinding(any(), any());
+        verify(confluentCloudClient, never()).deleteRoleBinding(any(), anyString());
+        verify(aclService, never()).create(any());
+        verify(streamService, never()).create(any());
+    }
+
+    @Test
+    void shouldSynchronizeRoleBindingsWhenClusterManagesRbac() {
+        when(managedClusterProperties.getName()).thenReturn("cluster");
+        when(managedClusterProperties.getConfluentCloud()).thenReturn(buildConfluentCloudProperties());
         when(managedClusterProperties.isManageAcls()).thenReturn(false);
         when(managedClusterProperties.isConfluentCloud()).thenReturn(true);
         when(managedClusterProperties.isManageRbac()).thenReturn(true);
-        when(aclService.findNonPublicToDeployForCluster("cluster")).thenReturn(List.of(acl));
-        when(streamService.findAllToDeployForCluster("cluster")).thenReturn(List.of());
-        when(namespaceService.findByName("ns1"))
-                .thenReturn(Optional.of(Namespace.builder()
-                        .spec(Namespace.NamespaceSpec.builder()
-                                .kafkaUser("user1")
-                                .build())
-                        .build()));
+        when(namespaceRepository.findAllForCluster("cluster")).thenReturn(List.of(buildNamespace()));
+        when(confluentCloudClient.listRoleBindings(
+                        "cluster", RoleBindingRequest.clusterCrnPattern(buildConfluentCloudProperties()) + "*"))
+                .thenReturn(Flux.empty());
 
-        when(confluentCloudClient.createRoleBinding(any(), any())).thenReturn(Mono.just(response));
-        when(aclService.findByName("ns1", "ns1-write")).thenReturn(Optional.empty());
-        when(aclRepository.create(acl)).thenReturn(acl);
+        rbAsyncExecutor.run().block();
 
-        rbAsyncExecutor.run();
+        verify(confluentCloudClient)
+                .listRoleBindings(
+                        "cluster", RoleBindingRequest.clusterCrnPattern(buildConfluentCloudProperties()) + "*");
+    }
 
-        verify(confluentCloudClient).createRoleBinding(any(), any());
-        verify(aclRepository).create(acl);
+    @Test
+    void shouldNotSynchronizeRoleBindingsWhenClusterManagesAcls() {
+        when(managedClusterProperties.isManageAcls()).thenReturn(true);
+
+        rbAsyncExecutor.run().block();
+
+        verify(confluentCloudClient, never()).listRoleBindings(any(), any());
     }
 
     @Test
@@ -1061,5 +881,92 @@ class ConfluentRoleBindingAsyncExecutorTest {
         assertEquals(topicCrnPattern, topicRbRequest.crnPattern());
         assertEquals(groupCrnPattern, groupRbRequest.crnPattern());
         assertEquals(transIdCrnPattern, transIdRbRequest.crnPattern());
+    }
+
+    static Stream<Resource.Metadata.Status> unresolvedStatuses() {
+        return Stream.of(Resource.Metadata.Status.ofPending(), Resource.Metadata.Status.ofFailed("error"), null);
+    }
+
+    private static ManagedClusterProperties.ConfluentCloudProperties buildConfluentCloudProperties() {
+        ManagedClusterProperties.ConfluentCloudProperties properties =
+                new ManagedClusterProperties.ConfluentCloudProperties();
+        properties.setOrganizationId("orgId");
+        properties.setEnvironmentId("envId");
+        properties.setClusterId("clusterId");
+        return properties;
+    }
+
+    private static Namespace buildNamespace() {
+        return Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1")
+                        .cluster("cluster")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder().kafkaUser("user1").build())
+                .build();
+    }
+
+    private static RoleBindingResponse toResponse(String id, RoleBinding roleBinding) {
+        RoleBindingRequest request = new RoleBindingRequest(roleBinding, buildConfluentCloudProperties());
+        return RoleBindingResponse.builder()
+                .id(id)
+                .principal(request.principal())
+                .roleName(request.roleName())
+                .crnPattern(request.crnPattern())
+                .build();
+    }
+
+    private void stubSynchronization(
+            boolean dropUnsyncAcls,
+            List<RoleBindingResponse> brokerRoleBindings,
+            List<AccessControlEntry> acls,
+            List<KafkaStream> kafkaStreams) {
+        when(managedClusterProperties.getName()).thenReturn("cluster");
+        when(managedClusterProperties.getConfluentCloud()).thenReturn(buildConfluentCloudProperties());
+        when(managedClusterProperties.isDropUnsyncAcls()).thenReturn(dropUnsyncAcls);
+        when(confluentCloudClient.listRoleBindings(
+                        "cluster", RoleBindingRequest.clusterCrnPattern(buildConfluentCloudProperties()) + "*"))
+                .thenReturn(Flux.fromIterable(brokerRoleBindings));
+        when(aclService.findAllNonPublicForCluster("cluster")).thenReturn(acls);
+        when(streamService.findAllForCluster("cluster")).thenReturn(kafkaStreams);
+        when(namespaceRepository.findAllForCluster("cluster")).thenReturn(List.of(buildNamespace()));
+
+        if (!acls.isEmpty() || !kafkaStreams.isEmpty()) {
+            when(namespaceRepository.findByName("ns1")).thenReturn(Optional.of(buildNamespace()));
+        }
+    }
+
+    private static AccessControlEntry buildAcl(
+            String name, AccessControlEntry.Permission permission, Resource.Metadata.Status status) {
+        return AccessControlEntry.builder()
+                .metadata(Resource.Metadata.builder()
+                        .cluster("cluster")
+                        .name(name)
+                        .namespace("ns1")
+                        .status(status)
+                        .updateTimestamp(Date.from(instant))
+                        .generation(0)
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(TOPIC)
+                        .resource("ns1-")
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(permission)
+                        .grantedTo("ns1")
+                        .build())
+                .build();
+    }
+
+    private static KafkaStream buildKafkaStream(Resource.Metadata.Status status) {
+        return KafkaStream.builder()
+                .metadata(Resource.Metadata.builder()
+                        .cluster("cluster")
+                        .namespace("ns1")
+                        .name("ns1-stream")
+                        .status(status)
+                        .updateTimestamp(Date.from(instant))
+                        .generation(0)
+                        .build())
+                .build();
     }
 }
