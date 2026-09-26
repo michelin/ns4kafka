@@ -436,44 +436,6 @@ class StreamServiceTest {
     }
 
     @Test
-    void shouldNamespaceHaveKafkaStreams() {
-        Namespace ns1 = Namespace.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test1")
-                        .cluster("local")
-                        .build())
-                .build();
-
-        Namespace ns2 = Namespace.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test2")
-                        .cluster("local")
-                        .build())
-                .build();
-
-        KafkaStream stream1 = KafkaStream.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test_stream1")
-                        .namespace("test1")
-                        .cluster("local")
-                        .build())
-                .build();
-
-        KafkaStream stream3 = KafkaStream.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test_stream3")
-                        .namespace("test3")
-                        .cluster("local")
-                        .build())
-                .build();
-
-        when(streamRepository.findAllForCluster(any())).thenReturn(List.of(stream1, stream3));
-
-        assertTrue(streamService.hasKafkaStream(ns1));
-        assertFalse(streamService.hasKafkaStream(ns2));
-    }
-
-    @Test
     void shouldDeleteKafkaStreamAndRelatedTopics() throws Exception {
         Namespace namespace = Namespace.builder()
                 .metadata(

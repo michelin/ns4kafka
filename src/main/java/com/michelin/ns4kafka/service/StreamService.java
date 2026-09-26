@@ -155,19 +155,6 @@ public class StreamService {
     }
 
     /**
-     * Check if the namespace has any Kafka Stream.
-     *
-     * @param namespace The namespace
-     * @return true if the namespace has Kafka Stream, false otherwise
-     */
-    public boolean hasKafkaStream(Namespace namespace) {
-        return streamRepository.findAllForCluster(namespace.getMetadata().getCluster()).stream()
-                .anyMatch(stream -> stream.getMetadata()
-                        .getNamespace()
-                        .equals(namespace.getMetadata().getName()));
-    }
-
-    /**
      * Create a given Kafka Stream.
      *
      * @param stream The Kafka Stream to create
