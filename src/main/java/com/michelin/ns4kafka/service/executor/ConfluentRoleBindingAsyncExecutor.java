@@ -549,6 +549,7 @@ public class ConfluentRoleBindingAsyncExecutor {
     private boolean isUnchangedSinceLastApply(AccessControlEntry acl) {
         Optional<AccessControlEntry> existingAcl = aclService.findByName(
                 acl.getMetadata().getNamespace(), acl.getMetadata().getName());
+
         return existingAcl.isPresent()
                 && (existingAcl.get().getMetadata().getUpdateTimestamp() == null
                         || (acl.getMetadata().getUpdateTimestamp() != null

@@ -56,7 +56,6 @@ import org.apache.kafka.common.config.ConfigResource;
 @EachBean(ManagedClusterProperties.class)
 @Singleton
 public class TopicAsyncExecutor {
-    public static final String ERROR = "Error.";
 
     private final ManagedClusterProperties managedClusterProperties;
     private final TopicRepository topicRepository;
@@ -253,7 +252,7 @@ public class TopicAsyncExecutor {
                         topicToCreate.getMetadata().getName(),
                         managedClusterProperties.getName());
             } catch (InterruptedException e) {
-                log.error(ERROR, e);
+                log.error("Error.", e);
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
                 topicToCreate
@@ -300,7 +299,7 @@ public class TopicAsyncExecutor {
                         key.name(),
                         managedClusterProperties.getName());
             } catch (InterruptedException e) {
-                log.error(ERROR, e);
+                log.error("Error.", e);
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
                 updatedTopic

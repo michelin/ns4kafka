@@ -268,6 +268,26 @@ class AccessControlEntryAsyncExecutorTest {
         verify(aclService, never()).findByName("ns1", "ns1-orphan-acl");
     }
 
+    @Test
+    void shouldCreatePublicAclWhenClusterOnlyManagesRbac() {
+        AccessControlEntry publicAcl = buildAcl(Resource.Metadata.Status.ofPending());
+        publicAcl.getSpec().setGrantedTo("*");
+        AclBinding publicAclBinding = new AclBinding(
+                new ResourcePattern(ResourceType.TOPIC, "ns1-", PatternType.PREFIXED),
+                new org.apache.kafka.common.acl.AccessControlEntry(
+                        "User:*", "*", AclOperation.READ, AclPermissionType.ALLOW));
+
+        stubSynchronization(false, List.of(), List.of(publicAcl), List.of());
+        stubAclCreation(Map.of());
+        when(managedClusterProperties.isManageRbac()).thenReturn(true);
+        when(aclService.findByName("ns1", "ns1-acl")).thenReturn(Optional.of(publicAcl));
+
+        aclAsyncExecutor.run();
+
+        verify(adminClient).createAcls(List.of(publicAclBinding));
+        verify(aclService).create(argThat(a -> a == publicAcl && a.isSuccess()));
+    }
+
     static Stream<Resource.Metadata.Status> unresolvedStatuses() {
         return Stream.of(Resource.Metadata.Status.ofPending(), Resource.Metadata.Status.ofFailed("error"), null);
     }
@@ -318,10 +338,16 @@ class AccessControlEntryAsyncExecutorTest {
         when(streamService.findAllForCluster("local")).thenReturn(kafkaStreams);
 
         if (!acls.isEmpty()) {
-            when(aclService.isPublicAcl(any())).thenReturn(false);
+            when(aclService.isPublicAcl(any()))
+                    .thenAnswer(invocation -> "*"
+                            .equals(invocation
+                                    .<AccessControlEntry>getArgument(0)
+                                    .getSpec()
+                                    .getGrantedTo()));
         }
 
-        if (!acls.isEmpty() || !kafkaStreams.isEmpty()) {
+        // Public ACLs are converted without looking up a namespace
+        if (acls.stream().anyMatch(acl -> !"*".equals(acl.getSpec().getGrantedTo())) || !kafkaStreams.isEmpty()) {
             when(namespaceRepository.findByName("ns1")).thenReturn(Optional.of(namespace));
         }
     }

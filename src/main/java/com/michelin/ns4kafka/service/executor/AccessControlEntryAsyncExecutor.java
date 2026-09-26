@@ -21,7 +21,6 @@ package com.michelin.ns4kafka.service.executor;
 import static com.michelin.ns4kafka.model.AccessControlEntry.ResourceType.CONNECT;
 import static com.michelin.ns4kafka.model.AccessControlEntry.ResourceType.GROUP;
 import static com.michelin.ns4kafka.model.AccessControlEntry.ResourceType.TOPIC;
-import static com.michelin.ns4kafka.service.AclService.PUBLIC_GRANTED_TO;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.KafkaStream;
@@ -37,7 +36,6 @@ import jakarta.inject.Singleton;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -133,7 +131,6 @@ public class AccessControlEntryAsyncExecutor {
                     .filter(aclBinding -> !brokerAcls.contains(aclBinding))
                     .toList();
 
-            Set<AclBinding> created = new HashSet<>();
             Map<AclBinding, String> creationErrors = new HashMap<>();
 
             if (!toCreate.isEmpty()) {
@@ -144,21 +141,19 @@ public class AccessControlEntryAsyncExecutor {
 
                 Map<Boolean, List<AclBinding>> partitions = toCreate.stream()
                         .collect(Collectors.partitioningBy(aclBinding ->
-                                PUBLIC_GRANTED_TO.equals(aclBinding.entry().principal())));
+                                USER_PRINCIPAL_PUBLIC.equals(aclBinding.entry().principal())));
 
                 // Create Kafka ACL only for public ACLs because not possible with Confluent role bindings
                 List<AclBinding> publicAclsToCreate = partitions.get(true);
-                createAcls(publicAclsToCreate, created, creationErrors);
+                createAcls(publicAclsToCreate, creationErrors);
 
                 if (managedClusterProperties.isManageAcls()) {
                     List<AclBinding> nonPublicAclsToCreate = partitions.get(false);
-                    createAcls(nonPublicAclsToCreate, created, creationErrors);
+                    createAcls(nonPublicAclsToCreate, creationErrors);
                 }
             }
 
-            Set<AclBinding> deployed = new HashSet<>(brokerAcls);
-            deployed.addAll(created);
-            updateStatuses(ns4KafkaAclsByResource, deployed, created, creationErrors);
+            updateStatuses(ns4KafkaAclsByResource, toCreate, creationErrors);
 
             if (managedClusterProperties.isManageAcls() && managedClusterProperties.isDropUnsyncAcls()) {
                 List<AclBinding> toDelete = brokerAcls.stream()
@@ -243,21 +238,19 @@ public class AccessControlEntryAsyncExecutor {
      * Update the status of the Ns4Kafka ACLs and Kafka Streams deployed by this executor.
      *
      * @param ns4KafkaAcls The Kafka ACLs by ACL or Kafka Stream
-     * @param deployed The Kafka ACLs existing on the broker
-     * @param created The Kafka ACLs created during this synchronization
+     * @param toCreate The Kafka ACLs that had to be created
      * @param creationErrors The error message of each Kafka ACL that could not be created
      */
     private void updateStatuses(
             Map<Resource, List<AclBinding>> ns4KafkaAcls,
-            Set<AclBinding> deployed,
-            Set<AclBinding> created,
+            List<AclBinding> toCreate,
             Map<AclBinding, String> creationErrors) {
         // Non-public ACLs and Kafka Streams are handled by the Confluent role binding executor
         // when the cluster does not manage ACLs
         ns4KafkaAcls.entrySet().stream()
                 .filter(entry -> managedClusterProperties.isManageAcls()
                         || (entry.getKey() instanceof AccessControlEntry acl && aclService.isPublicAcl(acl)))
-                .forEach(entry -> updateStatus(entry.getKey(), entry.getValue(), deployed, created, creationErrors));
+                .forEach(entry -> updateStatus(entry.getKey(), entry.getValue(), toCreate, creationErrors));
     }
 
     /**
@@ -265,28 +258,21 @@ public class AccessControlEntryAsyncExecutor {
      *
      * @param resource The ACL or Kafka Stream
      * @param aclBindings The Kafka ACLs of the resource
-     * @param deployed The Kafka ACLs existing on the broker
-     * @param created The Kafka ACLs created during this synchronization
+     * @param toCreate The Kafka ACLs that had to be created
      * @param creationErrors The error message of each Kafka ACL that could not be created
      */
     private void updateStatus(
             Resource resource,
             List<AclBinding> aclBindings,
-            Set<AclBinding> deployed,
-            Set<AclBinding> created,
+            List<AclBinding> toCreate,
             Map<AclBinding, String> creationErrors) {
         Optional<String> creationError = aclBindings.stream()
                 .filter(creationErrors::containsKey)
                 .map(creationErrors::get)
                 .findFirst();
 
-        // Not deployed yet
-        if (creationError.isEmpty() && !deployed.containsAll(aclBindings)) {
-            return;
-        }
-
         // Kafka ACLs already exist and the status is up to date
-        if (creationError.isEmpty() && aclBindings.stream().noneMatch(created::contains) && resource.isSuccess()) {
+        if (creationError.isEmpty() && aclBindings.stream().noneMatch(toCreate::contains) && resource.isSuccess()) {
             return;
         }
 
@@ -300,43 +286,56 @@ public class AccessControlEntryAsyncExecutor {
                         .orElseGet(Resource.Metadata.Status::ofSuccess));
 
         // Do not overwrite a resource deleted or reapplied since it was read
-        if (resource instanceof AccessControlEntry acl
-                && isUnchangedSinceLastApply(
-                        acl,
-                        aclService.findByName(
-                                acl.getMetadata().getNamespace(),
-                                acl.getMetadata().getName()))) {
+        if (resource instanceof AccessControlEntry acl && isUnchangedSinceLastApply(acl)) {
             aclService.create(acl);
             return;
         }
 
-        if (resource instanceof KafkaStream ks
-                && isUnchangedSinceLastApply(
-                        ks,
-                        namespaceRepository
-                                .findByName(ks.getMetadata().getNamespace())
-                                .flatMap(namespace -> streamService.findByName(
-                                        namespace, ks.getMetadata().getName())))) {
+        if (resource instanceof KafkaStream ks && isUnchangedSinceLastApply(ks)) {
             streamService.create(ks);
         }
     }
 
     /**
-     * Check the resource has been neither deleted nor reapplied since it was read.
+     * Check the ACL has been neither deleted nor reapplied since it was read.
      *
-     * @param resource The synchronized resource
-     * @param existingResource The resource currently stored
+     * @param acl The synchronized ACL
      * @return True if unchanged, false otherwise
      */
-    private boolean isUnchangedSinceLastApply(Resource resource, Optional<? extends Resource> existingResource) {
-        return existingResource.isPresent()
-                && (existingResource.get().getMetadata().getUpdateTimestamp() == null
-                        || (resource.getMetadata().getUpdateTimestamp() != null
-                                && !existingResource
+    private boolean isUnchangedSinceLastApply(AccessControlEntry acl) {
+        Optional<AccessControlEntry> existingAcl = aclService.findByName(
+                acl.getMetadata().getNamespace(), acl.getMetadata().getName());
+
+        return existingAcl.isPresent()
+                && (existingAcl.get().getMetadata().getUpdateTimestamp() == null
+                        || (acl.getMetadata().getUpdateTimestamp() != null
+                                && !existingAcl
                                         .get()
                                         .getMetadata()
                                         .getUpdateTimestamp()
-                                        .after(resource.getMetadata().getUpdateTimestamp())));
+                                        .after(acl.getMetadata().getUpdateTimestamp())));
+    }
+
+    /**
+     * Check the Kafka Stream has been neither deleted nor reapplied since it was read.
+     *
+     * @param kafkaStream The synchronized Kafka Stream
+     * @return True if unchanged, false otherwise
+     */
+    private boolean isUnchangedSinceLastApply(KafkaStream kafkaStream) {
+        Optional<KafkaStream> existingStream = namespaceRepository
+                .findByName(kafkaStream.getMetadata().getNamespace())
+                .flatMap(namespace -> streamService.findByName(
+                        namespace, kafkaStream.getMetadata().getName()));
+
+        return existingStream.isPresent()
+                && (existingStream.get().getMetadata().getUpdateTimestamp() == null
+                        || (kafkaStream.getMetadata().getUpdateTimestamp() != null
+                                && !existingStream
+                                        .get()
+                                        .getMetadata()
+                                        .getUpdateTimestamp()
+                                        .after(kafkaStream.getMetadata().getUpdateTimestamp())));
     }
 
     /**
@@ -627,18 +626,17 @@ public class AccessControlEntryAsyncExecutor {
      * Create a given list of ACLs.
      *
      * @param toCreate The list of ACLs to create
-     * @param created The ACLs successfully created
      * @param creationErrors The error message of each ACL that could not be created
      */
-    private void createAcls(
-            List<AclBinding> toCreate, Set<AclBinding> created, Map<AclBinding, String> creationErrors) {
+    private void createAcls(List<AclBinding> toCreate, Map<AclBinding, String> creationErrors) {
         getAdminClient().createAcls(toCreate).values().forEach((key, value) -> {
             try {
                 value.get(managedClusterProperties.getTimeout().getAcl().getCreate(), TimeUnit.MILLISECONDS);
-                created.add(key);
                 log.info("Success creating ACL {} on cluster {}.", key, managedClusterProperties.getName());
             } catch (InterruptedException e) {
                 log.error("Error.", e);
+                // Not known to be created, so the ACL must not be marked as success
+                creationErrors.put(key, "Interrupted while creating ACL");
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
                 creationErrors.put(

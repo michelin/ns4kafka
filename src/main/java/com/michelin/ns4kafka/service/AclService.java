@@ -342,7 +342,8 @@ public class AclService {
                         .equals(accessControlEntry.getMetadata().getCluster()))
                 .findFirst();
 
-        if (aclCluster.isPresent() && aclCluster.get().isManageAcls()) {
+        // Public ACLs are Kafka ACLs, even when the cluster manages Confluent role bindings
+        if (aclCluster.isPresent() && (aclCluster.get().isManageAcls() || isPublicAcl(accessControlEntry))) {
             accessControlEntryAsyncExecutor.deleteAcl(accessControlEntry);
             accessControlEntryRepository.delete(accessControlEntry);
             return;
