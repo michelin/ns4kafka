@@ -102,6 +102,77 @@ class AccessControlEntryAsyncExecutorTest {
     AccessControlEntryAsyncExecutor aclAsyncExecutor;
 
     @Test
+    void shouldSynchronizeAclsBasedOnBrokerStateRegardlessOfStatus() {
+        Namespace namespace = Namespace.builder()
+                .metadata(
+                        Resource.Metadata.builder().name("ns1").cluster("local").build())
+                .spec(Namespace.NamespaceSpec.builder().kafkaUser("user1").build())
+                .build();
+
+        AccessControlEntry acl = AccessControlEntry.builder()
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .namespace("ns1")
+                        .name("ns1-acl")
+                        .status(Resource.Metadata.Status.ofSuccess())
+                        .updateTimestamp(Date.from(INSTANT))
+                        .generation(1)
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resource("ns1-")
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.READ)
+                        .grantedTo("ns1")
+                        .build())
+                .build();
+        KafkaStream kafkaStream = KafkaStream.builder()
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .namespace("ns1")
+                        .name("ns1-stream")
+                        .status(Resource.Metadata.Status.ofSuccess())
+                        .updateTimestamp(Date.from(INSTANT))
+                        .generation(1)
+                        .build())
+                .build();
+
+        when(managedClusterProperties.getName()).thenReturn("local");
+        when(managedClusterProperties.isManageAcls()).thenReturn(true);
+        when(managedClusterProperties.getTimeout()).thenReturn(new ManagedClusterProperties.TimeoutProperties());
+        when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
+        when(adminClient.describeAcls(any())).thenReturn(describeAclsResult);
+        when(describeAclsResult.values()).thenReturn(KafkaFuture.completedFuture(List.of()));
+        when(namespaceRepository.findAllForCluster("local")).thenReturn(List.of(namespace));
+        when(aclService.findAllForCluster("local")).thenReturn(List.of(acl));
+        when(streamService.findAllForCluster("local")).thenReturn(List.of(kafkaStream));
+        when(aclService.isPublicAcl(any())).thenReturn(false);
+        when(namespaceRepository.findByName("ns1")).thenReturn(Optional.of(namespace));
+        when(adminClient.createAcls(anyCollection())).thenAnswer(invocation -> {
+            when(createAclsResult.values())
+                    .thenReturn(invocation.<Collection<AclBinding>>getArgument(0).stream()
+                            .collect(Collectors.toMap(
+                                    Function.identity(), _ -> KafkaFuture.<Void>completedFuture(null))));
+            return createAclsResult;
+        });
+        when(aclService.findByName("ns1", "ns1-acl")).thenReturn(Optional.of(acl));
+        when(streamService.findByName(namespace, "ns1-stream")).thenReturn(Optional.of(kafkaStream));
+
+        aclAsyncExecutor.run();
+
+        verify(adminClient)
+                .createAcls(argThat(acls -> acls.size() == 3
+                        && acls.containsAll(
+                                List.of(READ_ACL_BINDING, STREAM_CREATE_ACL_BINDING, STREAM_DELETE_ACL_BINDING))));
+        verify(aclService)
+                .create(argThat(
+                        a -> a == acl && a.isSuccess() && a.getMetadata().getGeneration() == 2));
+        verify(streamService)
+                .create(argThat(ks ->
+                        ks == kafkaStream && ks.isSuccess() && ks.getMetadata().getGeneration() == 2));
+    }
+
+    @Test
     void shouldConvertPublicAcl() {
         AccessControlEntry acl = AccessControlEntry.builder()
                 .metadata(Resource.Metadata.builder()
@@ -287,6 +358,43 @@ class AccessControlEntryAsyncExecutorTest {
     }
 
     @Test
+    void shouldMarkKafkaStreamAsSuccessWhenAclsOnBroker() {
+        Namespace namespace = Namespace.builder()
+                .metadata(
+                        Resource.Metadata.builder().name("ns1").cluster("local").build())
+                .spec(Namespace.NamespaceSpec.builder().kafkaUser("user1").build())
+                .build();
+
+        KafkaStream kafkaStream = KafkaStream.builder()
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .namespace("ns1")
+                        .name("ns1-stream")
+                        .status(Resource.Metadata.Status.ofPending())
+                        .updateTimestamp(Date.from(INSTANT))
+                        .generation(0)
+                        .build())
+                .build();
+
+        when(managedClusterProperties.getName()).thenReturn("local");
+        when(managedClusterProperties.isManageAcls()).thenReturn(true);
+        when(managedClusterProperties.getTimeout()).thenReturn(new ManagedClusterProperties.TimeoutProperties());
+        when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
+        when(adminClient.describeAcls(any())).thenReturn(describeAclsResult);
+        when(describeAclsResult.values())
+                .thenReturn(KafkaFuture.completedFuture(List.of(STREAM_CREATE_ACL_BINDING, STREAM_DELETE_ACL_BINDING)));
+        when(namespaceRepository.findAllForCluster("local")).thenReturn(List.of(namespace));
+        when(aclService.findAllForCluster("local")).thenReturn(List.of());
+        when(streamService.findAllForCluster("local")).thenReturn(List.of(kafkaStream));
+        when(namespaceRepository.findByName("ns1")).thenReturn(Optional.of(namespace));
+        when(streamService.findByName(namespace, "ns1-stream")).thenReturn(Optional.of(kafkaStream));
+
+        aclAsyncExecutor.run();
+
+        verify(streamService).create(argThat(ks -> ks == kafkaStream && ks.isSuccess()));
+    }
+
+    @Test
     void shouldNotPersistAclWhenSuccessAndAlreadyOnBroker() {
         Namespace namespace = Namespace.builder()
                 .metadata(
@@ -328,43 +436,6 @@ class AccessControlEntryAsyncExecutorTest {
 
         verify(aclService, never()).findByName(any(), any());
         verify(aclService, never()).create(any());
-    }
-
-    @Test
-    void shouldMarkKafkaStreamAsSuccessWhenAclsOnBroker() {
-        Namespace namespace = Namespace.builder()
-                .metadata(
-                        Resource.Metadata.builder().name("ns1").cluster("local").build())
-                .spec(Namespace.NamespaceSpec.builder().kafkaUser("user1").build())
-                .build();
-
-        KafkaStream kafkaStream = KafkaStream.builder()
-                .metadata(Resource.Metadata.builder()
-                        .cluster("local")
-                        .namespace("ns1")
-                        .name("ns1-stream")
-                        .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(INSTANT))
-                        .generation(0)
-                        .build())
-                .build();
-
-        when(managedClusterProperties.getName()).thenReturn("local");
-        when(managedClusterProperties.isManageAcls()).thenReturn(true);
-        when(managedClusterProperties.getTimeout()).thenReturn(new ManagedClusterProperties.TimeoutProperties());
-        when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
-        when(adminClient.describeAcls(any())).thenReturn(describeAclsResult);
-        when(describeAclsResult.values())
-                .thenReturn(KafkaFuture.completedFuture(List.of(STREAM_CREATE_ACL_BINDING, STREAM_DELETE_ACL_BINDING)));
-        when(namespaceRepository.findAllForCluster("local")).thenReturn(List.of(namespace));
-        when(aclService.findAllForCluster("local")).thenReturn(List.of());
-        when(streamService.findAllForCluster("local")).thenReturn(List.of(kafkaStream));
-        when(namespaceRepository.findByName("ns1")).thenReturn(Optional.of(namespace));
-        when(streamService.findByName(namespace, "ns1-stream")).thenReturn(Optional.of(kafkaStream));
-
-        aclAsyncExecutor.run();
-
-        verify(streamService).create(argThat(ks -> ks == kafkaStream && ks.isSuccess()));
     }
 
     @Test
@@ -487,51 +558,6 @@ class AccessControlEntryAsyncExecutorTest {
     }
 
     @Test
-    void shouldNotUpdateNonPublicAclStatusWhenClusterDoesNotManageAcls() {
-        Namespace namespace = Namespace.builder()
-                .metadata(
-                        Resource.Metadata.builder().name("ns1").cluster("local").build())
-                .spec(Namespace.NamespaceSpec.builder().kafkaUser("user1").build())
-                .build();
-
-        AccessControlEntry acl = AccessControlEntry.builder()
-                .metadata(Resource.Metadata.builder()
-                        .cluster("local")
-                        .namespace("ns1")
-                        .name("ns1-acl")
-                        .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(INSTANT))
-                        .generation(0)
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resource("ns1-")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.READ)
-                        .grantedTo("ns1")
-                        .build())
-                .build();
-
-        when(managedClusterProperties.getName()).thenReturn("local");
-        when(managedClusterProperties.isManageAcls()).thenReturn(false);
-        when(managedClusterProperties.getTimeout()).thenReturn(new ManagedClusterProperties.TimeoutProperties());
-        when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
-        when(adminClient.describeAcls(any())).thenReturn(describeAclsResult);
-        when(describeAclsResult.values()).thenReturn(KafkaFuture.completedFuture(List.of(READ_ACL_BINDING)));
-        when(namespaceRepository.findAllForCluster("local")).thenReturn(List.of(namespace));
-        when(aclService.findAllForCluster("local")).thenReturn(List.of(acl));
-        when(streamService.findAllForCluster("local")).thenReturn(List.of());
-        when(aclService.isPublicAcl(any())).thenReturn(false);
-        when(namespaceRepository.findByName("ns1")).thenReturn(Optional.of(namespace));
-        when(managedClusterProperties.isManageRbac()).thenReturn(true);
-
-        aclAsyncExecutor.run();
-
-        verify(aclService, never()).findByName(any(), any());
-        verify(aclService, never()).create(any());
-    }
-
-    @Test
     void shouldSkipAclsGrantedToDeletedNamespaces() {
         Namespace namespace = Namespace.builder()
                 .metadata(
@@ -598,6 +624,51 @@ class AccessControlEntryAsyncExecutorTest {
 
         verify(adminClient).createAcls(argThat(acls -> acls.size() == 1 && acls.contains(READ_ACL_BINDING)));
         verify(aclService, never()).findByName("ns1", "ns1-orphan-acl");
+    }
+
+    @Test
+    void shouldNotUpdateNonPublicAclStatusWhenClusterDoesNotManageAcls() {
+        Namespace namespace = Namespace.builder()
+                .metadata(
+                        Resource.Metadata.builder().name("ns1").cluster("local").build())
+                .spec(Namespace.NamespaceSpec.builder().kafkaUser("user1").build())
+                .build();
+
+        AccessControlEntry acl = AccessControlEntry.builder()
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .namespace("ns1")
+                        .name("ns1-acl")
+                        .status(Resource.Metadata.Status.ofPending())
+                        .updateTimestamp(Date.from(INSTANT))
+                        .generation(0)
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resource("ns1-")
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.READ)
+                        .grantedTo("ns1")
+                        .build())
+                .build();
+
+        when(managedClusterProperties.getName()).thenReturn("local");
+        when(managedClusterProperties.isManageAcls()).thenReturn(false);
+        when(managedClusterProperties.getTimeout()).thenReturn(new ManagedClusterProperties.TimeoutProperties());
+        when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
+        when(adminClient.describeAcls(any())).thenReturn(describeAclsResult);
+        when(describeAclsResult.values()).thenReturn(KafkaFuture.completedFuture(List.of(READ_ACL_BINDING)));
+        when(namespaceRepository.findAllForCluster("local")).thenReturn(List.of(namespace));
+        when(aclService.findAllForCluster("local")).thenReturn(List.of(acl));
+        when(streamService.findAllForCluster("local")).thenReturn(List.of());
+        when(aclService.isPublicAcl(any())).thenReturn(false);
+        when(namespaceRepository.findByName("ns1")).thenReturn(Optional.of(namespace));
+        when(managedClusterProperties.isManageRbac()).thenReturn(true);
+
+        aclAsyncExecutor.run();
+
+        verify(aclService, never()).findByName(any(), any());
+        verify(aclService, never()).create(any());
     }
 
     @Test
