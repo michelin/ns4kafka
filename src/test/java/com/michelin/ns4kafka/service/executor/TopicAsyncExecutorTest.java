@@ -558,8 +558,8 @@ class TopicAsyncExecutorTest {
     }
 
     @ParameterizedTest
-    @MethodSource("unresolvedStatuses")
-    void shouldResolveStatusWhenNoConfigChanges(Resource.Metadata.Status status) throws Exception {
+    @MethodSource("failedOrLegacyStatuses")
+    void shouldMarkFailedOrLegacyTopicAsSuccessWhenNoConfigChanges(Resource.Metadata.Status status) throws Exception {
         Topic topic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
                         .cluster(LOCAL_CLUSTER)
@@ -599,7 +599,7 @@ class TopicAsyncExecutorTest {
                         && resolved.getMetadata().getGeneration() == 2));
     }
 
-    static Stream<Resource.Metadata.Status> unresolvedStatuses() {
+    static Stream<Resource.Metadata.Status> failedOrLegacyStatuses() {
         return Stream.of(Resource.Metadata.Status.ofFailed("Error"), null);
     }
 
