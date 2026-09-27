@@ -176,9 +176,7 @@ public class TopicController extends NamespacedResourceController {
             throw new ResourceValidationException(topic, validationErrors);
         }
 
-        ApplyStatus status = existingTopic.isPresent() && existingTopic.get().isCreated()
-                ? ApplyStatus.CHANGED
-                : ApplyStatus.CREATED;
+        ApplyStatus status = existingTopic.isPresent() ? ApplyStatus.CHANGED : ApplyStatus.CREATED;
 
         if (dryrun) {
             return formatHttpResponse(topic, status, validationWarnings);
@@ -186,8 +184,6 @@ public class TopicController extends NamespacedResourceController {
 
         sendEventLog(
                 topic, status, existingTopic.<Object>map(Topic::getSpec).orElse(null), topic.getSpec(), EMPTY_STRING);
-
-        topic.getMetadata().setStatus(Resource.Metadata.Status.ofPending());
 
         return formatHttpResponse(topicService.create(topic), status, validationWarnings);
     }

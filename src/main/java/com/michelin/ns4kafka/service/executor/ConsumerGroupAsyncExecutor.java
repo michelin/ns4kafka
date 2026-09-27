@@ -122,11 +122,11 @@ public class ConsumerGroupAsyncExecutor {
                 .all()
                 .get();
 
-        log.info("Consumer group {} changed offset", consumerGroupId);
+        log.info("Consumer group {} changed offset.", consumerGroupId);
 
         if (log.isDebugEnabled()) {
             preparedOffsets.forEach((topicPartition, offset) ->
-                    log.debug("Topic-Partition {} has the new offset {}", topicPartition, offset));
+                    log.debug("Topic-Partition {} has the new offset {}.", topicPartition, offset));
         }
     }
 

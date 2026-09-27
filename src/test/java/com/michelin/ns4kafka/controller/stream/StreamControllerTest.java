@@ -281,7 +281,7 @@ class StreamControllerTest {
     }
 
     @Test
-    void shouldChangeStreamWhenExistingFailedEvenIfUnchanged() {
+    void shouldNotChangeStreamWhenExistingFailedAndUnchanged() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test")
@@ -296,6 +296,7 @@ class StreamControllerTest {
         KafkaStream failedStream = KafkaStream.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("test_stream1")
+                        .namespace("test")
                         .cluster("local")
                         .status(Resource.Metadata.Status.ofFailed("Role binding creation failed"))
                         .build())
@@ -304,14 +305,11 @@ class StreamControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(streamService.isNamespaceOwnerOfKafkaStream(ns, "test_stream1")).thenReturn(true);
         when(streamService.findByName(ns, "test_stream1")).thenReturn(Optional.of(failedStream));
-        when(securityService.username()).thenReturn(Optional.of("test-user"));
-        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
-        doNothing().when(applicationEventPublisher).publishEvent(any());
-        when(streamService.create(stream)).thenReturn(stream);
 
         HttpResponse<KafkaStream> response = streamController.apply("test", stream, false);
 
-        assertEquals("changed", response.header("X-Ns4kafka-Result"));
+        assertEquals("unchanged", response.header("X-Ns4kafka-Result"));
+        verify(streamService, never()).create(any());
     }
 
     @Test

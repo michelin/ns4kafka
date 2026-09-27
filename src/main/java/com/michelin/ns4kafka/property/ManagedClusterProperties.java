@@ -41,7 +41,6 @@ public class ManagedClusterProperties {
     private boolean manageUsers;
     private boolean manageRbac;
     private boolean dropUnsyncAcls = true;
-    private boolean syncKstreamTopics;
     private TimeoutProperties timeout = new TimeoutProperties();
     private KafkaProvider provider;
     private Properties config;
@@ -117,7 +116,6 @@ public class ManagedClusterProperties {
         private String organizationId;
         private String environmentId;
         private String clusterId;
-        private String url;
         private String basicAuthUsername;
         private String basicAuthPassword;
     }

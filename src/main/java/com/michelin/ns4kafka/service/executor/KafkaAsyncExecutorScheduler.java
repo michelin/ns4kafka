@@ -43,6 +43,7 @@ public class KafkaAsyncExecutorScheduler {
     private final List<UserAsyncExecutor> userAsyncExecutors;
     private final Ns4KafkaProperties.SchedulerProperties schedulerProperties;
     private Disposable connectorSyncDisposable;
+    private Disposable roleBindingSyncDisposable;
 
     /**
      * Constructor.
@@ -77,6 +78,7 @@ public class KafkaAsyncExecutorScheduler {
     public void onStartupEvent(ApplicationStartupEvent event) {
         ready.compareAndSet(false, true);
         connectorSyncDisposable = scheduleConnectorSynchronization();
+        roleBindingSyncDisposable = scheduleRoleBindingSynchronization();
     }
 
     /** Schedule resource synchronization. */
@@ -85,7 +87,6 @@ public class KafkaAsyncExecutorScheduler {
         if (ready.get()) {
             topicAsyncExecutors.forEach(TopicAsyncExecutor::run);
             accessControlEntryAsyncExecutors.forEach(AccessControlEntryAsyncExecutor::run);
-            confluentRoleBindingAsyncExecutors.forEach(ConfluentRoleBindingAsyncExecutor::run);
             userAsyncExecutors.forEach(UserAsyncExecutor::run);
             return;
         }
@@ -107,9 +108,28 @@ public class KafkaAsyncExecutorScheduler {
                 .concatMap(_ -> Flux.fromIterable(connectorAsyncExecutors)
                         .flatMap(ConnectorAsyncExecutor::run, connectorAsyncExecutors.size()))
                 .onErrorContinue((error, _) ->
-                        log.trace("Continue connector synchronization after error: {}.", error.getMessage()))
+                        log.error("Continue connector synchronization after error: {}.", error.getMessage()))
                 .subscribe(connectorInfo ->
                         log.trace("Synchronization completed for connector \"{}\".", connectorInfo.name()));
+    }
+
+    /**
+     * Schedule Confluent role binding synchronization.
+     *
+     * @return A disposable to manage the scheduled task
+     */
+    public Disposable scheduleRoleBindingSynchronization() {
+        return Flux.interval(
+                        Duration.ofSeconds(12),
+                        Duration.ofMillis(schedulerProperties.getRoleBinding().getIntervalMs()))
+                .onBackpressureDrop(_ ->
+                        log.debug("Skipping next role binding synchronization. The previous one is still running."))
+                .concatMap(_ -> Flux.fromIterable(confluentRoleBindingAsyncExecutors)
+                        .flatMap(
+                                ConfluentRoleBindingAsyncExecutor::run,
+                                Math.max(1, confluentRoleBindingAsyncExecutors.size())))
+                .onErrorContinue((error, _) -> log.error("Continue role binding synchronization after error.", error))
+                .subscribe();
     }
 
     /** Dispose the schedulers when the application is shutting down. */
@@ -117,6 +137,10 @@ public class KafkaAsyncExecutorScheduler {
     public void onDestroy() {
         if (connectorSyncDisposable != null && !connectorSyncDisposable.isDisposed()) {
             connectorSyncDisposable.dispose();
+        }
+
+        if (roleBindingSyncDisposable != null && !roleBindingSyncDisposable.isDisposed()) {
+            roleBindingSyncDisposable.dispose();
         }
     }
 }

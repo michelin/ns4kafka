@@ -316,39 +316,6 @@ class StreamServiceTest {
     }
 
     @Test
-    void shouldFindAllToDeployForCluster() {
-        KafkaStream stream1 = KafkaStream.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test_stream1")
-                        .namespace("test")
-                        .cluster("local")
-                        .build())
-                .build();
-        KafkaStream stream2 = KafkaStream.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test_stream2")
-                        .namespace("test")
-                        .cluster("local")
-                        .status(Resource.Metadata.Status.ofPending())
-                        .build())
-                .build();
-        KafkaStream stream3 = KafkaStream.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test_stream3")
-                        .namespace("test")
-                        .cluster("local")
-                        .build())
-                .build();
-
-        when(streamRepository.findAllForCluster("local")).thenReturn(List.of(stream1, stream2, stream3));
-
-        List<KafkaStream> actual = streamService.findAllToDeployForCluster("local");
-
-        assertEquals(1, actual.size());
-        assertTrue(actual.contains(stream2));
-    }
-
-    @Test
     void shouldNamespaceBeOwnerOfStreams() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
@@ -437,44 +404,6 @@ class StreamServiceTest {
     }
 
     @Test
-    void shouldNamespaceHaveKafkaStreams() {
-        Namespace ns1 = Namespace.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test1")
-                        .cluster("local")
-                        .build())
-                .build();
-
-        Namespace ns2 = Namespace.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test2")
-                        .cluster("local")
-                        .build())
-                .build();
-
-        KafkaStream stream1 = KafkaStream.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test_stream1")
-                        .namespace("test1")
-                        .cluster("local")
-                        .build())
-                .build();
-
-        KafkaStream stream3 = KafkaStream.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("test_stream3")
-                        .namespace("test3")
-                        .cluster("local")
-                        .build())
-                .build();
-
-        when(streamRepository.findAllForCluster(any())).thenReturn(List.of(stream1, stream3));
-
-        assertTrue(streamService.hasKafkaStream(ns1));
-        assertFalse(streamService.hasKafkaStream(ns2));
-    }
-
-    @Test
     void shouldDeleteKafkaStreamAndRelatedTopics() throws Exception {
         Namespace namespace = Namespace.builder()
                 .metadata(
@@ -555,7 +484,7 @@ class StreamServiceTest {
 
         streamService.delete(namespace, stream);
 
-        verify(aceAsyncExecutor).deleteKafkaStreams(namespace, stream);
+        verify(aceAsyncExecutor).deleteKafkaStreams(stream);
         verify(topicService)
                 .deleteTopics(argThat(topics -> topics.stream()
                                 .anyMatch(topic -> topic.getMetadata()
@@ -647,7 +576,7 @@ class StreamServiceTest {
 
         streamService.delete(namespace, stream);
 
-        verify(aceAsyncExecutor).deleteKafkaStreams(namespace, stream);
+        verify(aceAsyncExecutor).deleteKafkaStreams(stream);
         verify(confluentRoleBindingAsyncExecutor).deleteRoleBindingsFromKafkaStreams(List.of(stream));
         verify(streamRepository).delete(stream);
     }

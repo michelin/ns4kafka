@@ -24,4 +24,8 @@ import lombok.Builder;
 
 @Builder
 @Serdeable
-public record RoleBindingListResponse(List<RoleBindingResponse> data) {}
+public record RoleBindingListResponse(List<RoleBindingResponse> data, ListMetadata metadata) {
+    @Builder
+    @Serdeable
+    public record ListMetadata(String next) {}
+}

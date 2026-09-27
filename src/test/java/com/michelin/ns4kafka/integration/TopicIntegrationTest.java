@@ -268,6 +268,16 @@ class TopicIntegrationTest extends KafkaIntegrationTest {
 
         assertEquals(config.size(), valueToVerify.size());
         valueToVerify.forEach(entry -> assertEquals(config.get(entry.name()), entry.value()));
+
+        Topic createdTopic = ns4KafkaClient
+                .toBlocking()
+                .retrieve(
+                        HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/topics?name=ns1-topicFirstCreate")
+                                .bearerAuth(token),
+                        Argument.listOf(Topic.class))
+                .getFirst();
+
+        assertTrue(createdTopic.isSuccess());
     }
 
     @Test

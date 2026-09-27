@@ -122,10 +122,8 @@ public class StreamController extends NamespacedResourceController {
 
         assignResourceMetadata(stream, ns, existingStream.orElse(null));
 
-        if (existingStream.isPresent()
-                && !existingStream.get().isFailed()
-                && existingStream.get().equals(stream)) {
-            return formatHttpResponse(stream, ApplyStatus.UNCHANGED);
+        if (existingStream.isPresent() && existingStream.get().equals(stream)) {
+            return formatHttpResponse(existingStream.get(), ApplyStatus.UNCHANGED);
         }
 
         ApplyStatus status = existingStream.isPresent() ? ApplyStatus.CHANGED : ApplyStatus.CREATED;

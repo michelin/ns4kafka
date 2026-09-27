@@ -13,3 +13,4 @@ out/
 .classpath
 .factorypath
 src/main/resources/application-*.yml
+.docker/resources/**/*-local.yml

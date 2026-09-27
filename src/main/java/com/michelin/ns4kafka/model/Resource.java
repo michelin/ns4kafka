@@ -179,4 +179,17 @@ public class Resource {
     public boolean isCreated() {
         return (metadata != null && metadata.getGeneration() > 0);
     }
+
+    /**
+     * Indicates whether the resource was last applied before or at the same time as the given one.
+     *
+     * @param read The resource read before
+     * @return {@code true} if older or equal, {@code false} otherwise
+     */
+    public boolean isOlderOrEqualTo(Resource read) {
+        return metadata.getUpdateTimestamp() == null
+                || (read.getMetadata().getUpdateTimestamp() != null
+                        && !metadata.getUpdateTimestamp()
+                                .after(read.getMetadata().getUpdateTimestamp()));
+    }
 }
