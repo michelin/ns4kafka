@@ -173,6 +173,16 @@ class AclIntegrationTest extends KafkaIntegrationTest {
         assertTrue(results.stream().findFirst().isPresent());
         assertEquals(expected, results.stream().findFirst().get());
 
+        AccessControlEntry createdAcl = ns4KafkaClient
+                .toBlocking()
+                .retrieve(
+                        HttpRequest.create(HttpMethod.GET, "/api/namespaces/ns1/acls?name=ns1-acl-topic")
+                                .bearerAuth(token),
+                        Argument.listOf(AccessControlEntry.class))
+                .getFirst();
+
+        assertTrue(createdAcl.isSuccess());
+
         // DELETE the ACL and verify
         ns4KafkaClient
                 .toBlocking()

@@ -598,9 +598,9 @@ The key must be 256 bits long (32 characters).
 
 #### HTTP Client
 
-Ns4Kafka includes multiple HTTP clients:
-- Confluent Cloud, for role bindings
-- GitLab, for authentication
+Ns4Kafka includes multiple HTTP clients, each requesting one of the following APIs:
+- Confluent Cloud
+- GitLab
 - Kafka Connect
 - Schema Registry
 

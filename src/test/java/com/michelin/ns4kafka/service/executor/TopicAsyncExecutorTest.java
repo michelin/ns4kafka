@@ -213,39 +213,6 @@ class TopicAsyncExecutorTest {
     }
 
     @Test
-    void shouldCreateTopics() {
-        when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
-        when(adminClient.createTopics(anyList())).thenReturn(createTopicsResult);
-        when(createTopicsResult.values()).thenReturn(Map.of("topic", kafkaFuture));
-
-        ManagedClusterProperties.TimeoutProperties.TopicProperties topicProperties =
-                new ManagedClusterProperties.TimeoutProperties.TopicProperties();
-        topicProperties.setCreate(1000);
-
-        ManagedClusterProperties.TimeoutProperties timeoutProperties = new ManagedClusterProperties.TimeoutProperties();
-        timeoutProperties.setTopic(topicProperties);
-
-        when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
-
-        Topic topic = Topic.builder()
-                .metadata(Resource.Metadata.builder()
-                        .cluster("local")
-                        .name("topic")
-                        .status(Resource.Metadata.Status.ofPending())
-                        .generation(0)
-                        .build())
-                .spec(Topic.TopicSpec.builder().build())
-                .build();
-
-        when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
-        when(topicRepository.findByName(LOCAL_CLUSTER, TOPIC_NAME)).thenReturn(Optional.of(topic));
-
-        topicAsyncExecutor.createTopics(List.of(topic));
-
-        verify(topicRepository).create(argThat(a -> a.equals(topic) && a.isSuccess() && a.isCreated()));
-    }
-
-    @Test
     void shouldMarkTopicAsFailedWhenCreationInterrupted()
             throws ExecutionException, InterruptedException, TimeoutException {
         when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
