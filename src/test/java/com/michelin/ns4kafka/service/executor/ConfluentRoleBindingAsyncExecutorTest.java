@@ -30,7 +30,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -54,7 +53,6 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -381,7 +379,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
         rbAsyncExecutor.deleteRoleBindingsFromAcls(List.of(acl, emptyResponseAcl));
 
         verify(confluentCloudClient).deleteRoleBinding("cluster", "rb-match");
-        verify(confluentCloudClient, times(1)).deleteRoleBinding(any(), anyString());
+        verify(confluentCloudClient).deleteRoleBinding(any(), anyString());
         verify(aclService, never()).create(any());
     }
 
@@ -502,7 +500,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
         rbAsyncExecutor.deleteRoleBindingsFromKafkaStreams(List.of(kafkaStream, emptyResponseKafkaStream));
 
         verify(confluentCloudClient).deleteRoleBinding("cluster", "rb-manage");
-        verify(confluentCloudClient, times(1)).deleteRoleBinding(any(), anyString());
+        verify(confluentCloudClient).deleteRoleBinding(any(), anyString());
         verify(streamService, never()).create(any());
     }
 
@@ -652,9 +650,9 @@ class ConfluentRoleBindingAsyncExecutorTest {
         rbAsyncExecutor.synchronizeRoleBindings().block();
 
         verify(confluentCloudClient).createRoleBinding("cluster", writeRoleBinding);
-        verify(confluentCloudClient, times(1)).createRoleBinding(any(), any());
+        verify(confluentCloudClient).createRoleBinding(any(), any());
         verify(confluentCloudClient).deleteRoleBinding("cluster", "rb-unsync");
-        verify(confluentCloudClient, times(1)).deleteRoleBinding(any(), anyString());
+        verify(confluentCloudClient).deleteRoleBinding(any(), anyString());
         verify(aclService)
                 .create(argThat(
                         a -> a == acl && a.isSuccess() && a.getMetadata().getGeneration() == 1));
@@ -933,7 +931,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
 
         rbAsyncExecutor.synchronizeRoleBindings().block();
 
-        verify(confluentCloudClient, times(1)).createRoleBinding("cluster", readRoleBinding);
+        verify(confluentCloudClient).createRoleBinding("cluster", readRoleBinding);
         verify(aclService).create(argThat(a -> a == acl1 && a.isSuccess()));
         verify(aclService).create(argThat(a -> a == acl2 && a.isSuccess()));
     }
@@ -1017,7 +1015,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
 
         rbAsyncExecutor.synchronizeRoleBindings().block();
 
-        verify(confluentCloudClient, times(1)).createRoleBinding(any(), any());
+        verify(confluentCloudClient).createRoleBinding(any(), any());
         verify(aclService, never()).findByName("ns1", "ns1-orphan-acl");
         verify(streamService, never()).findByName(any(), any());
     }
@@ -1080,9 +1078,61 @@ class ConfluentRoleBindingAsyncExecutorTest {
         verify(aclService, never()).create(any());
     }
 
-    @ParameterizedTest
-    @CsvSource({"deleted, false", "reapplied, false", "nullStoredTimestamp, true", "nullReadTimestamp, false"})
-    void shouldPersistOnlyWhenUnchangedSinceLastApply(String scenario, boolean shouldPersist) {
+    @Test
+    void shouldNotPersistAclDeletedDuringSynchronization() {
+        ManagedClusterProperties.ConfluentCloudProperties confluentCloudProperties =
+                new ManagedClusterProperties.ConfluentCloudProperties();
+        confluentCloudProperties.setOrganizationId("orgId");
+        confluentCloudProperties.setEnvironmentId("envId");
+        confluentCloudProperties.setClusterId("clusterId");
+
+        Namespace namespace = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1")
+                        .cluster("cluster")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder().kafkaUser("user1").build())
+                .build();
+
+        AccessControlEntry acl = AccessControlEntry.builder()
+                .metadata(Resource.Metadata.builder()
+                        .cluster("cluster")
+                        .name("ns1-acl")
+                        .namespace("ns1")
+                        .status(Resource.Metadata.Status.ofPending())
+                        .updateTimestamp(Date.from(instant))
+                        .generation(0)
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(TOPIC)
+                        .resource("ns1-")
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.WRITE)
+                        .grantedTo("ns1")
+                        .build())
+                .build();
+
+        when(managedClusterProperties.getName()).thenReturn("cluster");
+        when(managedClusterProperties.getConfluentCloud()).thenReturn(confluentCloudProperties);
+        when(managedClusterProperties.isDropUnsyncAcls()).thenReturn(true);
+        when(confluentCloudClient.listRoleBindings(
+                        "cluster", RoleBindingRequest.clusterCrnPattern(confluentCloudProperties) + "*"))
+                .thenReturn(Flux.empty());
+        when(aclService.findAllNonPublicForCluster("cluster")).thenReturn(List.of(acl));
+        when(streamService.findAllForCluster("cluster")).thenReturn(List.of());
+        when(namespaceRepository.findAllForCluster("cluster")).thenReturn(List.of(namespace));
+        when(namespaceRepository.findByName("ns1")).thenReturn(Optional.of(namespace));
+        when(confluentCloudClient.createRoleBinding(any(), any()))
+                .thenReturn(Mono.just(RoleBindingResponse.builder().build()));
+        when(aclService.findByName("ns1", "ns1-acl")).thenReturn(Optional.empty());
+
+        rbAsyncExecutor.synchronizeRoleBindings().block();
+
+        verify(aclService, never()).create(any());
+    }
+
+    @Test
+    void shouldNotPersistAclReappliedDuringSynchronization() {
         ManagedClusterProperties.ConfluentCloudProperties confluentCloudProperties =
                 new ManagedClusterProperties.ConfluentCloudProperties();
         confluentCloudProperties.setOrganizationId("orgId");
@@ -1120,7 +1170,7 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .name("ns1-acl")
                         .namespace("ns1")
                         .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(instant))
+                        .updateTimestamp(Date.from(instant.plusSeconds(1)))
                         .generation(0)
                         .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -1131,15 +1181,6 @@ class ConfluentRoleBindingAsyncExecutorTest {
                         .grantedTo("ns1")
                         .build())
                 .build();
-
-        switch (scenario) {
-            case "reapplied" -> storedAcl.getMetadata().setUpdateTimestamp(Date.from(instant.plusSeconds(1)));
-            case "nullStoredTimestamp" -> storedAcl.getMetadata().setUpdateTimestamp(null);
-            case "nullReadTimestamp" -> acl.getMetadata().setUpdateTimestamp(null);
-            default -> {
-                // Deleted
-            }
-        }
 
         when(managedClusterProperties.getName()).thenReturn("cluster");
         when(managedClusterProperties.getConfluentCloud()).thenReturn(confluentCloudProperties);
@@ -1153,12 +1194,11 @@ class ConfluentRoleBindingAsyncExecutorTest {
         when(namespaceRepository.findByName("ns1")).thenReturn(Optional.of(namespace));
         when(confluentCloudClient.createRoleBinding(any(), any()))
                 .thenReturn(Mono.just(RoleBindingResponse.builder().build()));
-        when(aclService.findByName("ns1", "ns1-acl"))
-                .thenReturn("deleted".equals(scenario) ? Optional.empty() : Optional.of(storedAcl));
+        when(aclService.findByName("ns1", "ns1-acl")).thenReturn(Optional.of(storedAcl));
 
         rbAsyncExecutor.synchronizeRoleBindings().block();
 
-        verify(aclService, times(shouldPersist ? 1 : 0)).create(argThat(a -> a == acl && a.isSuccess()));
+        verify(aclService, never()).create(any());
     }
 
     @Test

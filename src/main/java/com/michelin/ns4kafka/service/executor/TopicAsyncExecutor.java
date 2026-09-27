@@ -31,7 +31,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -387,17 +386,11 @@ public class TopicAsyncExecutor {
      * @return True if unchanged, false otherwise
      */
     private boolean isUnchangedSinceLastApply(Topic topic) {
-        Optional<Topic> existingTopic = topicRepository.findByName(
-                managedClusterProperties.getName(), topic.getMetadata().getName());
-
-        return existingTopic.isPresent()
-                && (existingTopic.get().getMetadata().getUpdateTimestamp() == null
-                        || (topic.getMetadata().getUpdateTimestamp() != null
-                                && !existingTopic
-                                        .get()
-                                        .getMetadata()
-                                        .getUpdateTimestamp()
-                                        .after(topic.getMetadata().getUpdateTimestamp())));
+        return topicRepository
+                .findByName(
+                        managedClusterProperties.getName(), topic.getMetadata().getName())
+                .map(existingTopic -> existingTopic.isOlderOrEqualTo(topic))
+                .orElse(false);
     }
 
     /**

@@ -396,7 +396,7 @@ This is the name you need to set in the `metadata.cluster` field of your namespa
 | manage-connectors                         | boolean | No       | Does the cluster manages connects (Default: false)                                                                   |
 | manage-topics                             | boolean | No       | Does the cluster manages topics (Default: false)                                                                     |
 | manage-users                              | boolean | No       | Does the cluster manages users (Default: false)                                                                      |
-| drop-unsync-acls                          | boolean | No       | Should unsynchronized acls be dropped (Default: true)                                                                |
+| drop-unsync-acls                          | boolean | No       | Should unsynchronized acls and Confluent RBAC be dropped (Default: true)                                             |
 | timeout.acl.create                        | int     | No       | The timeout in milliseconds used by the AdminClient to create acls (Default: 30000ms)                                |
 | timeout.acl.describe                      | int     | No       | The timeout in milliseconds used by the AdminClient to describe acls (Default: 30000ms)                              |
 | timeout.acl.delete                        | int     | No       | The timeout in milliseconds used by the AdminClient to delete acls (Default: 30000ms)                                |
@@ -630,12 +630,12 @@ micronaut:
         read-timeout: '10s'
 ```
 
-| Client                     | Description                                                                                                                                       |
-|----------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|
-| Confluent Cloud            | Client used to connect to the Confluent Cloud API.                                                                         |
-| GitLab                     | Client used to connect to GitLab for user authentication.                                                                                         |
-| Kafka Connect              | Client used to connect to Kafka Connect clusters to manage connectors.                                                                            |
-| Schema Registry            | Client used to connect to the Schema Registry to manage schemas.                                                                                  |
+| Client          | Description                                                            |
+|-----------------|------------------------------------------------------------------------|
+| Confluent Cloud | Client used to connect to the Confluent Cloud API.                     |
+| GitLab          | Client used to connect to GitLab for user authentication.              |
+| Kafka Connect   | Client used to connect to Kafka Connect clusters to manage connectors. |
+| Schema Registry | Client used to connect to the Schema Registry to manage schemas.       |
 
 ##### Retry
 

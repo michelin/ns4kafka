@@ -27,7 +27,6 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -91,6 +90,24 @@ class TopicAsyncExecutorTest {
 
     @Mock
     KafkaFuture<Void> kafkaFuture;
+
+    @Mock
+    DescribeTopicsResult describeTopicsResult;
+
+    @Mock
+    DescribeConfigsResult describeConfigsResult;
+
+    @Mock
+    TopicDescription topicDescription;
+
+    @Mock
+    TopicPartitionInfo partitionInfo;
+
+    @Mock
+    Config config;
+
+    @Mock
+    ConfigEntry configEntry;
 
     @InjectMocks
     TopicAsyncExecutor topicAsyncExecutor;
@@ -178,12 +195,6 @@ class TopicAsyncExecutorTest {
 
     @Test
     void shouldCollectBrokerTopicsFromNames() throws Exception {
-        DescribeTopicsResult describeTopicsResult = mock(DescribeTopicsResult.class);
-        DescribeConfigsResult describeConfigsResult = mock(DescribeConfigsResult.class);
-        TopicDescription topicDescription = mock(TopicDescription.class);
-        TopicPartitionInfo partitionInfo = mock(TopicPartitionInfo.class);
-        Config config = mock(Config.class);
-        ConfigEntry configEntry = mock(ConfigEntry.class);
         ConfigResource configResource = new ConfigResource(ConfigResource.Type.TOPIC, TOPIC_NAME);
 
         when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);

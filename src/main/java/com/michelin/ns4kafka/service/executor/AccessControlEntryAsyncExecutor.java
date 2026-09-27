@@ -288,17 +288,10 @@ public class AccessControlEntryAsyncExecutor {
      * @return True if unchanged, false otherwise
      */
     private boolean isUnchangedSinceLastApply(AccessControlEntry acl) {
-        Optional<AccessControlEntry> existingAcl = aclService.findByName(
-                acl.getMetadata().getNamespace(), acl.getMetadata().getName());
-
-        return existingAcl.isPresent()
-                && (existingAcl.get().getMetadata().getUpdateTimestamp() == null
-                        || (acl.getMetadata().getUpdateTimestamp() != null
-                                && !existingAcl
-                                        .get()
-                                        .getMetadata()
-                                        .getUpdateTimestamp()
-                                        .after(acl.getMetadata().getUpdateTimestamp())));
+        return aclService
+                .findByName(acl.getMetadata().getNamespace(), acl.getMetadata().getName())
+                .map(existingAcl -> existingAcl.isOlderOrEqualTo(acl))
+                .orElse(false);
     }
 
     /**
@@ -308,19 +301,12 @@ public class AccessControlEntryAsyncExecutor {
      * @return True if unchanged, false otherwise
      */
     private boolean isUnchangedSinceLastApply(KafkaStream kafkaStream) {
-        Optional<KafkaStream> existingStream = namespaceRepository
+        return namespaceRepository
                 .findByName(kafkaStream.getMetadata().getNamespace())
                 .flatMap(namespace -> streamService.findByName(
-                        namespace, kafkaStream.getMetadata().getName()));
-
-        return existingStream.isPresent()
-                && (existingStream.get().getMetadata().getUpdateTimestamp() == null
-                        || (kafkaStream.getMetadata().getUpdateTimestamp() != null
-                                && !existingStream
-                                        .get()
-                                        .getMetadata()
-                                        .getUpdateTimestamp()
-                                        .after(kafkaStream.getMetadata().getUpdateTimestamp())));
+                        namespace, kafkaStream.getMetadata().getName()))
+                .map(existingStream -> existingStream.isOlderOrEqualTo(kafkaStream))
+                .orElse(false);
     }
 
     /**

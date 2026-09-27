@@ -152,8 +152,6 @@ ns4kafka:
       interval-ms: 30000
     role-binding:
       interval-ms: 20000
-    connect:
-      interval-ms: 60000
   security:
     admin-group: "_"
     aes256-encryption-key: "changeitchangeitchangeitchangeit"

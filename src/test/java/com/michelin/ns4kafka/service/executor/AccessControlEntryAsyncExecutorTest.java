@@ -22,9 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -58,7 +56,6 @@ import org.apache.kafka.common.resource.ResourceType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -97,6 +94,9 @@ class AccessControlEntryAsyncExecutorTest {
 
     @Mock
     DescribeAclsResult describeAclsResult;
+
+    @Mock
+    CreateAclsResult createAclsResult;
 
     @InjectMocks
     AccessControlEntryAsyncExecutor aclAsyncExecutor;
@@ -166,12 +166,11 @@ class AccessControlEntryAsyncExecutorTest {
         when(aclService.isPublicAcl(any())).thenReturn(false);
         when(namespaceRepository.findByName("ns1")).thenReturn(Optional.of(namespace));
         when(adminClient.createAcls(anyCollection())).thenAnswer(invocation -> {
-            CreateAclsResult result = mock(CreateAclsResult.class);
-            when(result.values())
+            when(createAclsResult.values())
                     .thenReturn(invocation.<Collection<AclBinding>>getArgument(0).stream()
                             .collect(Collectors.toMap(
                                     Function.identity(), _ -> KafkaFuture.<Void>completedFuture(null))));
-            return result;
+            return createAclsResult;
         });
         when(aclService.findByName("ns1", "ns1-acl")).thenReturn(Optional.of(acl));
 
@@ -223,11 +222,10 @@ class AccessControlEntryAsyncExecutorTest {
         when(adminClient.createAcls(anyCollection())).thenAnswer(invocation -> {
             KafkaFutureImpl<Void> failedCreation = new KafkaFutureImpl<>();
             failedCreation.completeExceptionally(new RuntimeException("error"));
-            CreateAclsResult result = mock(CreateAclsResult.class);
-            when(result.values())
+            when(createAclsResult.values())
                     .thenReturn(invocation.<Collection<AclBinding>>getArgument(0).stream()
                             .collect(Collectors.toMap(Function.identity(), _ -> failedCreation)));
-            return result;
+            return createAclsResult;
         });
         when(aclService.findByName("ns1", "ns1-acl")).thenReturn(Optional.of(acl));
 
@@ -369,9 +367,59 @@ class AccessControlEntryAsyncExecutorTest {
         verify(streamService).create(argThat(ks -> ks == kafkaStream && ks.isSuccess()));
     }
 
-    @ParameterizedTest
-    @CsvSource({"deleted, false", "reapplied, false", "nullStoredTimestamp, true", "nullReadTimestamp, false"})
-    void shouldPersistAclOnlyWhenUnchangedSinceLastApply(String scenario, boolean shouldPersist) {
+    @Test
+    void shouldNotPersistAclDeletedDuringSynchronization() {
+        Namespace namespace = Namespace.builder()
+                .metadata(
+                        Resource.Metadata.builder().name("ns1").cluster("local").build())
+                .spec(Namespace.NamespaceSpec.builder().kafkaUser("user1").build())
+                .build();
+
+        AccessControlEntry acl = AccessControlEntry.builder()
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .namespace("ns1")
+                        .name("ns1-acl")
+                        .status(Resource.Metadata.Status.ofPending())
+                        .updateTimestamp(Date.from(INSTANT))
+                        .generation(0)
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resource("ns1-")
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.READ)
+                        .grantedTo("ns1")
+                        .build())
+                .build();
+
+        when(managedClusterProperties.getName()).thenReturn("local");
+        when(managedClusterProperties.isManageAcls()).thenReturn(true);
+        when(managedClusterProperties.getTimeout()).thenReturn(new ManagedClusterProperties.TimeoutProperties());
+        when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
+        when(adminClient.describeAcls(any())).thenReturn(describeAclsResult);
+        when(describeAclsResult.values()).thenReturn(KafkaFuture.completedFuture(List.of()));
+        when(namespaceRepository.findAllForCluster("local")).thenReturn(List.of(namespace));
+        when(aclService.findAllForCluster("local")).thenReturn(List.of(acl));
+        when(streamService.findAllForCluster("local")).thenReturn(List.of());
+        when(aclService.isPublicAcl(any())).thenReturn(false);
+        when(namespaceRepository.findByName("ns1")).thenReturn(Optional.of(namespace));
+        when(adminClient.createAcls(anyCollection())).thenAnswer(invocation -> {
+            when(createAclsResult.values())
+                    .thenReturn(invocation.<Collection<AclBinding>>getArgument(0).stream()
+                            .collect(Collectors.toMap(
+                                    Function.identity(), _ -> KafkaFuture.<Void>completedFuture(null))));
+            return createAclsResult;
+        });
+        when(aclService.findByName("ns1", "ns1-acl")).thenReturn(Optional.empty());
+
+        aclAsyncExecutor.run();
+
+        verify(aclService, never()).create(any());
+    }
+
+    @Test
+    void shouldNotPersistAclReappliedDuringSynchronization() {
         Namespace namespace = Namespace.builder()
                 .metadata(
                         Resource.Metadata.builder().name("ns1").cluster("local").build())
@@ -401,7 +449,7 @@ class AccessControlEntryAsyncExecutorTest {
                         .namespace("ns1")
                         .name("ns1-acl")
                         .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(Date.from(INSTANT))
+                        .updateTimestamp(Date.from(INSTANT.plusSeconds(1)))
                         .generation(0)
                         .build())
                 .spec(AccessControlEntry.AccessControlEntrySpec.builder()
@@ -412,15 +460,6 @@ class AccessControlEntryAsyncExecutorTest {
                         .grantedTo("ns1")
                         .build())
                 .build();
-
-        switch (scenario) {
-            case "reapplied" -> storedAcl.getMetadata().setUpdateTimestamp(Date.from(INSTANT.plusSeconds(1)));
-            case "nullStoredTimestamp" -> storedAcl.getMetadata().setUpdateTimestamp(null);
-            case "nullReadTimestamp" -> acl.getMetadata().setUpdateTimestamp(null);
-            default -> {
-                // Deleted
-            }
-        }
 
         when(managedClusterProperties.getName()).thenReturn("local");
         when(managedClusterProperties.isManageAcls()).thenReturn(true);
@@ -434,19 +473,17 @@ class AccessControlEntryAsyncExecutorTest {
         when(aclService.isPublicAcl(any())).thenReturn(false);
         when(namespaceRepository.findByName("ns1")).thenReturn(Optional.of(namespace));
         when(adminClient.createAcls(anyCollection())).thenAnswer(invocation -> {
-            CreateAclsResult result = mock(CreateAclsResult.class);
-            when(result.values())
+            when(createAclsResult.values())
                     .thenReturn(invocation.<Collection<AclBinding>>getArgument(0).stream()
                             .collect(Collectors.toMap(
                                     Function.identity(), _ -> KafkaFuture.<Void>completedFuture(null))));
-            return result;
+            return createAclsResult;
         });
-        when(aclService.findByName("ns1", "ns1-acl"))
-                .thenReturn("deleted".equals(scenario) ? Optional.empty() : Optional.of(storedAcl));
+        when(aclService.findByName("ns1", "ns1-acl")).thenReturn(Optional.of(storedAcl));
 
         aclAsyncExecutor.run();
 
-        verify(aclService, times(shouldPersist ? 1 : 0)).create(argThat(a -> a == acl && a.isSuccess()));
+        verify(aclService, never()).create(any());
     }
 
     @Test
@@ -549,12 +586,11 @@ class AccessControlEntryAsyncExecutorTest {
         when(aclService.isPublicAcl(any())).thenReturn(false);
         when(namespaceRepository.findByName("ns1")).thenReturn(Optional.of(namespace));
         when(adminClient.createAcls(anyCollection())).thenAnswer(invocation -> {
-            CreateAclsResult result = mock(CreateAclsResult.class);
-            when(result.values())
+            when(createAclsResult.values())
                     .thenReturn(invocation.<Collection<AclBinding>>getArgument(0).stream()
                             .collect(Collectors.toMap(
                                     Function.identity(), _ -> KafkaFuture.<Void>completedFuture(null))));
-            return result;
+            return createAclsResult;
         });
         when(aclService.findByName("ns1", "ns1-acl")).thenReturn(Optional.of(acl));
 
@@ -605,12 +641,11 @@ class AccessControlEntryAsyncExecutorTest {
         when(streamService.findAllForCluster("local")).thenReturn(List.of());
         when(aclService.isPublicAcl(publicAcl)).thenReturn(true);
         when(adminClient.createAcls(anyCollection())).thenAnswer(invocation -> {
-            CreateAclsResult result = mock(CreateAclsResult.class);
-            when(result.values())
+            when(createAclsResult.values())
                     .thenReturn(invocation.<Collection<AclBinding>>getArgument(0).stream()
                             .collect(Collectors.toMap(
                                     Function.identity(), _ -> KafkaFuture.<Void>completedFuture(null))));
-            return result;
+            return createAclsResult;
         });
         when(managedClusterProperties.isManageRbac()).thenReturn(true);
         when(aclService.findByName("ns1", "ns1-acl")).thenReturn(Optional.of(publicAcl));
