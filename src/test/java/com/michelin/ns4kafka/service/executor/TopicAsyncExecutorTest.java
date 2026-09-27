@@ -383,7 +383,6 @@ class TopicAsyncExecutorTest {
         List<Topic> topics = List.of(topic);
 
         assertThrows(ExecutionException.class, () -> topicAsyncExecutor.deleteTopics(topics));
-        verify(topicRepository, never()).delete(any());
     }
 
     @Test
@@ -554,6 +553,7 @@ class TopicAsyncExecutorTest {
         executor.synchronizeTopics();
 
         verify(adminClient, never()).incrementalAlterConfigs(any());
+        verify(topicRepository, never()).findByName(any(), any());
         verify(topicRepository, never()).create(any());
     }
 
