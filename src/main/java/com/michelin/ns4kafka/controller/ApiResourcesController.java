@@ -148,7 +148,8 @@ public class ApiResourcesController {
                 .toList();
 
         return all.stream()
-                .filter(resourceDefinition -> authorizedResources.contains(resourceDefinition.getPath()))
+                .filter(resourceDefinition ->
+                        resourceDefinition == NAMESPACE || authorizedResources.contains(resourceDefinition.getPath()))
                 .toList();
     }
 
