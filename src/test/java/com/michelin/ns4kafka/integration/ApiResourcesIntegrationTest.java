@@ -146,6 +146,7 @@ class ApiResourcesIntegrationTest extends KafkaIntegrationTest {
                         HttpRequest.GET("/api-resources").bearerAuth(userToken),
                         Argument.listOf(ApiResourcesController.ResourceDefinition.class));
 
-        assertEquals(2, resources.size());
+        assertEquals(3, resources.size());
+        assertTrue(resources.stream().anyMatch(resource -> resource.getKind().equals("Namespace")));
     }
 }
