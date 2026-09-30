@@ -87,15 +87,28 @@ public class TopicController extends NamespacedResourceController {
     }
 
     /**
-     * List topics by namespace, filtered by name parameter.
+     * List topics by namespace, filtered by name/tag parameter.
      *
      * @param namespace The namespace
      * @param name The name parameter
+     * @param tags The tags parameter
      * @return A list of topics
      */
     @Get
-    public List<Topic> list(String namespace, @QueryValue(defaultValue = "*") String name) {
-        return topicService.findByWildcardName(getNamespace(namespace), name);
+    public List<Topic> list(
+            String namespace,
+            @QueryValue(defaultValue = "*") String name,
+            @QueryValue(value = "tags", defaultValue = "") String tags) {
+        Namespace ns = getNamespace(namespace);
+        if (!tags.isBlank()) {
+            return topicService.findByTag(ns, tags);
+        }
+
+        return topicService.findByWildcardName(ns, name);
+    }
+
+    public List<Topic> list(String namespace, String name) {
+        return list(namespace, name, "");
     }
 
     /**
@@ -347,16 +360,5 @@ public class TopicController extends NamespacedResourceController {
                                 .build())
                         .build())
                 .toList();
-    }
-    /**
-     * List topics by namespace filtered by tag.
-     *
-     * @param namespace The namespace
-     * @param tag The tag filter
-     * @return A list of topics
-     */
-    @Get("/tags")
-    public List<Topic> listByTag(String namespace, @QueryValue(defaultValue = "") String tag) {
-        return topicService.findByTag(getNamespace(namespace), tag);
     }
 }

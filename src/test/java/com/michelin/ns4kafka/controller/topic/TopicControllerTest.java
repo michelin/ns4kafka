@@ -1008,6 +1008,7 @@ class TopicControllerTest {
                 List.of("Invalid value \"test.topic\" for field \"name\": collision with existing topic test_topic."),
                 actual.getValidationErrors());
     }
+
     @Test
     void shouldListTopicsByTagForNamespace() {
         Namespace ns = Namespace.builder()
@@ -1027,8 +1028,8 @@ class TopicControllerTest {
         when(topicService.findByTag(ns, "play")).thenReturn(List.of(topic1));
         when(topicService.findByTag(ns, "missing")).thenReturn(List.of());
 
-        assertEquals(List.of(topic1), topicController.listByTag("test", "PLAY"));
-        assertEquals(List.of(topic1), topicController.listByTag("test", "play"));
-        assertEquals(List.of(), topicController.listByTag("test", "missing"));
+        assertEquals(List.of(topic1), topicController.list("test", "*", "PLAY"));
+        assertEquals(List.of(topic1), topicController.list("test", "*", "play"));
+        assertEquals(List.of(), topicController.list("test", "*", "missing"));
     }
 }

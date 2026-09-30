@@ -415,7 +415,7 @@ public class TopicService {
                         && topic.getSpec() != null
                         && topic.getSpec().getTags() != null
                         && topic.getSpec().getTags().stream()
-                        .anyMatch(topicTag -> topicTag.equalsIgnoreCase(normalizedTag)))
+                                .anyMatch(topicTag -> topicTag.equalsIgnoreCase(normalizedTag)))
                 .toList();
     }
 }

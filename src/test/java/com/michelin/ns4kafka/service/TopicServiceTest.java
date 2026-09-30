@@ -1023,6 +1023,7 @@ class TopicServiceTest {
         assertEquals(1, actual.size());
         assertTrue(actual.contains(t2));
     }
+
     @Test
     void shouldListTopicsByTagForNamespace() {
         Namespace ns = Namespace.builder()
