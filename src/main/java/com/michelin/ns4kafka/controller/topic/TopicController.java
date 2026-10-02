@@ -57,6 +57,7 @@ import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import org.apache.kafka.common.TopicPartition;
+import org.jspecify.annotations.Nullable;
 
 /** Controller to manage topics. */
 @Tag(name = "Topics", description = "Manage the topics.")
@@ -87,7 +88,7 @@ public class TopicController extends NamespacedResourceController {
     }
 
     /**
-     * List topics by namespace, filtered by name/tag parameter.
+     * List topics by namespace, filtered by name and tags parameters.
      *
      * @param namespace The namespace
      * @param name The name parameter
@@ -96,19 +97,8 @@ public class TopicController extends NamespacedResourceController {
      */
     @Get
     public List<Topic> list(
-            String namespace,
-            @QueryValue(defaultValue = "*") String name,
-            @QueryValue(value = "tags", defaultValue = "") String tags) {
-        Namespace ns = getNamespace(namespace);
-        if (!tags.isBlank()) {
-            return topicService.findByTag(ns, tags);
-        }
-
-        return topicService.findByWildcardName(ns, name);
-    }
-
-    public List<Topic> list(String namespace, String name) {
-        return list(namespace, name, "");
+            String namespace, @QueryValue(defaultValue = "*") String name, @QueryValue @Nullable List<String> tags) {
+        return topicService.findByWildcardNameAndTags(getNamespace(namespace), name, tags);
     }
 
     /**

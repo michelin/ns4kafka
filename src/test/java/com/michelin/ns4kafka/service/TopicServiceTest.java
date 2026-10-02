@@ -1025,7 +1025,7 @@ class TopicServiceTest {
     }
 
     @Test
-    void shouldListTopicsByTagForNamespace() {
+    void shouldListTopicsWithNameAndTagsParameters() {
         Namespace ns = Namespace.builder()
                 .metadata(Resource.Metadata.builder()
                         .name("namespace")
@@ -1035,17 +1035,22 @@ class TopicServiceTest {
 
         Topic topic1 = Topic.builder()
                 .metadata(Resource.Metadata.builder().name("ns-topic1").build())
-                .spec(Topic.TopicSpec.builder().tags(List.of("play", "prod")).build())
+                .spec(Topic.TopicSpec.builder().tags(List.of("PII", "PROD")).build())
                 .build();
 
         Topic topic2 = Topic.builder()
                 .metadata(Resource.Metadata.builder().name("ns-topic2").build())
-                .spec(Topic.TopicSpec.builder().tags(List.of("ops")).build())
+                .spec(Topic.TopicSpec.builder().tags(List.of("OPS")).build())
                 .build();
 
         Topic topic3 = Topic.builder()
-                .metadata(Resource.Metadata.builder().name("ns-topic3").build())
-                .spec(Topic.TopicSpec.builder().tags(List.of("PLAY")).build())
+                .metadata(Resource.Metadata.builder().name("ns-other3").build())
+                .spec(Topic.TopicSpec.builder().tags(List.of("GDPR")).build())
+                .build();
+
+        Topic topic4 = Topic.builder()
+                .metadata(Resource.Metadata.builder().name("ns-topic4").build())
+                .spec(Topic.TopicSpec.builder().build())
                 .build();
 
         List<AccessControlEntry> acls = List.of(AccessControlEntry.builder()
@@ -1060,11 +1065,25 @@ class TopicServiceTest {
 
         when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.TOPIC))
                 .thenReturn(acls);
-        when(topicRepository.findAllForCluster("local")).thenReturn(List.of(topic1, topic2, topic3));
+        when(topicRepository.findAllForCluster("local")).thenReturn(List.of(topic1, topic2, topic3, topic4));
         when(aclService.isResourceCoveredByAcls(acls, "ns-topic1")).thenReturn(true);
         when(aclService.isResourceCoveredByAcls(acls, "ns-topic2")).thenReturn(true);
-        when(aclService.isResourceCoveredByAcls(acls, "ns-topic3")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, "ns-other3")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, "ns-topic4")).thenReturn(true);
 
-        assertEquals(List.of(topic1, topic3), topicService.findByTag(ns, "play"));
+        assertEquals(List.of(topic1, topic2, topic3, topic4), topicService.findByWildcardNameAndTags(ns, "*", null));
+        assertEquals(
+                List.of(topic1, topic2, topic3, topic4), topicService.findByWildcardNameAndTags(ns, "*", List.of()));
+        assertEquals(List.of(topic1), topicService.findByWildcardNameAndTags(ns, "*", List.of("pii")));
+        assertEquals(List.of(topic1, topic3), topicService.findByWildcardNameAndTags(ns, "*", List.of("PII", "GDPR")));
+        assertEquals(List.of(topic1), topicService.findByWildcardNameAndTags(ns, "ns-topic*", List.of("PII", "GDPR")));
+        assertEquals(
+                List.of(topic1, topic2, topic3, topic4),
+                topicService.findByWildcardNameAndTags(ns, "*", List.of(" ", "")));
+        assertEquals(
+                List.of(topic1, topic3), topicService.findByWildcardNameAndTags(ns, "*", List.of(" PII", "", "GDPR ")));
+        assertTrue(topicService
+                .findByWildcardNameAndTags(ns, "*", List.of("MISSING"))
+                .isEmpty());
     }
 }

@@ -145,6 +145,32 @@ public class TopicService {
     }
 
     /**
+     * Find all topics of a given namespace, filtered by name and tags parameters.
+     *
+     * @param namespace The namespace
+     * @param name The name filter
+     * @param tags The tags filter
+     * @return A list of topics
+     */
+    public List<Topic> findByWildcardNameAndTags(Namespace namespace, String name, @Nullable List<String> tags) {
+        List<Topic> topics = findByWildcardName(namespace, name);
+        if (tags == null) {
+            return topics;
+        }
+
+        List<String> tagFilters =
+                tags.stream().map(String::trim).filter(tag -> !tag.isEmpty()).toList();
+        if (tagFilters.isEmpty()) {
+            return topics;
+        }
+
+        return topics.stream()
+                .filter(topic -> topic.getSpec().getTags().stream()
+                        .anyMatch(topicTag -> tagFilters.stream().anyMatch(topicTag::equalsIgnoreCase)))
+                .toList();
+    }
+
+    /**
      * Find a topic by namespace and name.
      *
      * @param namespace The namespace
@@ -399,23 +425,5 @@ public class TopicService {
             Thread.currentThread().interrupt();
             throw new InterruptedException(e.getMessage());
         }
-    }
-    /**
-     * Find all topics of a given namespace filtered by tag.
-     *
-     * @param namespace The namespace
-     * @param tag The tag filter
-     * @return A list of topics
-     */
-    public List<Topic> findByTag(Namespace namespace, String tag) {
-        String normalizedTag = tag == null ? "" : tag.trim();
-
-        return findAllForNamespace(namespace).stream()
-                .filter(topic -> !normalizedTag.isEmpty()
-                        && topic.getSpec() != null
-                        && topic.getSpec().getTags() != null
-                        && topic.getSpec().getTags().stream()
-                                .anyMatch(topicTag -> topicTag.equalsIgnoreCase(normalizedTag)))
-                .toList();
     }
 }
