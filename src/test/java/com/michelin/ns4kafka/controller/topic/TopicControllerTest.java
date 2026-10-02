@@ -89,9 +89,9 @@ class TopicControllerTest {
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(topicService.findByWildcardName(ns, "*")).thenReturn(List.of());
+        when(topicService.findByWildcardNameAndTags(ns, "*", null)).thenReturn(List.of());
 
-        assertEquals(List.of(), topicController.list("test", "*"));
+        assertEquals(List.of(), topicController.list("test", "*", null));
     }
 
     @Test
@@ -112,9 +112,9 @@ class TopicControllerTest {
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(topicService.findByWildcardName(ns, "*")).thenReturn(List.of(topic1, topic2));
+        when(topicService.findByWildcardNameAndTags(ns, "*", null)).thenReturn(List.of(topic1, topic2));
 
-        assertEquals(List.of(topic1, topic2), topicController.list("test", "*"));
+        assertEquals(List.of(topic1, topic2), topicController.list("test", "*", null));
     }
 
     @Test
@@ -131,9 +131,9 @@ class TopicControllerTest {
                 .build();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(topicService.findByWildcardName(ns, "topic1")).thenReturn(List.of(topic1));
+        when(topicService.findByWildcardNameAndTags(ns, "topic1", null)).thenReturn(List.of(topic1));
 
-        assertEquals(List.of(topic1), topicController.list("test", "topic1"));
+        assertEquals(List.of(topic1), topicController.list("test", "topic1", null));
     }
 
     @Test
@@ -1012,5 +1012,26 @@ class TopicControllerTest {
         assertLinesMatch(
                 List.of("Invalid value \"test.topic\" for field \"name\": collision with existing topic test_topic."),
                 actual.getValidationErrors());
+    }
+
+    @Test
+    void shouldListTopicsWithNameAndTagsParameters() {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Topic topic1 = Topic.builder()
+                .metadata(Resource.Metadata.builder().name("prefix.topic1").build())
+                .spec(Topic.TopicSpec.builder().tags(List.of("PII")).build())
+                .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(topicService.findByWildcardNameAndTags(ns, "prefix.*", List.of("PII", "GDPR")))
+                .thenReturn(List.of(topic1));
+
+        assertEquals(List.of(topic1), topicController.list("test", "prefix.*", List.of("PII", "GDPR")));
     }
 }

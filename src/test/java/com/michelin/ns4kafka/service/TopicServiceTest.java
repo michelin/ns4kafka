@@ -1023,4 +1023,67 @@ class TopicServiceTest {
         assertEquals(1, actual.size());
         assertTrue(actual.contains(t2));
     }
+
+    @Test
+    void shouldListTopicsWithNameAndTagsParameters() {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Topic topic1 = Topic.builder()
+                .metadata(Resource.Metadata.builder().name("ns-topic1").build())
+                .spec(Topic.TopicSpec.builder().tags(List.of("PII", "PROD")).build())
+                .build();
+
+        Topic topic2 = Topic.builder()
+                .metadata(Resource.Metadata.builder().name("ns-topic2").build())
+                .spec(Topic.TopicSpec.builder().tags(List.of("OPS")).build())
+                .build();
+
+        Topic topic3 = Topic.builder()
+                .metadata(Resource.Metadata.builder().name("ns-other3").build())
+                .spec(Topic.TopicSpec.builder().tags(List.of("GDPR")).build())
+                .build();
+
+        Topic topic4 = Topic.builder()
+                .metadata(Resource.Metadata.builder().name("ns-topic4").build())
+                .spec(Topic.TopicSpec.builder().build())
+                .build();
+
+        List<AccessControlEntry> acls = List.of(AccessControlEntry.builder()
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .permission(AccessControlEntry.Permission.OWNER)
+                        .grantedTo("namespace")
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resource("ns-")
+                        .build())
+                .build());
+
+        when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.TOPIC))
+                .thenReturn(acls);
+        when(topicRepository.findAllForCluster("local")).thenReturn(List.of(topic1, topic2, topic3, topic4));
+        when(aclService.isResourceCoveredByAcls(acls, "ns-topic1")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, "ns-topic2")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, "ns-other3")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, "ns-topic4")).thenReturn(true);
+
+        assertEquals(List.of(topic1, topic2, topic3, topic4), topicService.findByWildcardNameAndTags(ns, "*", null));
+        assertEquals(
+                List.of(topic1, topic2, topic3, topic4), topicService.findByWildcardNameAndTags(ns, "*", List.of()));
+        assertEquals(List.of(topic1), topicService.findByWildcardNameAndTags(ns, "*", List.of("pii")));
+        assertEquals(List.of(topic1, topic3), topicService.findByWildcardNameAndTags(ns, "*", List.of("PII", "GDPR")));
+        assertEquals(List.of(topic1), topicService.findByWildcardNameAndTags(ns, "ns-topic*", List.of("PII", "GDPR")));
+        assertEquals(
+                List.of(topic1, topic2, topic3, topic4),
+                topicService.findByWildcardNameAndTags(ns, "*", List.of(" ", "")));
+        assertEquals(
+                List.of(topic1, topic3), topicService.findByWildcardNameAndTags(ns, "*", List.of(" PII", "", "GDPR ")));
+        assertTrue(topicService
+                .findByWildcardNameAndTags(ns, "*", List.of("MISSING"))
+                .isEmpty());
+    }
 }
