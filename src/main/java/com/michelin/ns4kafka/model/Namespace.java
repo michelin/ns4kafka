@@ -22,6 +22,7 @@ import static com.michelin.ns4kafka.util.enumation.Kind.NAMESPACE;
 
 import com.michelin.ns4kafka.model.schema.SubjectNameStrategy;
 import com.michelin.ns4kafka.validation.ConnectValidator;
+import com.michelin.ns4kafka.validation.TableflowTopicValidator;
 import com.michelin.ns4kafka.validation.TopicValidator;
 import io.micronaut.serde.annotation.Serdeable;
 import jakarta.validation.Valid;
@@ -75,5 +76,6 @@ public class Namespace extends Resource {
 
         private TopicValidator topicValidator;
         private ConnectValidator connectValidator;
+        private TableflowTopicValidator tableflowTopicValidator;
     }
 }
