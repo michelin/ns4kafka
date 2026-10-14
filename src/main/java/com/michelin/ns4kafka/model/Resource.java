@@ -115,7 +115,6 @@ public class Resource {
 
             private final String name;
 
-            @JsonCreator
             Phase(String name) {
                 this.name = name;
             }
@@ -124,6 +123,22 @@ public class Resource {
             @Override
             public String toString() {
                 return name;
+            }
+
+            /**
+             * Build phase from string.
+             *
+             * @param key the key
+             * @return the phase
+             */
+            @JsonCreator
+            public static Phase fromString(String key) {
+                for (Phase type : Phase.values()) {
+                    if (type.name().equalsIgnoreCase(key)) {
+                        return type;
+                    }
+                }
+                return null;
             }
         }
     }
