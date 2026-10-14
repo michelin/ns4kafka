@@ -35,6 +35,7 @@ import com.michelin.ns4kafka.util.EncryptionUtils;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.core.type.Argument;
 import io.micronaut.core.util.StringUtils;
+import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -60,6 +61,7 @@ import reactor.core.publisher.Mono;
 @Singleton
 public class KafkaConnectClient {
     private static final String CONNECTORS = "/connectors/";
+    private static final String OFFSETS = "/offsets";
 
     private final ConnectClusterRepository connectClusterRepository;
     private final HttpClient httpClient;
@@ -263,7 +265,7 @@ public class KafkaConnectClient {
         String encodedConnector = URLEncoder.encode(connector, StandardCharsets.UTF_8);
 
         HttpRequest<?> request = HttpRequest.GET(
-                        URI.create(StringUtils.prependUri(config.getUrl(), CONNECTORS + encodedConnector + "/offsets")))
+                        URI.create(StringUtils.prependUri(config.getUrl(), CONNECTORS + encodedConnector + OFFSETS)))
                 .basicAuth(config.getUsername(), config.getPassword());
 
         return Mono.from(httpClient.retrieve(request, ConnectorOffsets.class))
@@ -393,7 +395,35 @@ public class KafkaConnectClient {
         String encodedConnector = URLEncoder.encode(connector, StandardCharsets.UTF_8);
 
         HttpRequest<?> request = HttpRequest.DELETE(
-                        URI.create(StringUtils.prependUri(config.getUrl(), CONNECTORS + encodedConnector + "/offsets")))
+                        URI.create(StringUtils.prependUri(config.getUrl(), CONNECTORS + encodedConnector + OFFSETS)))
+                .basicAuth(config.getUsername(), config.getPassword());
+
+        return Mono.from(httpClient.exchange(request, ConnectorOffsetsResponse.class));
+    }
+
+    /**
+     * Alter offsets for a connector.
+     *
+     * @param kafkaCluster The Kafka cluster
+     * @param connectCluster The Kafka Connect
+     * @param connector The connector
+     * @param offsetsRequest The offsets payload
+     * @return The alteration response
+     */
+    @Retryable(
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
+    public Mono<HttpResponse<ConnectorOffsetsResponse>> alterOffsets(
+            String kafkaCluster, String connectCluster, String connector, ConnectorOffsets offsetsRequest) {
+        KafkaConnectHttpConfig config = getKafkaConnectConfig(kafkaCluster, connectCluster);
+        String encodedConnector = URLEncoder.encode(connector, StandardCharsets.UTF_8);
+
+        HttpRequest<?> request = HttpRequest.create(
+                        HttpMethod.PATCH,
+                        StringUtils.prependUri(config.getUrl(), CONNECTORS + encodedConnector + OFFSETS))
+                .body(offsetsRequest)
                 .basicAuth(config.getUsername(), config.getPassword());
 
         return Mono.from(httpClient.exchange(request, ConnectorOffsetsResponse.class));
