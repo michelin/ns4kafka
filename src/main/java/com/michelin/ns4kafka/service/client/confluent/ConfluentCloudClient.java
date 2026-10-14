@@ -18,18 +18,27 @@
  */
 package com.michelin.ns4kafka.service.client.confluent;
 
+import static com.michelin.ns4kafka.util.enumation.Kind.TABLEFLOW_TOPIC;
+
+import com.michelin.ns4kafka.model.TableflowTopic;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.service.client.confluent.entities.RoleBinding;
 import com.michelin.ns4kafka.service.client.confluent.entities.RoleBindingListResponse;
 import com.michelin.ns4kafka.service.client.confluent.entities.RoleBindingRequest;
 import com.michelin.ns4kafka.service.client.confluent.entities.RoleBindingResponse;
+import com.michelin.ns4kafka.service.client.confluent.entities.TableflowTopicRequest;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpRequest;
+import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.client.exceptions.ReadTimeoutException;
+import io.micronaut.http.exceptions.HttpStatusException;
+import io.micronaut.json.tree.JsonNode;
 import io.micronaut.retry.annotation.Retryable;
+import io.netty.channel.ConnectTimeoutException;
 import jakarta.inject.Singleton;
 import java.net.URI;
 import java.util.Arrays;
@@ -62,6 +71,76 @@ public class ConfluentCloudClient {
             List<ManagedClusterProperties> managedClusterProperties) {
         this.httpClient = httpClient;
         this.managedClusterProperties = managedClusterProperties;
+    }
+
+    /**
+     * Submit Tableflow creation once; acceptance does not mean the table is ready to query.
+     *
+     * @param kafkaCluster The Kafka cluster
+     * @param tableflowTopic The validated Tableflow topic
+     * @return The Confluent Tableflow creation response
+     */
+    public JsonNode createTableflowTopic(String kafkaCluster, TableflowTopic tableflowTopic) {
+        String topic = tableflowTopic.getMetadata().getName();
+        var cluster = managedClusterProperties.stream()
+                .filter(properties -> properties.getName().equals(kafkaCluster))
+                .findFirst();
+        if (cluster.isEmpty() || !cluster.get().isConfluentCloud()) {
+            throw new ResourceValidationException(
+                    TABLEFLOW_TOPIC, topic, "Tableflow is supported only for Confluent Cloud clusters.");
+        }
+        var config = getConfluentCloud(kafkaCluster);
+        var credentials = config.getTableflow();
+        if (StringUtils.isEmpty(config.getClusterId())
+                || StringUtils.isEmpty(config.getEnvironmentId())
+                || credentials == null
+                || StringUtils.isEmpty(credentials.getBasicAuthUsername())
+                || StringUtils.isEmpty(credentials.getBasicAuthPassword())) {
+            throw new ResourceValidationException(
+                    TABLEFLOW_TOPIC,
+                    topic,
+                    "Tableflow creation requires cluster ID, environment ID, and Tableflow credentials.");
+        }
+        var body = new TableflowTopicRequest(new TableflowTopicRequest.Spec(
+                topic,
+                new TableflowTopicRequest.Storage(
+                        tableflowTopic.getSpec().getStorage().getKind()),
+                tableflowTopic.getSpec().getTableFormats(),
+                new TableflowTopicRequest.Reference(config.getEnvironmentId()),
+                new TableflowTopicRequest.Reference(config.getClusterId())));
+        HttpRequest<?> request = HttpRequest.POST(
+                        URI.create(StringUtils.prependUri(CONFLUENT_CLOUD_API_URL, "/tableflow/v1/tableflow-topics")),
+                        body)
+                .basicAuth(credentials.getBasicAuthUsername(), credentials.getBasicAuthPassword());
+        try {
+            var response =
+                    Mono.from(httpClient.retrieve(request, JsonNode.class)).block();
+            if (response == null || !response.isObject()) {
+                throw new IllegalStateException("Invalid Tableflow creation response");
+            }
+            return response;
+        } catch (HttpClientResponseException exception) {
+            int status = exception.code();
+            throw new HttpStatusException(
+                    status == 409 ? HttpStatus.CONFLICT : HttpStatus.BAD_GATEWAY,
+                    "Confluent Tableflow creation returned HTTP " + status + ". "
+                            + (status == 409
+                                    ? "Tableflow already exists for this topic."
+                                    : "Check the Tableflow credentials, permissions, topic schemas, and Confluent availability."));
+        } catch (RuntimeException exception) {
+            boolean timeout = false;
+            for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
+                timeout |= cause instanceof ReadTimeoutException
+                        || cause instanceof ConnectTimeoutException
+                        || cause instanceof java.util.concurrent.TimeoutException
+                        || cause instanceof java.net.SocketTimeoutException;
+            }
+            // Do not expose upstream response bodies or exception causes containing credentials.
+            throw new HttpStatusException(
+                    timeout ? HttpStatus.GATEWAY_TIMEOUT : HttpStatus.BAD_GATEWAY,
+                    "Confluent Tableflow creation " + (timeout ? "timed out" : "failed")
+                            + ". Check Confluent before retrying; creation may have been accepted.");
+        }
     }
 
     /**
