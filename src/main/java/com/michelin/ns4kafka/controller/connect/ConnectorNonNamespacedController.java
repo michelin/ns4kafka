@@ -34,7 +34,7 @@ import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
 import java.util.Collection;
-import org.jspecify.annotations.Nullable;
+import java.util.Optional;
 
 /** Non-namespaced controller to manage connectors. */
 @Tag(name = "Connectors", description = "Manage the connectors.")
@@ -66,7 +66,7 @@ public class ConnectorNonNamespacedController extends ResourceController {
      * @return A list of connectors
      */
     @Get
-    public Collection<Connector> listAll(@QueryValue @Nullable Phase phase) {
-        return connectorService.findAllByPhase(phase);
+    public Collection<Connector> listAll(@QueryValue Optional<Phase> phase) {
+        return connectorService.findAllByPhase(phase.orElse(null));
     }
 }

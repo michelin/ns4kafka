@@ -34,7 +34,7 @@ import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
 import java.util.Collection;
-import org.jspecify.annotations.Nullable;
+import java.util.Optional;
 
 /** Non namespaced controller for topics. */
 @Tag(name = "Topics", description = "Manage the topics.")
@@ -66,7 +66,7 @@ public class TopicNonNamespacedController extends ResourceController {
      * @return A list of topics
      */
     @Get
-    public Collection<Topic> listAll(@QueryValue @Nullable Phase phase) {
-        return topicService.findAllByPhase(phase);
+    public Collection<Topic> listAll(@QueryValue Optional<Phase> phase) {
+        return topicService.findAllByPhase(phase.orElse(null));
     }
 }
