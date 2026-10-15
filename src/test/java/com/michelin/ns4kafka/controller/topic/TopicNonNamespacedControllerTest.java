@@ -26,6 +26,7 @@ import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.service.TopicService;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -52,7 +53,7 @@ class TopicNonNamespacedControllerTest {
 
         when(topicService.findAllByPhase(null)).thenReturn(List.of(topic, topic2));
 
-        Collection<Topic> actual = topicController.listAll(null);
+        Collection<Topic> actual = topicController.listAll(Optional.empty());
 
         assertEquals(2, actual.size());
         assertEquals(List.of(topic, topic2), actual);
@@ -69,7 +70,7 @@ class TopicNonNamespacedControllerTest {
 
         when(topicService.findAllByPhase(Resource.Metadata.Phase.PENDING)).thenReturn(List.of(topic));
 
-        Collection<Topic> actual = topicController.listAll(Resource.Metadata.Phase.PENDING);
+        Collection<Topic> actual = topicController.listAll(Optional.of(Resource.Metadata.Phase.PENDING));
 
         assertEquals(List.of(topic), actual);
     }

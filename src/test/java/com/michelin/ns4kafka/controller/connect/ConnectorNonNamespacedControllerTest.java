@@ -26,6 +26,7 @@ import com.michelin.ns4kafka.model.connect.Connector;
 import com.michelin.ns4kafka.service.ConnectorService;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -51,7 +52,7 @@ class ConnectorNonNamespacedControllerTest {
 
         when(connectorService.findAllByPhase(null)).thenReturn(List.of(connector, connector2));
 
-        Collection<Connector> actual = connectorController.listAll(null);
+        Collection<Connector> actual = connectorController.listAll(Optional.empty());
 
         assertEquals(List.of(connector, connector2), actual);
     }
@@ -67,7 +68,7 @@ class ConnectorNonNamespacedControllerTest {
 
         when(connectorService.findAllByPhase(Resource.Metadata.Phase.PENDING)).thenReturn(List.of(connector));
 
-        Collection<Connector> actual = connectorController.listAll(Resource.Metadata.Phase.PENDING);
+        Collection<Connector> actual = connectorController.listAll(Optional.of(Resource.Metadata.Phase.PENDING));
 
         assertEquals(List.of(connector), actual);
     }
