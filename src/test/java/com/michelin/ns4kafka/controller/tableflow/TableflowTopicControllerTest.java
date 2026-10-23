@@ -197,9 +197,8 @@ class TableflowTopicControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(namespace()));
         when(topicService.isNamespaceOwnerOfTopic("test", "other.orders")).thenReturn(false);
 
-        assertThrows(
-                ResourceValidationException.class,
-                () -> tableflowTopicController.apply("test", namedRequest("other.orders"), false));
+        TableflowTopic request = namedRequest("other.orders");
+        assertThrows(ResourceValidationException.class, () -> tableflowTopicController.apply("test", request, false));
 
         verify(tableflowTopicService, never()).create(any());
         verify(topicService, never()).findByName(any(Namespace.class), any());
@@ -212,9 +211,8 @@ class TableflowTopicControllerTest {
         when(topicService.isNamespaceOwnerOfTopic("test", "orders")).thenReturn(true);
         when(topicService.findByName(ns, "orders")).thenReturn(Optional.empty());
 
-        assertThrows(
-                ResourceValidationException.class,
-                () -> tableflowTopicController.apply("test", icebergRequest(), false));
+        TableflowTopic request = icebergRequest();
+        assertThrows(ResourceValidationException.class, () -> tableflowTopicController.apply("test", request, false));
 
         verify(tableflowTopicService, never()).create(any());
     }
@@ -222,6 +220,7 @@ class TableflowTopicControllerTest {
     @Test
     void shouldRejectTableflowForUndeployedOrDeletingTopic() {
         Namespace ns = namespace();
+        TableflowTopic request = icebergRequest();
         Topic topic = Topic.builder()
                 .metadata(
                         Resource.Metadata.builder().name("orders").generation(0).build())
@@ -230,17 +229,13 @@ class TableflowTopicControllerTest {
         when(topicService.isNamespaceOwnerOfTopic("test", "orders")).thenReturn(true);
         when(topicService.findByName(ns, "orders")).thenReturn(Optional.of(topic));
 
-        assertThrows(
-                ResourceValidationException.class,
-                () -> tableflowTopicController.apply("test", icebergRequest(), false));
+        assertThrows(ResourceValidationException.class, () -> tableflowTopicController.apply("test", request, false));
         topic.getMetadata().setGeneration(1);
         topic.getMetadata()
                 .setStatus(Resource.Metadata.Status.builder()
                         .phase(Resource.Metadata.Phase.DELETING)
                         .build());
-        assertThrows(
-                ResourceValidationException.class,
-                () -> tableflowTopicController.apply("test", icebergRequest(), false));
+        assertThrows(ResourceValidationException.class, () -> tableflowTopicController.apply("test", request, false));
 
         verify(tableflowTopicService, never()).create(any());
     }
@@ -292,7 +287,8 @@ class TableflowTopicControllerTest {
         when(tableflowTopicService.create(any()))
                 .thenThrow(new HttpStatusException(HttpStatus.BAD_GATEWAY, "Confluent unavailable"));
 
-        assertThrows(HttpStatusException.class, () -> tableflowTopicController.apply("test", icebergRequest(), false));
+        TableflowTopic request = icebergRequest();
+        assertThrows(HttpStatusException.class, () -> tableflowTopicController.apply("test", request, false));
 
         verify(applicationEventPublisher, never()).publishEvent(any(AuditLog.class));
     }
@@ -310,9 +306,9 @@ class TableflowTopicControllerTest {
         List<String> errors = List.of("Tableflow requires a registered schema for subject [orders-value].");
         when(tableflowTopicService.validateSchemas(topic)).thenReturn(errors);
 
+        TableflowTopic request = icebergRequest();
         var error = assertThrows(
-                ResourceValidationException.class,
-                () -> tableflowTopicController.apply("test", icebergRequest(), dryrun));
+                ResourceValidationException.class, () -> tableflowTopicController.apply("test", request, dryrun));
 
         assertEquals(errors, error.getValidationErrors());
         verify(tableflowTopicService, never()).create(any());
@@ -332,7 +328,8 @@ class TableflowTopicControllerTest {
         when(tableflowTopicService.validateSchemas(topic))
                 .thenThrow(new HttpStatusException(HttpStatus.BAD_GATEWAY, "Schema Registry unavailable"));
 
-        assertThrows(HttpStatusException.class, () -> tableflowTopicController.apply("test", icebergRequest(), dryrun));
+        TableflowTopic request = icebergRequest();
+        assertThrows(HttpStatusException.class, () -> tableflowTopicController.apply("test", request, dryrun));
 
         verify(tableflowTopicService, never()).create(any());
         verify(applicationEventPublisher, never()).publishEvent(any(AuditLog.class));

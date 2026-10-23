@@ -233,11 +233,10 @@ class TableflowTopicHttpTest {
                         .build()));
         when(topicService.isNamespaceOwnerOfTopic("sales", "sales.orders")).thenReturn(true);
 
-        var error = assertThrows(
-                HttpClientResponseException.class,
-                () -> client.toBlocking()
-                        .exchange(HttpRequest.POST("/api/namespaces/sales/tableflow-topics", body)
-                                .contentType(MediaType.APPLICATION_JSON_TYPE)));
+        var request = HttpRequest.POST("/api/namespaces/sales/tableflow-topics", body)
+                .contentType(MediaType.APPLICATION_JSON_TYPE);
+        var blockingClient = client.toBlocking();
+        var error = assertThrows(HttpClientResponseException.class, () -> blockingClient.exchange(request));
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, error.getStatus());
         verify(tableflowTopicService, never()).create(any());

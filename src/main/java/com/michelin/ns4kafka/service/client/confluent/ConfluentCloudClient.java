@@ -128,19 +128,28 @@ public class ConfluentCloudClient {
                                     ? "Tableflow already exists for this topic."
                                     : "Check the Tableflow credentials, permissions, topic schemas, and Confluent availability."));
         } catch (RuntimeException exception) {
-            boolean timeout = false;
-            for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
-                timeout |= cause instanceof ReadTimeoutException
-                        || cause instanceof ConnectTimeoutException
-                        || cause instanceof java.util.concurrent.TimeoutException
-                        || cause instanceof java.net.SocketTimeoutException;
-            }
-            // Do not expose upstream response bodies or exception causes containing credentials.
-            throw new HttpStatusException(
-                    timeout ? HttpStatus.GATEWAY_TIMEOUT : HttpStatus.BAD_GATEWAY,
-                    "Confluent Tableflow creation " + (timeout ? "timed out" : "failed")
-                            + ". Check Confluent before retrying; creation may have been accepted.");
+            throw tableflowCreationException(exception);
         }
+    }
+
+    /**
+     * Format a Tableflow creation failure without exposing credentials or upstream response bodies.
+     *
+     * @param exception The exception to inspect
+     * @return The sanitized failure with the appropriate HTTP status
+     */
+    private static HttpStatusException tableflowCreationException(RuntimeException exception) {
+        boolean timeout = false;
+        for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
+            timeout |= cause instanceof ReadTimeoutException
+                    || cause instanceof ConnectTimeoutException
+                    || cause instanceof java.util.concurrent.TimeoutException
+                    || cause instanceof java.net.SocketTimeoutException;
+        }
+        return new HttpStatusException(
+                timeout ? HttpStatus.GATEWAY_TIMEOUT : HttpStatus.BAD_GATEWAY,
+                "Confluent Tableflow creation " + (timeout ? "timed out" : "failed")
+                        + ". Check Confluent before retrying; creation may have been accepted.");
     }
 
     /**

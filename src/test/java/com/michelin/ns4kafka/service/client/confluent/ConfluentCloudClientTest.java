@@ -163,17 +163,12 @@ class ConfluentCloudClientTest {
 
     @Test
     void shouldRejectTableflowWithoutDedicatedCredentialsOrCloudProvider() {
-        assertThrows(
-                ResourceValidationException.class,
-                () -> client.createTableflowTopic("cloud", tableflowTopic("orders")));
+        TableflowTopic resource = tableflowTopic("orders");
+        assertThrows(ResourceValidationException.class, () -> client.createTableflowTopic("cloud", resource));
         configureTableflow();
         properties.setProvider(ManagedClusterProperties.KafkaProvider.SELF_MANAGED);
-        assertThrows(
-                ResourceValidationException.class,
-                () -> client.createTableflowTopic("cloud", tableflowTopic("orders")));
-        assertThrows(
-                ResourceValidationException.class,
-                () -> client.createTableflowTopic("unknown", tableflowTopic("orders")));
+        assertThrows(ResourceValidationException.class, () -> client.createTableflowTopic("cloud", resource));
+        assertThrows(ResourceValidationException.class, () -> client.createTableflowTopic("unknown", resource));
         assertTrue(requests.isEmpty());
     }
 
@@ -189,9 +184,8 @@ class ConfluentCloudClientTest {
             case "secret" -> config.getTableflow().setBasicAuthPassword(null);
             default -> throw new IllegalArgumentException(field);
         }
-        assertThrows(
-                ResourceValidationException.class,
-                () -> client.createTableflowTopic("cloud", tableflowTopic("orders")));
+        TableflowTopic resource = tableflowTopic("orders");
+        assertThrows(ResourceValidationException.class, () -> client.createTableflowTopic("cloud", resource));
         assertTrue(requests.isEmpty());
     }
 
@@ -200,8 +194,8 @@ class ConfluentCloudClientTest {
     void shouldSanitizeTableflowErrorsWithoutRetry(int status) {
         configureTableflow();
         replies.add(new Reply(status, "{\"message\":\"DO-NOT-EXPOSE\"}"));
-        var error = assertThrows(
-                HttpStatusException.class, () -> client.createTableflowTopic("cloud", tableflowTopic("orders")));
+        TableflowTopic resource = tableflowTopic("orders");
+        var error = assertThrows(HttpStatusException.class, () -> client.createTableflowTopic("cloud", resource));
         assertEquals(status == 409 ? HttpStatus.CONFLICT : HttpStatus.BAD_GATEWAY, error.getStatus());
         assertTrue(error.getMessage().contains("HTTP " + status));
         assertTrue(!error.getMessage().contains("DO-NOT-EXPOSE"));
@@ -215,8 +209,8 @@ class ConfluentCloudClientTest {
         when(http.retrieve(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(JsonNode.class)))
                 .thenReturn(Mono.error(ReadTimeoutException.TIMEOUT_EXCEPTION));
         var timedOut = new ConfluentCloudClient(http, List.of(properties));
-        var error = assertThrows(
-                HttpStatusException.class, () -> timedOut.createTableflowTopic("cloud", tableflowTopic("orders")));
+        TableflowTopic resource = tableflowTopic("orders");
+        var error = assertThrows(HttpStatusException.class, () -> timedOut.createTableflowTopic("cloud", resource));
         assertEquals(HttpStatus.GATEWAY_TIMEOUT, error.getStatus());
         assertTrue(error.getMessage().contains("creation may have been accepted"));
         verify(http).retrieve(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(JsonNode.class));
