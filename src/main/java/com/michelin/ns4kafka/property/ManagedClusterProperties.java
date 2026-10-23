@@ -118,6 +118,16 @@ public class ManagedClusterProperties {
         private String clusterId;
         private String basicAuthUsername;
         private String basicAuthPassword;
+        private TableflowProperties tableflow;
+
+        /** Tableflow credentials, separate from Cloud resource management credentials. */
+        @Getter
+        @Setter
+        @ConfigurationProperties("tableflow")
+        public static class TableflowProperties {
+            private String basicAuthUsername;
+            private String basicAuthPassword;
+        }
     }
 
     /** Timeout properties. */

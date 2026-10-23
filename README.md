@@ -44,6 +44,7 @@ Ns4Kafka brings a namespace-based deployment model for Kafka resources, inspired
       * [Self-Managed](#self-managed)
       * [Confluent Cloud](#confluent-cloud)
         * [Role Binding](#role-binding)
+        * [Tableflow Creation](#tableflow-creation)
     * [Audit Log](#audit-log)
       * [Console](#console)
       * [Kafka](#kafka-1)
@@ -455,6 +456,94 @@ ns4kafka:
 | confluent-cloud.basic-auth-password  | string  | No       | Basic authentication password to the Confluent Cloud API. Required to use [Confluent Cloud Role Binding](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html).                |
 
 Ns4Kafka ACLs will be converted to the corresponding Role Bindings when synchronized.
+
+#### Tableflow Creation
+
+Tableflow can be enabled for an existing Kafka topic in Confluent Cloud.
+
+You can configure Tableflow using the following properties:
+
+```yaml
+ns4kafka:
+  managed-clusters:
+    cluster-name:
+      provider: "CONFLUENT_CLOUD"
+      confluent-cloud:
+        environment-id: "env-xxx"
+        cluster-id: "lkc-xxx"
+        tableflow:
+          basic-auth-username: "${TABLEFLOW_API_KEY}"
+          basic-auth-password: "${TABLEFLOW_API_SECRET}"
+```
+
+| Property                                           | Type   | Required | Description                |
+|----------------------------------------------------|--------|----------|----------------------------|
+| confluent-cloud.tableflow.basic-auth-username        | string | Yes      | Tableflow API key.         |
+| confluent-cloud.tableflow.basic-auth-password        | string | Yes      | Tableflow API secret.      |
+
+These credentials are separate from Cloud resource management credentials. The key's owning account needs
+`ResourceOwner` on the source topic (or `CloudClusterAdmin` on its cluster) and `DeveloperRead` on all schema subjects.
+See [Tableflow RBAC](https://docs.confluent.io/cloud/current/topics/tableflow/operate/tableflow-rbac.html) for supported roles.
+Configure Schema Registry and its read credentials using the managed cluster's [schema-registry properties](#self-managed).
+
+The caller needs `tableflow-topics` POST permission through a namespace RoleBinding, and the namespace must own
+the source topic. Configure `spec.tableflowTopicValidator` on approved Namespace resources to restrict allowed settings:
+
+```yaml
+spec:
+  tableflowTopicValidator:
+    validationConstraints:
+      table.format:
+        validation-type: ValidList
+        validStrings:
+          - ICEBERG
+      storage.kind:
+        validation-type: ValidString
+        validStrings:
+          - Managed
+```
+
+This Namespace excerpt enforces Iceberg and Confluent-managed storage. Supported constraints are `name`,
+`table.format` and `storage.kind`. Without a validator, no namespace-specific value restrictions are applied;
+authorization is still required. Validated request settings are forwarded to Confluent without replacing them with defaults.
+
+Create and deploy the [source topic](.docker/resources/user/topic.yml), then register its latest `<topic>-key` and
+`<topic>-value` [schemas](.docker/resources/user/schema.yml) before enabling Tableflow. Both schema definitions must
+be non-empty; this check supports `TopicNameStrategy`. The topic must not be marked for deletion. Confluent performs
+additional compatibility checks; registering schemas alone does not validate existing records.
+
+Call `POST /api/namespaces/{namespace}/tableflow-topics` with the following JSON resource:
+
+```json
+{
+  "apiVersion": "v1",
+  "kind": "TableflowTopic",
+  "metadata": {
+    "name": "your_topic"
+  },
+  "spec": {
+    "table_formats": ["ICEBERG"],
+    "storage": {
+      "kind": "Managed"
+    }
+  }
+}
+```
+
+`metadata.name` identifies the existing Kafka topic. Both `spec.table_formats` and `spec.storage.kind` are required.
+The server supplies the namespace, environment and cluster. Creating a `TableflowTopic` does not create another Kafka topic.
+
+The endpoint returns HTTP `202` with a `TableflowTopic` resource containing Confluent's initial status in `status.state`.
+Table materialization continues asynchronously; [monitor Confluent for readiness](https://docs.confluent.io/cloud/current/topics/tableflow/operate/monitor-tableflow.html). Ns4Kafka does not store or reconcile
+the Tableflow configuration. Only creation is supported; GET, update, delete and import are not implemented.
+
+Use `?dryrun=true` with the same body to validate the request, namespace rules, topic ownership, deployment and schemas.
+Dry runs read Schema Registry and return HTTP `200` without creating Tableflow or an audit event. They do not validate
+Tableflow credentials or all Confluent eligibility rules. Validation warnings are returned in `X-Ns4kafka-Warnings`.
+
+Local validation failures or missing schemas return HTTP `422`; repeated creation returns HTTP `409`.
+Schema Registry or Confluent API failures return HTTP `502`; timeouts return HTTP `504`.
+Creation is not automatically retried. Check Confluent before retrying a timed-out request, as it may already have been accepted.
 
 ### Audit Log
 
