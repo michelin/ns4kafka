@@ -18,39 +18,44 @@
  */
 package com.michelin.ns4kafka.service;
 
-import com.michelin.ns4kafka.model.Resource;
+import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.TableflowTopic;
 import com.michelin.ns4kafka.model.Topic;
+import com.michelin.ns4kafka.repository.TableflowTopicRepository;
+import com.michelin.ns4kafka.service.client.confluent.ConfluentCloudClient;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
-import com.michelin.ns4kafka.service.executor.TopicAsyncExecutor;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
-import io.micronaut.context.ApplicationContext;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.client.exceptions.ReadTimeoutException;
 import io.micronaut.http.exceptions.HttpStatusException;
-import io.micronaut.inject.qualifiers.Qualifiers;
-import io.micronaut.json.tree.JsonNode;
 import io.netty.channel.ConnectTimeoutException;
 import jakarta.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /** Service to validate and create Tableflow resources. */
 @Singleton
 public class TableflowTopicService {
-    private final ApplicationContext applicationContext;
+    private final TableflowTopicRepository tableflowTopicRepository;
     private final SchemaRegistryClient schemaRegistryClient;
+    private final ConfluentCloudClient confluentCloudClient;
 
     /**
      * Constructor.
      *
-     * @param applicationContext The application context
+     * @param tableflowTopicRepository The Tableflow topic repository
      * @param schemaRegistryClient The Schema Registry client
+     * @param confluentCloudClient The Confluent Cloud client
      */
-    public TableflowTopicService(ApplicationContext applicationContext, SchemaRegistryClient schemaRegistryClient) {
-        this.applicationContext = applicationContext;
+    public TableflowTopicService(
+            TableflowTopicRepository tableflowTopicRepository,
+            SchemaRegistryClient schemaRegistryClient,
+            ConfluentCloudClient confluentCloudClient) {
+        this.tableflowTopicRepository = tableflowTopicRepository;
         this.schemaRegistryClient = schemaRegistryClient;
+        this.confluentCloudClient = confluentCloudClient;
     }
 
     /**
@@ -95,26 +100,26 @@ public class TableflowTopicService {
     }
 
     /**
-     * Create a Tableflow topic through the existing cluster-specific topic executor.
+     * Find a Tableflow topic in the namespace's managed cluster.
      *
-     * @param tableflowTopic The Tableflow topic to create
-     * @return The Tableflow topic with the Confluent identifier and creation status
+     * @param namespace The namespace
+     * @param name The source topic name
+     * @return The stored Tableflow topic
+     */
+    public Optional<TableflowTopic> findByName(Namespace namespace, String name) {
+        return tableflowTopicRepository.findByName(namespace.getMetadata().getCluster(), name);
+    }
+
+    /**
+     * Store a Tableflow configuration for asynchronous deployment.
+     *
+     * @param tableflowTopic The Tableflow topic to store
+     * @return The stored Tableflow topic
      */
     public TableflowTopic create(TableflowTopic tableflowTopic) {
-        TopicAsyncExecutor topicAsyncExecutor = applicationContext.getBean(
-                TopicAsyncExecutor.class,
-                Qualifiers.byName(tableflowTopic.getMetadata().getCluster()));
-        JsonNode response = topicAsyncExecutor.createTableflowTopic(tableflowTopic);
-        tableflowTopic.setStatus(TableflowTopic.TableflowTopicStatus.builder()
-                .id(response.get("id") == null ? null : response.get("id").getStringValue())
-                .state(response.get("status"))
-                .build());
-        tableflowTopic
-                .getMetadata()
-                .setStatus(Resource.Metadata.Status.builder()
-                        .phase(Resource.Metadata.Phase.PENDING)
-                        .message("Creation accepted by Confluent; table materialization is asynchronous.")
-                        .build());
-        return tableflowTopic;
+        confluentCloudClient.validateTableflowConfiguration(
+                tableflowTopic.getMetadata().getCluster(),
+                tableflowTopic.getMetadata().getName());
+        return tableflowTopicRepository.create(tableflowTopic);
     }
 }

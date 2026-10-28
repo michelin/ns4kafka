@@ -19,15 +19,12 @@
 package com.michelin.ns4kafka.service.executor;
 
 import com.michelin.ns4kafka.model.Resource;
-import com.michelin.ns4kafka.model.TableflowTopic;
 import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.TopicRepository;
 import com.michelin.ns4kafka.repository.kafka.KafkaStoreException;
-import com.michelin.ns4kafka.service.client.confluent.ConfluentCloudClient;
 import com.michelin.ns4kafka.util.TopicConfigUtils;
 import io.micronaut.context.annotation.EachBean;
-import io.micronaut.json.tree.JsonNode;
 import jakarta.inject.Singleton;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -61,32 +58,16 @@ public class TopicAsyncExecutor {
 
     private final ManagedClusterProperties managedClusterProperties;
     private final TopicRepository topicRepository;
-    private final ConfluentCloudClient confluentCloudClient;
 
     /**
      * Constructor.
      *
      * @param managedClusterProperties The managed cluster properties
      * @param topicRepository The topic repository
-     * @param confluentCloudClient The Confluent Cloud client
      */
-    public TopicAsyncExecutor(
-            ManagedClusterProperties managedClusterProperties,
-            TopicRepository topicRepository,
-            ConfluentCloudClient confluentCloudClient) {
+    public TopicAsyncExecutor(ManagedClusterProperties managedClusterProperties, TopicRepository topicRepository) {
         this.managedClusterProperties = managedClusterProperties;
         this.topicRepository = topicRepository;
-        this.confluentCloudClient = confluentCloudClient;
-    }
-
-    /**
-     * Synchronously submit Tableflow creation for an existing topic.
-     *
-     * @param tableflowTopic The validated Tableflow topic
-     * @return The Confluent Tableflow creation response
-     */
-    public JsonNode createTableflowTopic(TableflowTopic tableflowTopic) {
-        return confluentCloudClient.createTableflowTopic(managedClusterProperties.getName(), tableflowTopic);
     }
 
     /** Run the topic synchronization. */

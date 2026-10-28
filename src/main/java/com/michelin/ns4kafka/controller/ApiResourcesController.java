@@ -87,7 +87,7 @@ public class ApiResourcesController {
             .names(List.of("topics", "topic", "to"))
             .build();
 
-    /** Tableflow resource definition. Creation is synchronous and not reconciled by Ns4Kafka. */
+    /** Tableflow resource definition. */
     public static final ResourceDefinition TABLEFLOW_TOPIC = ResourceDefinition.builder()
             .kind("TableflowTopic")
             .namespaced(true)

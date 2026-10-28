@@ -50,6 +50,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /** Controller to manage Tableflow resources independently from Kafka topics. */
 @Tag(name = "Tableflow Topics", description = "Enable Tableflow for existing Kafka topics.")
@@ -126,10 +127,21 @@ public class TableflowTopicController extends NamespacedResourceController {
             throw new ResourceValidationException(tableflowTopic, validationErrors);
         }
 
-        assignResourceMetadata(tableflowTopic, ns, null);
+        Optional<TableflowTopic> existingTableflowTopic = tableflowTopicService.findByName(ns, topic);
+        if (existingTableflowTopic.isPresent()
+                && !existingTableflowTopic.get().getSpec().equals(tableflowTopic.getSpec())) {
+            throw new ResourceValidationException(
+                    tableflowTopic, "Updating Tableflow configuration is not supported yet.");
+        }
+
+        assignResourceMetadata(tableflowTopic, ns, existingTableflowTopic.orElse(null));
         tableflowTopic.setApiVersion("v1");
         tableflowTopic.setKind(TABLEFLOW_TOPIC);
         tableflowTopic.setStatus(null);
+
+        if (existingTableflowTopic.isPresent()) {
+            return formatHttpResponse(existingTableflowTopic.get(), ApplyStatus.UNCHANGED, validationWarnings);
+        }
 
         if (dryrun) {
             return formatHttpResponse(tableflowTopic, ApplyStatus.CREATED, validationWarnings);

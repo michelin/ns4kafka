@@ -85,7 +85,7 @@ public class TableflowTopic extends Resource {
         @NotBlank private String kind;
     }
 
-    /** Confluent identifier and materialization status returned when creation is accepted. */
+    /** Confluent identifier and materialization status updated by the executor. */
     @Data
     @Builder
     @Serdeable
