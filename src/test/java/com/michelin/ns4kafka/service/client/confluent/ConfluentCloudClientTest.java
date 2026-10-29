@@ -97,7 +97,11 @@ class ConfluentCloudClientTest {
                     assertEquals("api.confluent.cloud", request.getUri().getHost());
                     return httpClient.retrieve(
                             request.toMutableRequest()
-                                    .uri(URI.create(url + request.getUri().getRawPath())),
+                                    .uri(URI.create(url
+                                            + request.getUri().getRawPath()
+                                            + (request.getUri().getRawQuery() == null
+                                                    ? ""
+                                                    : "?" + request.getUri().getRawQuery()))),
                             JsonNode.class);
                 });
         client = new ConfluentCloudClient(localClient, List.of(properties));
@@ -217,4 +221,55 @@ class ConfluentCloudClientTest {
     }
 
     private record Request(String method, URI uri, String authorization, String body) {}
+
+    @Test
+    void shouldReadTableflowWithTheConfiguredScopeAndDedicatedCredentials() {
+        configureTableflow();
+        replies.add(new Reply(200, "{\"status\":{\"phase\":\"RUNNING\"}}"));
+
+        var result = client.getTableflowTopic("cloud", "orders.created");
+
+        assertEquals("RUNNING", result.orElseThrow().get("status").get("phase").getStringValue());
+        Request request = requests.element();
+        assertEquals("GET", request.method());
+        assertEquals(
+                "/tableflow/v1/tableflow-topics/orders.created", request.uri().getPath());
+        assertEquals(
+                "environment=env-test&spec.kafka_cluster=lkc-test",
+                request.uri().getQuery());
+        assertEquals(
+                "Basic "
+                        + Base64.getEncoder()
+                                .encodeToString("tableflow-key:tableflow-secret".getBytes(StandardCharsets.UTF_8)),
+                request.authorization());
+    }
+
+    @Test
+    void shouldReturnEmptyOnlyWhenTableflowDoesNotExist() {
+        configureTableflow();
+        replies.add(new Reply(404, "{}"));
+        assertTrue(client.getTableflowTopic("cloud", "orders").isEmpty());
+    }
+
+    @Test
+    void shouldValidateLocalConfigurationWithoutMakingAnHttpRequest() {
+        assertThrows(ResourceValidationException.class, () -> client.validateTableflowConfiguration("cloud", "orders"));
+        configureTableflow();
+        client.validateTableflowConfiguration("cloud", "orders");
+        assertTrue(requests.isEmpty());
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {401, 403, 429, 500})
+    void shouldNotTreatLookupFailuresAsMissingResources(int status) {
+        configureTableflow();
+        replies.add(new Reply(status, "{\"message\":\"DO-NOT-EXPOSE\"}"));
+
+        var error = assertThrows(HttpStatusException.class, () -> client.getTableflowTopic("cloud", "orders"));
+
+        assertEquals(HttpStatus.BAD_GATEWAY, error.getStatus());
+        assertTrue(error.getMessage().contains("HTTP " + status));
+        assertTrue(!error.getMessage().contains("DO-NOT-EXPOSE"));
+        assertEquals(1, requests.size());
+    }
 }
