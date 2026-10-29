@@ -533,17 +533,22 @@ Call `POST /api/namespaces/{namespace}/tableflow-topics` with the following JSON
 `metadata.name` identifies the existing Kafka topic. Both `spec.table_formats` and `spec.storage.kind` are required.
 The server supplies the namespace, environment and cluster. Creating a `TableflowTopic` does not create another Kafka topic.
 
-The endpoint returns HTTP `202` with a `TableflowTopic` resource containing Confluent's initial status in `status.state`.
-Table materialization continues asynchronously; [monitor Confluent for readiness](https://docs.confluent.io/cloud/current/topics/tableflow/operate/monitor-tableflow.html). Ns4Kafka does not store or reconcile
-the Tableflow configuration. Only creation is supported; GET, update, delete and import are not implemented.
+The endpoint stores the configuration in `${ns4kafka.store.kafka.topics.prefix}.tableflow-topics` and returns HTTP `202`
+with `metadata.status.phase: Pending`. A dedicated Tableflow executor deploys the configuration and persists progress.
+It polls every 20 seconds by default, configured with `ns4kafka.scheduler.tableflow.interval-ms`.
+`metadata.status.phase` becomes `Success` when Confluent reports `RUNNING`, or `Fail` when deployment fails.
+Confluent's materialization status is stored in `status.state`; [monitor Confluent for readiness](https://docs.confluent.io/cloud/current/topics/tableflow/operate/monitor-tableflow.html).
 
 Use `?dryrun=true` with the same body to validate the request, namespace rules, topic ownership, deployment and schemas.
 Dry runs read Schema Registry and return HTTP `200` without creating Tableflow or an audit event. They do not validate
 Tableflow credentials or all Confluent eligibility rules. Validation warnings are returned in `X-Ns4kafka-Warnings`.
 
-Local validation failures or missing schemas return HTTP `422`; repeated creation returns HTTP `409`.
-Schema Registry or Confluent API failures return HTTP `502`; timeouts return HTTP `504`.
-Creation is not automatically retried. Check Confluent before retrying a timed-out request, as it may already have been accepted.
+Local validation failures or missing schemas return HTTP `422`. Schema Registry failures return HTTP `502`; timeouts
+return HTTP `504`. Confluent failures after acceptance are recorded in the resource status and retried by the executor.
+Before creating, the executor reads Confluent's current state to recover requests accepted before a timeout or restart.
+An identical request for a stored configuration returns `unchanged` without submitting another creation or audit event.
+Different existing configurations are reported as failures and are not overwritten. Public GET, update, delete and import
+operations are not implemented yet; submitting a changed configuration returns HTTP `422`.
 
 ### Audit Log
 
