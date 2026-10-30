@@ -25,6 +25,7 @@ jobs:
         with:
           java-version: '25'
           distribution: 'temurin'
+          cache: gradle
 
       - name: Import GPG key
         uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd # v7.0.0
