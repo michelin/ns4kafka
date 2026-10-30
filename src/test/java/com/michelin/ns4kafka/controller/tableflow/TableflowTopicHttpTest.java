@@ -50,7 +50,6 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
-import io.micronaut.json.tree.JsonNode;
 import io.micronaut.runtime.server.EmbeddedServer;
 import jakarta.inject.Singleton;
 import java.util.List;
@@ -168,14 +167,7 @@ class TableflowTopicHttpTest {
         when(topicService.isNamespaceOwnerOfTopic("sales", "sales.orders")).thenReturn(true);
         when(topicService.findByName(namespace, "sales.orders")).thenReturn(Optional.of(topic));
         when(tableflowTopicService.validateSchemas(topic)).thenReturn(List.of());
-        when(tableflowTopicService.create(any())).thenAnswer(invocation -> {
-            TableflowTopic submitted = invocation.getArgument(0);
-            submitted.setStatus(TableflowTopic.TableflowTopicStatus.builder()
-                    .id("tt-test")
-                    .state(JsonNode.from(Map.of("phase", "PROVISIONING")))
-                    .build());
-            return submitted;
-        });
+        when(tableflowTopicService.create(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         var response = client.toBlocking()
                 .exchange(
@@ -199,7 +191,10 @@ class TableflowTopicHttpTest {
             assertNull(response.body().getStatus());
             verify(tableflowTopicService, never()).create(any());
         } else {
-            assertEquals("tt-test", response.body().getStatus().getId());
+            assertNull(response.body().getStatus());
+            assertEquals(
+                    Resource.Metadata.Phase.PENDING,
+                    response.body().getMetadata().getStatus().getPhase());
         }
         verify(tableflowTopicService).validateSchemas(topic);
         verify(topicService, never()).create(any());

@@ -22,28 +22,27 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.TableflowTopic;
 import com.michelin.ns4kafka.model.Topic;
+import com.michelin.ns4kafka.repository.TableflowTopicRepository;
+import com.michelin.ns4kafka.service.client.confluent.ConfluentCloudClient;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
-import com.michelin.ns4kafka.service.executor.TopicAsyncExecutor;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
-import io.micronaut.context.ApplicationContext;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.client.exceptions.ReadTimeoutException;
 import io.micronaut.http.exceptions.HttpStatusException;
-import io.micronaut.inject.qualifiers.Qualifiers;
-import io.micronaut.json.tree.JsonNode;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -57,13 +56,13 @@ import reactor.core.publisher.Mono;
 @ExtendWith(MockitoExtension.class)
 class TableflowTopicServiceTest {
     @Mock
-    ApplicationContext applicationContext;
-
-    @Mock
-    TopicAsyncExecutor topicAsyncExecutor;
+    TableflowTopicRepository tableflowTopicRepository;
 
     @Mock
     SchemaRegistryClient schemaRegistryClient;
+
+    @Mock
+    ConfluentCloudClient confluentCloudClient;
 
     @InjectMocks
     TableflowTopicService tableflowTopicService;
@@ -131,7 +130,7 @@ class TableflowTopicServiceTest {
         assertEquals(HttpStatus.BAD_GATEWAY, error.getStatus());
         assertTrue(error.getMessage().contains("HTTP " + status));
         assertTrue(!error.getMessage().contains("DO-NOT-EXPOSE"));
-        verify(topicAsyncExecutor, never()).createTableflowTopic(any());
+        verify(tableflowTopicRepository, never()).create(any());
     }
 
     @Test
@@ -166,32 +165,54 @@ class TableflowTopicServiceTest {
     }
 
     @Test
-    void shouldCreateTableflowUsingTheTopicsClusterExecutor() {
+    void shouldStoreTableflowConfigurationWithoutCallingConfluent() {
         TableflowTopic tableflowTopic = TableflowTopic.builder()
                 .metadata(Resource.Metadata.builder()
                         .cluster("cloud")
                         .name("orders")
+                        .generation(0)
+                        .status(Resource.Metadata.Status.ofPending())
                         .build())
                 .spec(TableflowTopic.TableflowTopicSpec.builder()
                         .tableFormats(List.of("ICEBERG"))
                         .build())
                 .build();
-        JsonNode result = JsonNode.from(Map.of("id", "tt-test", "status", Map.of("phase", "PROVISIONING")));
-        when(applicationContext.getBean(TopicAsyncExecutor.class, Qualifiers.byName("cloud")))
-                .thenReturn(topicAsyncExecutor);
-        when(topicAsyncExecutor.createTableflowTopic(tableflowTopic)).thenReturn(result);
+        when(tableflowTopicRepository.create(tableflowTopic)).thenReturn(tableflowTopic);
 
-        TableflowTopic createdTableflowTopic = tableflowTopicService.create(tableflowTopic);
+        assertEquals(tableflowTopic, tableflowTopicService.create(tableflowTopic));
+        assertTrue(tableflowTopic.isPending());
+        assertEquals(0, tableflowTopic.getMetadata().getGeneration());
+        verify(tableflowTopicRepository).create(tableflowTopic);
+        verify(confluentCloudClient).validateTableflowConfiguration("cloud", "orders");
+        verify(confluentCloudClient, never()).createTableflowTopic(any(), any());
+    }
 
-        assertEquals("orders", createdTableflowTopic.getMetadata().getName());
-        assertEquals("cloud", createdTableflowTopic.getMetadata().getCluster());
-        assertEquals("tt-test", createdTableflowTopic.getStatus().getId());
-        assertEquals(
-                "PROVISIONING",
-                createdTableflowTopic.getStatus().getState().get("phase").getStringValue());
-        assertEquals(
-                Resource.Metadata.Phase.PENDING,
-                createdTableflowTopic.getMetadata().getStatus().getPhase());
-        verify(topicAsyncExecutor).createTableflowTopic(tableflowTopic);
+    @Test
+    void shouldFindConfigurationInTheNamespacesCluster() {
+        Namespace namespace = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("sales")
+                        .cluster("cloud")
+                        .build())
+                .build();
+        tableflowTopicService.findByName(namespace, "orders");
+        verify(tableflowTopicRepository).findByName("cloud", "orders");
+    }
+
+    @Test
+    void shouldNotStoreRequestsWithInvalidLocalClusterConfiguration() {
+        TableflowTopic request = TableflowTopic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("orders")
+                        .cluster("cloud")
+                        .build())
+                .build();
+        doThrow(new ResourceValidationException(request, "Tableflow credentials are missing."))
+                .when(confluentCloudClient)
+                .validateTableflowConfiguration("cloud", "orders");
+
+        assertThrows(ResourceValidationException.class, () -> tableflowTopicService.create(request));
+
+        verify(tableflowTopicRepository, never()).create(any());
     }
 }

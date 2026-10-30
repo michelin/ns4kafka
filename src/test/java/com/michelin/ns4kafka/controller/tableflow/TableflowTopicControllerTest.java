@@ -46,7 +46,6 @@ import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.json.JsonMapper;
-import io.micronaut.json.tree.JsonNode;
 import io.micronaut.security.utils.SecurityService;
 import java.util.List;
 import java.util.Map;
@@ -143,10 +142,6 @@ class TableflowTopicControllerTest {
                         Resource.Metadata.builder().name("orders").generation(1).build())
                 .build();
         TableflowTopic createdTableflowTopic = icebergRequest();
-        createdTableflowTopic.setStatus(TableflowTopic.TableflowTopicStatus.builder()
-                .id("tt-test")
-                .state(JsonNode.from(Map.of("phase", "PROVISIONING")))
-                .build());
         createdTableflowTopic.getMetadata().setStatus(Resource.Metadata.Status.ofPending());
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic("test", "orders")).thenReturn(true);
@@ -171,10 +166,7 @@ class TableflowTopicControllerTest {
         var response = tableflowTopicController.apply("test", request, false);
 
         assertEquals(HttpStatus.ACCEPTED, response.getStatus());
-        assertEquals("tt-test", response.body().getStatus().getId());
-        assertEquals(
-                "PROVISIONING",
-                response.body().getStatus().getState().get("phase").getStringValue());
+        assertNull(response.body().getStatus());
         assertEquals(
                 Resource.Metadata.Phase.PENDING,
                 response.body().getMetadata().getStatus().getPhase());
@@ -275,7 +267,7 @@ class TableflowTopicControllerTest {
     }
 
     @Test
-    void shouldNotAuditCreationWhenConfluentSubmissionFails() {
+    void shouldNotAuditCreationWhenStorageFails() {
         Namespace ns = namespace();
         Topic topic = Topic.builder()
                 .metadata(
@@ -285,7 +277,7 @@ class TableflowTopicControllerTest {
         when(topicService.isNamespaceOwnerOfTopic("test", "orders")).thenReturn(true);
         when(topicService.findByName(ns, "orders")).thenReturn(Optional.of(topic));
         when(tableflowTopicService.create(any()))
-                .thenThrow(new HttpStatusException(HttpStatus.BAD_GATEWAY, "Confluent unavailable"));
+                .thenThrow(new HttpStatusException(HttpStatus.BAD_GATEWAY, "Storage unavailable"));
 
         TableflowTopic request = icebergRequest();
         assertThrows(HttpStatusException.class, () -> tableflowTopicController.apply("test", request, false));
@@ -387,6 +379,52 @@ class TableflowTopicControllerTest {
         assertEquals(
                 HttpStatus.OK,
                 tableflowTopicController.apply("test", icebergRequest(), true).getStatus());
+        verify(tableflowTopicService, never()).create(any());
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void shouldTreatRepeatedSubmissionsAsUnchangedWithoutWritingOrAuditing(boolean dryrun) {
+        Namespace ns = namespace();
+        Topic source = Topic.builder()
+                .metadata(
+                        Resource.Metadata.builder().name("orders").generation(1).build())
+                .build();
+        TableflowTopic stored = icebergRequest();
+        stored.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(topicService.isNamespaceOwnerOfTopic("test", "orders")).thenReturn(true);
+        when(topicService.findByName(ns, "orders")).thenReturn(Optional.of(source));
+        when(tableflowTopicService.findByName(ns, "orders")).thenReturn(Optional.of(stored));
+
+        var response = tableflowTopicController.apply("test", icebergRequest(), dryrun);
+
+        assertEquals(HttpStatus.OK, response.getStatus());
+        assertEquals("unchanged", response.getHeaders().get("X-Ns4kafka-Result"));
+        assertEquals(stored, response.body());
+        verify(tableflowTopicService, never()).create(any());
+        verify(applicationEventPublisher, never()).publishEvent(any(AuditLog.class));
+    }
+
+    @Test
+    void shouldRejectConfigurationChangesUntilUpdateIsSupported() {
+        Namespace ns = namespace();
+        Topic source = Topic.builder()
+                .metadata(
+                        Resource.Metadata.builder().name("orders").generation(1).build())
+                .build();
+        TableflowTopic stored = icebergRequest();
+        stored.getSpec().setTableFormats(List.of("DELTA"));
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(topicService.isNamespaceOwnerOfTopic("test", "orders")).thenReturn(true);
+        when(topicService.findByName(ns, "orders")).thenReturn(Optional.of(source));
+        when(tableflowTopicService.findByName(ns, "orders")).thenReturn(Optional.of(stored));
+        TableflowTopic request = icebergRequest();
+
+        var error = assertThrows(
+                ResourceValidationException.class, () -> tableflowTopicController.apply("test", request, false));
+
+        assertTrue(error.getValidationErrors().contains("Updating Tableflow configuration is not supported yet."));
         verify(tableflowTopicService, never()).create(any());
     }
 }

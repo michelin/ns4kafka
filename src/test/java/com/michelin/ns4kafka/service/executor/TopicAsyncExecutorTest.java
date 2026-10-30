@@ -32,12 +32,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.model.Resource;
-import com.michelin.ns4kafka.model.TableflowTopic;
 import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.TopicRepository;
-import com.michelin.ns4kafka.service.client.confluent.ConfluentCloudClient;
-import io.micronaut.json.tree.JsonNode;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -113,27 +110,6 @@ class TopicAsyncExecutorTest {
 
     @InjectMocks
     TopicAsyncExecutor topicAsyncExecutor;
-
-    @Mock
-    ConfluentCloudClient confluentCloudClient;
-
-    @Test
-    void shouldSubmitTableflowCreationThroughExistingExecutor() {
-        JsonNode result = JsonNode.from(Map.of("id", "tt-test"));
-        when(managedClusterProperties.getName()).thenReturn("cloud");
-        TableflowTopic tableflowTopic = TableflowTopic.builder()
-                .metadata(Resource.Metadata.builder().name("orders").build())
-                .spec(TableflowTopic.TableflowTopicSpec.builder()
-                        .tableFormats(List.of("ICEBERG"))
-                        .storage(
-                                TableflowTopic.Storage.builder().kind("Managed").build())
-                        .build())
-                .build();
-        when(confluentCloudClient.createTableflowTopic("cloud", tableflowTopic)).thenReturn(result);
-
-        assertEquals(result, topicAsyncExecutor.createTableflowTopic(tableflowTopic));
-        verify(topicRepository, never()).create(any());
-    }
 
     @Test
     void shouldSynchronizeTopicsBasedOnBrokerStateRegardlessOfStatus() throws Exception {
