@@ -87,6 +87,15 @@ public class ApiResourcesController {
             .names(List.of("topics", "topic", "to"))
             .build();
 
+    /** Tableflow resource definition. */
+    public static final ResourceDefinition TABLEFLOW_TOPIC = ResourceDefinition.builder()
+            .kind("TableflowTopic")
+            .namespaced(true)
+            .synchronizable(false)
+            .path("tableflow-topics")
+            .names(List.of("tableflow-topics", "tableflow-topic", "tableflowtopic", "tableflowtopics", "tft"))
+            .build();
+
     /** Schema resource definition. */
     public static final ResourceDefinition SCHEMA = ResourceDefinition.builder()
             .kind("Schema")
@@ -132,7 +141,16 @@ public class ApiResourcesController {
     @Get
     public List<ResourceDefinition> list(@Nullable AuthenticationInfo authentication) {
         List<ResourceDefinition> all = List.of(
-                ACL, CONNECTOR, KSTREAM, ROLE_BINDING, RESOURCE_QUOTA, CONNECT_CLUSTER, TOPIC, NAMESPACE, SCHEMA);
+                ACL,
+                CONNECTOR,
+                KSTREAM,
+                ROLE_BINDING,
+                RESOURCE_QUOTA,
+                CONNECT_CLUSTER,
+                TOPIC,
+                NAMESPACE,
+                SCHEMA,
+                TABLEFLOW_TOPIC);
 
         if (authentication == null) {
             return all; // Backward compatibility for cli <= 1.3.0
