@@ -29,7 +29,6 @@ import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.TableflowTopic;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.service.client.confluent.entities.TableflowTopicRequest;
-import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import com.sun.net.httpserver.HttpServer;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpStatus;
@@ -87,8 +86,8 @@ class ConfluentCloudClientTest {
         var config = new ManagedClusterProperties.ConfluentCloudProperties();
         config.setClusterId("lkc-test");
         config.setEnvironmentId("env-test");
-        config.setBasicAuthUsername("management");
-        config.setBasicAuthPassword("test-secret");
+        config.setBasicAuthUsername("global-admin-key");
+        config.setBasicAuthPassword("global-admin-secret");
         properties.setConfluentCloud(config);
         var localClient = mock(HttpClient.class);
         when(localClient.retrieve(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(JsonNode.class)))
@@ -130,17 +129,9 @@ class ConfluentCloudClientTest {
                 .build();
     }
 
-    void configureTableflow() {
-        var credentials = new ManagedClusterProperties.ConfluentCloudProperties.TableflowProperties();
-        credentials.setBasicAuthUsername("tableflow-key");
-        credentials.setBasicAuthPassword("tableflow-secret");
-        properties.getConfluentCloud().setTableflow(credentials);
-    }
-
     @ParameterizedTest
     @ValueSource(strings = {"ICEBERG", "DELTA"})
-    void shouldCreateTableflowWithDedicatedCredentialsAndValidatedSettings(String format) throws Exception {
-        configureTableflow();
+    void shouldCreateTableflowWithSharedCredentialsAndValidatedSettings(String format) throws Exception {
         replies.add(new Reply(202, "{\"id\":\"tt-test\",\"status\":{\"phase\":\"PROVISIONING\"}}"));
 
         TableflowTopic resource = tableflowTopic("orders.created");
@@ -155,7 +146,8 @@ class ConfluentCloudClientTest {
         assertEquals(
                 "Basic "
                         + Base64.getEncoder()
-                                .encodeToString("tableflow-key:tableflow-secret".getBytes(StandardCharsets.UTF_8)),
+                                .encodeToString(
+                                        "global-admin-key:global-admin-secret".getBytes(StandardCharsets.UTF_8)),
                 request.authorization());
         var body = JsonMapper.createDefault().readValue(request.body(), TableflowTopicRequest.class);
         assertEquals("orders.created", body.spec().displayName());
@@ -165,38 +157,9 @@ class ConfluentCloudClientTest {
         assertEquals("lkc-test", body.spec().kafkaCluster().id());
     }
 
-    @Test
-    void shouldRejectTableflowWithoutDedicatedCredentialsOrCloudProvider() {
-        TableflowTopic resource = tableflowTopic("orders");
-        assertThrows(ResourceValidationException.class, () -> client.createTableflowTopic("cloud", resource));
-        configureTableflow();
-        properties.setProvider(ManagedClusterProperties.KafkaProvider.SELF_MANAGED);
-        assertThrows(ResourceValidationException.class, () -> client.createTableflowTopic("cloud", resource));
-        assertThrows(ResourceValidationException.class, () -> client.createTableflowTopic("unknown", resource));
-        assertTrue(requests.isEmpty());
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"cluster", "environment", "key", "secret"})
-    void shouldRejectIncompleteTableflowConfigurationBeforeSending(String field) {
-        configureTableflow();
-        var config = properties.getConfluentCloud();
-        switch (field) {
-            case "cluster" -> config.setClusterId(null);
-            case "environment" -> config.setEnvironmentId(null);
-            case "key" -> config.getTableflow().setBasicAuthUsername(null);
-            case "secret" -> config.getTableflow().setBasicAuthPassword(null);
-            default -> throw new IllegalArgumentException(field);
-        }
-        TableflowTopic resource = tableflowTopic("orders");
-        assertThrows(ResourceValidationException.class, () -> client.createTableflowTopic("cloud", resource));
-        assertTrue(requests.isEmpty());
-    }
-
     @ParameterizedTest
     @ValueSource(ints = {400, 401, 403, 409, 422, 429, 500})
     void shouldSanitizeTableflowErrorsWithoutRetry(int status) {
-        configureTableflow();
         replies.add(new Reply(status, "{\"message\":\"DO-NOT-EXPOSE\"}"));
         TableflowTopic resource = tableflowTopic("orders");
         var error = assertThrows(HttpStatusException.class, () -> client.createTableflowTopic("cloud", resource));
@@ -208,7 +171,6 @@ class ConfluentCloudClientTest {
 
     @Test
     void shouldReportTableflowTimeoutWithoutRetry() {
-        configureTableflow();
         var http = mock(HttpClient.class);
         when(http.retrieve(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(JsonNode.class)))
                 .thenReturn(Mono.error(ReadTimeoutException.TIMEOUT_EXCEPTION));
@@ -223,8 +185,7 @@ class ConfluentCloudClientTest {
     private record Request(String method, URI uri, String authorization, String body) {}
 
     @Test
-    void shouldReadTableflowWithTheConfiguredScopeAndDedicatedCredentials() {
-        configureTableflow();
+    void shouldReadTableflowWithTheConfiguredScopeAndSharedCredentials() {
         replies.add(new Reply(200, "{\"status\":{\"phase\":\"RUNNING\"}}"));
 
         var result = client.getTableflowTopic("cloud", "orders.created");
@@ -240,29 +201,20 @@ class ConfluentCloudClientTest {
         assertEquals(
                 "Basic "
                         + Base64.getEncoder()
-                                .encodeToString("tableflow-key:tableflow-secret".getBytes(StandardCharsets.UTF_8)),
+                                .encodeToString(
+                                        "global-admin-key:global-admin-secret".getBytes(StandardCharsets.UTF_8)),
                 request.authorization());
     }
 
     @Test
     void shouldReturnEmptyOnlyWhenTableflowDoesNotExist() {
-        configureTableflow();
         replies.add(new Reply(404, "{}"));
         assertTrue(client.getTableflowTopic("cloud", "orders").isEmpty());
-    }
-
-    @Test
-    void shouldValidateLocalConfigurationWithoutMakingAnHttpRequest() {
-        assertThrows(ResourceValidationException.class, () -> client.validateTableflowConfiguration("cloud", "orders"));
-        configureTableflow();
-        client.validateTableflowConfiguration("cloud", "orders");
-        assertTrue(requests.isEmpty());
     }
 
     @ParameterizedTest
     @ValueSource(ints = {401, 403, 429, 500})
     void shouldNotTreatLookupFailuresAsMissingResources(int status) {
-        configureTableflow();
         replies.add(new Reply(status, "{\"message\":\"DO-NOT-EXPOSE\"}"));
 
         var error = assertThrows(HttpStatusException.class, () -> client.getTableflowTopic("cloud", "orders"));

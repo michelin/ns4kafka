@@ -18,8 +18,6 @@
  */
 package com.michelin.ns4kafka.service.client.confluent;
 
-import static com.michelin.ns4kafka.util.enumation.Kind.TABLEFLOW_TOPIC;
-
 import com.michelin.ns4kafka.model.TableflowTopic;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.service.client.confluent.entities.RoleBinding;
@@ -83,8 +81,7 @@ public class ConfluentCloudClient {
      */
     public JsonNode createTableflowTopic(String kafkaCluster, TableflowTopic tableflowTopic) {
         String topic = tableflowTopic.getMetadata().getName();
-        var config = getTableflowConfig(kafkaCluster, topic);
-        var credentials = config.getTableflow();
+        var config = getConfluentCloud(kafkaCluster);
         var body = new TableflowTopicRequest(new TableflowTopicRequest.Spec(
                 topic,
                 new TableflowTopicRequest.Storage(
@@ -95,7 +92,7 @@ public class ConfluentCloudClient {
         HttpRequest<?> request = HttpRequest.POST(
                         URI.create(StringUtils.prependUri(CONFLUENT_CLOUD_API_URL, "/tableflow/v1/tableflow-topics")),
                         body)
-                .basicAuth(credentials.getBasicAuthUsername(), credentials.getBasicAuthPassword());
+                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
         try {
             var response =
                     Mono.from(httpClient.retrieve(request, JsonNode.class)).block();
@@ -110,20 +107,10 @@ public class ConfluentCloudClient {
                     "Confluent Tableflow creation returned HTTP " + status + ". "
                             + (status == 409
                                     ? "Tableflow already exists for this topic."
-                                    : "Check the Tableflow credentials, permissions, topic schemas, and Confluent availability."));
+                                    : "Check the Confluent Cloud credentials, permissions, topic schemas, and Confluent availability."));
         } catch (RuntimeException exception) {
             throw tableflowRequestException("creation", exception);
         }
-    }
-
-    /**
-     * Validate local configuration before accepting a Tableflow request without contacting Confluent.
-     *
-     * @param kafkaCluster The Kafka cluster
-     * @param topic The source topic name
-     */
-    public void validateTableflowConfiguration(String kafkaCluster, String topic) {
-        getTableflowConfig(kafkaCluster, topic);
     }
 
     /**
@@ -134,14 +121,13 @@ public class ConfluentCloudClient {
      * @return The Confluent resource, or empty only when Confluent returns 404
      */
     public Optional<JsonNode> getTableflowTopic(String kafkaCluster, String topic) {
-        var config = getTableflowConfig(kafkaCluster, topic);
-        var credentials = config.getTableflow();
+        var config = getConfluentCloud(kafkaCluster);
         HttpRequest<?> request = HttpRequest.GET(UriBuilder.of(CONFLUENT_CLOUD_API_URL)
                         .path("/tableflow/v1/tableflow-topics/" + topic)
                         .queryParam("environment", config.getEnvironmentId())
                         .queryParam("spec.kafka_cluster", config.getClusterId())
                         .build())
-                .basicAuth(credentials.getBasicAuthUsername(), credentials.getBasicAuthPassword());
+                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
         try {
             var response =
                     Mono.from(httpClient.retrieve(request, JsonNode.class)).block();
@@ -156,40 +142,10 @@ public class ConfluentCloudClient {
             throw new HttpStatusException(
                     HttpStatus.BAD_GATEWAY,
                     "Confluent Tableflow lookup returned HTTP " + exception.code()
-                            + ". Check the Tableflow credentials, permissions, and Confluent availability.");
+                            + ". Check the Confluent Cloud credentials, permissions, and Confluent availability.");
         } catch (RuntimeException exception) {
             throw tableflowRequestException("lookup", exception);
         }
-    }
-
-    /**
-     * Validate the Tableflow credentials and cluster scope before sending a request.
-     *
-     * @param kafkaCluster The Kafka cluster
-     * @param topic The source topic name
-     * @return The validated Confluent Cloud configuration
-     */
-    private ManagedClusterProperties.ConfluentCloudProperties getTableflowConfig(String kafkaCluster, String topic) {
-        var cluster = managedClusterProperties.stream()
-                .filter(properties -> properties.getName().equals(kafkaCluster))
-                .findFirst();
-        if (cluster.isEmpty() || !cluster.get().isConfluentCloud()) {
-            throw new ResourceValidationException(
-                    TABLEFLOW_TOPIC, topic, "Tableflow is supported only for Confluent Cloud clusters.");
-        }
-        var config = getConfluentCloud(kafkaCluster);
-        var credentials = config.getTableflow();
-        if (StringUtils.isEmpty(config.getClusterId())
-                || StringUtils.isEmpty(config.getEnvironmentId())
-                || credentials == null
-                || StringUtils.isEmpty(credentials.getBasicAuthUsername())
-                || StringUtils.isEmpty(credentials.getBasicAuthPassword())) {
-            throw new ResourceValidationException(
-                    TABLEFLOW_TOPIC,
-                    topic,
-                    "Tableflow creation requires cluster ID, environment ID, and Tableflow credentials.");
-        }
-        return config;
     }
 
     /**

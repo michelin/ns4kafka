@@ -18,13 +18,16 @@
  */
 package com.michelin.ns4kafka.service;
 
+import static com.michelin.ns4kafka.util.enumation.Kind.TABLEFLOW_TOPIC;
+
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.TableflowTopic;
 import com.michelin.ns4kafka.model.Topic;
+import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.TableflowTopicRepository;
-import com.michelin.ns4kafka.service.client.confluent.ConfluentCloudClient;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
+import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.client.exceptions.ReadTimeoutException;
@@ -40,22 +43,51 @@ import java.util.Optional;
 public class TableflowTopicService {
     private final TableflowTopicRepository tableflowTopicRepository;
     private final SchemaRegistryClient schemaRegistryClient;
-    private final ConfluentCloudClient confluentCloudClient;
+    private final List<ManagedClusterProperties> managedClusterProperties;
 
     /**
      * Constructor.
      *
      * @param tableflowTopicRepository The Tableflow topic repository
      * @param schemaRegistryClient The Schema Registry client
-     * @param confluentCloudClient The Confluent Cloud client
+     * @param managedClusterProperties The managed cluster properties
      */
     public TableflowTopicService(
             TableflowTopicRepository tableflowTopicRepository,
             SchemaRegistryClient schemaRegistryClient,
-            ConfluentCloudClient confluentCloudClient) {
+            List<ManagedClusterProperties> managedClusterProperties) {
         this.tableflowTopicRepository = tableflowTopicRepository;
         this.schemaRegistryClient = schemaRegistryClient;
-        this.confluentCloudClient = confluentCloudClient;
+        this.managedClusterProperties = managedClusterProperties;
+    }
+
+    /**
+     * Validate the local cluster configuration before looking up the topic and schemas.
+     *
+     * @param namespace The namespace
+     * @param topic The source topic name
+     */
+    public void validateConfiguration(Namespace namespace, String topic) {
+        Optional<ManagedClusterProperties> cluster = managedClusterProperties.stream()
+                .filter(properties ->
+                        properties.getName().equals(namespace.getMetadata().getCluster()))
+                .findFirst();
+        if (cluster.isEmpty() || !cluster.get().isConfluentCloud()) {
+            throw new ResourceValidationException(
+                    TABLEFLOW_TOPIC, topic, "Tableflow is supported only for Confluent Cloud clusters.");
+        }
+
+        var config = cluster.get().getConfluentCloud();
+        if (config == null
+                || StringUtils.isEmpty(config.getClusterId())
+                || StringUtils.isEmpty(config.getEnvironmentId())
+                || StringUtils.isEmpty(config.getBasicAuthUsername())
+                || StringUtils.isEmpty(config.getBasicAuthPassword())) {
+            throw new ResourceValidationException(
+                    TABLEFLOW_TOPIC,
+                    topic,
+                    "Tableflow creation requires cluster ID, environment ID, and Confluent Cloud credentials.");
+        }
     }
 
     /**
@@ -117,9 +149,6 @@ public class TableflowTopicService {
      * @return The stored Tableflow topic
      */
     public TableflowTopic create(TableflowTopic tableflowTopic) {
-        confluentCloudClient.validateTableflowConfiguration(
-                tableflowTopic.getMetadata().getCluster(),
-                tableflowTopic.getMetadata().getName());
         return tableflowTopicRepository.create(tableflowTopic);
     }
 }

@@ -22,17 +22,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.TableflowTopic;
 import com.michelin.ns4kafka.model.Topic;
+import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.TableflowTopicRepository;
-import com.michelin.ns4kafka.service.client.confluent.ConfluentCloudClient;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
@@ -43,6 +43,7 @@ import io.micronaut.http.client.exceptions.ReadTimeoutException;
 import io.micronaut.http.exceptions.HttpStatusException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -62,7 +63,7 @@ class TableflowTopicServiceTest {
     SchemaRegistryClient schemaRegistryClient;
 
     @Mock
-    ConfluentCloudClient confluentCloudClient;
+    List<ManagedClusterProperties> managedClusterProperties;
 
     @InjectMocks
     TableflowTopicService tableflowTopicService;
@@ -183,8 +184,7 @@ class TableflowTopicServiceTest {
         assertTrue(tableflowTopic.isPending());
         assertEquals(0, tableflowTopic.getMetadata().getGeneration());
         verify(tableflowTopicRepository).create(tableflowTopic);
-        verify(confluentCloudClient).validateTableflowConfiguration("cloud", "orders");
-        verify(confluentCloudClient, never()).createTableflowTopic(any(), any());
+        verifyNoInteractions(managedClusterProperties, schemaRegistryClient);
     }
 
     @Test
@@ -199,20 +199,74 @@ class TableflowTopicServiceTest {
         verify(tableflowTopicRepository).findByName("cloud", "orders");
     }
 
-    @Test
-    void shouldNotStoreRequestsWithInvalidLocalClusterConfiguration() {
-        TableflowTopic request = TableflowTopic.builder()
+    private static Namespace namespace() {
+        return Namespace.builder()
                 .metadata(Resource.Metadata.builder()
-                        .name("orders")
+                        .name("sales")
                         .cluster("cloud")
                         .build())
                 .build();
-        doThrow(new ResourceValidationException(request, "Tableflow credentials are missing."))
-                .when(confluentCloudClient)
-                .validateTableflowConfiguration("cloud", "orders");
+    }
 
-        assertThrows(ResourceValidationException.class, () -> tableflowTopicService.create(request));
+    private static ManagedClusterProperties cloudCluster() {
+        var cluster = new ManagedClusterProperties("cloud", ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
+        var config = new ManagedClusterProperties.ConfluentCloudProperties();
+        config.setClusterId("lkc-test");
+        config.setEnvironmentId("env-test");
+        config.setBasicAuthUsername("shared-key");
+        config.setBasicAuthPassword("shared-secret");
+        cluster.setConfluentCloud(config);
+        return cluster;
+    }
 
-        verify(tableflowTopicRepository, never()).create(any());
+    @Test
+    void shouldValidateTheNamespacesClusterWithoutAccessingSchemasOrStorage() {
+        var otherCluster = new ManagedClusterProperties("other", ManagedClusterProperties.KafkaProvider.SELF_MANAGED);
+        when(managedClusterProperties.stream()).thenReturn(Stream.of(otherCluster, cloudCluster()));
+
+        tableflowTopicService.validateConfiguration(namespace(), "orders");
+
+        verifyNoInteractions(schemaRegistryClient, tableflowTopicRepository);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"unknown", "self-managed"})
+    void shouldRejectUnsupportedClusters(String type) {
+        var cluster = cloudCluster();
+        if (type.equals("unknown")) {
+            cluster.setName("other");
+        } else {
+            cluster.setProvider(ManagedClusterProperties.KafkaProvider.SELF_MANAGED);
+        }
+        when(managedClusterProperties.stream()).thenReturn(Stream.of(cluster));
+        Namespace ns = namespace();
+
+        var error = assertThrows(
+                ResourceValidationException.class, () -> tableflowTopicService.validateConfiguration(ns, "orders"));
+
+        assertTrue(error.getValidationErrors().contains("Tableflow is supported only for Confluent Cloud clusters."));
+        verifyNoInteractions(schemaRegistryClient, tableflowTopicRepository);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"missing", "cluster", "environment", "key", "secret"})
+    void shouldRejectIncompleteClusterConfiguration(String field) {
+        var cluster = cloudCluster();
+        var config = cluster.getConfluentCloud();
+        switch (field) {
+            case "missing" -> cluster.setConfluentCloud(null);
+            case "cluster" -> config.setClusterId(null);
+            case "environment" -> config.setEnvironmentId(null);
+            case "key" -> config.setBasicAuthUsername("");
+            case "secret" -> config.setBasicAuthPassword(null);
+            default -> throw new IllegalArgumentException(field);
+        }
+        when(managedClusterProperties.stream()).thenReturn(Stream.of(cluster));
+        Namespace ns = namespace();
+
+        assertThrows(
+                ResourceValidationException.class, () -> tableflowTopicService.validateConfiguration(ns, "orders"));
+
+        verifyNoInteractions(schemaRegistryClient, tableflowTopicRepository);
     }
 }

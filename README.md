@@ -424,6 +424,10 @@ The configuration will depend on the authentication method selected for your bro
 
 The following features are only available when using Confluent Cloud as the provider.
 
+Configure one [global API key](https://docs.confluent.io/cloud/current/security/authenticate/workload-identities/service-accounts/api-keys/overview.html#global-api-keys)
+owned by an `OrganizationAdmin` principal for Ns4Kafka's Confluent Cloud API operations, including role binding synchronization
+and Tableflow enablement. Reuse the same key and secret in each managed cluster configuration within that organization.
+
 ##### Role Binding
 
 Confluent role bindings can be synchronized with Ns4Kafka.
@@ -442,8 +446,8 @@ ns4kafka:
         organization-id: "xxx"
         environment-id: "env-xxx"
         cluster-id: "lkc-xxx"
-        basic-auth-username: "username"
-        basic-auth-password: "password"
+        basic-auth-username: "${CONFLUENT_CLOUD_API_KEY}"
+        basic-auth-password: "${CONFLUENT_CLOUD_API_SECRET}"
 ```
 
 | Property                             | Type    | Required | Description                                                                                                                                                                                                    |
@@ -452,8 +456,8 @@ ns4kafka:
 | confluent-cloud.organization-id      | string  | No       | Confluent Cloud Organization ID. Required to use [Confluent Cloud Role Binding](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html).                                         |
 | confluent-cloud.environment-id       | string  | No       | Confluent Cloud environment ID. Required to use [Confluent Cloud Role Binding](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html).                                          |
 | confluent-cloud.cluster-id           | string  | No       | Confluent Cloud cluster ID. Required to use [Confluent Cloud Role Binding](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html).                                              |
-| confluent-cloud.basic-auth-username  | string  | No       | Basic authentication password to the Confluent Cloud API. Required to use [Confluent Cloud Role Binding](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html).                |
-| confluent-cloud.basic-auth-password  | string  | No       | Basic authentication password to the Confluent Cloud API. Required to use [Confluent Cloud Role Binding](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html).                |
+| confluent-cloud.basic-auth-username  | string  | No       | Global API key shared by Confluent Cloud API operations. Required for role binding synchronization and Tableflow enablement.                                                                                 |
+| confluent-cloud.basic-auth-password  | string  | No       | Global API secret shared by Confluent Cloud API operations. Required for role binding synchronization and Tableflow enablement.                                                                              |
 
 Ns4Kafka ACLs will be converted to the corresponding Role Bindings when synchronized.
 
@@ -461,7 +465,7 @@ Ns4Kafka ACLs will be converted to the corresponding Role Bindings when synchron
 
 Tableflow can be enabled for an existing Kafka topic in Confluent Cloud.
 
-You can configure Tableflow using the following properties:
+Tableflow reuses the Confluent Cloud configuration used for role bindings:
 
 ```yaml
 ns4kafka:
@@ -471,18 +475,16 @@ ns4kafka:
       confluent-cloud:
         environment-id: "env-xxx"
         cluster-id: "lkc-xxx"
-        tableflow:
-          basic-auth-username: "${TABLEFLOW_API_KEY}"
-          basic-auth-password: "${TABLEFLOW_API_SECRET}"
+        basic-auth-username: "${CONFLUENT_CLOUD_API_KEY}"
+        basic-auth-password: "${CONFLUENT_CLOUD_API_SECRET}"
 ```
 
-| Property                                           | Type   | Required | Description                |
-|----------------------------------------------------|--------|----------|----------------------------|
-| confluent-cloud.tableflow.basic-auth-username        | string | Yes      | Tableflow API key.         |
-| confluent-cloud.tableflow.basic-auth-password        | string | Yes      | Tableflow API secret.      |
+| Property                            | Type   | Required | Description                 |
+|-------------------------------------|--------|----------|-----------------------------|
+| confluent-cloud.basic-auth-username  | string | Yes      | Shared global API key.      |
+| confluent-cloud.basic-auth-password  | string | Yes      | Shared global API secret.   |
 
-These credentials are separate from Cloud resource management credentials. The key's owning account needs
-`ResourceOwner` on the source topic (or `CloudClusterAdmin` on its cluster) and `DeveloperRead` on all schema subjects.
+The global admin key configured above is also used for Tableflow; a separate Tableflow key is not required.
 See [Tableflow RBAC](https://docs.confluent.io/cloud/current/topics/tableflow/operate/tableflow-rbac.html) for supported roles.
 Configure Schema Registry and its read credentials using the managed cluster's [schema-registry properties](#self-managed).
 
@@ -507,9 +509,9 @@ This Namespace excerpt enforces Iceberg and Confluent-managed storage. Supported
 `table.format` and `storage.kind`. Without a validator, no namespace-specific value restrictions are applied;
 authorization is still required. Validated request settings are forwarded to Confluent without replacing them with defaults.
 
-Create and deploy the [source topic](.docker/resources/user/topic.yml), then register its latest `<topic>-key` and
+Create the [source topic](.docker/resources/user/topic.yml) in Ns4Kafka, then register its latest `<topic>-key` and
 `<topic>-value` [schemas](.docker/resources/user/schema.yml) before enabling Tableflow. Both schema definitions must
-be non-empty; this check supports `TopicNameStrategy`. The topic must not be marked for deletion. Confluent performs
+be non-empty; this check supports `TopicNameStrategy`. The topic executor handles Kafka deployment. Confluent performs
 additional compatibility checks; registering schemas alone does not validate existing records.
 
 Call `POST /api/namespaces/{namespace}/tableflow-topics` with the following JSON resource:
@@ -539,9 +541,9 @@ It polls every 20 seconds by default, configured with `ns4kafka.scheduler.tablef
 `metadata.status.phase` becomes `Success` when Confluent reports `RUNNING`, or `Fail` when deployment fails.
 Confluent's materialization status is stored in `status.state`; [monitor Confluent for readiness](https://docs.confluent.io/cloud/current/topics/tableflow/operate/monitor-tableflow.html).
 
-Use `?dryrun=true` with the same body to validate the request, namespace rules, topic ownership, deployment and schemas.
-Dry runs read Schema Registry and return HTTP `200` without creating Tableflow or an audit event. They do not validate
-Tableflow credentials or all Confluent eligibility rules. Validation warnings are returned in `X-Ns4kafka-Warnings`.
+Use `?dryrun=true` with the same body to validate the request, namespace rules, cluster configuration, topic ownership and schemas.
+Dry runs check local configuration and read Schema Registry, then return HTTP `200` without storing Tableflow or an audit event.
+They do not verify credentials with Confluent or all Tableflow eligibility rules. Validation warnings are returned in `X-Ns4kafka-Warnings`.
 
 Local validation failures or missing schemas return HTTP `422`. Schema Registry failures return HTTP `502`; timeouts
 return HTTP `504`. Confluent failures after acceptance are recorded in the resource status and retried by the executor.

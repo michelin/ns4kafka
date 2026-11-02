@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -128,6 +129,7 @@ class TableflowTopicControllerTest {
                 ResourceValidationException.class, () -> tableflowTopicController.apply("test", request, dryrun));
 
         assertTrue(error.getValidationErrors().stream().anyMatch(message -> message.contains("table.format")));
+        verify(tableflowTopicService, never()).validateConfiguration(any(), any());
         verify(topicService, never()).findByName(any(Namespace.class), any());
         verify(tableflowTopicService, never()).validateSchemas(any());
         verify(tableflowTopicService, never()).create(any());
@@ -175,6 +177,7 @@ class TableflowTopicControllerTest {
         assertEquals("test", response.body().getMetadata().getNamespace());
         assertEquals("Managed", response.body().getSpec().getStorage().getKind());
         var calls = inOrder(tableflowTopicService);
+        calls.verify(tableflowTopicService).validateConfiguration(ns, "orders");
         calls.verify(tableflowTopicService).validateSchemas(topic);
         calls.verify(tableflowTopicService).create(request);
         var audit = ArgumentCaptor.forClass(AuditLog.class);
@@ -209,27 +212,49 @@ class TableflowTopicControllerTest {
         verify(tableflowTopicService, never()).create(any());
     }
 
-    @Test
-    void shouldRejectTableflowForUndeployedOrDeletingTopic() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void shouldAcceptTableflowWhileTheSourceTopicAwaitsDeployment(boolean dryrun) {
         Namespace ns = namespace();
         TableflowTopic request = icebergRequest();
         Topic topic = Topic.builder()
-                .metadata(
-                        Resource.Metadata.builder().name("orders").generation(0).build())
+                .metadata(Resource.Metadata.builder()
+                        .name("orders")
+                        .generation(0)
+                        .status(Resource.Metadata.Status.ofPending())
+                        .build())
                 .build();
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic("test", "orders")).thenReturn(true);
         when(topicService.findByName(ns, "orders")).thenReturn(Optional.of(topic));
+        if (!dryrun) {
+            when(tableflowTopicService.create(request)).thenReturn(request);
+        }
 
-        assertThrows(ResourceValidationException.class, () -> tableflowTopicController.apply("test", request, false));
-        topic.getMetadata().setGeneration(1);
-        topic.getMetadata()
-                .setStatus(Resource.Metadata.Status.builder()
-                        .phase(Resource.Metadata.Phase.DELETING)
-                        .build());
-        assertThrows(ResourceValidationException.class, () -> tableflowTopicController.apply("test", request, false));
+        var response = tableflowTopicController.apply("test", request, dryrun);
 
+        assertEquals(dryrun ? HttpStatus.OK : HttpStatus.ACCEPTED, response.getStatus());
+        verify(tableflowTopicService).validateConfiguration(ns, "orders");
+        verify(tableflowTopicService).validateSchemas(topic);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void shouldRejectInvalidClusterConfigurationBeforeTopicAndSchemaLookup(boolean dryrun) {
+        Namespace ns = namespace();
+        TableflowTopic request = icebergRequest();
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(topicService.isNamespaceOwnerOfTopic("test", "orders")).thenReturn(true);
+        doThrow(new ResourceValidationException(request, "Tableflow is supported only for Confluent Cloud clusters."))
+                .when(tableflowTopicService)
+                .validateConfiguration(ns, "orders");
+
+        assertThrows(ResourceValidationException.class, () -> tableflowTopicController.apply("test", request, dryrun));
+
+        verify(topicService, never()).findByName(any(Namespace.class), any());
+        verify(tableflowTopicService, never()).validateSchemas(any());
         verify(tableflowTopicService, never()).create(any());
+        verify(applicationEventPublisher, never()).publishEvent(any(AuditLog.class));
     }
 
     @Test
@@ -247,9 +272,6 @@ class TableflowTopicControllerTest {
         TableflowTopic request = icebergRequest();
         request.getMetadata().setCluster("caller-cluster");
         request.getMetadata().setNamespace("caller-namespace");
-        request.setStatus(TableflowTopic.TableflowTopicStatus.builder()
-                .id("caller-status")
-                .build());
 
         var response = tableflowTopicController.apply("test", request, true);
 

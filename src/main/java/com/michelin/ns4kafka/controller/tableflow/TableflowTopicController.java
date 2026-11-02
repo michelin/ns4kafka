@@ -20,13 +20,11 @@ package com.michelin.ns4kafka.controller.tableflow;
 
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNotFound;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidOwner;
-import static com.michelin.ns4kafka.util.enumation.Kind.TABLEFLOW_TOPIC;
 import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 
 import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.Namespace;
-import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.TableflowTopic;
 import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.service.NamespaceService;
@@ -42,7 +40,6 @@ import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
-import io.micronaut.http.annotation.Status;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.micronaut.security.utils.SecurityService;
@@ -89,7 +86,6 @@ public class TableflowTopicController extends NamespacedResourceController {
      * @return The Tableflow topic accepted for creation, or its dry-run preview
      */
     @Post
-    @Status(HttpStatus.ACCEPTED)
     public HttpResponse<TableflowTopic> apply(
             String namespace,
             @Valid @Body TableflowTopic tableflowTopic,
@@ -113,15 +109,11 @@ public class TableflowTopicController extends NamespacedResourceController {
             throw new ResourceValidationException(tableflowTopic, validationErrors);
         }
 
+        tableflowTopicService.validateConfiguration(ns, topic);
+
         Topic existingTopic = topicService
                 .findByName(ns, topic)
                 .orElseThrow(() -> new ResourceValidationException(tableflowTopic, invalidNotFound(topic)));
-        if (!existingTopic.isCreated()
-                || (existingTopic.getMetadata().getStatus() != null
-                        && existingTopic.getMetadata().getStatus().getPhase() == Resource.Metadata.Phase.DELETING)) {
-            throw new ResourceValidationException(
-                    tableflowTopic, "Tableflow requires a deployed topic that is not deleting.");
-        }
         validationErrors = tableflowTopicService.validateSchemas(existingTopic);
         if (!validationErrors.isEmpty()) {
             throw new ResourceValidationException(tableflowTopic, validationErrors);
@@ -135,9 +127,6 @@ public class TableflowTopicController extends NamespacedResourceController {
         }
 
         assignResourceMetadata(tableflowTopic, ns, existingTableflowTopic.orElse(null));
-        tableflowTopic.setApiVersion("v1");
-        tableflowTopic.setKind(TABLEFLOW_TOPIC);
-        tableflowTopic.setStatus(null);
 
         if (existingTableflowTopic.isPresent()) {
             return formatHttpResponse(existingTableflowTopic.get(), ApplyStatus.UNCHANGED, validationWarnings);
