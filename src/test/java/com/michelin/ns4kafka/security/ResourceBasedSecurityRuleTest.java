@@ -53,6 +53,30 @@ class ResourceBasedSecurityRuleTest {
     private static final String VERBS = "verbs";
     private static final String RESOURCE_TYPES = "resourceTypes";
 
+    @ParameterizedTest
+    @CsvSource({
+        "tableflow-topics,POST,ALLOWED",
+        "topics,POST,UNKNOWN",
+        "topics/tableflow,POST,UNKNOWN",
+        "topics/delete-records,POST,UNKNOWN",
+        "tableflow-topics,GET,UNKNOWN"
+    })
+    void shouldRequireTableflowPermissionAndPostVerb(String resource, String verb, SecurityRuleResult expected) {
+        when(namespaceRepository.findByName("test"))
+                .thenReturn(Optional.of(Namespace.builder().build()));
+        var binding = AuthenticationRoleBinding.builder()
+                .namespaces(List.of("test"))
+                .resourceTypes(List.of(resource))
+                .verbs(List.of(com.michelin.ns4kafka.model.RoleBinding.Verb.valueOf(verb)))
+                .build();
+        var authentication = Authentication.build("caller", Map.of(ROLE_BINDINGS, List.of(binding)));
+
+        assertEquals(
+                expected,
+                resourceBasedSecurityRule.checkSecurity(
+                        HttpRequest.POST("/api/namespaces/test/tableflow-topics", ""), authentication));
+    }
+
     @Mock
     NamespaceRepository namespaceRepository;
 

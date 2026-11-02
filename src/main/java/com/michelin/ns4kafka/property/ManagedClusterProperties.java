@@ -108,7 +108,7 @@ public class ManagedClusterProperties {
         private String basicAuthPassword;
     }
 
-    /** Confluent Cloud properties. */
+    /** Confluent Cloud properties with global API credentials shared by role bindings and Tableflow. */
     @Getter
     @Setter
     @ConfigurationProperties("confluent-cloud")

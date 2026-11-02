@@ -77,6 +77,14 @@ public class Ns4KafkaProperties {
     public static class SchedulerProperties {
         private ConnectorProperties connector = new ConnectorProperties();
         private RoleBindingProperties roleBinding = new RoleBindingProperties();
+        private TableflowProperties tableflow = new TableflowProperties();
+
+        @Getter
+        @Setter
+        @ConfigurationProperties("tableflow")
+        public static class TableflowProperties {
+            private int intervalMs = 20000;
+        }
 
         @Getter
         @Setter

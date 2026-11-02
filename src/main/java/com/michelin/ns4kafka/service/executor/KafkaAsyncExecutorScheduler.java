@@ -41,9 +41,11 @@ public class KafkaAsyncExecutorScheduler {
     private final List<ConfluentRoleBindingAsyncExecutor> confluentRoleBindingAsyncExecutors;
     private final List<ConnectorAsyncExecutor> connectorAsyncExecutors;
     private final List<UserAsyncExecutor> userAsyncExecutors;
+    private final List<TableflowTopicAsyncExecutor> tableflowTopicAsyncExecutors;
     private final Ns4KafkaProperties.SchedulerProperties schedulerProperties;
     private Disposable connectorSyncDisposable;
     private Disposable roleBindingSyncDisposable;
+    private Disposable tableflowSyncDisposable;
 
     /**
      * Constructor.
@@ -53,6 +55,8 @@ public class KafkaAsyncExecutorScheduler {
      * @param confluentRoleBindingAsyncExecutors The confluent role binding async executors
      * @param connectorAsyncExecutors The connector async executors
      * @param userAsyncExecutors The user async executors
+     * @param tableflowTopicAsyncExecutors The Tableflow topic async executors
+     * @param schedulerProperties The scheduler properties
      */
     public KafkaAsyncExecutorScheduler(
             List<TopicAsyncExecutor> topicAsyncExecutors,
@@ -60,12 +64,14 @@ public class KafkaAsyncExecutorScheduler {
             List<ConfluentRoleBindingAsyncExecutor> confluentRoleBindingAsyncExecutors,
             List<ConnectorAsyncExecutor> connectorAsyncExecutors,
             List<UserAsyncExecutor> userAsyncExecutors,
+            List<TableflowTopicAsyncExecutor> tableflowTopicAsyncExecutors,
             Ns4KafkaProperties.SchedulerProperties schedulerProperties) {
         this.topicAsyncExecutors = topicAsyncExecutors;
         this.accessControlEntryAsyncExecutors = accessControlEntryAsyncExecutors;
         this.confluentRoleBindingAsyncExecutors = confluentRoleBindingAsyncExecutors;
         this.connectorAsyncExecutors = connectorAsyncExecutors;
         this.userAsyncExecutors = userAsyncExecutors;
+        this.tableflowTopicAsyncExecutors = tableflowTopicAsyncExecutors;
         this.schedulerProperties = schedulerProperties;
     }
 
@@ -79,6 +85,7 @@ public class KafkaAsyncExecutorScheduler {
         ready.compareAndSet(false, true);
         connectorSyncDisposable = scheduleConnectorSynchronization();
         roleBindingSyncDisposable = scheduleRoleBindingSynchronization();
+        tableflowSyncDisposable = scheduleTableflowSynchronization();
     }
 
     /** Schedule resource synchronization. */
@@ -132,6 +139,23 @@ public class KafkaAsyncExecutorScheduler {
                 .subscribe();
     }
 
+    /**
+     * Schedule Tableflow synchronization without overlapping runs.
+     *
+     * @return A disposable to manage the scheduled task
+     */
+    public Disposable scheduleTableflowSynchronization() {
+        return Flux.interval(
+                        Duration.ofSeconds(12),
+                        Duration.ofMillis(schedulerProperties.getTableflow().getIntervalMs()))
+                .onBackpressureDrop(
+                        _ -> log.debug("Skipping next Tableflow synchronization. The previous one is still running."))
+                .concatMap(_ -> Flux.fromIterable(tableflowTopicAsyncExecutors)
+                        .flatMap(TableflowTopicAsyncExecutor::run, Math.max(1, tableflowTopicAsyncExecutors.size())))
+                .onErrorContinue((error, _) -> log.error("Continue Tableflow synchronization after error.", error))
+                .subscribe();
+    }
+
     /** Dispose the schedulers when the application is shutting down. */
     @PreDestroy
     public void onDestroy() {
@@ -141,6 +165,9 @@ public class KafkaAsyncExecutorScheduler {
 
         if (roleBindingSyncDisposable != null && !roleBindingSyncDisposable.isDisposed()) {
             roleBindingSyncDisposable.dispose();
+        }
+        if (tableflowSyncDisposable != null && !tableflowSyncDisposable.isDisposed()) {
+            tableflowSyncDisposable.dispose();
         }
     }
 }
