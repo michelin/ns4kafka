@@ -34,6 +34,7 @@ public enum Kind {
     CONSUMER_GROUP_RESET_OFFSET("ConsumerGroupResetOffsets"),
     CONSUMER_GROUP_RESET_OFFSET_RESPONSE("ConsumerGroupResetOffsetsResponse"),
     DELETE_RECORDS_RESPONSE("DeleteRecordsResponse"),
+    KAFKA_USER_API_KEY("KafkaUserApiKey"),
     KAFKA_USER_RESET_PASSWORD("KafkaUserResetPassword"),
     KAFKA_STREAM("KafkaStream"),
     NAMESPACE("Namespace"),
