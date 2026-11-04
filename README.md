@@ -44,6 +44,7 @@ Ns4Kafka brings a namespace-based deployment model for Kafka resources, inspired
       * [Self-Managed](#self-managed)
       * [Confluent Cloud](#confluent-cloud)
         * [Role Binding](#role-binding)
+        * [API Key Deletion](#api-key-deletion)
     * [Audit Log](#audit-log)
       * [Console](#console)
       * [Kafka](#kafka-1)
@@ -455,6 +456,14 @@ ns4kafka:
 | confluent-cloud.basic-auth-password  | string  | No       | Basic authentication password to the Confluent Cloud API. Required to use [Confluent Cloud Role Binding](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html).                |
 
 Ns4Kafka ACLs will be converted to the corresponding Role Bindings when synchronized.
+
+#### API Key Deletion
+
+Use `DELETE /api/namespaces/{namespace}/users/{user}/api-keys?apiKey={keyId}` to revoke one Kafka API key.
+The caller needs the `users/api-keys` DELETE permission. The user must match the service account ID in the namespace.
+Ns4Kafka uses the cluster's Confluent Cloud management credentials to read the key and verify its owner and resource
+before deleting it. No secret is required. Add `dryrun=true` to check ownership without revoking the key.
+Success returns HTTP 204; missing keys and keys outside the namespace's account or cluster return HTTP 404.
 
 ### Audit Log
 
