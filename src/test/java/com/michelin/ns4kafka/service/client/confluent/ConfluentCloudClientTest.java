@@ -127,9 +127,8 @@ class ConfluentCloudClientTest {
         when(http.exchange(any(HttpRequest.class), eq(Void.class)))
                 .thenReturn(Mono.error(
                         new HttpClientResponseException("upstream", HttpResponse.status(HttpStatus.FORBIDDEN))));
-        HttpClientResponseException error = assertThrows(
-                HttpClientResponseException.class,
-                () -> client.deleteApiKey("cloud", OWNER, KEY, false).block());
+        Mono<Boolean> deletion = client.deleteApiKey("cloud", OWNER, KEY, false);
+        HttpClientResponseException error = assertThrows(HttpClientResponseException.class, deletion::block);
         assertEquals(HttpStatus.BAD_GATEWAY, error.getStatus());
         verify(http).exchange(any(HttpRequest.class), eq(Void.class));
     }
