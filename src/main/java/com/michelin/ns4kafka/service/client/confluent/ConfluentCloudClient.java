@@ -18,7 +18,10 @@
  */
 package com.michelin.ns4kafka.service.client.confluent;
 
+import static com.michelin.ns4kafka.util.enumation.Kind.KAFKA_USER_API_KEY;
+
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
+import com.michelin.ns4kafka.service.client.confluent.entities.ApiKeyMetadata;
 import com.michelin.ns4kafka.service.client.confluent.entities.RoleBinding;
 import com.michelin.ns4kafka.service.client.confluent.entities.RoleBindingListResponse;
 import com.michelin.ns4kafka.service.client.confluent.entities.RoleBindingRequest;
@@ -26,8 +29,11 @@ import com.michelin.ns4kafka.service.client.confluent.entities.RoleBindingRespon
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpRequest;
+import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.client.exceptions.ReadTimeoutException;
 import io.micronaut.retry.annotation.Retryable;
 import jakarta.inject.Singleton;
@@ -87,6 +93,57 @@ public class ConfluentCloudClient {
                     return pageToken != null ? listRoleBindingsPage(config, crnPattern, pageToken) : Mono.empty();
                 })
                 .flatMapIterable(response -> response.data() != null ? response.data() : List.of());
+    }
+
+    /**
+     * Verify the key belongs to the service account and cluster before deleting it.
+     *
+     * @param kafkaCluster The managed Kafka cluster
+     * @param owner The namespace's service account ID
+     * @param apiKey The API key ID
+     * @param dryrun Whether to validate without deleting
+     * @return Whether the key was found in the requested scope
+     */
+    public Mono<Boolean> deleteApiKey(String kafkaCluster, String owner, String apiKey, boolean dryrun) {
+        if (!owner.matches("sa-[a-zA-Z0-9]+") || !apiKey.matches("[A-Za-z0-9]+")) {
+            throw new ResourceValidationException(
+                    KAFKA_USER_API_KEY, apiKey, "Expected a service account ID and an alphanumeric API key ID.");
+        }
+        ManagedClusterProperties.ConfluentCloudProperties config = managedClusterProperties.stream()
+                .filter(cluster -> kafkaCluster.equals(cluster.getName()) && cluster.isConfluentCloud())
+                .map(ManagedClusterProperties::getConfluentCloud)
+                .filter(properties -> properties != null
+                        && properties.getClusterId() != null
+                        && properties.getClusterId().startsWith("lkc-")
+                        && StringUtils.isNotEmpty(properties.getBasicAuthUsername())
+                        && StringUtils.isNotEmpty(properties.getBasicAuthPassword()))
+                .findFirst()
+                .orElseThrow(() -> new ResourceValidationException(
+                        KAFKA_USER_API_KEY,
+                        apiKey,
+                        "API key deletion requires Confluent Cloud management credentials and a Kafka cluster ID."));
+
+        URI uri = URI.create(CONFLUENT_CLOUD_API_URL + "/iam/v2/api-keys/" + apiKey);
+        HttpRequest<?> lookup =
+                HttpRequest.GET(uri).basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+        return Mono.from(httpClient.retrieve(lookup, ApiKeyMetadata.class))
+                .filter(key -> key.belongsTo(apiKey, owner, config.getClusterId()))
+                .flatMap(key -> dryrun
+                        ? Mono.just(true)
+                        : Mono.from(httpClient.exchange(
+                                        HttpRequest.DELETE(uri)
+                                                .basicAuth(
+                                                        config.getBasicAuthUsername(), config.getBasicAuthPassword()),
+                                        Void.class))
+                                .thenReturn(true))
+                .defaultIfEmpty(false)
+                .onErrorResume(
+                        HttpClientResponseException.class,
+                        error -> error.code() == 404
+                                ? Mono.just(false)
+                                : Mono.error(new HttpClientResponseException(
+                                        "Confluent API key request failed.",
+                                        HttpResponse.status(HttpStatus.BAD_GATEWAY))));
     }
 
     /**
