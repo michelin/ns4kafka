@@ -25,6 +25,7 @@ import static com.michelin.ns4kafka.model.AccessControlEntry.ResourceType.TOPIC;
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.KafkaStream;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Namespace.PermissionMode;
 import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.NamespaceRepository;
@@ -109,7 +110,7 @@ public class AccessControlEntryAsyncExecutor {
 
     /** Run the ACLs synchronization. */
     public void run() {
-        if (this.managedClusterProperties.isManageAcls() || this.managedClusterProperties.isManageRbac()) {
+        if (this.managedClusterProperties.isManageAcls()) {
             synchronizeAcls();
         }
     }
@@ -138,23 +139,12 @@ public class AccessControlEntryAsyncExecutor {
                                 toCreate.stream().map(AclBinding::toString).collect(Collectors.joining(",")))
                         .log("ACL(s) to create: {}.");
 
-                Map<Boolean, List<AclBinding>> partitions = toCreate.stream()
-                        .collect(Collectors.partitioningBy(aclBinding ->
-                                USER_PRINCIPAL_PUBLIC.equals(aclBinding.entry().principal())));
-
-                // Create Kafka ACL only for public ACLs because not possible with Confluent role bindings
-                List<AclBinding> publicAclsToCreate = partitions.get(true);
-                createAcls(publicAclsToCreate, creationErrors);
-
-                if (managedClusterProperties.isManageAcls()) {
-                    List<AclBinding> nonPublicAclsToCreate = partitions.get(false);
-                    createAcls(nonPublicAclsToCreate, creationErrors);
-                }
+                createAcls(toCreate, creationErrors);
             }
 
             updateStatuses(ns4KafkaAclsByResource, toCreate, creationErrors);
 
-            if (managedClusterProperties.isManageAcls() && managedClusterProperties.isDropUnsyncAcls()) {
+            if (managedClusterProperties.isDropUnsyncAcls()) {
                 List<AclBinding> toDelete = brokerAcls.stream()
                         .filter(aclBinding -> !ns4KafkaAcls.contains(aclBinding))
                         .toList();
@@ -184,8 +174,10 @@ public class AccessControlEntryAsyncExecutor {
     private Map<Resource, List<AclBinding>> collectNs4KafkaAcls() {
         Map<Resource, List<AclBinding>> ns4KafkaAcls = new HashMap<>();
 
-        // Skip ACLs and Kafka Streams of namespaces that no longer exist, they cannot be converted
+        // Skip ACLs and Kafka Streams of namespaces that no longer exist, they cannot be converted.
+        // Public ACLs are always Kafka ACLs, other ones only for the namespaces in ACL mode
         Set<String> namespaces = namespaceRepository.findAllForCluster(managedClusterProperties.getName()).stream()
+                .filter(namespace -> namespace.getSpec().getPermissionMode() == PermissionMode.ACL)
                 .map(namespace -> namespace.getMetadata().getName())
                 .collect(Collectors.toSet());
 
@@ -243,13 +235,6 @@ public class AccessControlEntryAsyncExecutor {
             List<AclBinding> toCreate,
             Map<AclBinding, String> creationErrors) {
         ns4KafkaAcls.forEach((resource, aclBindings) -> {
-            // Non-public ACLs and Kafka Streams are handled by the Confluent role binding executor
-            // when the cluster does not manage ACLs
-            if (!managedClusterProperties.isManageAcls()
-                    && !(resource instanceof AccessControlEntry publicAcl && aclService.isPublicAcl(publicAcl))) {
-                return;
-            }
-
             Optional<String> creationError = aclBindings.stream()
                     .filter(creationErrors::containsKey)
                     .map(creationErrors::get)
@@ -318,8 +303,10 @@ public class AccessControlEntryAsyncExecutor {
      * @throws TimeoutException Any timeout exception during ACLs description
      */
     private Set<AclBinding> collectBrokerAcls() throws ExecutionException, InterruptedException, TimeoutException {
-        // Collect the list of users managed in Ns4Kafka
+        // Collect the list of users managed in Ns4Kafka with Kafka ACLs.
+        // Kafka ACLs of the users in RBAC mode are left untouched to allow a smooth migration
         Set<String> managedUsers = namespaceRepository.findAllForCluster(managedClusterProperties.getName()).stream()
+                .filter(namespace -> namespace.getSpec().getPermissionMode() == PermissionMode.ACL)
                 .map(namespace -> USER_PRINCIPAL + namespace.getSpec().getKafkaUser())
                 .collect(Collectors.toSet());
         managedUsers.add(USER_PRINCIPAL_PUBLIC);
@@ -514,29 +501,6 @@ public class AccessControlEntryAsyncExecutor {
     }
 
     /**
-     * Convert public ACL into Kafka ACL Binding.
-     *
-     * @param acl The Ns4Kafka ACL
-     */
-    AclBinding convertPublicAcl(AccessControlEntry acl) {
-        PatternType patternType =
-                PatternType.fromString(acl.getSpec().getResourcePatternType().toString());
-
-        ResourcePattern resourcePattern = new ResourcePattern(
-                ResourceType.fromString(acl.getSpec().getResourceType().toString()),
-                acl.getSpec().getResource(),
-                patternType);
-
-        return new AclBinding(
-                resourcePattern,
-                new org.apache.kafka.common.acl.AccessControlEntry(
-                        USER_PRINCIPAL_PUBLIC,
-                        "*",
-                        AclOperation.fromString(acl.getSpec().getPermission().toString()),
-                        AclPermissionType.ALLOW));
-    }
-
-    /**
      * Delete a given list of ACLs.
      *
      * @param toDelete The list of ACLs to delete
@@ -572,29 +536,26 @@ public class AccessControlEntryAsyncExecutor {
      * @param accessControlEntry The ACL
      */
     public void deleteAcl(AccessControlEntry accessControlEntry) {
-        if (managedClusterProperties.isManageAcls()) {
-            List<AclBinding> results = new ArrayList<>();
-
-            if (TOPIC_GROUP_RESOURCE_TYPES.contains(accessControlEntry.getSpec().getResourceType())) {
-                Set<String> namespacesWithKafkaStreams =
-                        streamService.findAllForCluster(managedClusterProperties.getName()).stream()
-                                .map(kafkaStream -> kafkaStream.getMetadata().getNamespace())
-                                .collect(Collectors.toSet());
-                results.addAll(convertAclToAclBindings(accessControlEntry, namespacesWithKafkaStreams));
-            }
-
-            if (accessControlEntry.getSpec().getResourceType() == CONNECT
-                    && accessControlEntry.getSpec().getPermission() == AccessControlEntry.Permission.OWNER) {
-                results.add(convertConnectorAclToAclBinding(accessControlEntry));
-            }
-
-            deleteAcls(results);
+        if (!managedClusterProperties.isManageAcls()) {
             return;
         }
 
-        if (aclService.isPublicAcl(accessControlEntry) && managedClusterProperties.isManageRbac()) {
-            deleteAcls(List.of(convertPublicAcl(accessControlEntry)));
+        List<AclBinding> results = new ArrayList<>();
+
+        if (TOPIC_GROUP_RESOURCE_TYPES.contains(accessControlEntry.getSpec().getResourceType())) {
+            Set<String> namespacesWithKafkaStreams =
+                    streamService.findAllForCluster(managedClusterProperties.getName()).stream()
+                            .map(kafkaStream -> kafkaStream.getMetadata().getNamespace())
+                            .collect(Collectors.toSet());
+            results.addAll(convertAclToAclBindings(accessControlEntry, namespacesWithKafkaStreams));
         }
+
+        if (accessControlEntry.getSpec().getResourceType() == CONNECT
+                && accessControlEntry.getSpec().getPermission() == AccessControlEntry.Permission.OWNER) {
+            results.add(convertConnectorAclToAclBinding(accessControlEntry));
+        }
+
+        deleteAcls(results);
     }
 
     /**

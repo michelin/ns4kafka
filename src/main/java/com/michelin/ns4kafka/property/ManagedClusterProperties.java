@@ -39,7 +39,6 @@ public class ManagedClusterProperties {
     private boolean manageConnectors;
     private boolean manageTopics;
     private boolean manageUsers;
-    private boolean manageRbac;
     private boolean dropUnsyncAcls = true;
     private TimeoutProperties timeout = new TimeoutProperties();
     private KafkaProvider provider;
@@ -170,5 +169,14 @@ public class ManagedClusterProperties {
      */
     public boolean isConfluentCloud() {
         return provider == KafkaProvider.CONFLUENT_CLOUD;
+    }
+
+    /**
+     * Check if the cluster manages Confluent role bindings.
+     *
+     * @return true if it does, false otherwise
+     */
+    public boolean isManageRbac() {
+        return manageAcls && isConfluentCloud() && confluentCloud != null;
     }
 }
