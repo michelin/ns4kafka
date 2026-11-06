@@ -422,7 +422,7 @@ The configuration will depend on the authentication method selected for your bro
 
 The following properties are only available for Confluent Cloud cluster providers. They are required for:
 
-- [Role Bindings](https://docs.confluent.io/cloud/current/api.html#tag/Role-Bindings-(iamv2))
+- [Role Bindings](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html)
 
 ```yaml
 ns4kafka:
@@ -440,11 +440,11 @@ ns4kafka:
 | Property                            | Type    | Required | Description                                                                                        |
 |-------------------------------------|---------|----------|----------------------------------------------------------------------------------------------------|
 | manage-rbac                         | boolean | No       | **Deprecated since 1.23.** Use `manage-acls` and set `permissionMode: RBAC` on namespaces instead. |
-| confluent-cloud.organization-id     | string  | No       | Confluent Cloud organization ID. Required for role bindings.                                       |
-| confluent-cloud.environment-id      | string  | No       | Confluent Cloud environment ID. Required for role bindings.                                        |
-| confluent-cloud.cluster-id          | string  | No       | Confluent Cloud cluster ID. Required for role bindings.                                            |
-| confluent-cloud.basic-auth-username | string  | No       | Username for the Confluent Cloud API. Required for role bindings.                                  |
-| confluent-cloud.basic-auth-password | string  | No       | Password for the Confluent Cloud API. Required for role bindings.                                  |
+| confluent-cloud.organization-id     | string  | No       | Confluent Cloud organization ID.                                                                   |
+| confluent-cloud.environment-id      | string  | No       | Confluent Cloud environment ID.                                                                    |
+| confluent-cloud.cluster-id          | string  | No       | Confluent Cloud cluster ID.                                                                        |
+| confluent-cloud.basic-auth-username | string  | No       | Username for the Confluent Cloud API.                                                              |
+| confluent-cloud.basic-auth-password | string  | No       | Password for the Confluent Cloud API.                                                              |
 
 ### Audit Log
 

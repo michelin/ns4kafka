@@ -120,8 +120,14 @@ public class AccessControlEntryAsyncExecutor {
         log.debug("Starting ACL collection for cluster {}.", managedClusterProperties.getName());
 
         try {
-            Set<AclBinding> brokerAcls = collectBrokerAcls();
-            Map<Resource, List<AclBinding>> ns4KafkaAclsByResource = collectNs4KafkaAcls();
+            // Read once, so a mode switch during the synchronization deletes nothing
+            List<Namespace> namespaces =
+                    namespaceRepository.findAllForCluster(managedClusterProperties.getName()).stream()
+                            .filter(namespace -> namespace.getSpec().getPermissionMode() == PermissionMode.ACL)
+                            .toList();
+
+            Set<AclBinding> brokerAcls = collectBrokerAcls(namespaces);
+            Map<Resource, List<AclBinding>> ns4KafkaAclsByResource = collectNs4KafkaAcls(namespaces);
             Set<AclBinding> ns4KafkaAcls = ns4KafkaAclsByResource.values().stream()
                     .flatMap(List::stream)
                     .collect(Collectors.toSet());
@@ -169,15 +175,15 @@ public class AccessControlEntryAsyncExecutor {
     /**
      * Collect the ACLs from Ns4Kafka.
      *
+     * @param namespaces The namespaces in ACL mode
      * @return The Kafka ACLs by ACL or Kafka Stream
      */
-    private Map<Resource, List<AclBinding>> collectNs4KafkaAcls() {
+    private Map<Resource, List<AclBinding>> collectNs4KafkaAcls(List<Namespace> namespaces) {
         Map<Resource, List<AclBinding>> ns4KafkaAcls = new HashMap<>();
 
         // Skip ACLs and Kafka Streams of namespaces that no longer exist, they cannot be converted.
         // Public ACLs are always Kafka ACLs, other ones only for the namespaces in ACL mode
-        Set<String> namespaces = namespaceRepository.findAllForCluster(managedClusterProperties.getName()).stream()
-                .filter(namespace -> namespace.getSpec().getPermissionMode() == PermissionMode.ACL)
+        Set<String> namespaceNames = namespaces.stream()
                 .map(namespace -> namespace.getMetadata().getName())
                 .collect(Collectors.toSet());
 
@@ -188,14 +194,14 @@ public class AccessControlEntryAsyncExecutor {
 
         ns4KafkaAcls.putAll(aclService.findAllForCluster(managedClusterProperties.getName()).stream()
                 .filter(acl -> aclService.isPublicAcl(acl)
-                        || namespaces.contains(acl.getSpec().getGrantedTo()))
+                        || namespaceNames.contains(acl.getSpec().getGrantedTo()))
                 .collect(Collectors.toMap(
                         Function.identity(), acl -> convertToAclBindings(acl, namespacesWithKafkaStreams))));
 
         // Converts KafkaStream resources to topic (CREATE/DELETE) AclBindings
         ns4KafkaAcls.putAll(kafkaStreams.stream()
                 .filter(kafkaStream ->
-                        namespaces.contains(kafkaStream.getMetadata().getNamespace()))
+                        namespaceNames.contains(kafkaStream.getMetadata().getNamespace()))
                 .collect(Collectors.toMap(Function.identity(), this::buildAclBindingsFromKafkaStream)));
 
         return ns4KafkaAcls;
@@ -297,16 +303,17 @@ public class AccessControlEntryAsyncExecutor {
     /**
      * Collect the ACLs from broker.
      *
+     * @param namespaces The namespaces in ACL mode
      * @return A set of ACLs
      * @throws ExecutionException Any execution exception during ACLs description
      * @throws InterruptedException Any interrupted exception during ACLs description
      * @throws TimeoutException Any timeout exception during ACLs description
      */
-    private Set<AclBinding> collectBrokerAcls() throws ExecutionException, InterruptedException, TimeoutException {
+    private Set<AclBinding> collectBrokerAcls(List<Namespace> namespaces)
+            throws ExecutionException, InterruptedException, TimeoutException {
         // Collect the list of users managed in Ns4Kafka with Kafka ACLs.
         // Kafka ACLs of the users in RBAC mode are left untouched to allow a smooth migration
-        Set<String> managedUsers = namespaceRepository.findAllForCluster(managedClusterProperties.getName()).stream()
-                .filter(namespace -> namespace.getSpec().getPermissionMode() == PermissionMode.ACL)
+        Set<String> managedUsers = namespaces.stream()
                 .map(namespace -> USER_PRINCIPAL + namespace.getSpec().getKafkaUser())
                 .collect(Collectors.toSet());
         managedUsers.add(USER_PRINCIPAL_PUBLIC);

@@ -112,9 +112,14 @@ public class ConfluentRoleBindingAsyncExecutor {
     public Mono<Void> synchronizeRoleBindings() {
         log.debug("Starting role binding collection for cluster {}.", managedClusterProperties.getName());
 
-        return collectBrokerRoleBindings()
+        // Read once, so a mode switch during the synchronization deletes nothing
+        List<Namespace> namespaces = namespaceRepository.findAllForCluster(managedClusterProperties.getName()).stream()
+                .filter(namespace -> namespace.getSpec().getPermissionMode() == PermissionMode.RBAC)
+                .toList();
+
+        return collectBrokerRoleBindings(namespaces)
                 .flatMap(brokerRoleBindings -> {
-                    Map<Resource, List<RoleBinding>> ns4KafkaRoleBindings = collectNs4KafkaRoleBindings();
+                    Map<Resource, List<RoleBinding>> ns4KafkaRoleBindings = collectNs4KafkaRoleBindings(namespaces);
                     Set<RoleBindingRequest> ns4KafkaRoleBindingRequests = ns4KafkaRoleBindings.values().stream()
                             .flatMap(List::stream)
                             .map(roleBinding ->
@@ -172,17 +177,15 @@ public class ConfluentRoleBindingAsyncExecutor {
     /**
      * Collect the role bindings of the users managed in Ns4Kafka from Confluent Cloud.
      *
+     * @param namespaces The namespaces in RBAC mode
      * @return The role bindings by request
      */
-    Mono<Map<RoleBindingRequest, RoleBindingResponse>> collectBrokerRoleBindings() {
+    Mono<Map<RoleBindingRequest, RoleBindingResponse>> collectBrokerRoleBindings(List<Namespace> namespaces) {
         return Mono.defer(() -> {
             // Collect the list of users managed in Ns4Kafka.
-            Set<String> managedUsers =
-                    namespaceRepository.findAllForCluster(managedClusterProperties.getName()).stream()
-                            .filter(namespace -> namespace.getSpec().getPermissionMode() == PermissionMode.RBAC)
-                            .map(namespace ->
-                                    USER_PRINCIPAL + namespace.getSpec().getKafkaUser())
-                            .collect(Collectors.toSet());
+            Set<String> managedUsers = namespaces.stream()
+                    .map(namespace -> USER_PRINCIPAL + namespace.getSpec().getKafkaUser())
+                    .collect(Collectors.toSet());
 
             return confluentCloudClient
                     .listRoleBindings(
@@ -198,26 +201,26 @@ public class ConfluentRoleBindingAsyncExecutor {
     /**
      * Collect the role bindings of the Ns4Kafka ACLs and Kafka Streams of the cluster.
      *
+     * @param namespaces The namespaces in RBAC mode
      * @return The role bindings by ACL or Kafka Stream
      */
-    Map<Resource, List<RoleBinding>> collectNs4KafkaRoleBindings() {
+    Map<Resource, List<RoleBinding>> collectNs4KafkaRoleBindings(List<Namespace> namespaces) {
         Map<Resource, List<RoleBinding>> ns4KafkaRoleBindings = new HashMap<>();
 
         // Skip ACLs and Kafka Streams of namespaces that no longer exist, they cannot be converted.
         // Only the namespaces in RBAC mode are deployed as Confluent role bindings
-        Set<String> namespaces = namespaceRepository.findAllForCluster(managedClusterProperties.getName()).stream()
-                .filter(namespace -> namespace.getSpec().getPermissionMode() == PermissionMode.RBAC)
+        Set<String> namespaceNames = namespaces.stream()
                 .map(namespace -> namespace.getMetadata().getName())
                 .collect(Collectors.toSet());
 
         // Public ACLs are handled by the ACL executor as Confluent role bindings cannot manage "*"
         ns4KafkaRoleBindings.putAll(aclService.findAllNonPublicForCluster(managedClusterProperties.getName()).stream()
-                .filter(acl -> namespaces.contains(acl.getSpec().getGrantedTo()))
+                .filter(acl -> namespaceNames.contains(acl.getSpec().getGrantedTo()))
                 .collect(Collectors.toMap(Function.identity(), this::convertAclToRoleBinding)));
 
         ns4KafkaRoleBindings.putAll(streamService.findAllForCluster(managedClusterProperties.getName()).stream()
                 .filter(kafkaStream ->
-                        namespaces.contains(kafkaStream.getMetadata().getNamespace()))
+                        namespaceNames.contains(kafkaStream.getMetadata().getNamespace()))
                 .collect(Collectors.toMap(
                         Function.identity(), kafkaStream -> List.of(convertKafkaStreamsToRoleBinding(kafkaStream)))));
 
