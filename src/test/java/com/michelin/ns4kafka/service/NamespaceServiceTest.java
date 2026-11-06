@@ -29,6 +29,7 @@ import static org.mockito.Mockito.when;
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Namespace.NamespaceSpec;
+import com.michelin.ns4kafka.model.Namespace.PermissionMode;
 import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.RoleBinding;
 import com.michelin.ns4kafka.model.Topic;
@@ -188,6 +189,60 @@ class NamespaceServiceTest {
         assertEquals(
                 "Invalid value \"local-name\" for field \"connectClusters\": connect cluster does not exist.",
                 result.getFirst());
+    }
+
+    @Test
+    void shouldValidateNamespaceInRbacModeWhenClusterManagesRbac() {
+        ManagedClusterProperties managedClusterProperties1 = new ManagedClusterProperties("local", CONFLUENT_CLOUD);
+        managedClusterProperties1.setManageAcls(true);
+        managedClusterProperties1.setConfluentCloud(new ManagedClusterProperties.ConfluentCloudProperties());
+
+        when(managedClusterProperties.stream()).thenReturn(Stream.of(managedClusterProperties1));
+        when(namespaceRepository.findAllForCluster("local")).thenReturn(List.of());
+
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(NamespaceSpec.builder()
+                        .kafkaUser("user")
+                        .permissionMode(PermissionMode.RBAC)
+                        .topicValidator(TopicValidator.builder()
+                                .validationConstraints(Map.of())
+                                .build())
+                        .build())
+                .build();
+
+        assertTrue(namespaceService.validate(ns).isEmpty());
+    }
+
+    @Test
+    void shouldNotValidateNamespaceInRbacModeWhenClusterDoesNotManageRbac() {
+        ManagedClusterProperties managedClusterProperties1 = new ManagedClusterProperties("local");
+        managedClusterProperties1.setManageAcls(true);
+        managedClusterProperties1.setConfluentCloud(new ManagedClusterProperties.ConfluentCloudProperties());
+
+        when(managedClusterProperties.stream()).thenReturn(Stream.of(managedClusterProperties1));
+        when(namespaceRepository.findAllForCluster("local")).thenReturn(List.of());
+
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(NamespaceSpec.builder()
+                        .kafkaUser("user")
+                        .permissionMode(PermissionMode.RBAC)
+                        .build())
+                .build();
+
+        List<String> result = namespaceService.validate(ns);
+
+        assertEquals(
+                List.of("Invalid value \"RBAC\" for field \"permissionMode\": "
+                        + "only available on Confluent Cloud clusters."),
+                result);
     }
 
     @Test

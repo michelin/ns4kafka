@@ -166,14 +166,15 @@ public class FormatErrorUtils {
     public static String invalidConnectClusterDeleteOperation(String connectCluster, List<Connector> connectors) {
         return INVALID_OPERATION.formatted(
                 OPERATION_DELETE,
-                String.format(
-                        "The Kafka Connect \"%s\" has %s deployed connector(s): %s. "
-                                + "Please remove the associated connector(s) before deleting it",
-                        connectCluster,
-                        connectors.size(),
-                        connectors.stream()
-                                .map(connector -> connector.getMetadata().getName())
-                                .collect(Collectors.joining(", "))));
+                ("The Kafka Connect \"%s\" has %s deployed connector(s): %s. "
+                                + "Please remove the associated connector(s) before deleting it")
+                        .formatted(
+                                connectCluster,
+                                connectors.size(),
+                                connectors.stream()
+                                        .map(connector ->
+                                                connector.getMetadata().getName())
+                                        .collect(Collectors.joining(", "))));
     }
 
     /**
@@ -322,10 +323,9 @@ public class FormatErrorUtils {
     public static String invalidConsumerGroupOperation(String consumerGroup, String targetState, String currentState) {
         return INVALID_OPERATION.formatted(
                 OPERATION_RESET_OFFSET,
-                String.format(
-                        "offsets can only be reset if the consumer group \"%s\" "
-                                + "is %s but the current state is %s. Stop the consumption and wait \"session.timeout.ms\" before retrying",
-                        consumerGroup, targetState, currentState));
+                ("offsets can only be reset if the consumer group \"%s\" "
+                                + "is %s but the current state is %s. Stop the consumption and wait \"session.timeout.ms\" before retrying")
+                        .formatted(consumerGroup, targetState, currentState));
     }
 
     /**
@@ -338,10 +338,9 @@ public class FormatErrorUtils {
     public static String invalidConnectorResetOperation(String connector, String targetState) {
         return INVALID_OPERATION.formatted(
                 OPERATION_RESET_OFFSET,
-                String.format(
-                        "connector \"%s\" must be in the %s state before offsets can be reset. "
-                                + "Stop the connector first using \"kafkactl connector stop\", then retry the reset",
-                        connector, targetState));
+                ("connector \"%s\" must be in the %s state before offsets can be reset. "
+                                + "Stop the connector first using \"kafkactl connector stop\", then retry the reset")
+                        .formatted(connector, targetState));
     }
 
     /**
@@ -356,9 +355,8 @@ public class FormatErrorUtils {
             String consumerGroup, String targetState, String currentState) {
         return INVALID_OPERATION.formatted(
                 OPERATION_DELETE,
-                String.format(
-                        "consumer group \"%s\" can only be deleted if it is %s but the current state is %s",
-                        consumerGroup, targetState, currentState));
+                "consumer group \"%s\" can only be deleted if it is %s but the current state is %s"
+                        .formatted(consumerGroup, targetState, currentState));
     }
 
     /**
@@ -537,6 +535,17 @@ public class FormatErrorUtils {
      */
     public static String invalidNamespaceNoCluster(String invalidClusterValue) {
         return INVALID_FIELD.formatted(invalidClusterValue, "cluster", "cluster does not exist");
+    }
+
+    /**
+     * Invalid namespace permission mode not managed by the cluster.
+     *
+     * @param invalidPermissionModeValue the invalid field value
+     * @return the error message
+     */
+    public static String invalidNamespacePermissionMode(String invalidPermissionModeValue) {
+        return INVALID_FIELD.formatted(
+                invalidPermissionModeValue, "permissionMode", "only available on Confluent Cloud clusters");
     }
 
     /**
@@ -754,11 +763,8 @@ public class FormatErrorUtils {
                 .map(subject -> subject + " " + subject.toExpectedFormat())
                 .collect(Collectors.joining(", "));
 
-        return String.format(
-                INVALID_FIELD,
-                subjectName,
-                FIELD_NAME,
-                String.format("value must follow authorized strategies: %s", formattedStrategies));
+        return INVALID_FIELD.formatted(
+                subjectName, FIELD_NAME, "value must follow authorized strategies: %s".formatted(formattedStrategies));
     }
 
     /**

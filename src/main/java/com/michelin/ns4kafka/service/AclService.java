@@ -18,9 +18,6 @@
  */
 package com.michelin.ns4kafka.service;
 
-import static com.michelin.ns4kafka.model.AccessControlEntry.ResourceType.CONNECT;
-import static com.michelin.ns4kafka.model.AccessControlEntry.ResourceType.GROUP;
-import static com.michelin.ns4kafka.model.AccessControlEntry.ResourceType.TOPIC;
 import static com.michelin.ns4kafka.model.AccessControlEntry.ResourceType.TRANSACTIONAL_ID;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidAclCollision;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidAclGrantedToMyself;
@@ -34,7 +31,6 @@ import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidProtectedNamesp
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Namespace;
-import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.AccessControlEntryRepository;
 import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
 import com.michelin.ns4kafka.service.executor.ConfluentRoleBindingAsyncExecutor;
@@ -55,8 +51,6 @@ import java.util.stream.Collectors;
 public class AclService {
     private static final Set<AccessControlEntry.ResourceType> ALLOWED_RESOURCE_TYPES =
             EnumSet.of(AccessControlEntry.ResourceType.TOPIC, AccessControlEntry.ResourceType.CONNECT_CLUSTER);
-    private static final Set<AccessControlEntry.ResourceType> RESOURCE_TYPES_TO_DEPLOY =
-            EnumSet.of(TOPIC, GROUP, CONNECT, TRANSACTIONAL_ID);
     private static final Set<AccessControlEntry.Permission> ALLOWED_PERMISSIONS =
             EnumSet.of(AccessControlEntry.Permission.READ, AccessControlEntry.Permission.WRITE);
     private static final Set<AccessControlEntry.ResourcePatternType> ALLOWED_PATTERN_TYPES =
@@ -65,7 +59,6 @@ public class AclService {
 
     private final AccessControlEntryRepository accessControlEntryRepository;
     private final ApplicationContext applicationContext;
-    private final List<ManagedClusterProperties> managedClusterProperties;
 
     /**
      * Constructor.
@@ -74,12 +67,9 @@ public class AclService {
      * @param applicationContext The application context
      */
     public AclService(
-            AccessControlEntryRepository accessControlEntryRepository,
-            ApplicationContext applicationContext,
-            List<ManagedClusterProperties> managedClusterProperties) {
+            AccessControlEntryRepository accessControlEntryRepository, ApplicationContext applicationContext) {
         this.accessControlEntryRepository = accessControlEntryRepository;
         this.applicationContext = applicationContext;
-        this.managedClusterProperties = managedClusterProperties;
     }
 
     /**
@@ -337,30 +327,16 @@ public class AclService {
                 AccessControlEntryAsyncExecutor.class,
                 Qualifiers.byName(accessControlEntry.getMetadata().getCluster()));
 
-        Optional<ManagedClusterProperties> aclCluster = managedClusterProperties.stream()
-                .filter(cluster -> cluster.getName()
-                        .equals(accessControlEntry.getMetadata().getCluster()))
-                .findFirst();
+        // Both Kafka ACLs and role bindings are deleted regardless of the namespace permission mode,
+        // as some can remain from a migration to RBAC or a rollback to ACL
+        accessControlEntryAsyncExecutor.deleteAcl(accessControlEntry);
 
-        // Public ACLs are Kafka ACLs, even when the cluster manages Confluent role bindings
-        if (aclCluster.isPresent() && (aclCluster.get().isManageAcls() || isPublicAcl(accessControlEntry))) {
-            accessControlEntryAsyncExecutor.deleteAcl(accessControlEntry);
-            accessControlEntryRepository.delete(accessControlEntry);
-            return;
-        }
+        ConfluentRoleBindingAsyncExecutor confluentRoleBindingAsyncExecutor = applicationContext.getBean(
+                ConfluentRoleBindingAsyncExecutor.class,
+                Qualifiers.byName(accessControlEntry.getMetadata().getCluster()));
+        confluentRoleBindingAsyncExecutor.deleteRoleBindingsFromAcl(accessControlEntry);
 
-        if (aclCluster.isPresent()
-                && aclCluster.get().isConfluentCloud()
-                && aclCluster.get().isManageRbac()) {
-            if (RESOURCE_TYPES_TO_DEPLOY.contains(accessControlEntry.getSpec().getResourceType())) {
-                ConfluentRoleBindingAsyncExecutor confluentRoleBindingAsyncExecutor = applicationContext.getBean(
-                        ConfluentRoleBindingAsyncExecutor.class,
-                        Qualifiers.byName(accessControlEntry.getMetadata().getCluster()));
-                confluentRoleBindingAsyncExecutor.deleteRoleBindingsFromAcls(List.of(accessControlEntry));
-            }
-
-            accessControlEntryRepository.delete(accessControlEntry);
-        }
+        accessControlEntryRepository.delete(accessControlEntry);
     }
 
     /**
