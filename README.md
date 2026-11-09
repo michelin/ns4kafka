@@ -43,7 +43,6 @@ Ns4Kafka brings a namespace-based deployment model for Kafka resources, inspired
     * [Managed Kafka Clusters](#managed-kafka-clusters)
       * [Self-Managed](#self-managed)
       * [Confluent Cloud](#confluent-cloud)
-        * [Role Binding](#role-binding)
     * [Audit Log](#audit-log)
       * [Console](#console)
       * [Kafka](#kafka-1)
@@ -421,22 +420,15 @@ The configuration will depend on the authentication method selected for your bro
 
 #### Confluent Cloud
 
-The following features are only available when using Confluent Cloud as the provider.
+The following properties are only available for Confluent Cloud cluster providers. They are required for:
 
-##### Role Binding
-
-Confluent role bindings can be synchronized with Ns4Kafka.
-
-The synchronization is performed using thz [Confluent Cloud API](https://docs.confluent.io/cloud/current/api.html#tag/Role-Bindings-(iamv2)).
-
-You can configure the synchronization using the following properties:
+- [Role Bindings](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html)
 
 ```yaml
 ns4kafka:
   managed-clusters:
     cluster-name:
       provider: "CONFLUENT_CLOUD"
-      manage-rbac: true
       confluent-cloud:
         organization-id: "xxx"
         environment-id: "env-xxx"
@@ -445,16 +437,14 @@ ns4kafka:
         basic-auth-password: "password"
 ```
 
-| Property                             | Type    | Required | Description                                                                                                                                                                                                    |
-|--------------------------------------|---------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| manage-rbac                          | boolean | No       | Does the cluster manages Confluent role bindings (Default: false). The provider must be Confluent Cloud.                                                                                                       |
-| confluent-cloud.organization-id      | string  | No       | Confluent Cloud Organization ID. Required to use [Confluent Cloud Role Binding](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html).                                         |
-| confluent-cloud.environment-id       | string  | No       | Confluent Cloud environment ID. Required to use [Confluent Cloud Role Binding](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html).                                          |
-| confluent-cloud.cluster-id           | string  | No       | Confluent Cloud cluster ID. Required to use [Confluent Cloud Role Binding](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html).                                              |
-| confluent-cloud.basic-auth-username  | string  | No       | Basic authentication password to the Confluent Cloud API. Required to use [Confluent Cloud Role Binding](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html).                |
-| confluent-cloud.basic-auth-password  | string  | No       | Basic authentication password to the Confluent Cloud API. Required to use [Confluent Cloud Role Binding](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html).                |
-
-Ns4Kafka ACLs will be converted to the corresponding Role Bindings when synchronized.
+| Property                            | Type    | Required | Description                                                                                        |
+|-------------------------------------|---------|----------|----------------------------------------------------------------------------------------------------|
+| manage-rbac                         | boolean | No       | **Deprecated since 1.23.** Use `manage-acls` and set `permissionMode: RBAC` on namespaces instead. |
+| confluent-cloud.organization-id     | string  | No       | Confluent Cloud organization ID.                                                                   |
+| confluent-cloud.environment-id      | string  | No       | Confluent Cloud environment ID.                                                                    |
+| confluent-cloud.cluster-id          | string  | No       | Confluent Cloud cluster ID.                                                                        |
+| confluent-cloud.basic-auth-username | string  | No       | Username for the Confluent Cloud API.                                                              |
+| confluent-cloud.basic-auth-password | string  | No       | Password for the Confluent Cloud API.                                                              |
 
 ### Audit Log
 

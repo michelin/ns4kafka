@@ -18,7 +18,6 @@
  */
 package com.michelin.ns4kafka.service.executor;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -29,6 +28,7 @@ import static org.mockito.Mockito.when;
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.KafkaStream;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Namespace.PermissionMode;
 import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.NamespaceRepository;
@@ -38,12 +38,14 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.CreateAclsResult;
+import org.apache.kafka.clients.admin.DeleteAclsResult;
 import org.apache.kafka.clients.admin.DescribeAclsResult;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.acl.AclBinding;
@@ -98,6 +100,9 @@ class AccessControlEntryAsyncExecutorTest {
     @Mock
     CreateAclsResult createAclsResult;
 
+    @Mock
+    DeleteAclsResult deleteAclsResult;
+
     @InjectMocks
     AccessControlEntryAsyncExecutor aclAsyncExecutor;
 
@@ -151,8 +156,7 @@ class AccessControlEntryAsyncExecutorTest {
         when(adminClient.createAcls(anyCollection())).thenAnswer(invocation -> {
             when(createAclsResult.values())
                     .thenReturn(invocation.<Collection<AclBinding>>getArgument(0).stream()
-                            .collect(Collectors.toMap(
-                                    Function.identity(), _ -> KafkaFuture.<Void>completedFuture(null))));
+                            .collect(Collectors.toMap(Function.identity(), _ -> KafkaFuture.completedFuture(null))));
             return createAclsResult;
         });
         when(aclService.findByName("ns1", "ns1-acl")).thenReturn(Optional.of(acl));
@@ -170,33 +174,6 @@ class AccessControlEntryAsyncExecutorTest {
         verify(streamService)
                 .create(argThat(ks ->
                         ks == kafkaStream && ks.isSuccess() && ks.getMetadata().getGeneration() == 2));
-    }
-
-    @Test
-    void shouldConvertPublicAcl() {
-        AccessControlEntry acl = AccessControlEntry.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name("ns1-owner")
-                        .namespace("ns1")
-                        .build())
-                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
-                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
-                        .resource("ns1-")
-                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
-                        .permission(AccessControlEntry.Permission.OWNER)
-                        .grantedTo("*")
-                        .build())
-                .build();
-
-        AclBinding aclBinding = new AclBinding(
-                new ResourcePattern(ResourceType.TOPIC, "ns1-", PatternType.PREFIXED),
-                new org.apache.kafka.common.acl.AccessControlEntry(
-                        "User:*",
-                        "*",
-                        AclOperation.fromString(acl.getSpec().getPermission().toString()),
-                        AclPermissionType.ALLOW));
-
-        assertEquals(aclBinding, aclAsyncExecutor.convertPublicAcl(acl));
     }
 
     @Test
@@ -239,8 +216,7 @@ class AccessControlEntryAsyncExecutorTest {
         when(adminClient.createAcls(anyCollection())).thenAnswer(invocation -> {
             when(createAclsResult.values())
                     .thenReturn(invocation.<Collection<AclBinding>>getArgument(0).stream()
-                            .collect(Collectors.toMap(
-                                    Function.identity(), _ -> KafkaFuture.<Void>completedFuture(null))));
+                            .collect(Collectors.toMap(Function.identity(), _ -> KafkaFuture.completedFuture(null))));
             return createAclsResult;
         });
         when(aclService.findByName("ns1", "ns1-acl")).thenReturn(Optional.of(acl));
@@ -478,8 +454,7 @@ class AccessControlEntryAsyncExecutorTest {
         when(adminClient.createAcls(anyCollection())).thenAnswer(invocation -> {
             when(createAclsResult.values())
                     .thenReturn(invocation.<Collection<AclBinding>>getArgument(0).stream()
-                            .collect(Collectors.toMap(
-                                    Function.identity(), _ -> KafkaFuture.<Void>completedFuture(null))));
+                            .collect(Collectors.toMap(Function.identity(), _ -> KafkaFuture.completedFuture(null))));
             return createAclsResult;
         });
         when(aclService.findByName("ns1", "ns1-acl")).thenReturn(Optional.empty());
@@ -546,8 +521,7 @@ class AccessControlEntryAsyncExecutorTest {
         when(adminClient.createAcls(anyCollection())).thenAnswer(invocation -> {
             when(createAclsResult.values())
                     .thenReturn(invocation.<Collection<AclBinding>>getArgument(0).stream()
-                            .collect(Collectors.toMap(
-                                    Function.identity(), _ -> KafkaFuture.<Void>completedFuture(null))));
+                            .collect(Collectors.toMap(Function.identity(), _ -> KafkaFuture.completedFuture(null))));
             return createAclsResult;
         });
         when(aclService.findByName("ns1", "ns1-acl")).thenReturn(Optional.of(storedAcl));
@@ -614,8 +588,7 @@ class AccessControlEntryAsyncExecutorTest {
         when(adminClient.createAcls(anyCollection())).thenAnswer(invocation -> {
             when(createAclsResult.values())
                     .thenReturn(invocation.<Collection<AclBinding>>getArgument(0).stream()
-                            .collect(Collectors.toMap(
-                                    Function.identity(), _ -> KafkaFuture.<Void>completedFuture(null))));
+                            .collect(Collectors.toMap(Function.identity(), _ -> KafkaFuture.completedFuture(null))));
             return createAclsResult;
         });
         when(aclService.findByName("ns1", "ns1-acl")).thenReturn(Optional.of(acl));
@@ -627,14 +600,32 @@ class AccessControlEntryAsyncExecutorTest {
     }
 
     @Test
-    void shouldNotUpdateNonPublicAclStatusWhenClusterDoesNotManageAcls() {
-        Namespace namespace = Namespace.builder()
+    void shouldNotSynchronizeAclsWhenClusterDoesNotManageAcls() {
+        when(managedClusterProperties.isManageAcls()).thenReturn(false);
+
+        aclAsyncExecutor.run();
+
+        verify(managedClusterProperties, never()).getAdminClient();
+        verify(aclService, never()).create(any());
+    }
+
+    @Test
+    void shouldOnlySynchronizeAclsOfNamespacesInAclMode() {
+        Namespace aclNamespace = Namespace.builder()
                 .metadata(
                         Resource.Metadata.builder().name("ns1").cluster("local").build())
                 .spec(Namespace.NamespaceSpec.builder().kafkaUser("user1").build())
                 .build();
+        Namespace rbacNamespace = Namespace.builder()
+                .metadata(
+                        Resource.Metadata.builder().name("ns2").cluster("local").build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .kafkaUser("user2")
+                        .permissionMode(PermissionMode.RBAC)
+                        .build())
+                .build();
 
-        AccessControlEntry acl = AccessControlEntry.builder()
+        AccessControlEntry aclModeAcl = AccessControlEntry.builder()
                 .metadata(Resource.Metadata.builder()
                         .cluster("local")
                         .namespace("ns1")
@@ -651,32 +642,73 @@ class AccessControlEntryAsyncExecutorTest {
                         .grantedTo("ns1")
                         .build())
                 .build();
+        AccessControlEntry rbacModeAcl = AccessControlEntry.builder()
+                .metadata(Resource.Metadata.builder()
+                        .cluster("local")
+                        .namespace("ns2")
+                        .name("ns2-acl")
+                        .status(Resource.Metadata.Status.ofPending())
+                        .updateTimestamp(Date.from(INSTANT))
+                        .generation(0)
+                        .build())
+                .spec(AccessControlEntry.AccessControlEntrySpec.builder()
+                        .resourceType(AccessControlEntry.ResourceType.TOPIC)
+                        .resource("ns2-")
+                        .resourcePatternType(AccessControlEntry.ResourcePatternType.PREFIXED)
+                        .permission(AccessControlEntry.Permission.READ)
+                        .grantedTo("ns2")
+                        .build())
+                .build();
+
+        AclBinding unsyncAclModeBinding = new AclBinding(
+                new ResourcePattern(ResourceType.TOPIC, "ns1-old", PatternType.PREFIXED),
+                new org.apache.kafka.common.acl.AccessControlEntry(
+                        "User:user1", "*", AclOperation.READ, AclPermissionType.ALLOW));
+        AclBinding legacyRbacModeBinding = new AclBinding(
+                new ResourcePattern(ResourceType.TOPIC, "ns2-old", PatternType.PREFIXED),
+                new org.apache.kafka.common.acl.AccessControlEntry(
+                        "User:user2", "*", AclOperation.READ, AclPermissionType.ALLOW));
 
         when(managedClusterProperties.getName()).thenReturn("local");
-        when(managedClusterProperties.isManageAcls()).thenReturn(false);
+        when(managedClusterProperties.isManageAcls()).thenReturn(true);
+        when(managedClusterProperties.isDropUnsyncAcls()).thenReturn(true);
         when(managedClusterProperties.getTimeout()).thenReturn(new ManagedClusterProperties.TimeoutProperties());
         when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
         when(adminClient.describeAcls(any())).thenReturn(describeAclsResult);
-        when(describeAclsResult.values()).thenReturn(KafkaFuture.completedFuture(List.of(READ_ACL_BINDING)));
-        when(namespaceRepository.findAllForCluster("local")).thenReturn(List.of(namespace));
-        when(aclService.findAllForCluster("local")).thenReturn(List.of(acl));
+        when(describeAclsResult.values())
+                .thenReturn(KafkaFuture.completedFuture(List.of(unsyncAclModeBinding, legacyRbacModeBinding)));
+        when(namespaceRepository.findAllForCluster("local")).thenReturn(List.of(aclNamespace, rbacNamespace));
+        when(aclService.findAllForCluster("local")).thenReturn(List.of(aclModeAcl, rbacModeAcl));
         when(streamService.findAllForCluster("local")).thenReturn(List.of());
         when(aclService.isPublicAcl(any())).thenReturn(false);
-        when(namespaceRepository.findByName("ns1")).thenReturn(Optional.of(namespace));
-        when(managedClusterProperties.isManageRbac()).thenReturn(true);
+        when(namespaceRepository.findByName("ns1")).thenReturn(Optional.of(aclNamespace));
+        when(adminClient.createAcls(anyCollection())).thenAnswer(invocation -> {
+            when(createAclsResult.values())
+                    .thenReturn(invocation.<Collection<AclBinding>>getArgument(0).stream()
+                            .collect(Collectors.toMap(Function.identity(), _ -> KafkaFuture.completedFuture(null))));
+            return createAclsResult;
+        });
+        when(adminClient.deleteAcls(anyCollection())).thenReturn(deleteAclsResult);
+        when(deleteAclsResult.values()).thenReturn(Map.of());
+        when(aclService.findByName("ns1", "ns1-acl")).thenReturn(Optional.of(aclModeAcl));
 
         aclAsyncExecutor.run();
 
-        verify(aclService, never()).findByName(any(), any());
-        verify(aclService, never()).create(any());
+        verify(adminClient).createAcls(List.of(READ_ACL_BINDING));
+        verify(adminClient).deleteAcls(List.of(unsyncAclModeBinding.toFilter()));
+        verify(aclService).create(argThat(a -> a == aclModeAcl && a.isSuccess()));
+        verify(aclService, never()).create(rbacModeAcl);
     }
 
     @Test
-    void shouldCreatePublicAclWhenClusterOnlyManagesRbac() {
+    void shouldCreatePublicAclOfNamespaceInRbacMode() {
         Namespace namespace = Namespace.builder()
                 .metadata(
                         Resource.Metadata.builder().name("ns1").cluster("local").build())
-                .spec(Namespace.NamespaceSpec.builder().kafkaUser("user1").build())
+                .spec(Namespace.NamespaceSpec.builder()
+                        .kafkaUser("user1")
+                        .permissionMode(PermissionMode.RBAC)
+                        .build())
                 .build();
 
         AccessControlEntry publicAcl = AccessControlEntry.builder()
@@ -702,7 +734,7 @@ class AccessControlEntryAsyncExecutorTest {
                         "User:*", "*", AclOperation.READ, AclPermissionType.ALLOW));
 
         when(managedClusterProperties.getName()).thenReturn("local");
-        when(managedClusterProperties.isManageAcls()).thenReturn(false);
+        when(managedClusterProperties.isManageAcls()).thenReturn(true);
         when(managedClusterProperties.getTimeout()).thenReturn(new ManagedClusterProperties.TimeoutProperties());
         when(managedClusterProperties.getAdminClient()).thenReturn(adminClient);
         when(adminClient.describeAcls(any())).thenReturn(describeAclsResult);
@@ -714,11 +746,9 @@ class AccessControlEntryAsyncExecutorTest {
         when(adminClient.createAcls(anyCollection())).thenAnswer(invocation -> {
             when(createAclsResult.values())
                     .thenReturn(invocation.<Collection<AclBinding>>getArgument(0).stream()
-                            .collect(Collectors.toMap(
-                                    Function.identity(), _ -> KafkaFuture.<Void>completedFuture(null))));
+                            .collect(Collectors.toMap(Function.identity(), _ -> KafkaFuture.completedFuture(null))));
             return createAclsResult;
         });
-        when(managedClusterProperties.isManageRbac()).thenReturn(true);
         when(aclService.findByName("ns1", "ns1-acl")).thenReturn(Optional.of(publicAcl));
 
         aclAsyncExecutor.run();
