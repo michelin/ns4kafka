@@ -622,6 +622,28 @@ public class FormatErrorUtils {
     }
 
     /**
+     * Invalid Tableflow source topic.
+     *
+     * @param topic The source topic name
+     * @return The error message
+     */
+    public static String invalidTableflowSourceTopic(String topic) {
+        return INVALID_FIELD.formatted(topic, FIELD_NAME, "a topic with the same name must exist");
+    }
+
+    /**
+     * Invalid Tableflow value schema.
+     *
+     * @param subject The expected value subject
+     * @return The error message
+     */
+    public static String invalidTableflowValueSchema(String subject) {
+        return INVALID_RESOURCE.formatted(
+                subject,
+                "a non-empty value schema must be registered using TopicNameStrategy before enabling Tableflow");
+    }
+
+    /**
      * Invalid owner.
      *
      * @param invalidFieldName the invalid field name

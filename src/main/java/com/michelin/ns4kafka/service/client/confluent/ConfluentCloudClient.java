@@ -24,20 +24,17 @@ import com.michelin.ns4kafka.service.client.confluent.entities.RoleBinding;
 import com.michelin.ns4kafka.service.client.confluent.entities.RoleBindingListResponse;
 import com.michelin.ns4kafka.service.client.confluent.entities.RoleBindingRequest;
 import com.michelin.ns4kafka.service.client.confluent.entities.RoleBindingResponse;
+import com.michelin.ns4kafka.service.client.confluent.entities.TableflowTopicListResponse;
 import com.michelin.ns4kafka.service.client.confluent.entities.TableflowTopicRequest;
+import com.michelin.ns4kafka.service.client.confluent.entities.TableflowTopicResponse;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpRequest;
-import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
-import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.client.exceptions.ReadTimeoutException;
-import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.uri.UriBuilder;
-import io.micronaut.json.tree.JsonNode;
 import io.micronaut.retry.annotation.Retryable;
-import io.netty.channel.ConnectTimeoutException;
 import jakarta.inject.Singleton;
 import java.net.URI;
 import java.util.Arrays;
@@ -55,6 +52,7 @@ public class ConfluentCloudClient {
     private static final String CONFLUENT_CLOUD_API_URL = "https://api.confluent.cloud";
     private static final String PAGE_TOKEN_PARAM = "page_token=";
     private static final int PAGE_SIZE = 1000;
+    private static final int TABLEFLOW_PAGE_SIZE = 100;
 
     private final HttpClient httpClient;
     private final List<ManagedClusterProperties> managedClusterProperties;
@@ -79,11 +77,10 @@ public class ConfluentCloudClient {
      * @param tableflowTopic The validated Tableflow topic
      * @return The Confluent Tableflow creation response
      */
-    public JsonNode createTableflowTopic(String kafkaCluster, TableflowTopic tableflowTopic) {
-        String topic = tableflowTopic.getMetadata().getName();
-        var config = getConfluentCloud(kafkaCluster);
-        var body = new TableflowTopicRequest(new TableflowTopicRequest.Spec(
-                topic,
+    public Mono<TableflowTopicResponse> createTableflowTopic(String kafkaCluster, TableflowTopic tableflowTopic) {
+        ManagedClusterProperties.ConfluentCloudProperties config = getConfluentCloud(kafkaCluster);
+        TableflowTopicRequest body = new TableflowTopicRequest(new TableflowTopicRequest.Spec(
+                tableflowTopic.getMetadata().getName(),
                 new TableflowTopicRequest.Storage(
                         tableflowTopic.getSpec().getStorage().getKind()),
                 tableflowTopic.getSpec().getTableFormats(),
@@ -93,80 +90,45 @@ public class ConfluentCloudClient {
                         URI.create(StringUtils.prependUri(CONFLUENT_CLOUD_API_URL, "/tableflow/v1/tableflow-topics")),
                         body)
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
-        try {
-            var response =
-                    Mono.from(httpClient.retrieve(request, JsonNode.class)).block();
-            if (response == null || !response.isObject()) {
-                throw new IllegalStateException("Invalid Tableflow creation response");
-            }
-            return response;
-        } catch (HttpClientResponseException exception) {
-            int status = exception.code();
-            throw new HttpStatusException(
-                    status == 409 ? HttpStatus.CONFLICT : HttpStatus.BAD_GATEWAY,
-                    "Confluent Tableflow creation returned HTTP " + status + ". "
-                            + (status == 409
-                                    ? "Tableflow already exists for this topic."
-                                    : "Check the Confluent Cloud credentials, permissions, topic schemas, and Confluent availability."));
-        } catch (RuntimeException exception) {
-            throw tableflowRequestException("creation", exception);
-        }
+        return Mono.from(httpClient.retrieve(request, TableflowTopicResponse.class));
     }
 
     /**
-     * Read the actual resource before creating or retrying a Tableflow topic.
+     * List the Tableflow topics in a cluster, following all pages before synchronization.
      *
      * @param kafkaCluster The Kafka cluster
-     * @param topic The source topic name
-     * @return The Confluent resource, or empty only when Confluent returns 404
+     * @return The Tableflow topics
      */
-    public Optional<JsonNode> getTableflowTopic(String kafkaCluster, String topic) {
-        var config = getConfluentCloud(kafkaCluster);
-        HttpRequest<?> request = HttpRequest.GET(UriBuilder.of(CONFLUENT_CLOUD_API_URL)
-                        .path("/tableflow/v1/tableflow-topics/" + topic)
-                        .queryParam("environment", config.getEnvironmentId())
-                        .queryParam("spec.kafka_cluster", config.getClusterId())
-                        .build())
-                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
-        try {
-            var response =
-                    Mono.from(httpClient.retrieve(request, JsonNode.class)).block();
-            if (response == null || !response.isObject()) {
-                throw new IllegalStateException("Invalid Tableflow lookup response");
-            }
-            return Optional.of(response);
-        } catch (HttpClientResponseException exception) {
-            if (exception.code() == 404) {
-                return Optional.empty();
-            }
-            throw new HttpStatusException(
-                    HttpStatus.BAD_GATEWAY,
-                    "Confluent Tableflow lookup returned HTTP " + exception.code()
-                            + ". Check the Confluent Cloud credentials, permissions, and Confluent availability.");
-        } catch (RuntimeException exception) {
-            throw tableflowRequestException("lookup", exception);
-        }
+    public Flux<TableflowTopicResponse> listTableflowTopics(String kafkaCluster) {
+        ManagedClusterProperties.ConfluentCloudProperties config = getConfluentCloud(kafkaCluster);
+        return listTableflowTopicsPage(config, null)
+                .expand(response -> {
+                    String pageToken = response.metadata() != null
+                            ? extractPageToken(response.metadata().next())
+                            : null;
+                    return pageToken != null ? listTableflowTopicsPage(config, pageToken) : Mono.empty();
+                })
+                .flatMapIterable(TableflowTopicListResponse::data);
     }
 
     /**
-     * Format a Tableflow creation failure without exposing credentials or upstream response bodies.
+     * List one page of Tableflow topics in the configured environment and cluster.
      *
-     * @param exception The exception to inspect
-     * @param operation The Tableflow operation
-     * @return The sanitized failure with the appropriate HTTP status
+     * @param config The Confluent Cloud properties
+     * @param pageToken The raw page token, or null for the first page
+     * @return The Tableflow topics page
      */
-    private static HttpStatusException tableflowRequestException(String operation, RuntimeException exception) {
-        boolean timeout = false;
-        for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
-            timeout |= cause instanceof ReadTimeoutException
-                    || cause instanceof ConnectTimeoutException
-                    || cause instanceof java.util.concurrent.TimeoutException
-                    || cause instanceof java.net.SocketTimeoutException;
-        }
-        return new HttpStatusException(
-                timeout ? HttpStatus.GATEWAY_TIMEOUT : HttpStatus.BAD_GATEWAY,
-                "Confluent Tableflow " + operation + " " + (timeout ? "timed out" : "failed")
-                        + ". Check Confluent before retrying; creation may have been accepted.");
+    private Mono<TableflowTopicListResponse> listTableflowTopicsPage(
+            ManagedClusterProperties.ConfluentCloudProperties config, @Nullable String pageToken) {
+        URI uri = UriBuilder.of(CONFLUENT_CLOUD_API_URL)
+                .path("/tableflow/v1/tableflow-topics")
+                .queryParam("environment", config.getEnvironmentId())
+                .queryParam("spec.kafka_cluster", config.getClusterId())
+                .queryParam("page_size", TABLEFLOW_PAGE_SIZE)
+                .build();
+        HttpRequest<?> request = HttpRequest.GET(pageToken == null ? uri : URI.create(uri + "&page_token=" + pageToken))
+                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+        return Mono.from(httpClient.retrieve(request, TableflowTopicListResponse.class));
     }
 
     /**

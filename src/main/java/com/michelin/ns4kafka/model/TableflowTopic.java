@@ -20,8 +20,8 @@ package com.michelin.ns4kafka.model;
 
 import static com.michelin.ns4kafka.util.enumation.Kind.TABLEFLOW_TOPIC;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.micronaut.json.tree.JsonNode;
 import io.micronaut.serde.annotation.Serdeable;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
@@ -93,6 +93,20 @@ public class TableflowTopic extends Resource {
     @AllArgsConstructor
     public static class TableflowTopicStatus {
         private String id;
-        private JsonNode state;
+        private TableflowTopicState state;
+    }
+
+    /** Materialization state reported by Confluent. */
+    @Data
+    @Builder
+    @Serdeable
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class TableflowTopicState {
+        private String phase;
+
+        @JsonProperty("error_message")
+        private String errorMessage;
     }
 }

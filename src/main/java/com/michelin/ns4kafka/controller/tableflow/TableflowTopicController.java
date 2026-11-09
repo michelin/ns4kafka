@@ -18,8 +18,8 @@
  */
 package com.michelin.ns4kafka.controller.tableflow;
 
-import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNotFound;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidOwner;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidTableflowSourceTopic;
 import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 
 import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
@@ -48,6 +48,8 @@ import jakarta.validation.Valid;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 /** Controller to manage Tableflow resources independently from Kafka topics. */
 @Tag(name = "Tableflow Topics", description = "Enable Tableflow for existing Kafka topics.")
@@ -86,7 +88,7 @@ public class TableflowTopicController extends NamespacedResourceController {
      * @return The Tableflow topic accepted for creation, or its dry-run preview
      */
     @Post
-    public HttpResponse<TableflowTopic> apply(
+    public Mono<HttpResponse<TableflowTopic>> apply(
             String namespace,
             @Valid @Body TableflowTopic tableflowTopic,
             @QueryValue(defaultValue = "false") boolean dryrun) {
@@ -94,7 +96,7 @@ public class TableflowTopicController extends NamespacedResourceController {
 
         String topic = tableflowTopic.getMetadata().getName();
         if (!topicService.isNamespaceOwnerOfTopic(namespace, topic)) {
-            throw new ResourceValidationException(tableflowTopic, invalidOwner(topic));
+            return Mono.error(new ResourceValidationException(tableflowTopic, invalidOwner(topic)));
         }
 
         List<String> validationErrors = new ArrayList<>();
@@ -106,42 +108,53 @@ public class TableflowTopicController extends NamespacedResourceController {
             validationWarnings.addAll(validationResult.warnings());
         }
         if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(tableflowTopic, validationErrors);
+            return Mono.error(new ResourceValidationException(tableflowTopic, validationErrors));
         }
 
         tableflowTopicService.validateConfiguration(ns, topic);
 
         Topic existingTopic = topicService
                 .findByName(ns, topic)
-                .orElseThrow(() -> new ResourceValidationException(tableflowTopic, invalidNotFound(topic)));
-        validationErrors = tableflowTopicService.validateSchemas(existingTopic);
-        if (!validationErrors.isEmpty()) {
-            throw new ResourceValidationException(tableflowTopic, validationErrors);
-        }
+                .orElseThrow(() -> new ResourceValidationException(tableflowTopic, invalidTableflowSourceTopic(topic)));
+        return tableflowTopicService
+                .validateSchemas(existingTopic)
+                // Ns4Kafka storage is blocking; keep it outside the HTTP client event loop.
+                .publishOn(Schedulers.boundedElastic())
+                .map(errors -> {
+                    if (!errors.isEmpty()) {
+                        throw new ResourceValidationException(tableflowTopic, errors);
+                    }
 
-        Optional<TableflowTopic> existingTableflowTopic = tableflowTopicService.findByName(ns, topic);
-        if (existingTableflowTopic.isPresent()
-                && !existingTableflowTopic.get().getSpec().equals(tableflowTopic.getSpec())) {
-            throw new ResourceValidationException(
-                    tableflowTopic, "Updating Tableflow configuration is not supported yet.");
-        }
+                    Optional<TableflowTopic> existingTableflowTopic = tableflowTopicService.findByName(ns, topic);
+                    if (existingTableflowTopic.isPresent()
+                            && !existingTableflowTopic.get().getSpec().equals(tableflowTopic.getSpec())) {
+                        throw new ResourceValidationException(
+                                tableflowTopic, "Updating Tableflow configuration is not supported yet.");
+                    }
 
-        assignResourceMetadata(tableflowTopic, ns, existingTableflowTopic.orElse(null));
+                    assignResourceMetadata(tableflowTopic, ns, existingTableflowTopic.orElse(null));
 
-        if (existingTableflowTopic.isPresent()) {
-            return formatHttpResponse(existingTableflowTopic.get(), ApplyStatus.UNCHANGED, validationWarnings);
-        }
+                    if (existingTableflowTopic.isPresent()) {
+                        return formatHttpResponse(
+                                existingTableflowTopic.get(), ApplyStatus.UNCHANGED, validationWarnings);
+                    }
 
-        if (dryrun) {
-            return formatHttpResponse(tableflowTopic, ApplyStatus.CREATED, validationWarnings);
-        }
+                    if (dryrun) {
+                        return formatHttpResponse(tableflowTopic, ApplyStatus.CREATED, validationWarnings);
+                    }
 
-        TableflowTopic createdTableflowTopic = tableflowTopicService.create(tableflowTopic);
-        sendEventLog(createdTableflowTopic, ApplyStatus.CREATED, null, createdTableflowTopic.getSpec(), EMPTY_STRING);
+                    TableflowTopic createdTableflowTopic = tableflowTopicService.create(tableflowTopic);
+                    sendEventLog(
+                            createdTableflowTopic,
+                            ApplyStatus.CREATED,
+                            null,
+                            createdTableflowTopic.getSpec(),
+                            EMPTY_STRING);
 
-        return formatHttpResponse(createdTableflowTopic, ApplyStatus.CREATED, validationWarnings)
-                .toMutableResponse()
-                .body(createdTableflowTopic)
-                .status(HttpStatus.ACCEPTED);
+                    return formatHttpResponse(createdTableflowTopic, ApplyStatus.CREATED, validationWarnings)
+                            .toMutableResponse()
+                            .body(createdTableflowTopic)
+                            .status(HttpStatus.ACCEPTED);
+                });
     }
 }

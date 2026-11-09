@@ -18,6 +18,7 @@
  */
 package com.michelin.ns4kafka.service;
 
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidTableflowValueSchema;
 import static com.michelin.ns4kafka.util.enumation.Kind.TABLEFLOW_TOPIC;
 
 import com.michelin.ns4kafka.model.Namespace;
@@ -28,15 +29,10 @@ import com.michelin.ns4kafka.repository.TableflowTopicRepository;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.core.util.StringUtils;
-import io.micronaut.http.HttpStatus;
-import io.micronaut.http.client.exceptions.HttpClientResponseException;
-import io.micronaut.http.client.exceptions.ReadTimeoutException;
-import io.micronaut.http.exceptions.HttpStatusException;
-import io.netty.channel.ConnectTimeoutException;
 import jakarta.inject.Singleton;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import reactor.core.publisher.Mono;
 
 /** Service to validate and create Tableflow resources. */
 @Singleton
@@ -77,7 +73,7 @@ public class TableflowTopicService {
                     TABLEFLOW_TOPIC, topic, "Tableflow is supported only for Confluent Cloud clusters.");
         }
 
-        var config = cluster.get().getConfluentCloud();
+        ManagedClusterProperties.ConfluentCloudProperties config = cluster.get().getConfluentCloud();
         if (config == null
                 || StringUtils.isEmpty(config.getClusterId())
                 || StringUtils.isEmpty(config.getEnvironmentId())
@@ -91,44 +87,18 @@ public class TableflowTopicService {
     }
 
     /**
-     * Check the latest key and value schemas under TopicNameStrategy before enabling Tableflow.
+     * Check the latest value schema under TopicNameStrategy before enabling Tableflow.
      *
      * @param topic The source Kafka topic
      * @return The validation errors
      */
-    public List<String> validateSchemas(Topic topic) {
-        List<String> errors = new ArrayList<>();
-        try {
-            for (String suffix : List.of("-key", "-value")) {
-                String subject = topic.getMetadata().getName() + suffix;
-                var schema = schemaRegistryClient
-                        .getSubject(topic.getMetadata().getCluster(), subject, "latest")
-                        .block();
-                if (schema == null || schema.schema() == null || schema.schema().isBlank()) {
-                    errors.add("Tableflow requires a registered schema for subject [" + subject + "].");
-                }
-            }
-        } catch (ResourceValidationException exception) {
-            throw exception;
-        } catch (HttpClientResponseException exception) {
-            throw new HttpStatusException(
-                    HttpStatus.BAD_GATEWAY,
-                    "Schema Registry validation returned HTTP " + exception.code()
-                            + ". Check Schema Registry access and availability. Tableflow creation was not attempted.");
-        } catch (RuntimeException exception) {
-            boolean timeout = false;
-            for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
-                timeout |= cause instanceof ReadTimeoutException
-                        || cause instanceof ConnectTimeoutException
-                        || cause instanceof java.util.concurrent.TimeoutException
-                        || cause instanceof java.net.SocketTimeoutException;
-            }
-            throw new HttpStatusException(
-                    timeout ? HttpStatus.GATEWAY_TIMEOUT : HttpStatus.BAD_GATEWAY,
-                    "Schema Registry validation " + (timeout ? "timed out" : "failed")
-                            + ". Check Schema Registry access and availability. Tableflow creation was not attempted.");
-        }
-        return errors;
+    public Mono<List<String>> validateSchemas(Topic topic) {
+        String subject = topic.getMetadata().getName() + "-value";
+        return schemaRegistryClient
+                .getSubject(topic.getMetadata().getCluster(), subject, "latest")
+                .filter(schema -> schema.schema() != null && !schema.schema().isBlank())
+                .map(_ -> List.<String>of())
+                .defaultIfEmpty(List.of(invalidTableflowValueSchema(subject)));
     }
 
     /**
