@@ -43,6 +43,7 @@ micronaut:
         read-timeout: "5s"
         url: "${micronaut.security.gitlab.url}"
       confluent-cloud:
+        connection-pool-idle-timeout: "20s"
         connect-timeout: "10s"
         event-loop-group: "confluent-cloud"
         read-idle-timeout: "10s"
@@ -151,7 +152,7 @@ ns4kafka:
     connector:
       interval-ms: 30000
     role-binding:
-      interval-ms: 20000
+      interval-ms: 30000
   security:
     admin-group: "_"
     aes256-encryption-key: "changeitchangeitchangeitchangeit"

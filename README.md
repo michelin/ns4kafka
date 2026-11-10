@@ -648,7 +648,7 @@ ns4kafka:
     connector:
       interval-ms: 30000
     role-binding:
-      interval-ms: 20000
+      interval-ms: 30000
 ```
 
 #### Sensitive Endpoints
