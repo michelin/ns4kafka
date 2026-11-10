@@ -46,10 +46,14 @@ import io.micronaut.context.annotation.Factory;
 import io.micronaut.context.annotation.Replaces;
 import io.micronaut.context.annotation.Requires;
 import io.micronaut.http.HttpRequest;
+import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
+import io.micronaut.http.MutableHttpRequest;
+import io.micronaut.http.client.BlockingHttpClient;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
+import io.micronaut.http.client.exceptions.ReadTimeoutException;
 import io.micronaut.runtime.server.EmbeddedServer;
 import jakarta.inject.Singleton;
 import java.util.List;
@@ -60,6 +64,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import reactor.core.publisher.Mono;
 
 class TableflowTopicHttpTest {
     private NamespaceService namespaceService;
@@ -166,10 +171,10 @@ class TableflowTopicHttpTest {
         when(namespaceService.findByName("sales")).thenReturn(Optional.of(namespace));
         when(topicService.isNamespaceOwnerOfTopic("sales", "sales.orders")).thenReturn(true);
         when(topicService.findByName(namespace, "sales.orders")).thenReturn(Optional.of(topic));
-        when(tableflowTopicService.validateSchemas(topic)).thenReturn(List.of());
+        when(tableflowTopicService.validateSchemas(topic)).thenReturn(Mono.just(List.of()));
         when(tableflowTopicService.create(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        var response = client.toBlocking()
+        HttpResponse<TableflowTopic> response = client.toBlocking()
                 .exchange(
                         HttpRequest.POST("/api/namespaces/sales/tableflow-topics?dryrun=" + dryrun, """
                 {"apiVersion":"v1","kind":"TableflowTopic","metadata":{"name":"sales.orders"},
@@ -201,6 +206,48 @@ class TableflowTopicHttpTest {
     }
 
     @ParameterizedTest
+    @ValueSource(ints = {403, 422, 504})
+    void shouldHandleReactiveSchemaValidationFailuresOverHttp(int status) {
+        Namespace namespace = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("sales")
+                        .cluster("cloud")
+                        .build())
+                .spec(Namespace.NamespaceSpec.builder().build())
+                .build();
+        Topic topic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("sales.orders")
+                        .cluster("cloud")
+                        .build())
+                .build();
+        when(namespaceService.findByName("sales")).thenReturn(Optional.of(namespace));
+        when(topicService.isNamespaceOwnerOfTopic("sales", "sales.orders")).thenReturn(true);
+        when(topicService.findByName(namespace, "sales.orders")).thenReturn(Optional.of(topic));
+        Mono<List<String>> validation =
+                switch (status) {
+                    case 422 ->
+                        Mono.just(List.of(com.michelin.ns4kafka.util.FormatErrorUtils.invalidTableflowValueSchema(
+                                "sales.orders-value")));
+                    case 504 -> Mono.error(ReadTimeoutException.TIMEOUT_EXCEPTION);
+                    default ->
+                        Mono.error(new HttpClientResponseException(
+                                "Schema Registry forbidden", HttpResponse.status(HttpStatus.FORBIDDEN)));
+                };
+        when(tableflowTopicService.validateSchemas(topic)).thenReturn(validation);
+        MutableHttpRequest<String> request = HttpRequest.POST("/api/namespaces/sales/tableflow-topics", """
+                {"metadata":{"name":"sales.orders"},"spec":{"table_formats":["ICEBERG"],"storage":{"kind":"Managed"}}}
+                """)
+                .contentType(MediaType.APPLICATION_JSON_TYPE);
+
+        HttpClientResponseException error = assertThrows(
+                HttpClientResponseException.class, () -> client.toBlocking().exchange(request));
+
+        assertEquals(status, error.code());
+        verify(tableflowTopicService, never()).create(any());
+    }
+
+    @ParameterizedTest
     @ValueSource(
             strings = {
                 "{\"metadata\":{\"name\":\"sales.orders\"},\"spec\":{\"table_formats\":[\"DELTA\"],\"storage\":{\"kind\":\"Managed\"}}}",
@@ -228,10 +275,11 @@ class TableflowTopicHttpTest {
                         .build()));
         when(topicService.isNamespaceOwnerOfTopic("sales", "sales.orders")).thenReturn(true);
 
-        var request = HttpRequest.POST("/api/namespaces/sales/tableflow-topics", body)
+        MutableHttpRequest<String> request = HttpRequest.POST("/api/namespaces/sales/tableflow-topics", body)
                 .contentType(MediaType.APPLICATION_JSON_TYPE);
-        var blockingClient = client.toBlocking();
-        var error = assertThrows(HttpClientResponseException.class, () -> blockingClient.exchange(request));
+        BlockingHttpClient blockingClient = client.toBlocking();
+        HttpClientResponseException error =
+                assertThrows(HttpClientResponseException.class, () -> blockingClient.exchange(request));
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, error.getStatus());
         verify(tableflowTopicService, never()).create(any());

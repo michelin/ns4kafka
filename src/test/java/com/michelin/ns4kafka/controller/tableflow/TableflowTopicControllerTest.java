@@ -44,6 +44,7 @@ import com.michelin.ns4kafka.validation.FieldValidationException;
 import com.michelin.ns4kafka.validation.ResourceValidator;
 import com.michelin.ns4kafka.validation.TableflowTopicValidator;
 import io.micronaut.context.event.ApplicationEventPublisher;
+import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.json.JsonMapper;
@@ -56,9 +57,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Mono;
 
 @ExtendWith(MockitoExtension.class)
 class TableflowTopicControllerTest {
@@ -105,7 +108,7 @@ class TableflowTopicControllerTest {
     }
 
     private static TableflowTopic namedRequest(String name) {
-        var request = icebergRequest();
+        TableflowTopic request = icebergRequest();
         request.getMetadata().setName(name);
         return request;
     }
@@ -125,8 +128,9 @@ class TableflowTopicControllerTest {
         TableflowTopic request = icebergRequest();
         request.getSpec().setTableFormats(List.of("DELTA"));
 
-        var error = assertThrows(
-                ResourceValidationException.class, () -> tableflowTopicController.apply("test", request, dryrun));
+        ResourceValidationException error = assertThrows(
+                ResourceValidationException.class,
+                () -> tableflowTopicController.apply("test", request, dryrun).block());
 
         assertTrue(error.getValidationErrors().stream().anyMatch(message -> message.contains("table.format")));
         verify(tableflowTopicService, never()).validateConfiguration(any(), any());
@@ -148,7 +152,7 @@ class TableflowTopicControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic("test", "orders")).thenReturn(true);
         when(topicService.findByName(ns, "orders")).thenReturn(Optional.of(topic));
-        when(tableflowTopicService.validateSchemas(topic)).thenReturn(List.of());
+        when(tableflowTopicService.validateSchemas(topic)).thenReturn(Mono.just(List.of()));
         when(tableflowTopicService.create(any())).thenAnswer(invocation -> {
             TableflowTopic submitted = invocation.getArgument(0);
             createdTableflowTopic
@@ -161,11 +165,12 @@ class TableflowTopicControllerTest {
             return createdTableflowTopic;
         });
 
-        var request = JsonMapper.createDefault()
+        TableflowTopic request = JsonMapper.createDefault()
                 .readValue(
                         "{\"metadata\":{\"name\":\"orders\"},\"spec\":{\"table_formats\":[\"ICEBERG\"],\"storage\":{\"kind\":\"Managed\"}}}",
                         TableflowTopic.class);
-        var response = tableflowTopicController.apply("test", request, false);
+        HttpResponse<TableflowTopic> response =
+                tableflowTopicController.apply("test", request, false).block();
 
         assertEquals(HttpStatus.ACCEPTED, response.getStatus());
         assertNull(response.body().getStatus());
@@ -176,11 +181,11 @@ class TableflowTopicControllerTest {
         assertEquals("cloud", response.body().getMetadata().getCluster());
         assertEquals("test", response.body().getMetadata().getNamespace());
         assertEquals("Managed", response.body().getSpec().getStorage().getKind());
-        var calls = inOrder(tableflowTopicService);
+        InOrder calls = inOrder(tableflowTopicService);
         calls.verify(tableflowTopicService).validateConfiguration(ns, "orders");
         calls.verify(tableflowTopicService).validateSchemas(topic);
         calls.verify(tableflowTopicService).create(request);
-        var audit = ArgumentCaptor.forClass(AuditLog.class);
+        ArgumentCaptor<AuditLog> audit = ArgumentCaptor.forClass(AuditLog.class);
         verify(applicationEventPublisher).publishEvent(audit.capture());
         assertEquals(Kind.TABLEFLOW_TOPIC, audit.getValue().getKind());
         assertEquals(ApplyStatus.CREATED, audit.getValue().getOperation());
@@ -193,7 +198,9 @@ class TableflowTopicControllerTest {
         when(topicService.isNamespaceOwnerOfTopic("test", "other.orders")).thenReturn(false);
 
         TableflowTopic request = namedRequest("other.orders");
-        assertThrows(ResourceValidationException.class, () -> tableflowTopicController.apply("test", request, false));
+        assertThrows(
+                ResourceValidationException.class,
+                () -> tableflowTopicController.apply("test", request, false).block());
 
         verify(tableflowTopicService, never()).create(any());
         verify(topicService, never()).findByName(any(Namespace.class), any());
@@ -207,8 +214,13 @@ class TableflowTopicControllerTest {
         when(topicService.findByName(ns, "orders")).thenReturn(Optional.empty());
 
         TableflowTopic request = icebergRequest();
-        assertThrows(ResourceValidationException.class, () -> tableflowTopicController.apply("test", request, false));
+        ResourceValidationException error = assertThrows(
+                ResourceValidationException.class,
+                () -> tableflowTopicController.apply("test", request, false).block());
 
+        assertEquals(
+                List.of("Invalid value \"orders\" for field \"name\": a topic with the same name must exist."),
+                error.getValidationErrors());
         verify(tableflowTopicService, never()).create(any());
     }
 
@@ -227,11 +239,13 @@ class TableflowTopicControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic("test", "orders")).thenReturn(true);
         when(topicService.findByName(ns, "orders")).thenReturn(Optional.of(topic));
+        when(tableflowTopicService.validateSchemas(topic)).thenReturn(Mono.just(List.of()));
         if (!dryrun) {
             when(tableflowTopicService.create(request)).thenReturn(request);
         }
 
-        var response = tableflowTopicController.apply("test", request, dryrun);
+        HttpResponse<TableflowTopic> response =
+                tableflowTopicController.apply("test", request, dryrun).block();
 
         assertEquals(dryrun ? HttpStatus.OK : HttpStatus.ACCEPTED, response.getStatus());
         verify(tableflowTopicService).validateConfiguration(ns, "orders");
@@ -249,7 +263,9 @@ class TableflowTopicControllerTest {
                 .when(tableflowTopicService)
                 .validateConfiguration(ns, "orders");
 
-        assertThrows(ResourceValidationException.class, () -> tableflowTopicController.apply("test", request, dryrun));
+        assertThrows(
+                ResourceValidationException.class,
+                () -> tableflowTopicController.apply("test", request, dryrun).block());
 
         verify(topicService, never()).findByName(any(Namespace.class), any());
         verify(tableflowTopicService, never()).validateSchemas(any());
@@ -267,13 +283,14 @@ class TableflowTopicControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic("test", "orders")).thenReturn(true);
         when(topicService.findByName(ns, "orders")).thenReturn(Optional.of(topic));
-        when(tableflowTopicService.validateSchemas(topic)).thenReturn(List.of());
+        when(tableflowTopicService.validateSchemas(topic)).thenReturn(Mono.just(List.of()));
 
         TableflowTopic request = icebergRequest();
         request.getMetadata().setCluster("caller-cluster");
         request.getMetadata().setNamespace("caller-namespace");
 
-        var response = tableflowTopicController.apply("test", request, true);
+        HttpResponse<TableflowTopic> response =
+                tableflowTopicController.apply("test", request, true).block();
 
         assertEquals(HttpStatus.OK, response.getStatus());
         assertEquals(ApplyStatus.CREATED.toString(), response.getHeaders().get("X-Ns4kafka-Result"));
@@ -298,11 +315,14 @@ class TableflowTopicControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic("test", "orders")).thenReturn(true);
         when(topicService.findByName(ns, "orders")).thenReturn(Optional.of(topic));
+        when(tableflowTopicService.validateSchemas(topic)).thenReturn(Mono.just(List.of()));
         when(tableflowTopicService.create(any()))
                 .thenThrow(new HttpStatusException(HttpStatus.BAD_GATEWAY, "Storage unavailable"));
 
         TableflowTopic request = icebergRequest();
-        assertThrows(HttpStatusException.class, () -> tableflowTopicController.apply("test", request, false));
+        assertThrows(
+                HttpStatusException.class,
+                () -> tableflowTopicController.apply("test", request, false).block());
 
         verify(applicationEventPublisher, never()).publishEvent(any(AuditLog.class));
     }
@@ -317,12 +337,14 @@ class TableflowTopicControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic("test", "orders")).thenReturn(true);
         when(topicService.findByName(ns, "orders")).thenReturn(Optional.of(topic));
-        List<String> errors = List.of("Tableflow requires a registered schema for subject [orders-value].");
-        when(tableflowTopicService.validateSchemas(topic)).thenReturn(errors);
+        List<String> errors =
+                List.of(com.michelin.ns4kafka.util.FormatErrorUtils.invalidTableflowValueSchema("orders-value"));
+        when(tableflowTopicService.validateSchemas(topic)).thenReturn(Mono.just(errors));
 
         TableflowTopic request = icebergRequest();
-        var error = assertThrows(
-                ResourceValidationException.class, () -> tableflowTopicController.apply("test", request, dryrun));
+        ResourceValidationException error = assertThrows(
+                ResourceValidationException.class,
+                () -> tableflowTopicController.apply("test", request, dryrun).block());
 
         assertEquals(errors, error.getValidationErrors());
         verify(tableflowTopicService, never()).create(any());
@@ -340,10 +362,12 @@ class TableflowTopicControllerTest {
         when(topicService.isNamespaceOwnerOfTopic("test", "orders")).thenReturn(true);
         when(topicService.findByName(ns, "orders")).thenReturn(Optional.of(topic));
         when(tableflowTopicService.validateSchemas(topic))
-                .thenThrow(new HttpStatusException(HttpStatus.BAD_GATEWAY, "Schema Registry unavailable"));
+                .thenReturn(Mono.error(new HttpStatusException(HttpStatus.BAD_GATEWAY, "Schema Registry unavailable")));
 
         TableflowTopic request = icebergRequest();
-        assertThrows(HttpStatusException.class, () -> tableflowTopicController.apply("test", request, dryrun));
+        assertThrows(
+                HttpStatusException.class,
+                () -> tableflowTopicController.apply("test", request, dryrun).block());
 
         verify(tableflowTopicService, never()).create(any());
         verify(applicationEventPublisher, never()).publishEvent(any(AuditLog.class));
@@ -369,11 +393,13 @@ class TableflowTopicControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic("test", "orders")).thenReturn(true);
         when(topicService.findByName(ns, "orders")).thenReturn(Optional.of(topic));
+        when(tableflowTopicService.validateSchemas(topic)).thenReturn(Mono.just(List.of()));
         if (!dryrun) {
             when(tableflowTopicService.create(request)).thenReturn(request);
         }
 
-        var response = tableflowTopicController.apply("test", request, dryrun);
+        HttpResponse<TableflowTopic> response =
+                tableflowTopicController.apply("test", request, dryrun).block();
 
         assertEquals(dryrun ? HttpStatus.OK : HttpStatus.ACCEPTED, response.getStatus());
         assertEquals("Prefer Iceberg", response.getHeaders().get("X-Ns4kafka-Warnings"));
@@ -397,10 +423,14 @@ class TableflowTopicControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic("test", "orders")).thenReturn(true);
         when(topicService.findByName(ns, "orders")).thenReturn(Optional.of(topic));
+        when(tableflowTopicService.validateSchemas(topic)).thenReturn(Mono.just(List.of()));
 
         assertEquals(
                 HttpStatus.OK,
-                tableflowTopicController.apply("test", icebergRequest(), true).getStatus());
+                tableflowTopicController
+                        .apply("test", icebergRequest(), true)
+                        .block()
+                        .getStatus());
         verify(tableflowTopicService, never()).create(any());
     }
 
@@ -417,9 +447,11 @@ class TableflowTopicControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic("test", "orders")).thenReturn(true);
         when(topicService.findByName(ns, "orders")).thenReturn(Optional.of(source));
+        when(tableflowTopicService.validateSchemas(source)).thenReturn(Mono.just(List.of()));
         when(tableflowTopicService.findByName(ns, "orders")).thenReturn(Optional.of(stored));
 
-        var response = tableflowTopicController.apply("test", icebergRequest(), dryrun);
+        HttpResponse<TableflowTopic> response =
+                tableflowTopicController.apply("test", icebergRequest(), dryrun).block();
 
         assertEquals(HttpStatus.OK, response.getStatus());
         assertEquals("unchanged", response.getHeaders().get("X-Ns4kafka-Result"));
@@ -440,11 +472,13 @@ class TableflowTopicControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic("test", "orders")).thenReturn(true);
         when(topicService.findByName(ns, "orders")).thenReturn(Optional.of(source));
+        when(tableflowTopicService.validateSchemas(source)).thenReturn(Mono.just(List.of()));
         when(tableflowTopicService.findByName(ns, "orders")).thenReturn(Optional.of(stored));
         TableflowTopic request = icebergRequest();
 
-        var error = assertThrows(
-                ResourceValidationException.class, () -> tableflowTopicController.apply("test", request, false));
+        ResourceValidationException error = assertThrows(
+                ResourceValidationException.class,
+                () -> tableflowTopicController.apply("test", request, false).block());
 
         assertTrue(error.getValidationErrors().contains("Updating Tableflow configuration is not supported yet."));
         verify(tableflowTopicService, never()).create(any());

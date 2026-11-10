@@ -29,14 +29,13 @@ import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.TableflowTopic;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.service.client.confluent.entities.TableflowTopicRequest;
+import com.michelin.ns4kafka.service.client.confluent.entities.TableflowTopicResponse;
 import com.sun.net.httpserver.HttpServer;
 import io.micronaut.http.HttpRequest;
-import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.HttpClient;
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.client.exceptions.ReadTimeoutException;
-import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.json.JsonMapper;
-import io.micronaut.json.tree.JsonNode;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -83,16 +82,18 @@ class ConfluentCloudClientTest {
         String url = "http://127.0.0.1:" + server.getAddress().getPort();
         httpClient = HttpClient.create(URI.create(url).toURL());
         properties = new ManagedClusterProperties("cloud", ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
-        var config = new ManagedClusterProperties.ConfluentCloudProperties();
+        ManagedClusterProperties.ConfluentCloudProperties config =
+                new ManagedClusterProperties.ConfluentCloudProperties();
         config.setClusterId("lkc-test");
         config.setEnvironmentId("env-test");
         config.setBasicAuthUsername("global-admin-key");
         config.setBasicAuthPassword("global-admin-secret");
         properties.setConfluentCloud(config);
-        var localClient = mock(HttpClient.class);
-        when(localClient.retrieve(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(JsonNode.class)))
+        HttpClient localClient = mock(HttpClient.class);
+        when(localClient.retrieve(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(Class.class)))
                 .thenAnswer(invocation -> {
                     HttpRequest<?> request = invocation.getArgument(0);
+                    Class<?> responseType = invocation.getArgument(1);
                     assertEquals("api.confluent.cloud", request.getUri().getHost());
                     return httpClient.retrieve(
                             request.toMutableRequest()
@@ -101,7 +102,7 @@ class ConfluentCloudClientTest {
                                             + (request.getUri().getRawQuery() == null
                                                     ? ""
                                                     : "?" + request.getUri().getRawQuery()))),
-                            JsonNode.class);
+                            responseType);
                 });
         client = new ConfluentCloudClient(localClient, List.of(properties));
     }
@@ -132,24 +133,25 @@ class ConfluentCloudClientTest {
     @ParameterizedTest
     @ValueSource(strings = {"ICEBERG", "DELTA"})
     void shouldCreateTableflowWithSharedCredentialsAndValidatedSettings(String format) throws Exception {
-        replies.add(new Reply(202, "{\"id\":\"tt-test\",\"status\":{\"phase\":\"PROVISIONING\"}}"));
-
+        replies.add(
+                new Reply(
+                        202,
+                        "{\"id\":\"tt-test\",\"status\":{\"phase\":\"PROVISIONING\",\"error_message\":\"\",\"write_mode\":\"APPEND\"}}"));
         TableflowTopic resource = tableflowTopic("orders.created");
         resource.getSpec().setTableFormats(List.of(format));
-        JsonNode result = client.createTableflowTopic("cloud", resource);
 
-        assertEquals("tt-test", result.get("id").getStringValue());
+        TableflowTopicResponse result =
+                client.createTableflowTopic("cloud", resource).block();
+
+        assertEquals("tt-test", result.id());
+        assertEquals("PROVISIONING", result.status().phase());
+        assertEquals("", result.status().errorMessage());
         assertEquals(1, requests.size());
         Request request = requests.element();
         assertEquals("POST", request.method());
         assertEquals("/tableflow/v1/tableflow-topics", request.uri().getPath());
-        assertEquals(
-                "Basic "
-                        + Base64.getEncoder()
-                                .encodeToString(
-                                        "global-admin-key:global-admin-secret".getBytes(StandardCharsets.UTF_8)),
-                request.authorization());
-        var body = JsonMapper.createDefault().readValue(request.body(), TableflowTopicRequest.class);
+        assertEquals(authorization(), request.authorization());
+        TableflowTopicRequest body = JsonMapper.createDefault().readValue(request.body(), TableflowTopicRequest.class);
         assertEquals("orders.created", body.spec().displayName());
         assertEquals("Managed", body.spec().storage().kind());
         assertEquals(List.of(format), body.spec().tableFormats());
@@ -159,69 +161,109 @@ class ConfluentCloudClientTest {
 
     @ParameterizedTest
     @ValueSource(ints = {400, 401, 403, 409, 422, 429, 500})
-    void shouldSanitizeTableflowErrorsWithoutRetry(int status) {
-        replies.add(new Reply(status, "{\"message\":\"DO-NOT-EXPOSE\"}"));
+    void shouldPropagateTableflowCreationErrorsWithoutRetry(int status) {
+        replies.add(new Reply(status, "{}"));
         TableflowTopic resource = tableflowTopic("orders");
-        var error = assertThrows(HttpStatusException.class, () -> client.createTableflowTopic("cloud", resource));
-        assertEquals(status == 409 ? HttpStatus.CONFLICT : HttpStatus.BAD_GATEWAY, error.getStatus());
-        assertTrue(error.getMessage().contains("HTTP " + status));
-        assertTrue(!error.getMessage().contains("DO-NOT-EXPOSE"));
+
+        HttpClientResponseException error = assertThrows(
+                HttpClientResponseException.class,
+                () -> client.createTableflowTopic("cloud", resource).block());
+
+        assertEquals(status, error.code());
         assertEquals(1, requests.size());
     }
 
     @Test
-    void shouldReportTableflowTimeoutWithoutRetry() {
-        var http = mock(HttpClient.class);
-        when(http.retrieve(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(JsonNode.class)))
+    void shouldPropagateTableflowTimeoutWithoutRetry() {
+        HttpClient http = mock(HttpClient.class);
+        when(http.retrieve(
+                        org.mockito.ArgumentMatchers.any(),
+                        org.mockito.ArgumentMatchers.eq(TableflowTopicResponse.class)))
                 .thenReturn(Mono.error(ReadTimeoutException.TIMEOUT_EXCEPTION));
-        var timedOut = new ConfluentCloudClient(http, List.of(properties));
+        ConfluentCloudClient timedOut = new ConfluentCloudClient(http, List.of(properties));
         TableflowTopic resource = tableflowTopic("orders");
-        var error = assertThrows(HttpStatusException.class, () -> timedOut.createTableflowTopic("cloud", resource));
-        assertEquals(HttpStatus.GATEWAY_TIMEOUT, error.getStatus());
-        assertTrue(error.getMessage().contains("creation may have been accepted"));
-        verify(http).retrieve(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(JsonNode.class));
+
+        assertThrows(
+                ReadTimeoutException.class,
+                () -> timedOut.createTableflowTopic("cloud", resource).block());
+
+        verify(http)
+                .retrieve(
+                        org.mockito.ArgumentMatchers.any(),
+                        org.mockito.ArgumentMatchers.eq(TableflowTopicResponse.class));
     }
 
     private record Request(String method, URI uri, String authorization, String body) {}
 
-    @Test
-    void shouldReadTableflowWithTheConfiguredScopeAndSharedCredentials() {
-        replies.add(new Reply(200, "{\"status\":{\"phase\":\"RUNNING\"}}"));
-
-        var result = client.getTableflowTopic("cloud", "orders.created");
-
-        assertEquals("RUNNING", result.orElseThrow().get("status").get("phase").getStringValue());
-        Request request = requests.element();
-        assertEquals("GET", request.method());
-        assertEquals(
-                "/tableflow/v1/tableflow-topics/orders.created", request.uri().getPath());
-        assertEquals(
-                "environment=env-test&spec.kafka_cluster=lkc-test",
-                request.uri().getQuery());
-        assertEquals(
-                "Basic "
-                        + Base64.getEncoder()
-                                .encodeToString(
-                                        "global-admin-key:global-admin-secret".getBytes(StandardCharsets.UTF_8)),
-                request.authorization());
+    private static String authorization() {
+        return "Basic "
+                + Base64.getEncoder()
+                        .encodeToString("global-admin-key:global-admin-secret".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
-    void shouldReturnEmptyOnlyWhenTableflowDoesNotExist() {
-        replies.add(new Reply(404, "{}"));
-        assertTrue(client.getTableflowTopic("cloud", "orders").isEmpty());
+    void shouldListAllPagesWithTheConfiguredScopeAndSharedCredentials() {
+        replies.add(new Reply(200, """
+                {"data":[{"spec":{"display_name":"orders","table_formats":["ICEBERG"],"storage":{"kind":"Managed","table_path":"ignored"}},"status":{"phase":"RUNNING"}}],
+                "metadata":{"next":"https://api.confluent.cloud/tableflow/v1/tableflow-topics?page_token=next%2B%2F%3D&other=value"}}
+                """));
+        replies.add(new Reply(200, """
+                {"data":[{"spec":{"display_name":"invoices","table_formats":["ICEBERG"],"storage":{"kind":"Managed"}},"status":{"phase":"PENDING"}}],"metadata":{}}
+                """));
+
+        List<TableflowTopicResponse> result =
+                client.listTableflowTopics("cloud").collectList().block();
+
+        assertEquals(
+                List.of("orders", "invoices"),
+                result.stream().map(topic -> topic.spec().displayName()).toList());
+        assertEquals(List.of("ICEBERG"), result.getFirst().spec().tableFormats());
+        assertEquals("Managed", result.getFirst().spec().storage().kind());
+        assertEquals("RUNNING", result.getFirst().status().phase());
+        assertEquals(2, requests.size());
+        List<Request> captured = List.copyOf(requests);
+        assertEquals(
+                "environment=env-test&spec.kafka_cluster=lkc-test&page_size=100",
+                captured.getFirst().uri().getRawQuery());
+        assertEquals(
+                "environment=env-test&spec.kafka_cluster=lkc-test&page_size=100&page_token=next%2B%2F%3D",
+                captured.getLast().uri().getRawQuery());
+        captured.forEach(request -> {
+            assertEquals("GET", request.method());
+            assertEquals("/tableflow/v1/tableflow-topics", request.uri().getPath());
+            assertEquals(authorization(), request.authorization());
+        });
+    }
+
+    @Test
+    void shouldReturnAnEmptyListWhenNoTableflowTopicsExist() {
+        replies.add(new Reply(200, "{\"data\":[]}"));
+        assertTrue(client.listTableflowTopics("cloud").collectList().block().isEmpty());
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {401, 403, 429, 500})
-    void shouldNotTreatLookupFailuresAsMissingResources(int status) {
-        replies.add(new Reply(status, "{\"message\":\"DO-NOT-EXPOSE\"}"));
+    @ValueSource(ints = {401, 403, 404, 429, 500})
+    void shouldPropagateListingFailuresInsteadOfReturningAnEmptyList(int status) {
+        replies.add(new Reply(status, "{}"));
 
-        var error = assertThrows(HttpStatusException.class, () -> client.getTableflowTopic("cloud", "orders"));
+        HttpClientResponseException error = assertThrows(
+                HttpClientResponseException.class,
+                () -> client.listTableflowTopics("cloud").collectList().block());
 
-        assertEquals(HttpStatus.BAD_GATEWAY, error.getStatus());
-        assertTrue(error.getMessage().contains("HTTP " + status));
-        assertTrue(!error.getMessage().contains("DO-NOT-EXPOSE"));
+        assertEquals(status, error.code());
         assertEquals(1, requests.size());
+    }
+
+    @Test
+    void shouldFailTheCompleteListingWhenALaterPageFails() {
+        replies.add(new Reply(200, """
+                {"data":[{"spec":{"display_name":"orders"}}],"metadata":{"next":"https://api.confluent.cloud/tableflow/v1/tableflow-topics?page_token=next"}}
+                """));
+        replies.add(new Reply(503, "{}"));
+
+        assertThrows(
+                HttpClientResponseException.class,
+                () -> client.listTableflowTopics("cloud").collectList().block());
+        assertEquals(2, requests.size());
     }
 }

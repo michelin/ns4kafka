@@ -18,10 +18,10 @@
  */
 package com.michelin.ns4kafka.service;
 
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidTableflowValueSchema;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -40,19 +40,19 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.client.exceptions.ReadTimeoutException;
-import io.micronaut.http.exceptions.HttpStatusException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
+import reactor.test.StepVerifier;
 
 @ExtendWith(MockitoExtension.class)
 class TableflowTopicServiceTest {
@@ -68,101 +68,85 @@ class TableflowTopicServiceTest {
     @InjectMocks
     TableflowTopicService tableflowTopicService;
 
-    @ParameterizedTest
-    @CsvSource({"true,true", "true,false", "false,true", "false,false"})
-    void shouldRequireLatestKeyAndValueSchemas(boolean hasKey, boolean hasValue) {
-        Topic topic = Topic.builder()
+    private static Topic topic() {
+        return Topic.builder()
                 .metadata(Resource.Metadata.builder()
                         .cluster("cloud")
                         .name("orders")
                         .build())
                 .build();
-        var schema = SchemaResponse.builder().schema("\"string\"").build();
-        when(schemaRegistryClient.getSubject("cloud", "orders-key", "latest"))
-                .thenReturn(hasKey ? Mono.just(schema) : Mono.empty());
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldRequireOnlyTheLatestValueSchema(boolean hasValue) {
+        SchemaResponse schema = SchemaResponse.builder().schema("\"string\"").build();
         when(schemaRegistryClient.getSubject("cloud", "orders-value", "latest"))
                 .thenReturn(hasValue ? Mono.just(schema) : Mono.empty());
 
-        List<String> errors = tableflowTopicService.validateSchemas(topic);
+        List<String> errors = tableflowTopicService.validateSchemas(topic()).block();
 
-        List<String> expected = new ArrayList<>();
-        if (!hasKey) {
-            expected.add("Tableflow requires a registered schema for subject [orders-key].");
-        }
-        if (!hasValue) {
-            expected.add("Tableflow requires a registered schema for subject [orders-value].");
-        }
-        assertEquals(expected, errors);
-        verify(schemaRegistryClient).getSubject("cloud", "orders-key", "latest");
+        assertEquals(hasValue ? List.of() : List.of(invalidTableflowValueSchema("orders-value")), errors);
         verify(schemaRegistryClient).getSubject("cloud", "orders-value", "latest");
+        verify(schemaRegistryClient, never()).getSubject("cloud", "orders-key", "latest");
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {" "})
+    void shouldRejectEmptyValueSchemaDefinitions(String definition) {
+        when(schemaRegistryClient.getSubject("cloud", "orders-value", "latest"))
+                .thenReturn(
+                        Mono.just(SchemaResponse.builder().schema(definition).build()));
+
+        assertEquals(
+                List.of(invalidTableflowValueSchema("orders-value")),
+                tableflowTopicService.validateSchemas(topic()).block());
     }
 
     @Test
-    void shouldRejectEmptySchemaDefinitions() {
-        Topic topic = Topic.builder()
-                .metadata(Resource.Metadata.builder()
-                        .cluster("cloud")
-                        .name("orders")
-                        .build())
-                .build();
-        when(schemaRegistryClient.getSubject("cloud", "orders-key", "latest"))
-                .thenReturn(Mono.just(SchemaResponse.builder().schema(" ").build()));
-        when(schemaRegistryClient.getSubject("cloud", "orders-value", "latest"))
-                .thenReturn(Mono.just(SchemaResponse.builder().build()));
+    void shouldValidateTheValueSchemaWithoutBlocking() {
+        Sinks.One<SchemaResponse> schema = Sinks.one();
+        when(schemaRegistryClient.getSubject("cloud", "orders-value", "latest")).thenReturn(schema.asMono());
 
-        assertEquals(2, tableflowTopicService.validateSchemas(topic).size());
+        Mono<List<String>> validation = tableflowTopicService.validateSchemas(topic());
+
+        StepVerifier.create(validation)
+                .then(() -> schema.tryEmitValue(
+                        SchemaResponse.builder().schema("\"string\"").build()))
+                .expectNext(List.of())
+                .verifyComplete();
     }
 
     @ParameterizedTest
     @ValueSource(ints = {401, 403, 429, 500})
-    void shouldReportSchemaRegistryFailuresWithoutCallingTheExecutor(int status) {
-        Topic topic = Topic.builder()
-                .metadata(Resource.Metadata.builder()
-                        .cluster("cloud")
-                        .name("orders")
-                        .build())
-                .build();
-        when(schemaRegistryClient.getSubject("cloud", "orders-key", "latest"))
-                .thenReturn(Mono.error(new HttpClientResponseException(
-                        "DO-NOT-EXPOSE", HttpResponse.status(HttpStatus.valueOf(status)))));
+    void shouldPropagateSchemaRegistryFailuresToTheExceptionHandler(int status) {
+        HttpClientResponseException exception = new HttpClientResponseException(
+                "Schema Registry unavailable", HttpResponse.status(HttpStatus.valueOf(status)));
+        when(schemaRegistryClient.getSubject("cloud", "orders-value", "latest")).thenReturn(Mono.error(exception));
 
-        var error = assertThrows(HttpStatusException.class, () -> tableflowTopicService.validateSchemas(topic));
-
-        assertEquals(HttpStatus.BAD_GATEWAY, error.getStatus());
-        assertTrue(error.getMessage().contains("HTTP " + status));
-        assertTrue(!error.getMessage().contains("DO-NOT-EXPOSE"));
-        verify(tableflowTopicRepository, never()).create(any());
+        StepVerifier.create(tableflowTopicService.validateSchemas(topic()))
+                .expectErrorMatches(error -> error == exception)
+                .verify();
+        verifyNoInteractions(tableflowTopicRepository);
     }
 
     @Test
-    void shouldReportSchemaRegistryTimeout() {
-        Topic topic = Topic.builder()
-                .metadata(Resource.Metadata.builder()
-                        .cluster("cloud")
-                        .name("orders")
-                        .build())
-                .build();
-        when(schemaRegistryClient.getSubject("cloud", "orders-key", "latest"))
+    void shouldPropagateSchemaRegistryTimeout() {
+        when(schemaRegistryClient.getSubject("cloud", "orders-value", "latest"))
                 .thenReturn(Mono.error(ReadTimeoutException.TIMEOUT_EXCEPTION));
 
-        var error = assertThrows(HttpStatusException.class, () -> tableflowTopicService.validateSchemas(topic));
-
-        assertEquals(HttpStatus.GATEWAY_TIMEOUT, error.getStatus());
-        assertTrue(error.getMessage().contains("Tableflow creation was not attempted"));
+        StepVerifier.create(tableflowTopicService.validateSchemas(topic()))
+                .expectError(ReadTimeoutException.class)
+                .verify();
     }
 
     @Test
     void shouldRejectMissingSchemaRegistryConfiguration() {
-        Topic topic = Topic.builder()
-                .metadata(Resource.Metadata.builder()
-                        .cluster("cloud")
-                        .name("orders")
-                        .build())
-                .build();
-        when(schemaRegistryClient.getSubject("cloud", "orders-key", "latest"))
-                .thenThrow(new ResourceValidationException(topic, "Schema Registry is not configured."));
+        when(schemaRegistryClient.getSubject("cloud", "orders-value", "latest"))
+                .thenThrow(new ResourceValidationException(topic(), "Schema Registry is not configured."));
 
-        assertThrows(ResourceValidationException.class, () -> tableflowTopicService.validateSchemas(topic));
+        assertThrows(ResourceValidationException.class, () -> tableflowTopicService.validateSchemas(topic()));
     }
 
     @Test
@@ -209,8 +193,10 @@ class TableflowTopicServiceTest {
     }
 
     private static ManagedClusterProperties cloudCluster() {
-        var cluster = new ManagedClusterProperties("cloud", ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
-        var config = new ManagedClusterProperties.ConfluentCloudProperties();
+        ManagedClusterProperties cluster =
+                new ManagedClusterProperties("cloud", ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
+        ManagedClusterProperties.ConfluentCloudProperties config =
+                new ManagedClusterProperties.ConfluentCloudProperties();
         config.setClusterId("lkc-test");
         config.setEnvironmentId("env-test");
         config.setBasicAuthUsername("shared-key");
@@ -221,7 +207,8 @@ class TableflowTopicServiceTest {
 
     @Test
     void shouldValidateTheNamespacesClusterWithoutAccessingSchemasOrStorage() {
-        var otherCluster = new ManagedClusterProperties("other", ManagedClusterProperties.KafkaProvider.SELF_MANAGED);
+        ManagedClusterProperties otherCluster =
+                new ManagedClusterProperties("other", ManagedClusterProperties.KafkaProvider.SELF_MANAGED);
         when(managedClusterProperties.stream()).thenReturn(Stream.of(otherCluster, cloudCluster()));
 
         tableflowTopicService.validateConfiguration(namespace(), "orders");
@@ -232,7 +219,7 @@ class TableflowTopicServiceTest {
     @ParameterizedTest
     @ValueSource(strings = {"unknown", "self-managed"})
     void shouldRejectUnsupportedClusters(String type) {
-        var cluster = cloudCluster();
+        ManagedClusterProperties cluster = cloudCluster();
         if (type.equals("unknown")) {
             cluster.setName("other");
         } else {
@@ -241,7 +228,7 @@ class TableflowTopicServiceTest {
         when(managedClusterProperties.stream()).thenReturn(Stream.of(cluster));
         Namespace ns = namespace();
 
-        var error = assertThrows(
+        ResourceValidationException error = assertThrows(
                 ResourceValidationException.class, () -> tableflowTopicService.validateConfiguration(ns, "orders"));
 
         assertTrue(error.getValidationErrors().contains("Tableflow is supported only for Confluent Cloud clusters."));
@@ -251,8 +238,8 @@ class TableflowTopicServiceTest {
     @ParameterizedTest
     @ValueSource(strings = {"missing", "cluster", "environment", "key", "secret"})
     void shouldRejectIncompleteClusterConfiguration(String field) {
-        var cluster = cloudCluster();
-        var config = cluster.getConfluentCloud();
+        ManagedClusterProperties cluster = cloudCluster();
+        ManagedClusterProperties.ConfluentCloudProperties config = cluster.getConfluentCloud();
         switch (field) {
             case "missing" -> cluster.setConfluentCloud(null);
             case "cluster" -> config.setClusterId(null);

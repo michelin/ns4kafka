@@ -22,16 +22,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.michelin.ns4kafka.util.enumation.Kind;
 import io.micronaut.json.JsonMapper;
-import io.micronaut.json.tree.JsonNode;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class TableflowTopicTest {
     @Test
     void shouldDeserializeASeparateResourceReferencingAnExistingTopic() throws Exception {
-        var mapper = JsonMapper.createDefault();
-        var resource = mapper.readValue("""
+        JsonMapper mapper = JsonMapper.createDefault();
+        TableflowTopic resource = mapper.readValue("""
                 {
                   "apiVersion": "v1",
                   "kind": "TableflowTopic",
@@ -50,7 +48,7 @@ class TableflowTopicTest {
 
     @Test
     void shouldSerializeConfluentStatusSeparatelyFromTheResourceSpecification() throws Exception {
-        var mapper = JsonMapper.createDefault();
+        JsonMapper mapper = JsonMapper.createDefault();
         TableflowTopic resource = TableflowTopic.builder()
                 .metadata(Resource.Metadata.builder().name("orders").build())
                 .spec(TableflowTopic.TableflowTopicSpec.builder()
@@ -58,14 +56,18 @@ class TableflowTopicTest {
                         .build())
                 .status(TableflowTopic.TableflowTopicStatus.builder()
                         .id("tt-test")
-                        .state(JsonNode.from(Map.of("phase", "PROVISIONING")))
+                        .state(TableflowTopic.TableflowTopicState.builder()
+                                .phase("PROVISIONING")
+                                .errorMessage("")
+                                .build())
                         .build())
                 .build();
 
         TableflowTopic result = mapper.readValue(mapper.writeValueAsBytes(resource), TableflowTopic.class);
 
         assertEquals("tt-test", result.getStatus().getId());
-        assertEquals("PROVISIONING", result.getStatus().getState().get("phase").getStringValue());
+        assertEquals("PROVISIONING", result.getStatus().getState().getPhase());
+        assertEquals(resource.getStatus(), result.getStatus());
         result.setStatus(null);
         assertEquals(resource, result);
     }

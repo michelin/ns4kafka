@@ -64,12 +64,12 @@ class ResourceBasedSecurityRuleTest {
     void shouldRequireTableflowPermissionAndPostVerb(String resource, String verb, SecurityRuleResult expected) {
         when(namespaceRepository.findByName("test"))
                 .thenReturn(Optional.of(Namespace.builder().build()));
-        var binding = AuthenticationRoleBinding.builder()
+        AuthenticationRoleBinding binding = AuthenticationRoleBinding.builder()
                 .namespaces(List.of("test"))
                 .resourceTypes(List.of(resource))
                 .verbs(List.of(com.michelin.ns4kafka.model.RoleBinding.Verb.valueOf(verb)))
                 .build();
-        var authentication = Authentication.build("caller", Map.of(ROLE_BINDINGS, List.of(binding)));
+        Authentication authentication = Authentication.build("caller", Map.of(ROLE_BINDINGS, List.of(binding)));
 
         assertEquals(
                 expected,

@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.michelin.ns4kafka.validation.FieldValidationException;
 import com.michelin.ns4kafka.validation.ResourceValidator;
 import com.michelin.ns4kafka.validation.TableflowTopicValidator;
+import com.michelin.ns4kafka.validation.ValidationResult;
 import io.micronaut.json.JsonMapper;
 import java.util.List;
 import java.util.Map;
@@ -66,7 +67,7 @@ class TableflowTopicValidatorTest {
     @ParameterizedTest
     @ValueSource(strings = {"DELTA", "OTHER", "iceberg"})
     void shouldRejectFormatsOutsideTheNamespaceAllowlist(String format) {
-        var result = validator("ICEBERG").validate(topic(List.of(format), "Managed"));
+        ValidationResult result = validator("ICEBERG").validate(topic(List.of(format), "Managed"));
 
         assertEquals(1, result.errors().size());
         assertTrue(result.errors().getFirst().contains("table.format"));
@@ -76,7 +77,7 @@ class TableflowTopicValidatorTest {
     @ParameterizedTest
     @ValueSource(strings = {"ByobAws", "AzureDataLakeStorageGen2", "GoogleCloudStorage", "Custom", "managed", ""})
     void shouldRejectStorageOutsideTheNamespaceAllowlist(String storage) {
-        var result = validator("ICEBERG").validate(topic(List.of("ICEBERG"), storage));
+        ValidationResult result = validator("ICEBERG").validate(topic(List.of("ICEBERG"), storage));
 
         assertEquals(1, result.errors().size());
         assertTrue(result.errors().getFirst().contains("storage.kind"));
@@ -107,7 +108,8 @@ class TableflowTopicValidatorTest {
 
     @Test
     void shouldNotAddConstraintsWhenNoneAreConfigured() {
-        var result = TableflowTopicValidator.builder().build().validate(topic(List.of("DELTA"), "ByobAws"));
+        ValidationResult result =
+                TableflowTopicValidator.builder().build().validate(topic(List.of("DELTA"), "ByobAws"));
 
         assertEquals(List.of(), result.errors());
         assertEquals(List.of(), result.warnings());
@@ -115,7 +117,7 @@ class TableflowTopicValidatorTest {
 
     @Test
     void shouldReportMissingRequiredConstraintValues() {
-        var result = validator("ICEBERG").validate(topic(null, null));
+        ValidationResult result = validator("ICEBERG").validate(topic(null, null));
 
         assertEquals(2, result.errors().size());
     }
@@ -125,7 +127,7 @@ class TableflowTopicValidatorTest {
         ResourceValidator.Validator softRule = (name, value) -> {
             throw new FieldValidationException("Prefer Iceberg", true);
         };
-        var result = TableflowTopicValidator.builder()
+        ValidationResult result = TableflowTopicValidator.builder()
                 .validationConstraints(Map.of("table.format", softRule))
                 .build()
                 .validate(topic(List.of("DELTA"), "Managed"));
@@ -136,7 +138,7 @@ class TableflowTopicValidatorTest {
 
     @Test
     void shouldReadAndRoundTripNamespaceValidationRules() throws Exception {
-        var mapper = JsonMapper.createDefault();
+        JsonMapper mapper = JsonMapper.createDefault();
         Namespace namespace = mapper.readValue("""
                 {
                   "metadata": {"name": "sales", "cluster": "cloud"},

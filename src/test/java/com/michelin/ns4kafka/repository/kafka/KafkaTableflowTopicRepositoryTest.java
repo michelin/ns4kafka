@@ -62,13 +62,13 @@ class KafkaTableflowTopicRepositoryTest {
 
     @Test
     void shouldRestorePendingConfigurationsFromKafkaAfterRestart() throws Exception {
-        var original = repository();
+        KafkaTableflowTopicRepository original = repository();
         TableflowTopic desired = topic("cloud");
         String key = original.getMessageKey(desired);
         assertEquals("cloud/orders", key);
-        var mapper = JsonMapper.createDefault();
+        JsonMapper mapper = JsonMapper.createDefault();
         TableflowTopic restored = mapper.readValue(mapper.writeValueAsBytes(desired), TableflowTopic.class);
-        var restarted = repository();
+        KafkaTableflowTopicRepository restarted = repository();
         restarted.receive(new ConsumerRecord<>("ns4kafka.tableflow-topics", 0, 0, key, restored));
 
         assertEquals(desired, restarted.findByName("cloud", "orders").orElseThrow());
@@ -77,7 +77,7 @@ class KafkaTableflowTopicRepositoryTest {
 
     @Test
     void shouldKeepStoredConfigurationsIsolatedByCluster() {
-        var repository = repository();
+        KafkaTableflowTopicRepository repository = repository();
         TableflowTopic first = topic("first");
         TableflowTopic second = topic("second");
         repository.receive(new ConsumerRecord<>("ns4kafka.tableflow-topics", 0, 0, "first/orders", first));

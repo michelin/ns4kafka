@@ -31,7 +31,7 @@ import reactor.core.Disposable;
 class KafkaAsyncExecutorSchedulerTest {
     @Test
     void shouldStartAndDisposeTableflowSynchronizationWithTheOtherExecutors() {
-        var scheduler = spy(new KafkaAsyncExecutorScheduler(
+        KafkaAsyncExecutorScheduler scheduler = spy(new KafkaAsyncExecutorScheduler(
                 List.of(),
                 List.of(),
                 List.of(),

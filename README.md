@@ -509,9 +509,9 @@ This Namespace excerpt enforces Iceberg and Confluent-managed storage. Supported
 `table.format` and `storage.kind`. Without a validator, no namespace-specific value restrictions are applied;
 authorization is still required. Validated request settings are forwarded to Confluent without replacing them with defaults.
 
-Create the [source topic](.docker/resources/user/topic.yml) in Ns4Kafka, then register its latest `<topic>-key` and
-`<topic>-value` [schemas](.docker/resources/user/schema.yml) before enabling Tableflow. Both schema definitions must
-be non-empty; this check supports `TopicNameStrategy`. The topic executor handles Kafka deployment. Confluent performs
+Create the [source topic](.docker/resources/user/topic.yml) in Ns4Kafka, then register a non-empty value
+[schema](.docker/resources/user/schema.yml) under `<topic>-value` (`TopicNameStrategy`) before enabling Tableflow.
+A key schema is not required. The topic executor handles Kafka deployment. Confluent performs
 additional compatibility checks; registering schemas alone does not validate existing records.
 
 Call `POST /api/namespaces/{namespace}/tableflow-topics` with the following JSON resource:
@@ -541,13 +541,15 @@ It polls every 20 seconds by default, configured with `ns4kafka.scheduler.tablef
 `metadata.status.phase` becomes `Success` when Confluent reports `RUNNING`, or `Fail` when deployment fails.
 Confluent's materialization status is stored in `status.state`; [monitor Confluent for readiness](https://docs.confluent.io/cloud/current/topics/tableflow/operate/monitor-tableflow.html).
 
-Use `?dryrun=true` with the same body to validate the request, namespace rules, cluster configuration, topic ownership and schemas.
+Use `?dryrun=true` with the same body to validate the request, namespace rules, cluster configuration, topic ownership and the value schema.
 Dry runs check local configuration and read Schema Registry, then return HTTP `200` without storing Tableflow or an audit event.
 They do not verify credentials with Confluent or all Tableflow eligibility rules. Validation warnings are returned in `X-Ns4kafka-Warnings`.
 
-Local validation failures or missing schemas return HTTP `422`. Schema Registry failures return HTTP `502`; timeouts
-return HTTP `504`. Confluent failures after acceptance are recorded in the resource status and retried by the executor.
-Before creating, the executor reads Confluent's current state to recover requests accepted before a timeout or restart.
+Local validation failures or a missing value schema return HTTP `422`. Schema Registry errors use the shared
+exception handler: HTTP errors preserve the remote status, read timeouts return `504`, and other client failures return `503`.
+Confluent creation failures after acceptance are recorded in the resource status and retried by the executor.
+Each synchronization lists all Tableflow topics in the cluster, following pagination before creating missing configurations.
+If the listing fails, that cycle is skipped. The next listing also recovers creation conflicts and requests accepted before a timeout or restart.
 An identical request for a stored configuration returns `unchanged` without submitting another creation or audit event.
 Different existing configurations are reported as failures and are not overwritten. Public GET, update, delete and import
 operations are not implemented yet; submitting a changed configuration returns HTTP `422`.
