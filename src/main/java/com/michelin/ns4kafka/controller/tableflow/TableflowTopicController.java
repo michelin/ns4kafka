@@ -37,6 +37,7 @@ import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
+import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
 import io.micronaut.scheduling.TaskExecutors;
@@ -51,7 +52,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 /** Controller to manage Tableflow topics. */
-@Tag(name = "Tableflow Topics", description = "Enable Tableflow for existing Kafka topics.")
+@Tag(name = "Tableflow Topics", description = "Enable and list Tableflow for existing Kafka topics.")
 @Controller(value = "/api/namespaces/{namespace}/tableflow-topics")
 @ExecuteOn(TaskExecutors.IO)
 public class TableflowTopicController extends NamespacedResourceController {
@@ -76,6 +77,20 @@ public class TableflowTopicController extends NamespacedResourceController {
         super(namespaceService, securityService, applicationEventPublisher);
         this.topicService = topicService;
         this.tableflowTopicService = tableflowTopicService;
+    }
+
+    /**
+     * List Tableflow topics owned by the namespace, filtered by name.
+     *
+     * @param namespace The namespace
+     * @param name The name filter
+     * @return The matching Tableflow topics
+     */
+    @Get
+    public Mono<List<TableflowTopic>> list(String namespace, @QueryValue(defaultValue = "*") String name) {
+        return tableflowTopicService
+                .findByWildcardName(getNamespace(namespace), name)
+                .collectList();
     }
 
     /**
