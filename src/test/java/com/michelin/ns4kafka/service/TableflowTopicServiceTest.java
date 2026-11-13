@@ -18,6 +18,7 @@
  */
 package com.michelin.ns4kafka.service;
 
+import static com.michelin.ns4kafka.model.AccessControlEntry.ResourceType.TOPIC;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidTableflowValueSchema;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -27,12 +28,15 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.TableflowTopic;
 import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.TableflowTopicRepository;
+import com.michelin.ns4kafka.service.client.confluent.ConfluentCloudClient;
+import com.michelin.ns4kafka.service.client.confluent.entities.TableflowTopicResponse;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.service.client.schema.entities.SchemaResponse;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
@@ -51,12 +55,19 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.test.StepVerifier;
 
 @ExtendWith(MockitoExtension.class)
 class TableflowTopicServiceTest {
+    @Mock
+    AclService aclService;
+
+    @Mock
+    ConfluentCloudClient confluentCloudClient;
+
     @Mock
     TableflowTopicRepository tableflowTopicRepository;
 
@@ -68,6 +79,67 @@ class TableflowTopicServiceTest {
 
     @InjectMocks
     TableflowTopicService tableflowTopicService;
+
+    @Test
+    void shouldListMatchingOwnedTableflowTopicsWithConfluentConfigurationAndStatus() {
+        Namespace ns = namespace();
+        List<AccessControlEntry> acls = List.of(AccessControlEntry.builder().build());
+        when(managedClusterProperties.stream()).thenReturn(Stream.of(cloudCluster()));
+        when(aclService.findResourceOwnerGrantedToNamespace(ns, TOPIC)).thenReturn(acls);
+        when(aclService.isResourceCoveredByAcls(acls, "other.orders")).thenReturn(false);
+        when(aclService.isResourceCoveredByAcls(acls, "sales.orders")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, "sales.invoices")).thenReturn(true);
+        when(confluentCloudClient.listTableflowTopics("cloud"))
+                .thenReturn(Flux.just(
+                        remoteTopic("other.orders"), remoteTopic("sales.orders"), remoteTopic("sales.invoices")));
+
+        StepVerifier.create(tableflowTopicService.findByWildcardName(ns, "*.orders"))
+                .assertNext(topic -> {
+                    assertEquals("sales.orders", topic.getMetadata().getName());
+                    assertEquals("sales", topic.getMetadata().getNamespace());
+                    assertEquals("cloud", topic.getMetadata().getCluster());
+                    assertEquals(Set.of("ICEBERG"), topic.getSpec().getTableFormats());
+                    assertEquals("Managed", topic.getSpec().getStorage().getKind());
+                    assertEquals("FAILED", topic.getStatus().getState().getPhase());
+                    assertEquals("Invalid record", topic.getStatus().getState().getErrorMessage());
+                })
+                .verifyComplete();
+        verifyNoInteractions(tableflowTopicRepository, schemaRegistryClient);
+    }
+
+    @Test
+    void shouldReturnNoTableflowTopicsWithoutTopicOwnership() {
+        Namespace ns = namespace();
+        when(managedClusterProperties.stream()).thenReturn(Stream.of(cloudCluster()));
+        when(aclService.findResourceOwnerGrantedToNamespace(ns, TOPIC)).thenReturn(List.of());
+
+        StepVerifier.create(tableflowTopicService.findByWildcardName(ns, "*")).verifyComplete();
+        verifyNoInteractions(confluentCloudClient);
+    }
+
+    @Test
+    void shouldNotListTableflowTopicsWhenClusterIsNotConfigured() {
+        ManagedClusterProperties cluster = cloudCluster();
+        cluster.setManageTableflow(false);
+        when(managedClusterProperties.stream()).thenReturn(Stream.of(cluster));
+
+        StepVerifier.create(tableflowTopicService.findByWildcardName(namespace(), "*"))
+                .consumeErrorWith(error -> {
+                    assertEquals(ResourceValidationException.class, error.getClass());
+                    assertEquals(
+                            List.of("Invalid \"*\": the cluster is not configured to use Tableflow."),
+                            ((ResourceValidationException) error).getValidationErrors());
+                })
+                .verify();
+        verifyNoInteractions(aclService, confluentCloudClient);
+    }
+
+    private static TableflowTopicResponse remoteTopic(String name) {
+        return new TableflowTopicResponse(
+                null,
+                new TableflowTopicResponse.Spec(name, Set.of("ICEBERG"), new TableflowTopicResponse.Storage("Managed")),
+                new TableflowTopicResponse.Status("FAILED", "Invalid record"));
+    }
 
     private static Topic topic() {
         return Topic.builder()
