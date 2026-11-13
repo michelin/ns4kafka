@@ -97,7 +97,7 @@ public class Ns4KafkaProperties {
         @Setter
         @ConfigurationProperties("role-binding")
         public static class RoleBindingProperties {
-            private int intervalMs = 20000;
+            private int intervalMs = 30000;
         }
     }
 

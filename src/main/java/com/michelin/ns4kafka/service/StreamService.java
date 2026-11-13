@@ -22,7 +22,6 @@ import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.KafkaStream;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.Topic;
-import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.StreamRepository;
 import com.michelin.ns4kafka.service.executor.AccessControlEntryAsyncExecutor;
 import com.michelin.ns4kafka.service.executor.ConfluentRoleBindingAsyncExecutor;
@@ -48,7 +47,6 @@ public class StreamService {
     private final StreamRepository streamRepository;
     private final AclService aclService;
     private final TopicService topicService;
-    private final List<ManagedClusterProperties> managedClusterProperties;
 
     /**
      * Find all Kafka Streams.
@@ -71,13 +69,11 @@ public class StreamService {
             ApplicationContext applicationContext,
             StreamRepository streamRepository,
             AclService aclService,
-            TopicService topicService,
-            List<ManagedClusterProperties> managedClusterProperties) {
+            TopicService topicService) {
         this.applicationContext = applicationContext;
         this.streamRepository = streamRepository;
         this.aclService = aclService;
         this.topicService = topicService;
-        this.managedClusterProperties = managedClusterProperties;
     }
 
     /**
@@ -202,24 +198,13 @@ public class StreamService {
             topicService.deleteTopics(kafkaStreamsTopics);
         }
 
-        Optional<ManagedClusterProperties> streamCluster = managedClusterProperties.stream()
-                .filter(cluster -> cluster.getName().equals(stream.getMetadata().getCluster()))
-                .findFirst();
+        // Role bindings are deleted regardless of the namespace permission mode,
+        // as some can remain from a rollback to ACL
+        ConfluentRoleBindingAsyncExecutor confluentRoleBindingAsyncExecutor = applicationContext.getBean(
+                ConfluentRoleBindingAsyncExecutor.class,
+                Qualifiers.byName(stream.getMetadata().getCluster()));
+        confluentRoleBindingAsyncExecutor.deleteRoleBindingFromKafkaStream(stream);
 
-        if (streamCluster.isPresent() && streamCluster.get().isManageAcls()) {
-            streamRepository.delete(stream);
-            return;
-        }
-
-        if (streamCluster.isPresent()
-                && streamCluster.get().isConfluentCloud()
-                && streamCluster.get().isManageRbac()) {
-            ConfluentRoleBindingAsyncExecutor confluentRoleBindingAsyncExecutor = applicationContext.getBean(
-                    ConfluentRoleBindingAsyncExecutor.class,
-                    Qualifiers.byName(stream.getMetadata().getCluster()));
-            confluentRoleBindingAsyncExecutor.deleteRoleBindingsFromKafkaStreams(List.of(stream));
-
-            streamRepository.delete(stream);
-        }
+        streamRepository.delete(stream);
     }
 }

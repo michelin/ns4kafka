@@ -43,7 +43,6 @@ Ns4Kafka brings a namespace-based deployment model for Kafka resources, inspired
     * [Managed Kafka Clusters](#managed-kafka-clusters)
       * [Self-Managed](#self-managed)
       * [Confluent Cloud](#confluent-cloud)
-        * [Role Binding](#role-binding)
         * [Tableflow Creation](#tableflow-creation)
     * [Audit Log](#audit-log)
       * [Console](#console)
@@ -359,7 +358,6 @@ ns4kafka:
         sasl.mechanism: "PLAIN"
         security.protocol: "SASL_PLAINTEXT"
         sasl.jaas.config: "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"admin\" password=\"admin\";"
-        cluster.id: "lkc-abcde"
       connects:
         connect-name:
           url: "http://localhost:8083"
@@ -391,57 +389,51 @@ This is the name you need to set in the `metadata.cluster` field of your namespa
 
 `connect-name` must be a unique name identifying a Kafka Connect cluster.
 
-| Property                                  | Type    | Required | Description                                                                                                          |
-|-------------------------------------------|---------|----------|----------------------------------------------------------------------------------------------------------------------|
-| manage-acls                               | boolean | No       | Does the cluster manages access control entries (Default: false)                                                     |
-| manage-connectors                         | boolean | No       | Does the cluster manages connects (Default: false)                                                                   |
-| manage-topics                             | boolean | No       | Does the cluster manages topics (Default: false)                                                                     |
-| manage-users                              | boolean | No       | Does the cluster manages users (Default: false)                                                                      |
-| drop-unsync-acls                          | boolean | No       | Should unsynchronized acls and Confluent RBAC be dropped (Default: true)                                             |
-| timeout.acl.create                        | int     | No       | The timeout in milliseconds used by the AdminClient to create acls (Default: 30000ms)                                |
-| timeout.acl.describe                      | int     | No       | The timeout in milliseconds used by the AdminClient to describe acls (Default: 30000ms)                              |
-| timeout.acl.delete                        | int     | No       | The timeout in milliseconds used by the AdminClient to delete acls (Default: 30000ms)                                |
-| timeout.topic.alter-configs               | int     | No       | The timeout in milliseconds used by the AdminClient to alter topic configs (Default: 30000ms)                        |
-| timeout.topic.create                      | int     | No       | The timeout in milliseconds used by the AdminClient to create topics (Default: 30000ms)                              |
-| timeout.topic.describe-configs            | int     | No       | The timeout in milliseconds used by the AdminClient to describe topic configs (Default: 30000ms)                     |
-| timeout.topic.delete                      | int     | No       | The timeout in milliseconds used by the AdminClient to delete topics (Default: 30000ms)                              |
-| timeout.topic.list                        | int     | No       | The timeout in milliseconds used by the AdminClient to list topics (Default: 30000ms)                                |
-| timeout.user.alter-quotas                 | int     | No       | The timeout in milliseconds used by the AdminClient to alter client quotas (Default: 30000ms)                        |
-| timeout.user.alter-scram-credentials      | int     | No       | The timeout in milliseconds used by the AdminClient to alter scram credentials (Default: 30000ms)                    |
-| timeout.user.describe-quotas              | int     | No       | The timeout in milliseconds used by the AdminClient to describe client quotas (Default: 30000ms)                     |
-| provider                                  | boolean | Yes      | The kind of cluster. Either SELF_MANAGED or CONFLUENT_CLOUD                                                          |
-| config.bootstrap.servers                  | string  | Yes      | The location of the clusters servers                                                                                 |
-| schema-registry.url                       | string  | No       | The location of the Schema Registry                                                                                  |
-| schema-registry.basicAuthUsername         | string  | No       | Basic authentication username to the Schema Registry                                                                 |
-| schema-registry.basicAuthPassword         | string  | No       | Basic authentication password to the Schema Registry                                                                 |
-| connects.<connect-name>.url               | string  | No       | The location of the kafka connect                                                                                    |
-| connects.<connect-name>.basicAuthUsername | string  | No       | Basic authentication username to the Kafka Connect                                                                   |
-| connects.<connect-name>.basicAuthPassword | string  | No       | Basic authentication password to the Kafka Connect                                                                   |
+| Property                                    | Type    | Required | Description                                                                                       |
+|---------------------------------------------|---------|----------|---------------------------------------------------------------------------------------------------|
+| manage-acls                                 | boolean | No       | Does the cluster manages access control entries (Default: false)                                  |
+| manage-connectors                           | boolean | No       | Does the cluster manages connects (Default: false)                                                |
+| manage-topics                               | boolean | No       | Does the cluster manages topics (Default: false)                                                  |
+| manage-users                                | boolean | No       | Does the cluster manages users (Default: false)                                                   |
+| drop-unsync-acls                            | boolean | No       | Should unsynchronized acls and Confluent RBAC be dropped (Default: true)                          |
+| timeout.acl.create                          | int     | No       | The timeout in milliseconds used by the AdminClient to create acls (Default: 30000ms)             |
+| timeout.acl.describe                        | int     | No       | The timeout in milliseconds used by the AdminClient to describe acls (Default: 30000ms)           |
+| timeout.acl.delete                          | int     | No       | The timeout in milliseconds used by the AdminClient to delete acls (Default: 30000ms)             |
+| timeout.topic.alter-configs                 | int     | No       | The timeout in milliseconds used by the AdminClient to alter topic configs (Default: 30000ms)     |
+| timeout.topic.create                        | int     | No       | The timeout in milliseconds used by the AdminClient to create topics (Default: 30000ms)           |
+| timeout.topic.describe-configs              | int     | No       | The timeout in milliseconds used by the AdminClient to describe topic configs (Default: 30000ms)  |
+| timeout.topic.delete                        | int     | No       | The timeout in milliseconds used by the AdminClient to delete topics (Default: 30000ms)           |
+| timeout.topic.list                          | int     | No       | The timeout in milliseconds used by the AdminClient to list topics (Default: 30000ms)             |
+| timeout.user.alter-quotas                   | int     | No       | The timeout in milliseconds used by the AdminClient to alter client quotas (Default: 30000ms)     |
+| timeout.user.alter-scram-credentials        | int     | No       | The timeout in milliseconds used by the AdminClient to alter scram credentials (Default: 30000ms) |
+| timeout.user.describe-quotas                | int     | No       | The timeout in milliseconds used by the AdminClient to describe client quotas (Default: 30000ms)  |
+| provider                                    | boolean | Yes      | The kind of cluster. Either SELF_MANAGED or CONFLUENT_CLOUD                                       |
+| config.bootstrap.servers                    | string  | Yes      | The location of the clusters servers                                                              |
+| schema-registry.url                         | string  | No       | The location of the Schema Registry                                                               |
+| schema-registry.basicAuthUsername           | string  | No       | Basic authentication username to the Schema Registry                                              |
+| schema-registry.basicAuthPassword           | string  | No       | Basic authentication password to the Schema Registry                                              |
+| connects.\<connect-name\>.url               | string  | No       | The location of the kafka connect                                                                 |
+| connects.\<connect-name\>.basicAuthUsername | string  | No       | Basic authentication username to the Kafka Connect                                                |
+| connects.\<connect-name\>.basicAuthPassword | string  | No       | Basic authentication password to the Kafka Connect                                                |
 
 The configuration will depend on the authentication method selected for your broker, schema registry and Kafka Connect.
 
 #### Confluent Cloud
 
-The following features are only available when using Confluent Cloud as the provider.
+The following properties are only available for Confluent Cloud cluster providers. They are required for:
+
+- [Role Bindings](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html)
+- [Tableflow](#tableflow-creation)
 
 Configure one [global API key](https://docs.confluent.io/cloud/current/security/authenticate/workload-identities/service-accounts/api-keys/overview.html#global-api-keys)
 owned by an `OrganizationAdmin` principal for Ns4Kafka's Confluent Cloud API operations, including role binding synchronization
 and Tableflow enablement. Reuse the same key and secret in each managed cluster configuration within that organization.
-
-##### Role Binding
-
-Confluent role bindings can be synchronized with Ns4Kafka.
-
-The synchronization is performed using thz [Confluent Cloud API](https://docs.confluent.io/cloud/current/api.html#tag/Role-Bindings-(iamv2)).
-
-You can configure the synchronization using the following properties:
 
 ```yaml
 ns4kafka:
   managed-clusters:
     cluster-name:
       provider: "CONFLUENT_CLOUD"
-      manage-rbac: true
       confluent-cloud:
         organization-id: "xxx"
         environment-id: "env-xxx"
@@ -450,18 +442,16 @@ ns4kafka:
         basic-auth-password: "${CONFLUENT_CLOUD_API_SECRET}"
 ```
 
-| Property                             | Type    | Required | Description                                                                                                                                                                                                    |
-|--------------------------------------|---------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| manage-rbac                          | boolean | No       | Does the cluster manages Confluent role bindings (Default: false). The provider must be Confluent Cloud.                                                                                                       |
-| confluent-cloud.organization-id      | string  | No       | Confluent Cloud Organization ID. Required to use [Confluent Cloud Role Binding](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html).                                         |
-| confluent-cloud.environment-id       | string  | No       | Confluent Cloud environment ID. Required to use [Confluent Cloud Role Binding](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html).                                          |
-| confluent-cloud.cluster-id           | string  | No       | Confluent Cloud cluster ID. Required to use [Confluent Cloud Role Binding](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html).                                              |
-| confluent-cloud.basic-auth-username  | string  | No       | Global API key shared by Confluent Cloud API operations. Required for role binding synchronization and Tableflow enablement.                                                                                 |
-| confluent-cloud.basic-auth-password  | string  | No       | Global API secret shared by Confluent Cloud API operations. Required for role binding synchronization and Tableflow enablement.                                                                              |
+| Property                            | Type    | Required | Description                                                                                        |
+|-------------------------------------|---------|----------|----------------------------------------------------------------------------------------------------|
+| manage-rbac                         | boolean | No       | **Deprecated since 1.23.** Use `manage-acls` and set `permissionMode: RBAC` on namespaces instead. |
+| confluent-cloud.organization-id     | string  | No       | Confluent Cloud organization ID.                                                                   |
+| confluent-cloud.environment-id      | string  | No       | Confluent Cloud environment ID.                                                                    |
+| confluent-cloud.cluster-id          | string  | No       | Confluent Cloud cluster ID.                                                                        |
+| confluent-cloud.basic-auth-username | string  | No       | Global API key shared by role binding synchronization and Tableflow enablement.                     |
+| confluent-cloud.basic-auth-password | string  | No       | Global API secret shared by role binding synchronization and Tableflow enablement.                  |
 
-Ns4Kafka ACLs will be converted to the corresponding Role Bindings when synchronized.
-
-#### Tableflow Creation
+##### Tableflow Creation
 
 Tableflow can be enabled for an existing Kafka topic in Confluent Cloud.
 
@@ -757,7 +747,7 @@ ns4kafka:
     connector:
       interval-ms: 30000
     role-binding:
-      interval-ms: 20000
+      interval-ms: 30000
 ```
 
 #### Sensitive Endpoints

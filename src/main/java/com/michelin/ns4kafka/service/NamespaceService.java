@@ -19,6 +19,7 @@
 package com.michelin.ns4kafka.service;
 
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNamespaceNoCluster;
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNamespacePermissionMode;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidNamespaceUserAlreadyExist;
 import static com.michelin.ns4kafka.util.enumation.Kind.ACCESS_CONTROL_ENTRY;
 import static com.michelin.ns4kafka.util.enumation.Kind.CONNECTOR;
@@ -29,6 +30,7 @@ import static com.michelin.ns4kafka.util.enumation.Kind.TOPIC;
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Namespace.PermissionMode;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.NamespaceRepository;
 import com.michelin.ns4kafka.util.FormatErrorUtils;
@@ -185,6 +187,11 @@ public class NamespaceService {
                             !managedCluster.get().getConnects().containsKey(connectCluster))
                     .map(FormatErrorUtils::invalidNamespaceNoConnectCluster)
                     .toList());
+
+            if (namespace.getSpec().getPermissionMode() == PermissionMode.RBAC
+                    && !managedCluster.get().isManageRbac()) {
+                validationErrors.add(invalidNamespacePermissionMode(PermissionMode.RBAC.toString()));
+            }
         }
 
         if (namespaceRepository.findAllForCluster(namespace.getMetadata().getCluster()).stream()

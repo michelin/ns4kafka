@@ -74,8 +74,17 @@ public class Namespace extends Resource {
         @Builder.Default
         private List<String> connectClusters = List.of();
 
+        @Builder.Default
+        private PermissionMode permissionMode = PermissionMode.ACL;
+
         private TopicValidator topicValidator;
         private ConnectValidator connectValidator;
         private TableflowTopicValidator tableflowTopicValidator;
+    }
+
+    /** Permission mode used to grant the namespace Kafka user access to its resources. */
+    public enum PermissionMode {
+        ACL,
+        RBAC
     }
 }
