@@ -128,9 +128,8 @@ class TableflowTopicControllerTest {
         TableflowTopic request = icebergRequest();
         request.getSpec().setTableFormats(List.of("DELTA"));
 
-        ResourceValidationException error = assertThrows(
-                ResourceValidationException.class,
-                () -> tableflowTopicController.apply("test", request, dryrun).block());
+        Mono<HttpResponse<TableflowTopic>> response = tableflowTopicController.apply("test", request, dryrun);
+        ResourceValidationException error = assertThrows(ResourceValidationException.class, response::block);
 
         assertTrue(error.getValidationErrors().stream().anyMatch(message -> message.contains("table.format")));
         verify(tableflowTopicService, never()).validateConfiguration(any(), any());
@@ -198,9 +197,8 @@ class TableflowTopicControllerTest {
         when(topicService.isNamespaceOwnerOfTopic("test", "other.orders")).thenReturn(false);
 
         TableflowTopic request = namedRequest("other.orders");
-        assertThrows(
-                ResourceValidationException.class,
-                () -> tableflowTopicController.apply("test", request, false).block());
+        Mono<HttpResponse<TableflowTopic>> response = tableflowTopicController.apply("test", request, false);
+        assertThrows(ResourceValidationException.class, response::block);
 
         verify(tableflowTopicService, never()).create(any());
         verify(topicService, never()).findByName(any(Namespace.class), any());
@@ -215,8 +213,7 @@ class TableflowTopicControllerTest {
 
         TableflowTopic request = icebergRequest();
         ResourceValidationException error = assertThrows(
-                ResourceValidationException.class,
-                () -> tableflowTopicController.apply("test", request, false).block());
+                ResourceValidationException.class, () -> tableflowTopicController.apply("test", request, false));
 
         assertEquals(
                 List.of("Invalid value \"orders\" for field \"name\": a topic with the same name must exist."),
@@ -263,9 +260,7 @@ class TableflowTopicControllerTest {
                 .when(tableflowTopicService)
                 .validateConfiguration(ns, "orders");
 
-        assertThrows(
-                ResourceValidationException.class,
-                () -> tableflowTopicController.apply("test", request, dryrun).block());
+        assertThrows(ResourceValidationException.class, () -> tableflowTopicController.apply("test", request, dryrun));
 
         verify(topicService, never()).findByName(any(Namespace.class), any());
         verify(tableflowTopicService, never()).validateSchemas(any());
@@ -320,9 +315,8 @@ class TableflowTopicControllerTest {
                 .thenThrow(new HttpStatusException(HttpStatus.BAD_GATEWAY, "Storage unavailable"));
 
         TableflowTopic request = icebergRequest();
-        assertThrows(
-                HttpStatusException.class,
-                () -> tableflowTopicController.apply("test", request, false).block());
+        Mono<HttpResponse<TableflowTopic>> response = tableflowTopicController.apply("test", request, false);
+        assertThrows(HttpStatusException.class, response::block);
 
         verify(applicationEventPublisher, never()).publishEvent(any(AuditLog.class));
     }
@@ -342,9 +336,8 @@ class TableflowTopicControllerTest {
         when(tableflowTopicService.validateSchemas(topic)).thenReturn(Mono.just(errors));
 
         TableflowTopic request = icebergRequest();
-        ResourceValidationException error = assertThrows(
-                ResourceValidationException.class,
-                () -> tableflowTopicController.apply("test", request, dryrun).block());
+        Mono<HttpResponse<TableflowTopic>> response = tableflowTopicController.apply("test", request, dryrun);
+        ResourceValidationException error = assertThrows(ResourceValidationException.class, response::block);
 
         assertEquals(errors, error.getValidationErrors());
         verify(tableflowTopicService, never()).create(any());
@@ -365,9 +358,8 @@ class TableflowTopicControllerTest {
                 .thenReturn(Mono.error(new HttpStatusException(HttpStatus.BAD_GATEWAY, "Schema Registry unavailable")));
 
         TableflowTopic request = icebergRequest();
-        assertThrows(
-                HttpStatusException.class,
-                () -> tableflowTopicController.apply("test", request, dryrun).block());
+        Mono<HttpResponse<TableflowTopic>> response = tableflowTopicController.apply("test", request, dryrun);
+        assertThrows(HttpStatusException.class, response::block);
 
         verify(tableflowTopicService, never()).create(any());
         verify(applicationEventPublisher, never()).publishEvent(any(AuditLog.class));
@@ -476,9 +468,8 @@ class TableflowTopicControllerTest {
         when(tableflowTopicService.findByName(ns, "orders")).thenReturn(Optional.of(stored));
         TableflowTopic request = icebergRequest();
 
-        ResourceValidationException error = assertThrows(
-                ResourceValidationException.class,
-                () -> tableflowTopicController.apply("test", request, false).block());
+        Mono<HttpResponse<TableflowTopic>> response = tableflowTopicController.apply("test", request, false);
+        ResourceValidationException error = assertThrows(ResourceValidationException.class, response::block);
 
         assertTrue(error.getValidationErrors().contains("Updating Tableflow configuration is not supported yet."));
         verify(tableflowTopicService, never()).create(any());

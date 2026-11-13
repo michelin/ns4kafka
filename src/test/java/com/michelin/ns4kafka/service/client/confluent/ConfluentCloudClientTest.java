@@ -165,9 +165,8 @@ class ConfluentCloudClientTest {
         replies.add(new Reply(status, "{}"));
         TableflowTopic resource = tableflowTopic("orders");
 
-        HttpClientResponseException error = assertThrows(
-                HttpClientResponseException.class,
-                () -> client.createTableflowTopic("cloud", resource).block());
+        Mono<TableflowTopicResponse> response = client.createTableflowTopic("cloud", resource);
+        HttpClientResponseException error = assertThrows(HttpClientResponseException.class, response::block);
 
         assertEquals(status, error.code());
         assertEquals(1, requests.size());
@@ -183,9 +182,8 @@ class ConfluentCloudClientTest {
         ConfluentCloudClient timedOut = new ConfluentCloudClient(http, List.of(properties));
         TableflowTopic resource = tableflowTopic("orders");
 
-        assertThrows(
-                ReadTimeoutException.class,
-                () -> timedOut.createTableflowTopic("cloud", resource).block());
+        Mono<TableflowTopicResponse> response = timedOut.createTableflowTopic("cloud", resource);
+        assertThrows(ReadTimeoutException.class, response::block);
 
         verify(http)
                 .retrieve(
@@ -246,9 +244,9 @@ class ConfluentCloudClientTest {
     void shouldPropagateListingFailuresInsteadOfReturningAnEmptyList(int status) {
         replies.add(new Reply(status, "{}"));
 
-        HttpClientResponseException error = assertThrows(
-                HttpClientResponseException.class,
-                () -> client.listTableflowTopics("cloud").collectList().block());
+        Mono<List<TableflowTopicResponse>> response =
+                client.listTableflowTopics("cloud").collectList();
+        HttpClientResponseException error = assertThrows(HttpClientResponseException.class, response::block);
 
         assertEquals(status, error.code());
         assertEquals(1, requests.size());
@@ -261,9 +259,9 @@ class ConfluentCloudClientTest {
                 """));
         replies.add(new Reply(503, "{}"));
 
-        assertThrows(
-                HttpClientResponseException.class,
-                () -> client.listTableflowTopics("cloud").collectList().block());
+        Mono<List<TableflowTopicResponse>> response =
+                client.listTableflowTopics("cloud").collectList();
+        assertThrows(HttpClientResponseException.class, response::block);
         assertEquals(2, requests.size());
     }
 }

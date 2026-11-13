@@ -143,10 +143,11 @@ class TableflowTopicServiceTest {
 
     @Test
     void shouldRejectMissingSchemaRegistryConfiguration() {
+        Topic topic = topic();
         when(schemaRegistryClient.getSubject("cloud", "orders-value", "latest"))
-                .thenThrow(new ResourceValidationException(topic(), "Schema Registry is not configured."));
+                .thenThrow(new ResourceValidationException(topic, "Schema Registry is not configured."));
 
-        assertThrows(ResourceValidationException.class, () -> tableflowTopicService.validateSchemas(topic()));
+        assertThrows(ResourceValidationException.class, () -> tableflowTopicService.validateSchemas(topic));
     }
 
     @Test

@@ -240,8 +240,9 @@ class TableflowTopicHttpTest {
                 """)
                 .contentType(MediaType.APPLICATION_JSON_TYPE);
 
-        HttpClientResponseException error = assertThrows(
-                HttpClientResponseException.class, () -> client.toBlocking().exchange(request));
+        BlockingHttpClient blockingClient = client.toBlocking();
+        HttpClientResponseException error =
+                assertThrows(HttpClientResponseException.class, () -> blockingClient.exchange(request));
 
         assertEquals(status, error.code());
         verify(tableflowTopicService, never()).create(any());
