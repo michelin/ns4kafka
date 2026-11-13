@@ -18,17 +18,22 @@
  */
 package com.michelin.ns4kafka.service.client.confluent;
 
+import com.michelin.ns4kafka.model.TableflowTopic;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.service.client.confluent.entities.RoleBinding;
 import com.michelin.ns4kafka.service.client.confluent.entities.RoleBindingListResponse;
 import com.michelin.ns4kafka.service.client.confluent.entities.RoleBindingRequest;
 import com.michelin.ns4kafka.service.client.confluent.entities.RoleBindingResponse;
+import com.michelin.ns4kafka.service.client.confluent.entities.TableflowTopicListResponse;
+import com.michelin.ns4kafka.service.client.confluent.entities.TableflowTopicRequest;
+import com.michelin.ns4kafka.service.client.confluent.entities.TableflowTopicResponse;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.ReadTimeoutException;
+import io.micronaut.http.uri.UriBuilder;
 import io.micronaut.retry.annotation.Retryable;
 import jakarta.inject.Singleton;
 import java.net.URI;
@@ -47,6 +52,7 @@ public class ConfluentCloudClient {
     private static final String CONFLUENT_CLOUD_API_URL = "https://api.confluent.cloud";
     private static final String PAGE_TOKEN_PARAM = "page_token=";
     private static final int PAGE_SIZE = 1000;
+    private static final int TABLEFLOW_PAGE_SIZE = 100;
 
     private final HttpClient httpClient;
     private final List<ManagedClusterProperties> managedClusterProperties;
@@ -62,6 +68,67 @@ public class ConfluentCloudClient {
             List<ManagedClusterProperties> managedClusterProperties) {
         this.httpClient = httpClient;
         this.managedClusterProperties = managedClusterProperties;
+    }
+
+    /**
+     * Submit Tableflow creation once; acceptance does not mean the table is ready to query.
+     *
+     * @param kafkaCluster The Kafka cluster
+     * @param tableflowTopic The validated Tableflow topic
+     * @return The Confluent Tableflow creation response
+     */
+    public Mono<TableflowTopicResponse> createTableflowTopic(String kafkaCluster, TableflowTopic tableflowTopic) {
+        ManagedClusterProperties.ConfluentCloudProperties config = getConfluentCloud(kafkaCluster);
+        TableflowTopicRequest body = new TableflowTopicRequest(new TableflowTopicRequest.Spec(
+                tableflowTopic.getMetadata().getName(),
+                new TableflowTopicRequest.Storage(
+                        tableflowTopic.getSpec().getStorage().getKind()),
+                tableflowTopic.getSpec().getTableFormats(),
+                new TableflowTopicRequest.Reference(config.getEnvironmentId()),
+                new TableflowTopicRequest.Reference(config.getClusterId())));
+        HttpRequest<?> request = HttpRequest.POST(
+                        URI.create(StringUtils.prependUri(CONFLUENT_CLOUD_API_URL, "/tableflow/v1/tableflow-topics")),
+                        body)
+                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+        return Mono.from(httpClient.retrieve(request, TableflowTopicResponse.class));
+    }
+
+    /**
+     * List the Tableflow topics in a cluster, following all pages before synchronization.
+     *
+     * @param kafkaCluster The Kafka cluster
+     * @return The Tableflow topics
+     */
+    public Flux<TableflowTopicResponse> listTableflowTopics(String kafkaCluster) {
+        ManagedClusterProperties.ConfluentCloudProperties config = getConfluentCloud(kafkaCluster);
+        return listTableflowTopicsPage(config, null)
+                .expand(response -> {
+                    String pageToken = response.metadata() != null
+                            ? extractPageToken(response.metadata().next())
+                            : null;
+                    return pageToken != null ? listTableflowTopicsPage(config, pageToken) : Mono.empty();
+                })
+                .flatMapIterable(TableflowTopicListResponse::data);
+    }
+
+    /**
+     * List one page of Tableflow topics in the configured environment and cluster.
+     *
+     * @param config The Confluent Cloud properties
+     * @param pageToken The raw page token, or null for the first page
+     * @return The Tableflow topics page
+     */
+    private Mono<TableflowTopicListResponse> listTableflowTopicsPage(
+            ManagedClusterProperties.ConfluentCloudProperties config, @Nullable String pageToken) {
+        URI uri = UriBuilder.of(CONFLUENT_CLOUD_API_URL)
+                .path("/tableflow/v1/tableflow-topics")
+                .queryParam("environment", config.getEnvironmentId())
+                .queryParam("spec.kafka_cluster", config.getClusterId())
+                .queryParam("page_size", TABLEFLOW_PAGE_SIZE)
+                .build();
+        HttpRequest<?> request = HttpRequest.GET(pageToken == null ? uri : URI.create(uri + "&page_token=" + pageToken))
+                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+        return Mono.from(httpClient.retrieve(request, TableflowTopicListResponse.class));
     }
 
     /**
