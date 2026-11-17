@@ -252,9 +252,12 @@ class TableflowTopicServiceTest {
         when(managedClusterProperties.stream()).thenReturn(Stream.of(cluster));
         Namespace ns = namespace();
 
-        assertThrows(
+        ResourceValidationException error = assertThrows(
                 ResourceValidationException.class, () -> tableflowTopicService.validateConfiguration(ns, "orders"));
 
+        assertEquals(
+                List.of("Invalid \"orders\": the cluster is not configured to use Tableflow."),
+                error.getValidationErrors());
         verifyNoInteractions(schemaRegistryClient, tableflowTopicRepository);
     }
 }

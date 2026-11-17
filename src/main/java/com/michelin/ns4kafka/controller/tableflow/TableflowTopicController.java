@@ -35,7 +35,6 @@ import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import com.michelin.ns4kafka.validation.ValidationResult;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
-import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Post;
@@ -116,6 +115,7 @@ public class TableflowTopicController extends NamespacedResourceController {
         Topic existingTopic = topicService
                 .findByName(ns, topic)
                 .orElseThrow(() -> new ResourceValidationException(tableflowTopic, invalidTableflowSourceTopic(topic)));
+
         return tableflowTopicService
                 .validateSchemas(existingTopic)
                 // Ns4Kafka storage is blocking; keep it outside the HTTP client event loop.
@@ -151,10 +151,7 @@ public class TableflowTopicController extends NamespacedResourceController {
                             createdTableflowTopic.getSpec(),
                             EMPTY_STRING);
 
-                    return formatHttpResponse(createdTableflowTopic, ApplyStatus.CREATED, validationWarnings)
-                            .toMutableResponse()
-                            .body(createdTableflowTopic)
-                            .status(HttpStatus.ACCEPTED);
+                    return formatHttpResponse(createdTableflowTopic, ApplyStatus.CREATED, validationWarnings);
                 });
     }
 }

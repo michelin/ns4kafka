@@ -157,7 +157,7 @@ class TableflowTopicHttpTest {
                         .kafkaUser("user")
                         .tableflowTopicValidator(TableflowTopicValidator.builder()
                                 .validationConstraints(Map.of(
-                                        "table.format", ResourceValidator.ValidList.in(format),
+                                        "tableFormats", ResourceValidator.ValidList.in(format),
                                         "storage.kind", ResourceValidator.ValidString.in("Managed")))
                                 .build())
                         .build())
@@ -178,13 +178,13 @@ class TableflowTopicHttpTest {
                 .exchange(
                         HttpRequest.POST("/api/namespaces/sales/tableflow-topics?dryrun=" + dryrun, """
                 {"apiVersion":"v1","kind":"TableflowTopic","metadata":{"name":"sales.orders"},
-                 "spec":{"table_formats":["%s"],"storage":{"kind":"Managed"}}}
+                 "spec":{"tableFormats":["%s"],"storage":{"kind":"Managed"}}}
                 """.formatted(
                                                 format))
                                 .contentType(MediaType.APPLICATION_JSON_TYPE),
                         TableflowTopic.class);
 
-        assertEquals(dryrun ? HttpStatus.OK : HttpStatus.ACCEPTED, response.getStatus());
+        assertEquals(HttpStatus.OK, response.getStatus());
         assertEquals("created", response.getHeaders().get("X-Ns4kafka-Result"));
         assertEquals(Kind.TABLEFLOW_TOPIC, response.body().getKind());
         assertEquals("sales.orders", response.body().getMetadata().getName());
@@ -236,7 +236,7 @@ class TableflowTopicHttpTest {
                 };
         when(tableflowTopicService.validateSchemas(topic)).thenReturn(validation);
         MutableHttpRequest<String> request = HttpRequest.POST("/api/namespaces/sales/tableflow-topics", """
-                {"metadata":{"name":"sales.orders"},"spec":{"table_formats":["ICEBERG"],"storage":{"kind":"Managed"}}}
+                {"metadata":{"name":"sales.orders"},"spec":{"tableFormats":["ICEBERG"],"storage":{"kind":"Managed"}}}
                 """)
                 .contentType(MediaType.APPLICATION_JSON_TYPE);
 
@@ -251,16 +251,16 @@ class TableflowTopicHttpTest {
     @ParameterizedTest
     @ValueSource(
             strings = {
-                "{\"metadata\":{\"name\":\"sales.orders\"},\"spec\":{\"table_formats\":[\"DELTA\"],\"storage\":{\"kind\":\"Managed\"}}}",
-                "{\"metadata\":{\"name\":\"sales.orders\"},\"spec\":{\"table_formats\":[\"ICEBERG\"],\"storage\":{\"kind\":\"ByobAws\"}}}",
-                "{\"metadata\":{},\"spec\":{\"table_formats\":[\"ICEBERG\"],\"storage\":{\"kind\":\"Managed\"}}}",
+                "{\"metadata\":{\"name\":\"sales.orders\"},\"spec\":{\"tableFormats\":[\"DELTA\"],\"storage\":{\"kind\":\"Managed\"}}}",
+                "{\"metadata\":{\"name\":\"sales.orders\"},\"spec\":{\"tableFormats\":[\"ICEBERG\"],\"storage\":{\"kind\":\"ByobAws\"}}}",
+                "{\"metadata\":{},\"spec\":{\"tableFormats\":[\"ICEBERG\"],\"storage\":{\"kind\":\"Managed\"}}}",
                 "{\"metadata\":{\"name\":\"sales.orders\"}}",
                 "{\"metadata\":{\"name\":\"sales.orders\"},\"spec\":{}}",
-                "{\"metadata\":{\"name\":\"sales.orders\"},\"spec\":{\"table_formats\":[],\"storage\":{\"kind\":\"Managed\"}}}",
-                "{\"metadata\":{\"name\":\"sales.orders\"},\"spec\":{\"table_formats\":[null],\"storage\":{\"kind\":\"Managed\"}}}",
-                "{\"metadata\":{\"name\":\"sales.orders\"},\"spec\":{\"table_formats\":[\"\"],\"storage\":{\"kind\":\"Managed\"}}}",
-                "{\"metadata\":{\"name\":\"sales.orders\"},\"spec\":{\"table_formats\":[\"ICEBERG\"]}}",
-                "{\"metadata\":{\"name\":\"sales.orders\"},\"spec\":{\"table_formats\":[\"ICEBERG\"],\"storage\":{}}}"
+                "{\"metadata\":{\"name\":\"sales.orders\"},\"spec\":{\"tableFormats\":[],\"storage\":{\"kind\":\"Managed\"}}}",
+                "{\"metadata\":{\"name\":\"sales.orders\"},\"spec\":{\"tableFormats\":[null],\"storage\":{\"kind\":\"Managed\"}}}",
+                "{\"metadata\":{\"name\":\"sales.orders\"},\"spec\":{\"tableFormats\":[\"\"],\"storage\":{\"kind\":\"Managed\"}}}",
+                "{\"metadata\":{\"name\":\"sales.orders\"},\"spec\":{\"tableFormats\":[\"ICEBERG\"]}}",
+                "{\"metadata\":{\"name\":\"sales.orders\"},\"spec\":{\"tableFormats\":[\"ICEBERG\"],\"storage\":{}}}"
             })
     void shouldRejectUnsupportedOptionsAndInvalidMetadataOverHttp(String body) {
         when(namespaceService.findByName("sales"))
@@ -269,7 +269,7 @@ class TableflowTopicHttpTest {
                                 .kafkaUser("user")
                                 .tableflowTopicValidator(TableflowTopicValidator.builder()
                                         .validationConstraints(Map.of(
-                                                "table.format", ResourceValidator.ValidList.in("ICEBERG"),
+                                                "tableFormats", ResourceValidator.ValidList.in("ICEBERG"),
                                                 "storage.kind", ResourceValidator.ValidString.in("Managed")))
                                         .build())
                                 .build())

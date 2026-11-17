@@ -18,6 +18,7 @@
  */
 package com.michelin.ns4kafka.service;
 
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidTableflowClusterConfiguration;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidTableflowValueSchema;
 import static com.michelin.ns4kafka.util.enumation.Kind.TABLEFLOW_TOPIC;
 
@@ -79,10 +80,7 @@ public class TableflowTopicService {
                 || StringUtils.isEmpty(config.getEnvironmentId())
                 || StringUtils.isEmpty(config.getBasicAuthUsername())
                 || StringUtils.isEmpty(config.getBasicAuthPassword())) {
-            throw new ResourceValidationException(
-                    TABLEFLOW_TOPIC,
-                    topic,
-                    "Tableflow creation requires cluster ID, environment ID, and Confluent Cloud credentials.");
+            throw new ResourceValidationException(TABLEFLOW_TOPIC, topic, invalidTableflowClusterConfiguration(topic));
         }
     }
 

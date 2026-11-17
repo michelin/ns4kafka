@@ -34,7 +34,7 @@ class TableflowTopicTest {
                   "apiVersion": "v1",
                   "kind": "TableflowTopic",
                   "metadata": {"name": "orders"},
-                  "spec": {"table_formats": ["ICEBERG"], "storage": {"kind": "Managed"}}
+                  "spec": {"tableFormats": ["ICEBERG"], "storage": {"kind": "Managed"}}
                 }
                 """, TableflowTopic.class);
 

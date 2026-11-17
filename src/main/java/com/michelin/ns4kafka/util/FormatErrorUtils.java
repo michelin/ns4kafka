@@ -641,6 +641,16 @@ public class FormatErrorUtils {
     }
 
     /**
+     * Invalid Tableflow cluster configuration.
+     *
+     * @param topic The source topic name
+     * @return The error message
+     */
+    public static String invalidTableflowClusterConfiguration(String topic) {
+        return INVALID_RESOURCE.formatted(topic, "the cluster is not configured to use Tableflow");
+    }
+
+    /**
      * Invalid Tableflow value schema.
      *
      * @param subject The expected value subject

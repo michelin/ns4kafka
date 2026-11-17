@@ -25,6 +25,7 @@ import io.micronaut.configuration.kafka.annotation.KafkaClient;
 import io.micronaut.configuration.kafka.annotation.KafkaListener;
 import io.micronaut.configuration.kafka.annotation.OffsetReset;
 import io.micronaut.configuration.kafka.annotation.OffsetStrategy;
+import io.micronaut.configuration.kafka.annotation.Topic;
 import io.micronaut.context.annotation.Value;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.TaskScheduler;
@@ -115,7 +116,7 @@ public class KafkaTableflowTopicRepository extends KafkaStore<TableflowTopic> im
      * @param message The record
      */
     @Override
-    @io.micronaut.configuration.kafka.annotation.Topic(value = "${ns4kafka.store.kafka.topics.prefix}.tableflow-topics")
+    @Topic(value = "${ns4kafka.store.kafka.topics.prefix}.tableflow-topics")
     public void receive(ConsumerRecord<String, TableflowTopic> message) {
         super.receive(message);
     }

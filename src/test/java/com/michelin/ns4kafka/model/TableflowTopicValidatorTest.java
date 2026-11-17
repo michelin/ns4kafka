@@ -52,7 +52,7 @@ class TableflowTopicValidatorTest {
     private static TableflowTopicValidator validator(String... formats) {
         return TableflowTopicValidator.builder()
                 .validationConstraints(Map.of(
-                        "table.format", ResourceValidator.ValidList.in(formats),
+                        "tableFormats", ResourceValidator.ValidList.in(formats),
                         "storage.kind", ResourceValidator.ValidString.in("Managed")))
                 .build();
     }
@@ -70,7 +70,7 @@ class TableflowTopicValidatorTest {
         ValidationResult result = validator("ICEBERG").validate(topic(List.of(format), "Managed"));
 
         assertEquals(1, result.errors().size());
-        assertTrue(result.errors().getFirst().contains("table.format"));
+        assertTrue(result.errors().getFirst().contains("tableFormats"));
         assertTrue(result.errors().getFirst().contains(format));
     }
 
@@ -97,7 +97,7 @@ class TableflowTopicValidatorTest {
     void shouldUseConfiguredValuesRatherThanHardCodedDefaults() {
         TableflowTopicValidator delta = TableflowTopicValidator.builder()
                 .validationConstraints(Map.of(
-                        "table.format", ResourceValidator.ValidList.in("DELTA"),
+                        "tableFormats", ResourceValidator.ValidList.in("DELTA"),
                         "storage.kind", ResourceValidator.ValidString.in("ByobAws")))
                 .build();
 
@@ -128,7 +128,7 @@ class TableflowTopicValidatorTest {
             throw new FieldValidationException("Prefer Iceberg", true);
         };
         ValidationResult result = TableflowTopicValidator.builder()
-                .validationConstraints(Map.of("table.format", softRule))
+                .validationConstraints(Map.of("tableFormats", softRule))
                 .build()
                 .validate(topic(List.of("DELTA"), "Managed"));
 
@@ -146,7 +146,7 @@ class TableflowTopicValidatorTest {
                     "kafkaUser": "user",
                     "tableflowTopicValidator": {
                       "validationConstraints": {
-                        "table.format": {"validation-type": "ValidList", "validStrings": ["ICEBERG"]},
+                        "tableFormats": {"validation-type": "ValidList", "validStrings": ["ICEBERG"]},
                         "storage.kind": {"validation-type": "ValidString", "validStrings": ["Managed"]}
                       }
                     }

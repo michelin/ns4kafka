@@ -51,7 +51,7 @@ public class TableflowTopicValidator extends ResourceValidator {
                 String fieldValue =
                         switch (key) {
                             case "name" -> tableflowTopic.getMetadata().getName();
-                            case "table.format" ->
+                            case "tableFormats" ->
                                 tableflowTopic.getSpec().getTableFormats() == null
                                         ? null
                                         : String.join(

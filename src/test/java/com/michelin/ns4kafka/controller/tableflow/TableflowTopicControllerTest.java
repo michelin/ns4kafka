@@ -93,7 +93,7 @@ class TableflowTopicControllerTest {
                         .kafkaUser("user")
                         .tableflowTopicValidator(TableflowTopicValidator.builder()
                                 .validationConstraints(Map.of(
-                                        "table.format", ResourceValidator.ValidList.in("ICEBERG"),
+                                        "tableFormats", ResourceValidator.ValidList.in("ICEBERG"),
                                         "storage.kind", ResourceValidator.ValidString.in("Managed")))
                                 .build())
                         .build())
@@ -131,7 +131,7 @@ class TableflowTopicControllerTest {
         Mono<HttpResponse<TableflowTopic>> response = tableflowTopicController.apply("test", request, dryrun);
         ResourceValidationException error = assertThrows(ResourceValidationException.class, response::block);
 
-        assertTrue(error.getValidationErrors().stream().anyMatch(message -> message.contains("table.format")));
+        assertTrue(error.getValidationErrors().stream().anyMatch(message -> message.contains("tableFormats")));
         verify(tableflowTopicService, never()).validateConfiguration(any(), any());
         verify(topicService, never()).findByName(any(Namespace.class), any());
         verify(tableflowTopicService, never()).validateSchemas(any());
@@ -166,12 +166,12 @@ class TableflowTopicControllerTest {
 
         TableflowTopic request = JsonMapper.createDefault()
                 .readValue(
-                        "{\"metadata\":{\"name\":\"orders\"},\"spec\":{\"table_formats\":[\"ICEBERG\"],\"storage\":{\"kind\":\"Managed\"}}}",
+                        "{\"metadata\":{\"name\":\"orders\"},\"spec\":{\"tableFormats\":[\"ICEBERG\"],\"storage\":{\"kind\":\"Managed\"}}}",
                         TableflowTopic.class);
         HttpResponse<TableflowTopic> response =
                 tableflowTopicController.apply("test", request, false).block();
 
-        assertEquals(HttpStatus.ACCEPTED, response.getStatus());
+        assertEquals(HttpStatus.OK, response.getStatus());
         assertNull(response.body().getStatus());
         assertEquals(
                 Resource.Metadata.Phase.PENDING,
@@ -244,7 +244,7 @@ class TableflowTopicControllerTest {
         HttpResponse<TableflowTopic> response =
                 tableflowTopicController.apply("test", request, dryrun).block();
 
-        assertEquals(dryrun ? HttpStatus.OK : HttpStatus.ACCEPTED, response.getStatus());
+        assertEquals(HttpStatus.OK, response.getStatus());
         verify(tableflowTopicService).validateConfiguration(ns, "orders");
         verify(tableflowTopicService).validateSchemas(topic);
     }
@@ -374,7 +374,7 @@ class TableflowTopicControllerTest {
         };
         ns.getSpec()
                 .setTableflowTopicValidator(TableflowTopicValidator.builder()
-                        .validationConstraints(Map.of("table.format", softRule))
+                        .validationConstraints(Map.of("tableFormats", softRule))
                         .build());
         Topic topic = Topic.builder()
                 .metadata(
@@ -393,7 +393,7 @@ class TableflowTopicControllerTest {
         HttpResponse<TableflowTopic> response =
                 tableflowTopicController.apply("test", request, dryrun).block();
 
-        assertEquals(dryrun ? HttpStatus.OK : HttpStatus.ACCEPTED, response.getStatus());
+        assertEquals(HttpStatus.OK, response.getStatus());
         assertEquals("Prefer Iceberg", response.getHeaders().get("X-Ns4kafka-Warnings"));
         assertEquals(List.of("DELTA"), response.body().getSpec().getTableFormats());
         if (dryrun) {

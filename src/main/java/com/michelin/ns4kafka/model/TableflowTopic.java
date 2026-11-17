@@ -21,7 +21,6 @@ package com.michelin.ns4kafka.model;
 import static com.michelin.ns4kafka.util.enumation.Kind.TABLEFLOW_TOPIC;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import io.micronaut.serde.annotation.Serdeable;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
@@ -67,7 +66,6 @@ public class TableflowTopic extends Resource {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class TableflowTopicSpec {
-        @JsonProperty("table_formats")
         @NotEmpty @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Table formats allowed by the namespace.")
         private List<@NotBlank String> tableFormats;
 
@@ -106,7 +104,6 @@ public class TableflowTopic extends Resource {
     public static class TableflowTopicState {
         private String phase;
 
-        @JsonProperty("error_message")
         private String errorMessage;
     }
 }
