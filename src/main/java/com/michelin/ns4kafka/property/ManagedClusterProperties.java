@@ -21,6 +21,7 @@ package com.michelin.ns4kafka.property;
 import io.micronaut.context.annotation.ConfigurationProperties;
 import io.micronaut.context.annotation.EachProperty;
 import io.micronaut.context.annotation.Parameter;
+import io.micronaut.core.util.StringUtils;
 import io.micronaut.serde.annotation.Serdeable;
 import java.util.HashMap;
 import java.util.Map;
@@ -39,6 +40,7 @@ public class ManagedClusterProperties {
     private boolean manageConnectors;
     private boolean manageTopics;
     private boolean manageUsers;
+    private boolean manageTableflow;
     private boolean dropUnsyncAcls = true;
     private TimeoutProperties timeout = new TimeoutProperties();
     private KafkaProvider provider;
@@ -178,5 +180,20 @@ public class ManagedClusterProperties {
      */
     public boolean isManageRbac() {
         return manageAcls && isConfluentCloud() && confluentCloud != null;
+    }
+
+    /**
+     * Check if the cluster manages Confluent Tableflow topics.
+     *
+     * @return true if it does, false otherwise
+     */
+    public boolean isManageTableflow() {
+        return manageTableflow
+                && isConfluentCloud()
+                && confluentCloud != null
+                && StringUtils.isNotEmpty(confluentCloud.getEnvironmentId())
+                && StringUtils.isNotEmpty(confluentCloud.getClusterId())
+                && StringUtils.isNotEmpty(confluentCloud.getBasicAuthUsername())
+                && StringUtils.isNotEmpty(confluentCloud.getBasicAuthPassword());
     }
 }

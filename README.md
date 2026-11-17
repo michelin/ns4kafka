@@ -43,7 +43,6 @@ Ns4Kafka brings a namespace-based deployment model for Kafka resources, inspired
     * [Managed Kafka Clusters](#managed-kafka-clusters)
       * [Self-Managed](#self-managed)
       * [Confluent Cloud](#confluent-cloud)
-        * [Tableflow Creation](#tableflow-creation)
     * [Audit Log](#audit-log)
       * [Console](#console)
       * [Kafka](#kafka-1)
@@ -394,6 +393,7 @@ This is the name you need to set in the `metadata.cluster` field of your namespa
 | manage-acls                                 | boolean | No       | Does the cluster manages access control entries (Default: false)                                  |
 | manage-connectors                           | boolean | No       | Does the cluster manages connects (Default: false)                                                |
 | manage-topics                               | boolean | No       | Does the cluster manages topics (Default: false)                                                  |
+| manage-tableflow                            | boolean | No       | Does the cluster manages Tableflow topics. Confluent Cloud only (Default: false)                  |
 | manage-users                                | boolean | No       | Does the cluster manages users (Default: false)                                                   |
 | drop-unsync-acls                            | boolean | No       | Should unsynchronized acls and Confluent RBAC be dropped (Default: true)                          |
 | timeout.acl.create                          | int     | No       | The timeout in milliseconds used by the AdminClient to create acls (Default: 30000ms)             |
@@ -420,14 +420,10 @@ The configuration will depend on the authentication method selected for your bro
 
 #### Confluent Cloud
 
-The following properties are only available for Confluent Cloud cluster providers. They are required for:
+The following properties are only available for Confluent Cloud cluster providers. They are required for the synchronization of:
 
 - [Role Bindings](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html)
-- [Tableflow](#tableflow-creation)
-
-Configure one [global API key](https://docs.confluent.io/cloud/current/security/authenticate/workload-identities/service-accounts/api-keys/overview.html#global-api-keys)
-owned by an `OrganizationAdmin` principal for Ns4Kafka's Confluent Cloud API operations, including role binding synchronization
-and Tableflow enablement. Reuse the same key and secret in each managed cluster configuration within that organization.
+- [Tableflow](https://docs.confluent.io/cloud/current/topics/tableflow/overview.html)
 
 ```yaml
 ns4kafka:
@@ -438,8 +434,8 @@ ns4kafka:
         organization-id: "xxx"
         environment-id: "env-xxx"
         cluster-id: "lkc-xxx"
-        basic-auth-username: "${CONFLUENT_CLOUD_API_KEY}"
-        basic-auth-password: "${CONFLUENT_CLOUD_API_SECRET}"
+        basic-auth-username: "api-key"
+        basic-auth-password: "api-secret"
 ```
 
 | Property                            | Type    | Required | Description                                                                                        |
@@ -448,101 +444,10 @@ ns4kafka:
 | confluent-cloud.organization-id     | string  | No       | Confluent Cloud organization ID.                                                                   |
 | confluent-cloud.environment-id      | string  | No       | Confluent Cloud environment ID.                                                                    |
 | confluent-cloud.cluster-id          | string  | No       | Confluent Cloud cluster ID.                                                                        |
-| confluent-cloud.basic-auth-username | string  | No       | Global API key shared by role binding synchronization and Tableflow enablement.                     |
-| confluent-cloud.basic-auth-password | string  | No       | Global API secret shared by role binding synchronization and Tableflow enablement.                  |
+| confluent-cloud.basic-auth-username | string  | No       | Global or Cloud resource management API key.                                                       |
+| confluent-cloud.basic-auth-password | string  | No       | Global or Cloud resource management API secret.                                                    |
 
-##### Tableflow Creation
-
-Tableflow can be enabled for an existing Kafka topic in Confluent Cloud.
-
-Tableflow reuses the Confluent Cloud configuration used for role bindings:
-
-```yaml
-ns4kafka:
-  managed-clusters:
-    cluster-name:
-      provider: "CONFLUENT_CLOUD"
-      confluent-cloud:
-        environment-id: "env-xxx"
-        cluster-id: "lkc-xxx"
-        basic-auth-username: "${CONFLUENT_CLOUD_API_KEY}"
-        basic-auth-password: "${CONFLUENT_CLOUD_API_SECRET}"
-```
-
-| Property                            | Type   | Required | Description                 |
-|-------------------------------------|--------|----------|-----------------------------|
-| confluent-cloud.basic-auth-username  | string | Yes      | Shared global API key.      |
-| confluent-cloud.basic-auth-password  | string | Yes      | Shared global API secret.   |
-
-The global admin key configured above is also used for Tableflow; a separate Tableflow key is not required.
-See [Tableflow RBAC](https://docs.confluent.io/cloud/current/topics/tableflow/operate/tableflow-rbac.html) for supported roles.
-Configure Schema Registry and its read credentials using the managed cluster's [schema-registry properties](#self-managed).
-
-The caller needs `tableflow-topics` POST permission through a namespace RoleBinding, and the namespace must own
-the source topic. Configure `spec.tableflowTopicValidator` on approved Namespace resources to restrict allowed settings:
-
-```yaml
-spec:
-  tableflowTopicValidator:
-    validationConstraints:
-      table.format:
-        validation-type: ValidList
-        validStrings:
-          - ICEBERG
-      storage.kind:
-        validation-type: ValidString
-        validStrings:
-          - Managed
-```
-
-This Namespace excerpt enforces Iceberg and Confluent-managed storage. Supported constraints are `name`,
-`table.format` and `storage.kind`. Without a validator, no namespace-specific value restrictions are applied;
-authorization is still required. Validated request settings are forwarded to Confluent without replacing them with defaults.
-
-Create the [source topic](.docker/resources/user/topic.yml) in Ns4Kafka, then register a non-empty value
-[schema](.docker/resources/user/schema.yml) under `<topic>-value` (`TopicNameStrategy`) before enabling Tableflow.
-A key schema is not required. The topic executor handles Kafka deployment. Confluent performs
-additional compatibility checks; registering schemas alone does not validate existing records.
-
-Call `POST /api/namespaces/{namespace}/tableflow-topics` with the following JSON resource:
-
-```json
-{
-  "apiVersion": "v1",
-  "kind": "TableflowTopic",
-  "metadata": {
-    "name": "your_topic"
-  },
-  "spec": {
-    "table_formats": ["ICEBERG"],
-    "storage": {
-      "kind": "Managed"
-    }
-  }
-}
-```
-
-`metadata.name` identifies the existing Kafka topic. Both `spec.table_formats` and `spec.storage.kind` are required.
-The server supplies the namespace, environment and cluster. Creating a `TableflowTopic` does not create another Kafka topic.
-
-The endpoint stores the configuration in `${ns4kafka.store.kafka.topics.prefix}.tableflow-topics` and returns HTTP `202`
-with `metadata.status.phase: Pending`. A dedicated Tableflow executor deploys the configuration and persists progress.
-It polls every 20 seconds by default, configured with `ns4kafka.scheduler.tableflow.interval-ms`.
-`metadata.status.phase` becomes `Success` when Confluent reports `RUNNING`, or `Fail` when deployment fails.
-Confluent's materialization status is stored in `status.state`; [monitor Confluent for readiness](https://docs.confluent.io/cloud/current/topics/tableflow/operate/monitor-tableflow.html).
-
-Use `?dryrun=true` with the same body to validate the request, namespace rules, cluster configuration, topic ownership and the value schema.
-Dry runs check local configuration and read Schema Registry, then return HTTP `200` without storing Tableflow or an audit event.
-They do not verify credentials with Confluent or all Tableflow eligibility rules. Validation warnings are returned in `X-Ns4kafka-Warnings`.
-
-Local validation failures or a missing value schema return HTTP `422`. Schema Registry errors use the shared
-exception handler: HTTP errors preserve the remote status, read timeouts return `504`, and other client failures return `503`.
-Confluent creation failures after acceptance are recorded in the resource status and retried by the executor.
-Each synchronization lists all Tableflow topics in the cluster, following pagination before creating missing configurations.
-If the listing fails, that cycle is skipped. The next listing also recovers creation conflicts and requests accepted before a timeout or restart.
-An identical request for a stored configuration returns `unchanged` without submitting another creation or audit event.
-Different existing configurations are reported as failures and are not overwritten. Public GET, update, delete and import
-operations are not implemented yet; submitting a changed configuration returns HTTP `422`.
+The API key can either be a global key or a Cloud resource management key. See [API key resource scopes](https://docs.confluent.io/cloud/current/security/authenticate/workload-identities/service-accounts/api-keys/overview.html#resource-scopes).
 
 ### Audit Log
 
@@ -739,7 +644,13 @@ ns4kafka:
 
 #### Scheduler
 
-Ns4Kafka schedules the deployment of connectors and the synchronization of Confluent role bindings. The scheduling frequency can be configured using the following properties:
+Ns4Kafka schedules:
+
+- The deployment of connectors.
+- The synchronization of Confluent role bindings.
+- The deployment of Tableflow topics.
+
+The scheduling frequency can be configured using the following properties:
 
 ```yaml
 ns4kafka:
@@ -747,6 +658,8 @@ ns4kafka:
     connector:
       interval-ms: 30000
     role-binding:
+      interval-ms: 30000
+    tableflow:
       interval-ms: 30000
 ```
 

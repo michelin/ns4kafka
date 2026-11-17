@@ -29,12 +29,13 @@ import com.michelin.ns4kafka.validation.ValidationResult;
 import io.micronaut.json.JsonMapper;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class TableflowTopicValidatorTest {
-    private static TableflowTopic topic(List<String> formats, String storage) {
+    private static TableflowTopic topic(Set<String> formats, String storage) {
         return TableflowTopic.builder()
                 .metadata(Resource.Metadata.builder().name("orders").build())
                 .spec(TableflowTopic.TableflowTopicSpec.builder()
@@ -60,14 +61,14 @@ class TableflowTopicValidatorTest {
     @Test
     void shouldAcceptValuesAllowedByTheNamespace() {
         assertFalse(validator("ICEBERG")
-                .validate(topic(List.of("ICEBERG"), "Managed"))
+                .validate(topic(Set.of("ICEBERG"), "Managed"))
                 .hasErrors());
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"DELTA", "OTHER", "iceberg"})
     void shouldRejectFormatsOutsideTheNamespaceAllowlist(String format) {
-        ValidationResult result = validator("ICEBERG").validate(topic(List.of(format), "Managed"));
+        ValidationResult result = validator("ICEBERG").validate(topic(Set.of(format), "Managed"));
 
         assertEquals(1, result.errors().size());
         assertTrue(result.errors().getFirst().contains("tableFormats"));
@@ -77,7 +78,7 @@ class TableflowTopicValidatorTest {
     @ParameterizedTest
     @ValueSource(strings = {"ByobAws", "AzureDataLakeStorageGen2", "GoogleCloudStorage", "Custom", "managed", ""})
     void shouldRejectStorageOutsideTheNamespaceAllowlist(String storage) {
-        ValidationResult result = validator("ICEBERG").validate(topic(List.of("ICEBERG"), storage));
+        ValidationResult result = validator("ICEBERG").validate(topic(Set.of("ICEBERG"), storage));
 
         assertEquals(1, result.errors().size());
         assertTrue(result.errors().getFirst().contains("storage.kind"));
@@ -86,10 +87,10 @@ class TableflowTopicValidatorTest {
     @Test
     void shouldValidateEveryRequestedFormat() {
         assertTrue(validator("ICEBERG")
-                .validate(topic(List.of("ICEBERG", "DELTA"), "Managed"))
+                .validate(topic(Set.of("ICEBERG", "DELTA"), "Managed"))
                 .hasErrors());
         assertFalse(validator("ICEBERG", "DELTA")
-                .validate(topic(List.of("ICEBERG", "DELTA"), "Managed"))
+                .validate(topic(Set.of("ICEBERG", "DELTA"), "Managed"))
                 .hasErrors());
     }
 
@@ -101,15 +102,14 @@ class TableflowTopicValidatorTest {
                         "storage.kind", ResourceValidator.ValidString.in("ByobAws")))
                 .build();
 
-        assertFalse(delta.validate(topic(List.of("DELTA"), "ByobAws")).hasErrors());
+        assertFalse(delta.validate(topic(Set.of("DELTA"), "ByobAws")).hasErrors());
         assertEquals(
-                2, delta.validate(topic(List.of("ICEBERG"), "Managed")).errors().size());
+                2, delta.validate(topic(Set.of("ICEBERG"), "Managed")).errors().size());
     }
 
     @Test
     void shouldNotAddConstraintsWhenNoneAreConfigured() {
-        ValidationResult result =
-                TableflowTopicValidator.builder().build().validate(topic(List.of("DELTA"), "ByobAws"));
+        ValidationResult result = TableflowTopicValidator.builder().build().validate(topic(Set.of("DELTA"), "ByobAws"));
 
         assertEquals(List.of(), result.errors());
         assertEquals(List.of(), result.warnings());
@@ -130,7 +130,7 @@ class TableflowTopicValidatorTest {
         ValidationResult result = TableflowTopicValidator.builder()
                 .validationConstraints(Map.of("tableFormats", softRule))
                 .build()
-                .validate(topic(List.of("DELTA"), "Managed"));
+                .validate(topic(Set.of("DELTA"), "Managed"));
 
         assertEquals(List.of(), result.errors());
         assertEquals(List.of("Prefer Iceberg"), result.warnings());
@@ -158,10 +158,9 @@ class TableflowTopicValidatorTest {
         assertEquals(namespace, restored);
         TableflowTopicValidator restoredValidator = restored.getSpec().getTableflowTopicValidator();
         assertFalse(
-                restoredValidator.validate(topic(List.of("ICEBERG"), "Managed")).hasErrors());
+                restoredValidator.validate(topic(Set.of("ICEBERG"), "Managed")).hasErrors());
+        assertTrue(restoredValidator.validate(topic(Set.of("DELTA"), "Managed")).hasErrors());
         assertTrue(
-                restoredValidator.validate(topic(List.of("DELTA"), "Managed")).hasErrors());
-        assertTrue(
-                restoredValidator.validate(topic(List.of("ICEBERG"), "ByobAws")).hasErrors());
+                restoredValidator.validate(topic(Set.of("ICEBERG"), "ByobAws")).hasErrors());
     }
 }

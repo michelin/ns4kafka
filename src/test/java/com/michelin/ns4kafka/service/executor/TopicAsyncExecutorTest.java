@@ -27,7 +27,6 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -35,6 +34,7 @@ import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.TopicRepository;
+import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -62,10 +62,12 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class TopicAsyncExecutorTest {
+    private static final Instant INSTANT = Instant.parse("2026-01-01T00:00:00Z");
     private static final String LOCAL_CLUSTER = "local";
     private static final String TOPIC_NAME = "topic";
 
@@ -108,6 +110,7 @@ class TopicAsyncExecutorTest {
     @Mock
     ConfigEntry configEntry;
 
+    @Spy
     @InjectMocks
     TopicAsyncExecutor topicAsyncExecutor;
 
@@ -160,14 +163,15 @@ class TopicAsyncExecutorTest {
         timeoutProperties.setTopic(topicProperties);
         when(managedClusterProperties.getTimeout()).thenReturn(timeoutProperties);
 
-        TopicAsyncExecutor executor = spy(topicAsyncExecutor);
-        doReturn(List.of(TOPIC_NAME)).when(executor).listBrokerTopicNames();
-        doReturn(Map.of(TOPIC_NAME, brokerTopic)).when(executor).collectBrokerTopicsFromNames(List.of(TOPIC_NAME));
-        doNothing().when(executor).createTopics(anyList());
+        doReturn(List.of(TOPIC_NAME)).when(topicAsyncExecutor).listBrokerTopicNames();
+        doReturn(Map.of(TOPIC_NAME, brokerTopic))
+                .when(topicAsyncExecutor)
+                .collectBrokerTopicsFromNames(List.of(TOPIC_NAME));
+        doNothing().when(topicAsyncExecutor).createTopics(anyList());
 
-        executor.synchronizeTopics();
+        topicAsyncExecutor.synchronizeTopics();
 
-        verify(executor).createTopics(List.of(topicToCreate));
+        verify(topicAsyncExecutor).createTopics(List.of(topicToCreate));
         verify(adminClient)
                 .incrementalAlterConfigs(argThat(
                         configChanges -> configChanges.size() == 1 && configChanges.containsKey(topicResource)));
@@ -320,11 +324,12 @@ class TopicAsyncExecutorTest {
         when(topicRepository.findAllForCluster(LOCAL_CLUSTER)).thenReturn(List.of(topic));
         when(topicRepository.findByName(LOCAL_CLUSTER, TOPIC_NAME)).thenReturn(Optional.of(topic));
 
-        TopicAsyncExecutor executor = spy(topicAsyncExecutor);
-        doReturn(List.of(TOPIC_NAME)).when(executor).listBrokerTopicNames();
-        doReturn(Map.of(TOPIC_NAME, brokerTopic)).when(executor).collectBrokerTopicsFromNames(List.of(TOPIC_NAME));
+        doReturn(List.of(TOPIC_NAME)).when(topicAsyncExecutor).listBrokerTopicNames();
+        doReturn(Map.of(TOPIC_NAME, brokerTopic))
+                .when(topicAsyncExecutor)
+                .collectBrokerTopicsFromNames(List.of(TOPIC_NAME));
 
-        executor.synchronizeTopics();
+        topicAsyncExecutor.synchronizeTopics();
 
         verify(topicRepository).create(argThat(a -> a.equals(topic) && a.isFailed()));
     }
@@ -358,11 +363,12 @@ class TopicAsyncExecutorTest {
         when(topicRepository.findAllForCluster(LOCAL_CLUSTER)).thenReturn(List.of(topic));
         when(topicRepository.findByName(LOCAL_CLUSTER, TOPIC_NAME)).thenReturn(Optional.of(topic));
 
-        TopicAsyncExecutor executor = spy(topicAsyncExecutor);
-        doReturn(List.of(TOPIC_NAME)).when(executor).listBrokerTopicNames();
-        doReturn(Map.of(TOPIC_NAME, brokerTopic)).when(executor).collectBrokerTopicsFromNames(List.of(TOPIC_NAME));
+        doReturn(List.of(TOPIC_NAME)).when(topicAsyncExecutor).listBrokerTopicNames();
+        doReturn(Map.of(TOPIC_NAME, brokerTopic))
+                .when(topicAsyncExecutor)
+                .collectBrokerTopicsFromNames(List.of(TOPIC_NAME));
 
-        executor.synchronizeTopics();
+        topicAsyncExecutor.synchronizeTopics();
 
         verify(adminClient, never()).incrementalAlterConfigs(any());
         verify(topicRepository)
@@ -398,11 +404,12 @@ class TopicAsyncExecutorTest {
         when(managedClusterProperties.getName()).thenReturn(LOCAL_CLUSTER);
         when(topicRepository.findAllForCluster(LOCAL_CLUSTER)).thenReturn(List.of(topic));
 
-        TopicAsyncExecutor executor = spy(topicAsyncExecutor);
-        doReturn(List.of(TOPIC_NAME)).when(executor).listBrokerTopicNames();
-        doReturn(Map.of(TOPIC_NAME, brokerTopic)).when(executor).collectBrokerTopicsFromNames(List.of(TOPIC_NAME));
+        doReturn(List.of(TOPIC_NAME)).when(topicAsyncExecutor).listBrokerTopicNames();
+        doReturn(Map.of(TOPIC_NAME, brokerTopic))
+                .when(topicAsyncExecutor)
+                .collectBrokerTopicsFromNames(List.of(TOPIC_NAME));
 
-        executor.synchronizeTopics();
+        topicAsyncExecutor.synchronizeTopics();
 
         verify(adminClient, never()).incrementalAlterConfigs(any());
         verify(topicRepository, never()).findByName(any(), any());
@@ -444,7 +451,7 @@ class TopicAsyncExecutorTest {
                 .metadata(Resource.Metadata.builder()
                         .cluster(LOCAL_CLUSTER)
                         .name(TOPIC_NAME)
-                        .updateTimestamp(new Date(1000))
+                        .updateTimestamp(Date.from(INSTANT))
                         .build())
                 .spec(Topic.TopicSpec.builder()
                         .configs(Map.of("retention.ms", "60000"))
@@ -455,7 +462,7 @@ class TopicAsyncExecutorTest {
                 .metadata(Resource.Metadata.builder()
                         .cluster(LOCAL_CLUSTER)
                         .name(TOPIC_NAME)
-                        .updateTimestamp(new Date(2000))
+                        .updateTimestamp(Date.from(INSTANT.plusSeconds(1)))
                         .build())
                 .spec(Topic.TopicSpec.builder()
                         .configs(Map.of("retention.ms", "120000"))
@@ -485,11 +492,12 @@ class TopicAsyncExecutorTest {
         when(topicRepository.findAllForCluster(LOCAL_CLUSTER)).thenReturn(List.of(topic));
         when(topicRepository.findByName(LOCAL_CLUSTER, TOPIC_NAME)).thenReturn(Optional.of(reappliedTopic));
 
-        TopicAsyncExecutor executor = spy(topicAsyncExecutor);
-        doReturn(List.of(TOPIC_NAME)).when(executor).listBrokerTopicNames();
-        doReturn(Map.of(TOPIC_NAME, brokerTopic)).when(executor).collectBrokerTopicsFromNames(List.of(TOPIC_NAME));
+        doReturn(List.of(TOPIC_NAME)).when(topicAsyncExecutor).listBrokerTopicNames();
+        doReturn(Map.of(TOPIC_NAME, brokerTopic))
+                .when(topicAsyncExecutor)
+                .collectBrokerTopicsFromNames(List.of(TOPIC_NAME));
 
-        executor.synchronizeTopics();
+        topicAsyncExecutor.synchronizeTopics();
 
         verify(topicRepository, never()).create(any());
     }
@@ -501,7 +509,7 @@ class TopicAsyncExecutorTest {
                         .cluster(LOCAL_CLUSTER)
                         .name(TOPIC_NAME)
                         .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(new Date(1000))
+                        .updateTimestamp(Date.from(INSTANT))
                         .build())
                 .spec(Topic.TopicSpec.builder()
                         .configs(Map.of("cleanup.policy", "delete"))
@@ -513,7 +521,7 @@ class TopicAsyncExecutorTest {
                         .cluster(LOCAL_CLUSTER)
                         .name(TOPIC_NAME)
                         .status(Resource.Metadata.Status.ofPending())
-                        .updateTimestamp(new Date(2000))
+                        .updateTimestamp(Date.from(INSTANT.plusSeconds(1)))
                         .build())
                 .spec(Topic.TopicSpec.builder()
                         .configs(Map.of("cleanup.policy", "compact"))
@@ -534,11 +542,12 @@ class TopicAsyncExecutorTest {
         when(topicRepository.findAllForCluster(LOCAL_CLUSTER)).thenReturn(List.of(topic));
         when(topicRepository.findByName(LOCAL_CLUSTER, TOPIC_NAME)).thenReturn(Optional.of(reappliedTopic));
 
-        TopicAsyncExecutor executor = spy(topicAsyncExecutor);
-        doReturn(List.of(TOPIC_NAME)).when(executor).listBrokerTopicNames();
-        doReturn(Map.of(TOPIC_NAME, brokerTopic)).when(executor).collectBrokerTopicsFromNames(List.of(TOPIC_NAME));
+        doReturn(List.of(TOPIC_NAME)).when(topicAsyncExecutor).listBrokerTopicNames();
+        doReturn(Map.of(TOPIC_NAME, brokerTopic))
+                .when(topicAsyncExecutor)
+                .collectBrokerTopicsFromNames(List.of(TOPIC_NAME));
 
-        executor.synchronizeTopics();
+        topicAsyncExecutor.synchronizeTopics();
 
         verify(topicRepository, never()).create(any());
     }

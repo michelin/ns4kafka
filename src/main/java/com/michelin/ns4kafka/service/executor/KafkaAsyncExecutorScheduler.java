@@ -140,7 +140,7 @@ public class KafkaAsyncExecutorScheduler {
     }
 
     /**
-     * Schedule Tableflow synchronization without overlapping runs.
+     * Schedule Tableflow topic synchronization.
      *
      * @return A disposable to manage the scheduled task
      */
@@ -166,6 +166,7 @@ public class KafkaAsyncExecutorScheduler {
         if (roleBindingSyncDisposable != null && !roleBindingSyncDisposable.isDisposed()) {
             roleBindingSyncDisposable.dispose();
         }
+
         if (tableflowSyncDisposable != null && !tableflowSyncDisposable.isDisposed()) {
             tableflowSyncDisposable.dispose();
         }

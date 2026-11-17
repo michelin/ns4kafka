@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.michelin.ns4kafka.util.enumation.Kind;
 import io.micronaut.json.JsonMapper;
-import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class TableflowTopicTest {
@@ -41,7 +41,7 @@ class TableflowTopicTest {
         assertEquals(Kind.TABLEFLOW_TOPIC, resource.getKind());
         assertEquals("v1", resource.getApiVersion());
         assertEquals("orders", resource.getMetadata().getName());
-        assertEquals(List.of("ICEBERG"), resource.getSpec().getTableFormats());
+        assertEquals(Set.of("ICEBERG"), resource.getSpec().getTableFormats());
         assertEquals("Managed", resource.getSpec().getStorage().getKind());
         assertEquals(resource, mapper.readValue(mapper.writeValueAsBytes(resource), TableflowTopic.class));
     }
@@ -52,7 +52,7 @@ class TableflowTopicTest {
         TableflowTopic resource = TableflowTopic.builder()
                 .metadata(Resource.Metadata.builder().name("orders").build())
                 .spec(TableflowTopic.TableflowTopicSpec.builder()
-                        .tableFormats(List.of("ICEBERG"))
+                        .tableFormats(Set.of("ICEBERG"))
                         .build())
                 .status(TableflowTopic.TableflowTopicStatus.builder()
                         .id("tt-test")

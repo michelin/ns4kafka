@@ -29,13 +29,12 @@ import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.TableflowTopicRepository;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
-import io.micronaut.core.util.StringUtils;
 import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 import reactor.core.publisher.Mono;
 
-/** Service to validate and create Tableflow resources. */
+/** Service to manage Tableflow topics. */
 @Singleton
 public class TableflowTopicService {
     private final TableflowTopicRepository tableflowTopicRepository;
@@ -59,33 +58,24 @@ public class TableflowTopicService {
     }
 
     /**
-     * Validate the local cluster configuration before looking up the topic and schemas.
+     * Validate the cluster configuration for a Tableflow topic.
      *
      * @param namespace The namespace
      * @param topic The source topic name
      */
     public void validateConfiguration(Namespace namespace, String topic) {
-        Optional<ManagedClusterProperties> cluster = managedClusterProperties.stream()
+        boolean configured = managedClusterProperties.stream()
                 .filter(properties ->
                         properties.getName().equals(namespace.getMetadata().getCluster()))
-                .findFirst();
-        if (cluster.isEmpty() || !cluster.get().isConfluentCloud()) {
-            throw new ResourceValidationException(
-                    TABLEFLOW_TOPIC, topic, "Tableflow is supported only for Confluent Cloud clusters.");
-        }
+                .anyMatch(ManagedClusterProperties::isManageTableflow);
 
-        ManagedClusterProperties.ConfluentCloudProperties config = cluster.get().getConfluentCloud();
-        if (config == null
-                || StringUtils.isEmpty(config.getClusterId())
-                || StringUtils.isEmpty(config.getEnvironmentId())
-                || StringUtils.isEmpty(config.getBasicAuthUsername())
-                || StringUtils.isEmpty(config.getBasicAuthPassword())) {
+        if (!configured) {
             throw new ResourceValidationException(TABLEFLOW_TOPIC, topic, invalidTableflowClusterConfiguration(topic));
         }
     }
 
     /**
-     * Check the latest value schema under TopicNameStrategy before enabling Tableflow.
+     * Validate the value schema of a Tableflow topic.
      *
      * @param topic The source Kafka topic
      * @return The validation errors
@@ -100,7 +90,7 @@ public class TableflowTopicService {
     }
 
     /**
-     * Find a Tableflow topic in the namespace's managed cluster.
+     * Find a Tableflow topic by namespace and name.
      *
      * @param namespace The namespace
      * @param name The source topic name
@@ -111,10 +101,10 @@ public class TableflowTopicService {
     }
 
     /**
-     * Store a Tableflow configuration for asynchronous deployment.
+     * Create a Tableflow topic.
      *
-     * @param tableflowTopic The Tableflow topic to store
-     * @return The stored Tableflow topic
+     * @param tableflowTopic The Tableflow topic
+     * @return The created Tableflow topic
      */
     public TableflowTopic create(TableflowTopic tableflowTopic) {
         return tableflowTopicRepository.create(tableflowTopic);

@@ -83,7 +83,7 @@ public class Ns4KafkaProperties {
         @Setter
         @ConfigurationProperties("tableflow")
         public static class TableflowProperties {
-            private int intervalMs = 20000;
+            private int intervalMs = 30000;
         }
 
         @Getter

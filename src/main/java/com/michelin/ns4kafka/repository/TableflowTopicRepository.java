@@ -22,10 +22,10 @@ import com.michelin.ns4kafka.model.TableflowTopic;
 import java.util.List;
 import java.util.Optional;
 
-/** Store Tableflow configurations and deployment status for the executor. */
+/** Tableflow topic repository. */
 public interface TableflowTopicRepository {
     /**
-     * Find the stored configurations to process for a cluster.
+     * Find all Tableflow topics by cluster.
      *
      * @param cluster The cluster
      * @return The list of Tableflow topics
@@ -42,10 +42,10 @@ public interface TableflowTopicRepository {
     Optional<TableflowTopic> findByName(String cluster, String name);
 
     /**
-     * Store a Tableflow configuration or its deployment status.
+     * Create a Tableflow topic.
      *
-     * @param topic The configuration to store
-     * @return The stored configuration
+     * @param topic The Tableflow topic
+     * @return The created Tableflow topic
      */
     TableflowTopic create(TableflowTopic topic);
 }

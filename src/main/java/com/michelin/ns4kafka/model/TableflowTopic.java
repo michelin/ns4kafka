@@ -27,14 +27,14 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
-import java.util.List;
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
-/** Tableflow configuration for an existing Kafka topic identified by metadata.name. */
+/** Tableflow topic. */
 @Data
 @Serdeable
 @EqualsAndHashCode(callSuper = true)
@@ -48,9 +48,9 @@ public class TableflowTopic extends Resource {
     /**
      * Constructor.
      *
-     * @param metadata The resource metadata; name references the existing Kafka topic
-     * @param spec The Tableflow configuration
-     * @param status The Confluent creation status
+     * @param metadata The metadata
+     * @param spec The spec
+     * @param status The status
      */
     @Builder
     public TableflowTopic(Metadata metadata, TableflowTopicSpec spec, TableflowTopicStatus status) {
@@ -59,7 +59,7 @@ public class TableflowTopic extends Resource {
         this.status = status;
     }
 
-    /** Tableflow settings, managed independently from the Kafka topic settings. */
+    /** Tableflow topic spec. */
     @Data
     @Builder
     @Serdeable
@@ -67,13 +67,13 @@ public class TableflowTopic extends Resource {
     @AllArgsConstructor
     public static class TableflowTopicSpec {
         @NotEmpty @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Table formats allowed by the namespace.")
-        private List<@NotBlank String> tableFormats;
+        private Set<@NotBlank String> tableFormats;
 
         @Valid @NotNull @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Storage allowed by the namespace.")
         private Storage storage;
     }
 
-    /** Table storage selection. */
+    /** Tableflow topic storage. */
     @Data
     @Builder
     @Serdeable
@@ -83,7 +83,7 @@ public class TableflowTopic extends Resource {
         @NotBlank private String kind;
     }
 
-    /** Confluent identifier and materialization status updated by the executor. */
+    /** Tableflow topic status. */
     @Data
     @Builder
     @Serdeable
@@ -94,7 +94,7 @@ public class TableflowTopic extends Resource {
         private TableflowTopicState state;
     }
 
-    /** Materialization state reported by Confluent. */
+    /** Tableflow topic state. */
     @Data
     @Builder
     @Serdeable

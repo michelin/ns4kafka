@@ -19,13 +19,9 @@
 package com.michelin.ns4kafka.service.executor;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -34,336 +30,380 @@ import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.TableflowTopic;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.TableflowTopicRepository;
-import com.michelin.ns4kafka.repository.kafka.KafkaStoreException;
 import com.michelin.ns4kafka.service.client.confluent.ConfluentCloudClient;
 import com.michelin.ns4kafka.service.client.confluent.entities.TableflowTopicResponse;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
-import io.micronaut.http.exceptions.HttpStatusException;
-import java.time.Duration;
+import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.IntStream;
-import org.junit.jupiter.api.BeforeEach;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 @ExtendWith(MockitoExtension.class)
 class TableflowTopicAsyncExecutorTest {
+    private static final Instant INSTANT = Instant.parse("2026-01-01T00:00:00Z");
+    private static final String CLUSTER = "local";
+    private static final String TOPIC_NAME = "topic";
+
+    @Mock
+    ManagedClusterProperties managedClusterProperties;
+
     @Mock
     TableflowTopicRepository tableflowTopicRepository;
 
     @Mock
     ConfluentCloudClient confluentCloudClient;
 
-    ManagedClusterProperties properties;
-    TableflowTopicAsyncExecutor executor;
-    TableflowTopic topic;
-
-    @BeforeEach
-    void setUp() {
-        properties = new ManagedClusterProperties("cloud", ManagedClusterProperties.KafkaProvider.CONFLUENT_CLOUD);
-        executor = new TableflowTopicAsyncExecutor(properties, tableflowTopicRepository, confluentCloudClient);
-        topic = topic("orders");
-    }
-
-    private static TableflowTopic topic(String name) {
-        return TableflowTopic.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name(name)
-                        .namespace("sales")
-                        .cluster("cloud")
-                        .generation(0)
-                        .updateTimestamp(new Date(1000))
-                        .status(Resource.Metadata.Status.ofPending())
-                        .build())
-                .spec(TableflowTopic.TableflowTopicSpec.builder()
-                        .tableFormats(List.of("ICEBERG"))
-                        .storage(
-                                TableflowTopic.Storage.builder().kind("Managed").build())
-                        .build())
-                .build();
-    }
-
-    private static TableflowTopicResponse response(String name, String phase) {
-        return new TableflowTopicResponse(
-                "tt-" + name,
-                new TableflowTopicResponse.Spec(
-                        name, List.of("ICEBERG"), new TableflowTopicResponse.Storage("Managed")),
-                new TableflowTopicResponse.Status(phase, ""));
-    }
-
-    private void storedTopic() {
-        when(tableflowTopicRepository.findAllForCluster("cloud")).thenReturn(List.of(topic));
-        when(tableflowTopicRepository.findByName("cloud", "orders")).thenReturn(Optional.of(topic));
-    }
-
-    private void run() {
-        executor.run().block(Duration.ofSeconds(5));
-    }
+    @InjectMocks
+    TableflowTopicAsyncExecutor tableflowTopicAsyncExecutor;
 
     @Test
-    void shouldSkipSelfManagedClusters() {
-        properties.setProvider(ManagedClusterProperties.KafkaProvider.SELF_MANAGED);
-        run();
+    void shouldNotSynchronizeWhenTableflowIsNotManaged() {
+        when(managedClusterProperties.isManageTableflow()).thenReturn(false);
+
+        StepVerifier.create(tableflowTopicAsyncExecutor.run()).verifyComplete();
+
         verifyNoInteractions(tableflowTopicRepository, confluentCloudClient);
     }
 
     @Test
-    void shouldCreateAbsentTableflowAndKeepMaterializationPending() {
-        storedTopic();
-        when(confluentCloudClient.listTableflowTopics("cloud")).thenReturn(Flux.empty());
-        when(confluentCloudClient.createTableflowTopic("cloud", topic))
-                .thenReturn(Mono.just(response("orders", "PENDING")));
-        run();
-        assertTrue(topic.isPending());
-        assertEquals(0, topic.getMetadata().getGeneration());
-        assertEquals("PENDING", topic.getStatus().getState().getPhase());
-        verify(tableflowTopicRepository).create(topic);
+    void shouldCreateTableflowTopic() {
+        TableflowTopic tableflowTopic = TableflowTopic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name(TOPIC_NAME)
+                        .namespace("ns1")
+                        .cluster(CLUSTER)
+                        .generation(0)
+                        .updateTimestamp(Date.from(INSTANT))
+                        .status(Resource.Metadata.Status.ofPending())
+                        .build())
+                .spec(TableflowTopic.TableflowTopicSpec.builder()
+                        .tableFormats(Set.of("ICEBERG"))
+                        .storage(
+                                TableflowTopic.Storage.builder().kind("Managed").build())
+                        .build())
+                .build();
+
+        TableflowTopicResponse tableflowTopicResponse = TableflowTopicResponse.builder()
+                .id("tf-" + TOPIC_NAME)
+                .spec(TableflowTopicResponse.Spec.builder()
+                        .displayName(TOPIC_NAME)
+                        .tableFormats(Set.of("ICEBERG"))
+                        .storage(new TableflowTopicResponse.Storage("Managed"))
+                        .build())
+                .status(new TableflowTopicResponse.Status("PENDING", null))
+                .build();
+
+        when(managedClusterProperties.isManageTableflow()).thenReturn(true);
+        when(managedClusterProperties.getName()).thenReturn(CLUSTER);
+        when(tableflowTopicRepository.findAllForCluster(CLUSTER)).thenReturn(List.of(tableflowTopic));
+        when(tableflowTopicRepository.findByName(CLUSTER, TOPIC_NAME)).thenReturn(Optional.of(tableflowTopic));
+        when(confluentCloudClient.listTableflowTopics(CLUSTER)).thenReturn(Flux.empty());
+        when(confluentCloudClient.createTableflowTopic(CLUSTER, tableflowTopic))
+                .thenReturn(Mono.just(tableflowTopicResponse));
+
+        StepVerifier.create(tableflowTopicAsyncExecutor.run()).verifyComplete();
+
+        assertTrue(tableflowTopic.isSuccess());
+        assertEquals(1, tableflowTopic.getMetadata().getGeneration());
+        verify(tableflowTopicRepository).create(tableflowTopic);
     }
 
     @Test
-    void shouldRecoverRunningTableflowFromStoredConfigurationAfterRestart() {
-        storedTopic();
-        when(confluentCloudClient.listTableflowTopics("cloud")).thenReturn(Flux.just(response("orders", "RUNNING")));
-        run();
-        assertTrue(topic.isSuccess());
-        assertEquals(1, topic.getMetadata().getGeneration());
+    void shouldMarkTableflowTopicAsSuccessWhenAlreadyExists() {
+        TableflowTopic tableflowTopic = TableflowTopic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name(TOPIC_NAME)
+                        .namespace("ns1")
+                        .cluster(CLUSTER)
+                        .generation(0)
+                        .updateTimestamp(Date.from(INSTANT))
+                        .status(Resource.Metadata.Status.ofPending())
+                        .build())
+                .spec(TableflowTopic.TableflowTopicSpec.builder()
+                        .tableFormats(Set.of("ICEBERG"))
+                        .storage(
+                                TableflowTopic.Storage.builder().kind("Managed").build())
+                        .build())
+                .build();
+
+        TableflowTopicResponse tableflowTopicResponse = TableflowTopicResponse.builder()
+                .id("tf-" + TOPIC_NAME)
+                .spec(TableflowTopicResponse.Spec.builder()
+                        .displayName(TOPIC_NAME)
+                        .tableFormats(Set.of("ICEBERG"))
+                        .storage(new TableflowTopicResponse.Storage("Managed"))
+                        .build())
+                .status(new TableflowTopicResponse.Status("RUNNING", null))
+                .build();
+
+        when(managedClusterProperties.isManageTableflow()).thenReturn(true);
+        when(managedClusterProperties.getName()).thenReturn(CLUSTER);
+        when(tableflowTopicRepository.findAllForCluster(CLUSTER)).thenReturn(List.of(tableflowTopic));
+        when(tableflowTopicRepository.findByName(CLUSTER, TOPIC_NAME)).thenReturn(Optional.of(tableflowTopic));
+        when(confluentCloudClient.listTableflowTopics(CLUSTER)).thenReturn(Flux.just(tableflowTopicResponse));
+
+        StepVerifier.create(tableflowTopicAsyncExecutor.run()).verifyComplete();
+
+        assertTrue(tableflowTopic.isSuccess());
+        assertEquals(1, tableflowTopic.getMetadata().getGeneration());
+        verify(tableflowTopicRepository).create(tableflowTopic);
         verify(confluentCloudClient, never()).createTableflowTopic(any(), any());
     }
 
     @Test
-    void shouldReadActualStateBeforeRetryingAfterCreationTimeout() {
-        storedTopic();
-        when(confluentCloudClient.listTableflowTopics("cloud"))
-                .thenReturn(Flux.empty(), Flux.just(response("orders", "RUNNING")));
-        when(confluentCloudClient.createTableflowTopic("cloud", topic))
-                .thenReturn(Mono.error(new HttpStatusException(HttpStatus.GATEWAY_TIMEOUT, "Creation timed out")));
-        run();
-        assertTrue(topic.isFailed());
-        run();
-        assertTrue(topic.isSuccess());
-        verify(confluentCloudClient).createTableflowTopic("cloud", topic);
+    void shouldMarkTableflowTopicAsFailedWhenCreationFails() {
+        TableflowTopic tableflowTopic = TableflowTopic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name(TOPIC_NAME)
+                        .namespace("ns1")
+                        .cluster(CLUSTER)
+                        .generation(0)
+                        .updateTimestamp(Date.from(INSTANT))
+                        .status(Resource.Metadata.Status.ofPending())
+                        .build())
+                .spec(TableflowTopic.TableflowTopicSpec.builder()
+                        .tableFormats(Set.of("ICEBERG"))
+                        .storage(
+                                TableflowTopic.Storage.builder().kind("Managed").build())
+                        .build())
+                .build();
+
+        when(managedClusterProperties.isManageTableflow()).thenReturn(true);
+        when(managedClusterProperties.getName()).thenReturn(CLUSTER);
+        when(tableflowTopicRepository.findAllForCluster(CLUSTER)).thenReturn(List.of(tableflowTopic));
+        when(tableflowTopicRepository.findByName(CLUSTER, TOPIC_NAME)).thenReturn(Optional.of(tableflowTopic));
+        when(confluentCloudClient.listTableflowTopics(CLUSTER)).thenReturn(Flux.empty());
+        when(confluentCloudClient.createTableflowTopic(CLUSTER, tableflowTopic))
+                .thenReturn(Mono.error(new HttpClientResponseException(
+                        "Internal error", HttpResponse.status(HttpStatus.SERVICE_UNAVAILABLE))));
+
+        StepVerifier.create(tableflowTopicAsyncExecutor.run()).verifyComplete();
+
+        assertTrue(tableflowTopic.isFailed());
+        assertEquals("Internal error", tableflowTopic.getMetadata().getStatus().getMessage());
+        verify(tableflowTopicRepository).create(tableflowTopic);
     }
 
     @Test
-    void shouldRetryCreationOnTheNextRunWhenItWasNotAccepted() {
-        storedTopic();
-        when(confluentCloudClient.listTableflowTopics("cloud")).thenReturn(Flux.empty());
-        when(confluentCloudClient.createTableflowTopic("cloud", topic))
-                .thenReturn(
-                        Mono.error(new HttpClientResponseException(
-                                "DO-NOT-EXPOSE", HttpResponse.status(HttpStatus.SERVICE_UNAVAILABLE))),
-                        Mono.just(response("orders", "PENDING")));
-        run();
-        assertTrue(topic.isFailed());
-        assertTrue(topic.getMetadata().getStatus().getMessage().contains("HTTP 503"));
-        assertFalse(topic.getMetadata().getStatus().getMessage().contains("DO-NOT-EXPOSE"));
-        run();
-        assertTrue(topic.isPending());
-        verify(confluentCloudClient, times(2)).createTableflowTopic("cloud", topic);
+    void shouldMarkTableflowTopicAsFailedWhenConfigurationDiffers() {
+        TableflowTopic tableflowTopic = TableflowTopic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name(TOPIC_NAME)
+                        .namespace("ns1")
+                        .cluster(CLUSTER)
+                        .generation(0)
+                        .updateTimestamp(Date.from(INSTANT))
+                        .status(Resource.Metadata.Status.ofPending())
+                        .build())
+                .spec(TableflowTopic.TableflowTopicSpec.builder()
+                        .tableFormats(Set.of("ICEBERG"))
+                        .storage(
+                                TableflowTopic.Storage.builder().kind("Managed").build())
+                        .build())
+                .build();
+
+        TableflowTopicResponse tableflowTopicResponse = TableflowTopicResponse.builder()
+                .id("tf-" + TOPIC_NAME)
+                .spec(TableflowTopicResponse.Spec.builder()
+                        .displayName(TOPIC_NAME)
+                        .tableFormats(Set.of("DELTA"))
+                        .storage(new TableflowTopicResponse.Storage("Managed"))
+                        .build())
+                .status(new TableflowTopicResponse.Status("RUNNING", null))
+                .build();
+
+        when(managedClusterProperties.isManageTableflow()).thenReturn(true);
+        when(managedClusterProperties.getName()).thenReturn(CLUSTER);
+        when(tableflowTopicRepository.findAllForCluster(CLUSTER)).thenReturn(List.of(tableflowTopic));
+        when(tableflowTopicRepository.findByName(CLUSTER, TOPIC_NAME)).thenReturn(Optional.of(tableflowTopic));
+        when(confluentCloudClient.listTableflowTopics(CLUSTER)).thenReturn(Flux.just(tableflowTopicResponse));
+
+        StepVerifier.create(tableflowTopicAsyncExecutor.run()).verifyComplete();
+
+        assertTrue(tableflowTopic.isFailed());
+        assertEquals(
+                "The existing Confluent Tableflow configuration differs from the requested configuration. Updates are not supported yet.",
+                tableflowTopic.getMetadata().getStatus().getMessage());
+        verify(confluentCloudClient, never()).createTableflowTopic(any(), any());
     }
 
     @Test
-    void shouldNotCreateOrChangeStatusesWhenTheListingFails() {
-        when(confluentCloudClient.listTableflowTopics("cloud"))
+    void shouldNotSynchronizeWhenListingFails() {
+        when(managedClusterProperties.isManageTableflow()).thenReturn(true);
+        when(managedClusterProperties.getName()).thenReturn(CLUSTER);
+        when(confluentCloudClient.listTableflowTopics(CLUSTER))
                 .thenReturn(Flux.error(
-                        new HttpClientResponseException("Unavailable", HttpResponse.status(HttpStatus.FORBIDDEN))));
-        run();
-        verifyNoInteractions(tableflowTopicRepository);
-        verify(confluentCloudClient, never()).createTableflowTopic(any(), any());
-    }
-
-    @Test
-    void shouldNotReconcileAPartialListingWhenALaterPageFails() {
-        when(confluentCloudClient.listTableflowTopics("cloud"))
-                .thenReturn(Flux.concat(
-                        Flux.just(response("orders", "RUNNING")),
-                        Flux.error(new IllegalStateException("Page failed"))));
-        run();
-        verifyNoInteractions(tableflowTopicRepository);
-        verify(confluentCloudClient, never()).createTableflowTopic(any(), any());
-    }
-
-    @Test
-    void shouldRecoverConcurrentCreationFromTheNextClusterListing() {
-        storedTopic();
-        when(confluentCloudClient.listTableflowTopics("cloud"))
-                .thenReturn(Flux.empty(), Flux.just(response("orders", "RUNNING")));
-        when(confluentCloudClient.createTableflowTopic("cloud", topic))
-                .thenReturn(Mono.error(
-                        new HttpClientResponseException("Already exists", HttpResponse.status(HttpStatus.CONFLICT))));
-        run();
-        assertTrue(topic.isPending());
-        run();
-        assertTrue(topic.isSuccess());
-        verify(confluentCloudClient).createTableflowTopic("cloud", topic);
-        verify(confluentCloudClient, times(2)).listTableflowTopics("cloud");
-    }
-
-    @Test
-    void shouldReportAnExistingConfigurationThatDoesNotMatch() {
-        storedTopic();
-        TableflowTopicResponse different = new TableflowTopicResponse(
-                null,
-                new TableflowTopicResponse.Spec(
-                        "orders", List.of("DELTA"), new TableflowTopicResponse.Storage("Managed")),
-                new TableflowTopicResponse.Status("RUNNING", ""));
-        when(confluentCloudClient.listTableflowTopics("cloud")).thenReturn(Flux.just(different));
-        run();
-        assertTrue(topic.isFailed());
-        assertTrue(topic.getMetadata().getStatus().getMessage().contains("differs"));
-        verify(confluentCloudClient, never()).createTableflowTopic(any(), any());
-    }
-
-    @Test
-    void shouldExposeConfluentMaterializationFailure() {
-        storedTopic();
-        when(confluentCloudClient.listTableflowTopics("cloud")).thenReturn(Flux.just(response("orders", "FAILED")));
-        run();
-        assertTrue(topic.isFailed());
-        assertEquals("FAILED", topic.getStatus().getState().getPhase());
-        assertEquals(0, topic.getMetadata().getGeneration());
-    }
-
-    @Test
-    void shouldPollPendingMaterializationUntilRunning() {
-        storedTopic();
-        when(confluentCloudClient.listTableflowTopics("cloud"))
-                .thenReturn(Flux.just(response("orders", "PENDING")), Flux.just(response("orders", "RUNNING")));
-        run();
-        assertTrue(topic.isPending());
-        run();
-        assertTrue(topic.isSuccess());
-        verify(confluentCloudClient, never()).createTableflowTopic(any(), any());
-    }
-
-    @Test
-    void shouldNotRewriteAnUnchangedSuccessfulStatus() {
-        storedTopic();
-        when(confluentCloudClient.listTableflowTopics("cloud")).thenReturn(Flux.just(response("orders", "RUNNING")));
-        run();
-        run();
-        assertEquals(1, topic.getMetadata().getGeneration());
-        verify(tableflowTopicRepository).create(topic);
-    }
-
-    @Test
-    void shouldNotRestoreAResourceDeletedDuringSynchronization() {
-        storedTopic();
-        when(tableflowTopicRepository.findByName("cloud", "orders")).thenReturn(Optional.empty());
-        when(confluentCloudClient.listTableflowTopics("cloud")).thenReturn(Flux.just(response("orders", "RUNNING")));
-        run();
-        verify(tableflowTopicRepository, never()).create(any());
-    }
-
-    @Test
-    void shouldNotOverwriteAResourceReappliedDuringSynchronization() {
-        storedTopic();
-        TableflowTopic newer = topic("orders");
-        newer.getMetadata().setUpdateTimestamp(new Date(2000));
-        when(tableflowTopicRepository.findByName("cloud", "orders")).thenReturn(Optional.of(newer));
-        when(confluentCloudClient.listTableflowTopics("cloud")).thenReturn(Flux.just(response("orders", "RUNNING")));
-        run();
-        verify(tableflowTopicRepository, never()).create(any());
-    }
-
-    @Test
-    void shouldContinueWithOtherResourcesAndSanitizeUnexpectedErrors() {
-        storedTopic();
-        TableflowTopic next = topic("next");
-        when(tableflowTopicRepository.findAllForCluster("cloud")).thenReturn(List.of(topic, next));
-        when(tableflowTopicRepository.findByName("cloud", "next")).thenReturn(Optional.of(next));
-        when(confluentCloudClient.listTableflowTopics("cloud")).thenReturn(Flux.just(response("next", "RUNNING")));
-        when(confluentCloudClient.createTableflowTopic("cloud", topic))
-                .thenReturn(Mono.error(new IllegalStateException("DO-NOT-EXPOSE")));
-        run();
-        assertTrue(topic.isFailed());
-        assertFalse(topic.getMetadata().getStatus().getMessage().contains("DO-NOT-EXPOSE"));
-        assertTrue(next.isSuccess());
-    }
-
-    @Test
-    void shouldContinueWithOtherResourcesWhenSavingStatusFails() {
-        storedTopic();
-        TableflowTopic next = topic("next");
-        when(tableflowTopicRepository.findAllForCluster("cloud")).thenReturn(List.of(topic, next));
-        when(tableflowTopicRepository.findByName("cloud", "next")).thenReturn(Optional.of(next));
-        when(confluentCloudClient.listTableflowTopics("cloud"))
-                .thenReturn(Flux.just(response("orders", "RUNNING"), response("next", "RUNNING")));
-        when(tableflowTopicRepository.create(topic)).thenThrow(new IllegalStateException("Storage unavailable"));
-        run();
-        assertTrue(next.isSuccess());
-        verify(tableflowTopicRepository).create(next);
-    }
-
-    @Test
-    void shouldRetryAnUnpersistedFailureStatusOnTheNextRun() {
-        storedTopic();
-        when(confluentCloudClient.listTableflowTopics("cloud")).thenReturn(Flux.empty());
-        when(confluentCloudClient.createTableflowTopic("cloud", topic))
-                .thenReturn(Mono.error(
                         new HttpClientResponseException("Forbidden", HttpResponse.status(HttpStatus.FORBIDDEN))));
-        when(tableflowTopicRepository.create(topic))
-                .thenThrow(new KafkaStoreException("Storage unavailable"))
-                .thenReturn(topic);
 
-        run();
-        assertTrue(topic.isPending());
-        run();
+        StepVerifier.create(tableflowTopicAsyncExecutor.run()).verifyComplete();
 
-        assertTrue(topic.isFailed());
-        verify(tableflowTopicRepository, times(2)).create(topic);
-    }
-
-    @Test
-    void shouldAdvanceGenerationOnlyAfterTheSuccessStatusIsPersisted() {
-        storedTopic();
-        when(confluentCloudClient.listTableflowTopics("cloud")).thenReturn(Flux.just(response("orders", "RUNNING")));
-        when(tableflowTopicRepository.create(topic))
-                .thenThrow(new KafkaStoreException("Storage unavailable"))
-                .thenReturn(topic);
-
-        run();
-        assertTrue(topic.isPending());
-        assertEquals(0, topic.getMetadata().getGeneration());
-        run();
-
-        assertTrue(topic.isSuccess());
-        assertEquals(1, topic.getMetadata().getGeneration());
-        verify(tableflowTopicRepository, times(2)).create(topic);
-    }
-
-    @Test
-    void shouldReconcileHundredsOfTopicsWithOneClusterListing() {
-        List<TableflowTopic> topics = IntStream.range(0, 300)
-                .mapToObj(index -> topic("orders-" + index))
-                .toList();
-        when(tableflowTopicRepository.findAllForCluster("cloud")).thenReturn(topics);
-        when(tableflowTopicRepository.findByName(eq("cloud"), anyString()))
-                .thenAnswer(invocation -> topics.stream()
-                        .filter(current -> current.getMetadata().getName().equals(invocation.getArgument(1)))
-                        .findFirst());
-        when(confluentCloudClient.listTableflowTopics("cloud"))
-                .thenReturn(Flux.fromIterable(topics)
-                        .map(current -> response(current.getMetadata().getName(), "RUNNING")));
-        run();
-        assertTrue(topics.stream().allMatch(Resource::isSuccess));
-        verify(confluentCloudClient).listTableflowTopics("cloud");
+        verifyNoInteractions(tableflowTopicRepository);
         verify(confluentCloudClient, never()).createTableflowTopic(any(), any());
     }
 
     @Test
-    void shouldLeaveUnmanagedRemoteTopicsAlone() {
-        when(tableflowTopicRepository.findAllForCluster("cloud")).thenReturn(List.of());
-        when(confluentCloudClient.listTableflowTopics("cloud")).thenReturn(Flux.just(response("unmanaged", "RUNNING")));
-        run();
+    void shouldNotUpdateStatusWhenUnchanged() {
+        TableflowTopic tableflowTopic = TableflowTopic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name(TOPIC_NAME)
+                        .namespace("ns1")
+                        .cluster(CLUSTER)
+                        .generation(1)
+                        .updateTimestamp(Date.from(INSTANT))
+                        .status(Resource.Metadata.Status.ofSuccess())
+                        .build())
+                .spec(TableflowTopic.TableflowTopicSpec.builder()
+                        .tableFormats(Set.of("ICEBERG"))
+                        .storage(
+                                TableflowTopic.Storage.builder().kind("Managed").build())
+                        .build())
+                .build();
+
+        TableflowTopicResponse tableflowTopicResponse = TableflowTopicResponse.builder()
+                .id("tf-" + TOPIC_NAME)
+                .spec(TableflowTopicResponse.Spec.builder()
+                        .displayName(TOPIC_NAME)
+                        .tableFormats(Set.of("ICEBERG"))
+                        .storage(new TableflowTopicResponse.Storage("Managed"))
+                        .build())
+                .status(new TableflowTopicResponse.Status("RUNNING", null))
+                .build();
+
+        when(managedClusterProperties.isManageTableflow()).thenReturn(true);
+        when(managedClusterProperties.getName()).thenReturn(CLUSTER);
+        when(tableflowTopicRepository.findAllForCluster(CLUSTER)).thenReturn(List.of(tableflowTopic));
+        when(confluentCloudClient.listTableflowTopics(CLUSTER)).thenReturn(Flux.just(tableflowTopicResponse));
+
+        StepVerifier.create(tableflowTopicAsyncExecutor.run()).verifyComplete();
+
+        assertEquals(1, tableflowTopic.getMetadata().getGeneration());
+        verify(tableflowTopicRepository, never()).create(any());
+    }
+
+    @Test
+    void shouldNotUpdateStatusWhenDeletedDuringSynchronization() {
+        TableflowTopic tableflowTopic = TableflowTopic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name(TOPIC_NAME)
+                        .namespace("ns1")
+                        .cluster(CLUSTER)
+                        .generation(0)
+                        .updateTimestamp(Date.from(INSTANT))
+                        .status(Resource.Metadata.Status.ofPending())
+                        .build())
+                .spec(TableflowTopic.TableflowTopicSpec.builder()
+                        .tableFormats(Set.of("ICEBERG"))
+                        .storage(
+                                TableflowTopic.Storage.builder().kind("Managed").build())
+                        .build())
+                .build();
+
+        TableflowTopicResponse tableflowTopicResponse = TableflowTopicResponse.builder()
+                .id("tf-" + TOPIC_NAME)
+                .spec(TableflowTopicResponse.Spec.builder()
+                        .displayName(TOPIC_NAME)
+                        .tableFormats(Set.of("ICEBERG"))
+                        .storage(new TableflowTopicResponse.Storage("Managed"))
+                        .build())
+                .status(new TableflowTopicResponse.Status("RUNNING", null))
+                .build();
+
+        when(managedClusterProperties.isManageTableflow()).thenReturn(true);
+        when(managedClusterProperties.getName()).thenReturn(CLUSTER);
+        when(tableflowTopicRepository.findAllForCluster(CLUSTER)).thenReturn(List.of(tableflowTopic));
+        when(tableflowTopicRepository.findByName(CLUSTER, TOPIC_NAME)).thenReturn(Optional.empty());
+        when(confluentCloudClient.listTableflowTopics(CLUSTER)).thenReturn(Flux.just(tableflowTopicResponse));
+
+        StepVerifier.create(tableflowTopicAsyncExecutor.run()).verifyComplete();
+
+        verify(tableflowTopicRepository, never()).create(any());
+    }
+
+    @Test
+    void shouldNotUpdateStatusWhenReappliedDuringSynchronization() {
+        TableflowTopic tableflowTopic = TableflowTopic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name(TOPIC_NAME)
+                        .namespace("ns1")
+                        .cluster(CLUSTER)
+                        .generation(0)
+                        .updateTimestamp(Date.from(INSTANT))
+                        .status(Resource.Metadata.Status.ofPending())
+                        .build())
+                .spec(TableflowTopic.TableflowTopicSpec.builder()
+                        .tableFormats(Set.of("ICEBERG"))
+                        .storage(
+                                TableflowTopic.Storage.builder().kind("Managed").build())
+                        .build())
+                .build();
+
+        TableflowTopic reappliedTableflowTopic = TableflowTopic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name(TOPIC_NAME)
+                        .namespace("ns1")
+                        .cluster(CLUSTER)
+                        .generation(0)
+                        .updateTimestamp(Date.from(INSTANT.plusSeconds(1)))
+                        .status(Resource.Metadata.Status.ofPending())
+                        .build())
+                .spec(TableflowTopic.TableflowTopicSpec.builder()
+                        .tableFormats(Set.of("ICEBERG"))
+                        .storage(
+                                TableflowTopic.Storage.builder().kind("Managed").build())
+                        .build())
+                .build();
+
+        TableflowTopicResponse tableflowTopicResponse = TableflowTopicResponse.builder()
+                .id("tf-" + TOPIC_NAME)
+                .spec(TableflowTopicResponse.Spec.builder()
+                        .displayName(TOPIC_NAME)
+                        .tableFormats(Set.of("ICEBERG"))
+                        .storage(new TableflowTopicResponse.Storage("Managed"))
+                        .build())
+                .status(new TableflowTopicResponse.Status("RUNNING", null))
+                .build();
+
+        when(managedClusterProperties.isManageTableflow()).thenReturn(true);
+        when(managedClusterProperties.getName()).thenReturn(CLUSTER);
+        when(tableflowTopicRepository.findAllForCluster(CLUSTER)).thenReturn(List.of(tableflowTopic));
+        when(tableflowTopicRepository.findByName(CLUSTER, TOPIC_NAME)).thenReturn(Optional.of(reappliedTableflowTopic));
+        when(confluentCloudClient.listTableflowTopics(CLUSTER)).thenReturn(Flux.just(tableflowTopicResponse));
+
+        StepVerifier.create(tableflowTopicAsyncExecutor.run()).verifyComplete();
+
+        verify(tableflowTopicRepository, never()).create(any());
+    }
+
+    @Test
+    void shouldNotSynchronizeUnmanagedTableflowTopics() {
+        TableflowTopicResponse tableflowTopicResponse = TableflowTopicResponse.builder()
+                .id("tf-unmanaged")
+                .spec(TableflowTopicResponse.Spec.builder()
+                        .displayName("unmanaged")
+                        .tableFormats(Set.of("ICEBERG"))
+                        .storage(new TableflowTopicResponse.Storage("Managed"))
+                        .build())
+                .status(new TableflowTopicResponse.Status("RUNNING", null))
+                .build();
+
+        when(managedClusterProperties.isManageTableflow()).thenReturn(true);
+        when(managedClusterProperties.getName()).thenReturn(CLUSTER);
+        when(tableflowTopicRepository.findAllForCluster(CLUSTER)).thenReturn(List.of());
+        when(confluentCloudClient.listTableflowTopics(CLUSTER)).thenReturn(Flux.just(tableflowTopicResponse));
+
+        StepVerifier.create(tableflowTopicAsyncExecutor.run()).verifyComplete();
+
         verify(tableflowTopicRepository, never()).create(any());
         verify(confluentCloudClient, never()).createTableflowTopic(any(), any());
     }

@@ -20,25 +20,25 @@ package com.michelin.ns4kafka.service.client.confluent.entities;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.micronaut.serde.annotation.Serdeable;
-import java.util.List;
+import java.util.Set;
 
-/** Request to enable Tableflow using the settings validated against the namespace. */
+/** Tableflow topic request. */
 @Serdeable
 public record TableflowTopicRequest(Spec spec) {
-    /** Configuration scoped to the namespace's topic and managed cluster. */
+    /** Tableflow topic spec. */
     @Serdeable
     public record Spec(
             @JsonProperty("display_name") String displayName,
             Storage storage,
-            @JsonProperty("table_formats") List<String> tableFormats,
+            @JsonProperty("table_formats") Set<String> tableFormats,
             Reference environment,
             @JsonProperty("kafka_cluster") Reference kafkaCluster) {}
 
-    /** Table storage configuration. */
+    /** Tableflow topic storage. */
     @Serdeable
     public record Storage(String kind) {}
 
-    /** Confluent environment or cluster reference. */
+    /** Confluent resource reference. */
     @Serdeable
     public record Reference(String id) {}
 }

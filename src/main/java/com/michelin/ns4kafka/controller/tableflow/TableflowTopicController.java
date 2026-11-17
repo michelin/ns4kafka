@@ -50,7 +50,7 @@ import java.util.Optional;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
-/** Controller to manage Tableflow resources independently from Kafka topics. */
+/** Controller to manage Tableflow topics. */
 @Tag(name = "Tableflow Topics", description = "Enable Tableflow for existing Kafka topics.")
 @Controller(value = "/api/namespaces/{namespace}/tableflow-topics")
 @ExecuteOn(TaskExecutors.IO)
@@ -79,12 +79,12 @@ public class TableflowTopicController extends NamespacedResourceController {
     }
 
     /**
-     * Create a Tableflow resource for the Kafka topic named in metadata.name.
+     * Create a Tableflow topic.
      *
      * @param namespace The namespace
      * @param tableflowTopic The Tableflow topic
      * @param dryrun Is dry run mode or not?
-     * @return The Tableflow topic accepted for creation, or its dry-run preview
+     * @return The created Tableflow topic
      */
     @Post
     public Mono<HttpResponse<TableflowTopic>> apply(

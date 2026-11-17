@@ -20,27 +20,27 @@ package com.michelin.ns4kafka.service.client.confluent.entities;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.micronaut.serde.annotation.Serdeable;
-import java.util.List;
+import java.util.Set;
 import lombok.Builder;
 
-/** Confluent Tableflow configuration and materialization status. */
+/** Tableflow topic response. */
 @Builder
 @Serdeable
 public record TableflowTopicResponse(String id, Spec spec, Status status) {
-    /** Settings used to compare the remote resource with the declared configuration. */
+    /** Tableflow topic spec. */
     @Builder
     @Serdeable
     public record Spec(
             @JsonProperty("display_name") String displayName,
-            @JsonProperty("table_formats") List<String> tableFormats,
+            @JsonProperty("table_formats") Set<String> tableFormats,
             Storage storage) {}
 
-    /** Confluent storage selection. */
+    /** Tableflow topic storage. */
     @Builder
     @Serdeable
     public record Storage(String kind) {}
 
-    /** Confluent materialization state. */
+    /** Tableflow topic status. */
     @Builder
     @Serdeable
     public record Status(

@@ -41,6 +41,7 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.client.exceptions.ReadTimeoutException;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -160,7 +161,7 @@ class TableflowTopicServiceTest {
                         .status(Resource.Metadata.Status.ofPending())
                         .build())
                 .spec(TableflowTopic.TableflowTopicSpec.builder()
-                        .tableFormats(List.of("ICEBERG"))
+                        .tableFormats(Set.of("ICEBERG"))
                         .build())
                 .build();
         when(tableflowTopicRepository.create(tableflowTopic)).thenReturn(tableflowTopic);
@@ -203,6 +204,7 @@ class TableflowTopicServiceTest {
         config.setBasicAuthUsername("shared-key");
         config.setBasicAuthPassword("shared-secret");
         cluster.setConfluentCloud(config);
+        cluster.setManageTableflow(true);
         return cluster;
     }
 
@@ -218,30 +220,15 @@ class TableflowTopicServiceTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"unknown", "self-managed"})
-    void shouldRejectUnsupportedClusters(String type) {
-        ManagedClusterProperties cluster = cloudCluster();
-        if (type.equals("unknown")) {
-            cluster.setName("other");
-        } else {
-            cluster.setProvider(ManagedClusterProperties.KafkaProvider.SELF_MANAGED);
-        }
-        when(managedClusterProperties.stream()).thenReturn(Stream.of(cluster));
-        Namespace ns = namespace();
-
-        ResourceValidationException error = assertThrows(
-                ResourceValidationException.class, () -> tableflowTopicService.validateConfiguration(ns, "orders"));
-
-        assertTrue(error.getValidationErrors().contains("Tableflow is supported only for Confluent Cloud clusters."));
-        verifyNoInteractions(schemaRegistryClient, tableflowTopicRepository);
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"missing", "cluster", "environment", "key", "secret"})
-    void shouldRejectIncompleteClusterConfiguration(String field) {
+    @ValueSource(
+            strings = {"unknown", "self-managed", "disabled", "missing", "cluster", "environment", "key", "secret"})
+    void shouldRejectClustersNotConfiguredForTableflow(String field) {
         ManagedClusterProperties cluster = cloudCluster();
         ManagedClusterProperties.ConfluentCloudProperties config = cluster.getConfluentCloud();
         switch (field) {
+            case "unknown" -> cluster.setName("other");
+            case "self-managed" -> cluster.setProvider(ManagedClusterProperties.KafkaProvider.SELF_MANAGED);
+            case "disabled" -> cluster.setManageTableflow(false);
             case "missing" -> cluster.setConfluentCloud(null);
             case "cluster" -> config.setClusterId(null);
             case "environment" -> config.setEnvironmentId(null);

@@ -47,11 +47,17 @@ ns4kafka:
           \ required username=\"admin\" password=\"admin\";"
         sasl.mechanism: "PLAIN"
         security.protocol: "SASL_PLAINTEXT"
+      confluent-cloud:
+        basic-auth-password: "password"
+        basic-auth-username: "username"
+        cluster-id: "lkc-test"
+        environment-id: "env-test"
       connects:
         test-connect:
           url: "localhost:8083"
       manage-acls: true
       manage-connectors: true
+      manage-tableflow: false
       manage-topics: true
       manage-users: true
       provider: "CONFLUENT_CLOUD"

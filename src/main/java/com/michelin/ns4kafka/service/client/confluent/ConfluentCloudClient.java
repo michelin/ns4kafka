@@ -71,12 +71,17 @@ public class ConfluentCloudClient {
     }
 
     /**
-     * Submit Tableflow creation once; acceptance does not mean the table is ready to query.
+     * Create a Tableflow topic.
      *
      * @param kafkaCluster The Kafka cluster
-     * @param tableflowTopic The validated Tableflow topic
-     * @return The Confluent Tableflow creation response
+     * @param tableflowTopic The Tableflow topic
+     * @return The created Tableflow topic
      */
+    @Retryable(
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
     public Mono<TableflowTopicResponse> createTableflowTopic(String kafkaCluster, TableflowTopic tableflowTopic) {
         ManagedClusterProperties.ConfluentCloudProperties config = getConfluentCloud(kafkaCluster);
         TableflowTopicRequest body = new TableflowTopicRequest(new TableflowTopicRequest.Spec(
@@ -94,11 +99,16 @@ public class ConfluentCloudClient {
     }
 
     /**
-     * List the Tableflow topics in a cluster, following all pages before synchronization.
+     * List all Tableflow topics of a cluster.
      *
      * @param kafkaCluster The Kafka cluster
      * @return The Tableflow topics
      */
+    @Retryable(
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
     public Flux<TableflowTopicResponse> listTableflowTopics(String kafkaCluster) {
         ManagedClusterProperties.ConfluentCloudProperties config = getConfluentCloud(kafkaCluster);
         return listTableflowTopicsPage(config, null)
@@ -112,10 +122,10 @@ public class ConfluentCloudClient {
     }
 
     /**
-     * List one page of Tableflow topics in the configured environment and cluster.
+     * List a page of Tableflow topics.
      *
      * @param config The Confluent Cloud properties
-     * @param pageToken The raw page token, or null for the first page
+     * @param pageToken The page token, or null for the first page
      * @return The Tableflow topics page
      */
     private Mono<TableflowTopicListResponse> listTableflowTopicsPage(

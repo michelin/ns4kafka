@@ -22,22 +22,21 @@ import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.TableflowTopic;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.TableflowTopicRepository;
-import com.michelin.ns4kafka.repository.kafka.KafkaStoreException;
 import com.michelin.ns4kafka.service.client.confluent.ConfluentCloudClient;
 import com.michelin.ns4kafka.service.client.confluent.entities.TableflowTopicResponse;
 import io.micronaut.context.annotation.EachBean;
-import io.micronaut.http.HttpStatus;
-import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import jakarta.inject.Singleton;
-import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
-import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
-/** Deploy stored Tableflow configurations and recover uncertain creation outcomes. */
+/** Tableflow topic executor. */
 @Slf4j
 @EachBean(ManagedClusterProperties.class)
 @Singleton
@@ -63,197 +62,167 @@ public class TableflowTopicAsyncExecutor {
     }
 
     /**
-     * Run Tableflow synchronization for a Confluent Cloud cluster.
+     * Run the Tableflow topic synchronization.
      *
      * @return A mono completing when synchronization is done
      */
     public Mono<Void> run() {
-        if (!managedClusterProperties.isConfluentCloud()) {
+        if (!managedClusterProperties.isManageTableflow()) {
             return Mono.empty();
         }
         return synchronizeTableflowTopics();
     }
 
     /**
-     * Collect all remote topics before reconciling the configurations stored in Ns4Kafka.
+     * Synchronize the Tableflow topics.
      *
      * @return A mono completing when synchronization is done
      */
     public Mono<Void> synchronizeTableflowTopics() {
         log.debug("Starting Tableflow topic collection for cluster {}.", managedClusterProperties.getName());
+
         return Mono.defer(() -> confluentCloudClient
                         .listTableflowTopics(managedClusterProperties.getName())
                         .collectMap(response -> response.spec().displayName()))
-                // Ns4Kafka storage is blocking; keep it outside the HTTP client event loop.
-                .publishOn(Schedulers.boundedElastic())
-                .flatMap(brokerTopics -> Flux.fromIterable(
-                                tableflowTopicRepository.findAllForCluster(managedClusterProperties.getName()))
-                        .concatMap(topic -> synchronizeTableflowTopic(
-                                        topic,
-                                        brokerTopics.get(topic.getMetadata().getName()))
-                                .doOnError(_ -> log.error(
-                                        "Could not persist Tableflow status for topic {} on cluster {}.",
-                                        topic.getMetadata().getName(),
-                                        managedClusterProperties.getName()))
-                                .onErrorComplete())
-                        .then())
-                .doOnError(_ -> log.error(
-                        "Could not collect Tableflow topics for cluster {}. Synchronization will be retried.",
-                        managedClusterProperties.getName()))
+                .flatMap(brokerTableflowTopics -> {
+                    List<TableflowTopic> ns4KafkaTableflowTopics =
+                            tableflowTopicRepository.findAllForCluster(managedClusterProperties.getName());
+
+                    List<TableflowTopic> toCreate = ns4KafkaTableflowTopics.stream()
+                            .filter(tableflowTopic -> !brokerTableflowTopics.containsKey(
+                                    tableflowTopic.getMetadata().getName()))
+                            .toList();
+
+                    if (!toCreate.isEmpty()) {
+                        log.atDebug()
+                                .addArgument(() -> toCreate.stream()
+                                        .map(tableflowTopic ->
+                                                tableflowTopic.getMetadata().getName())
+                                        .collect(Collectors.joining(",")))
+                                .log("Tableflow topic(s) to create: {}.");
+                    }
+
+                    return createTableflowTopics(toCreate)
+                            .publishOn(Schedulers.boundedElastic())
+                            .doOnNext(creationErrors ->
+                                    updateStatuses(ns4KafkaTableflowTopics, brokerTableflowTopics, creationErrors));
+                })
+                .then()
+                .doOnError(exception -> log.error(
+                        "An error occurred during the Tableflow topic synchronization on cluster {}.",
+                        managedClusterProperties.getName(),
+                        exception))
                 .onErrorComplete();
     }
 
     /**
-     * Create a missing configuration or update its materialization status from the cluster snapshot.
+     * Create Tableflow topics.
      *
-     * @param topic The stored Tableflow configuration
-     * @param existing The remote configuration, or null if absent from the complete listing
-     * @return A mono completing when the resource status has been saved
+     * @param toCreate The Tableflow topics to create
+     * @return The error message of each Tableflow topic that could not be created, by topic name
      */
-    private Mono<Void> synchronizeTableflowTopic(TableflowTopic topic, @Nullable TableflowTopicResponse existing) {
-        return Mono.defer(() -> existing != null ? Mono.just(existing) : createTableflowTopic(topic))
-                .publishOn(Schedulers.boundedElastic())
-                .doOnNext(response -> {
-                    if (!matchesConfiguration(topic, response)) {
-                        saveStatus(
-                                topic,
-                                topic.getStatus(),
-                                Resource.Metadata.Status.ofFailed(
-                                        "The existing Confluent Tableflow configuration differs from the requested configuration. Updates are not supported yet."));
-                        return;
-                    }
-                    updateStatus(topic, response);
-                })
-                .then()
-                .onErrorResume(
-                        exception -> !(exception instanceof KafkaStoreException),
-                        exception -> Mono.fromRunnable(() -> {
-                            if (exception instanceof HttpClientResponseException responseException
-                                    && responseException.getStatus() == HttpStatus.CONFLICT) {
-                                saveStatus(topic, topic.getStatus(), Resource.Metadata.Status.ofPending());
-                                return;
-                            }
-                            String message = exception instanceof HttpClientResponseException responseException
-                                    ? "Confluent Tableflow creation returned HTTP " + responseException.code()
-                                            + ". Check the Confluent Cloud credentials, permissions, and topic configuration."
-                                    : "Tableflow synchronization failed. Check the cluster configuration and Confluent availability.";
-                            log.error(
-                                    "Tableflow synchronization failed for topic {} on cluster {}.",
-                                    topic.getMetadata().getName(),
-                                    managedClusterProperties.getName());
-                            saveStatus(topic, topic.getStatus(), Resource.Metadata.Status.ofFailed(message));
-                        }));
+    Mono<Map<String, String>> createTableflowTopics(List<TableflowTopic> toCreate) {
+        return Mono.defer(() -> {
+            Map<String, String> creationErrors = new ConcurrentHashMap<>();
+
+            return Flux.fromIterable(toCreate)
+                    .concatMap(tableflowTopic -> confluentCloudClient
+                            .createTableflowTopic(managedClusterProperties.getName(), tableflowTopic)
+                            .doOnNext(_ -> log.info(
+                                    "Success creating Tableflow topic {} on cluster {}.",
+                                    tableflowTopic.getMetadata().getName(),
+                                    managedClusterProperties.getName()))
+                            .onErrorResume(e -> {
+                                log.error(
+                                        "Error while creating Tableflow topic {} on cluster {}.",
+                                        tableflowTopic.getMetadata().getName(),
+                                        managedClusterProperties.getName(),
+                                        e);
+
+                                creationErrors.put(
+                                        tableflowTopic.getMetadata().getName(),
+                                        Objects.toString(
+                                                e.getMessage(), e.getClass().getName()));
+                                return Mono.empty();
+                            }))
+                    .then(Mono.fromSupplier(() -> creationErrors));
+        });
     }
 
     /**
-     * Submit creation once; the next cluster listing recovers conflicts or uncertain outcomes.
+     * Update the status of the Tableflow topics.
      *
-     * @param topic The stored Tableflow configuration
-     * @return The Confluent resource
+     * @param ns4KafkaTableflowTopics The Ns4Kafka Tableflow topics
+     * @param brokerTableflowTopics The Confluent Cloud Tableflow topics by name
+     * @param creationErrors The error message of each Tableflow topic that could not be created, by topic name
      */
-    private Mono<TableflowTopicResponse> createTableflowTopic(TableflowTopic topic) {
-        log.debug(
-                "Creating Tableflow topic {} on cluster {}.",
-                topic.getMetadata().getName(),
-                managedClusterProperties.getName());
-        return confluentCloudClient
-                .createTableflowTopic(managedClusterProperties.getName(), topic)
-                .switchIfEmpty(Mono.error(new IllegalStateException("Empty Tableflow creation response")))
-                .doOnNext(_ -> log.info(
-                        "Success creating Tableflow topic {} on cluster {}.",
-                        topic.getMetadata().getName(),
-                        managedClusterProperties.getName()));
+    private void updateStatuses(
+            List<TableflowTopic> ns4KafkaTableflowTopics,
+            Map<String, TableflowTopicResponse> brokerTableflowTopics,
+            Map<String, String> creationErrors) {
+        ns4KafkaTableflowTopics.forEach(tableflowTopic -> {
+            TableflowTopicResponse brokerTableflowTopic =
+                    brokerTableflowTopics.get(tableflowTopic.getMetadata().getName());
+
+            Resource.Metadata.Status status;
+            if (creationErrors.containsKey(tableflowTopic.getMetadata().getName())) {
+                status = Resource.Metadata.Status.ofFailed(
+                        creationErrors.get(tableflowTopic.getMetadata().getName()));
+            } else if (brokerTableflowTopic != null && !matchesConfiguration(tableflowTopic, brokerTableflowTopic)) {
+                status = Resource.Metadata.Status.ofFailed(
+                        "The existing Confluent Tableflow configuration differs from the requested configuration. Updates are not supported yet.");
+            } else {
+                status = Resource.Metadata.Status.ofSuccess();
+            }
+
+            // Status is up to date
+            if (Objects.equals(tableflowTopic.getMetadata().getStatus(), status)) {
+                return;
+            }
+
+            // Do not overwrite a Tableflow topic deleted or reapplied since it was read
+            if (!isUnchangedSinceLastApply(tableflowTopic)) {
+                return;
+            }
+
+            if (status.getPhase() == Resource.Metadata.Phase.SUCCESS) {
+                tableflowTopic
+                        .getMetadata()
+                        .setGeneration(tableflowTopic.getMetadata().getGeneration() + 1);
+            }
+
+            tableflowTopic.getMetadata().setStatus(status);
+            tableflowTopicRepository.create(tableflowTopic);
+        });
     }
 
     /**
-     * Compare only the settings managed by Ns4Kafka, ignoring Confluent defaults.
+     * Check if a Tableflow topic matches its Confluent Cloud configuration.
      *
-     * @param topic The desired configuration
-     * @param response The Confluent resource
-     * @return Whether both configurations match
+     * @param tableflowTopic The Tableflow topic
+     * @param response The Confluent Cloud Tableflow topic
+     * @return true if they match, false otherwise
      */
-    private static boolean matchesConfiguration(TableflowTopic topic, TableflowTopicResponse response) {
-        TableflowTopicResponse.Spec spec = response.spec();
-        if (spec == null || spec.storage() == null || spec.tableFormats() == null) {
-            throw new IllegalStateException("Incomplete Confluent Tableflow response");
-        }
-        return new HashSet<>(spec.tableFormats())
-                        .equals(new HashSet<>(topic.getSpec().getTableFormats()))
-                && topic.getSpec().getStorage().getKind().equals(spec.storage().kind());
+    private static boolean matchesConfiguration(TableflowTopic tableflowTopic, TableflowTopicResponse response) {
+        return response.spec().tableFormats().equals(tableflowTopic.getSpec().getTableFormats())
+                && response.spec()
+                        .storage()
+                        .kind()
+                        .equals(tableflowTopic.getSpec().getStorage().getKind());
     }
 
     /**
-     * Persist materialization progress separately from the desired configuration.
+     * Check the Tableflow topic has been neither deleted nor reapplied since it was read.
      *
-     * @param topic The stored configuration
-     * @param response The Confluent resource
+     * @param tableflowTopic The synchronized Tableflow topic
+     * @return True if unchanged, false otherwise
      */
-    private void updateStatus(TableflowTopic topic, TableflowTopicResponse response) {
-        TableflowTopicResponse.Status state = response.status();
-        String phase = state == null || state.phase() == null ? "PENDING" : state.phase();
-        Resource.Metadata.Status status =
-                switch (phase) {
-                    case "RUNNING" -> Resource.Metadata.Status.ofSuccess();
-                    case "FAILED" ->
-                        Resource.Metadata.Status.ofFailed(
-                                "Confluent Tableflow materialization failed. Check the topic in Confluent Cloud.");
-                    default ->
-                        Resource.Metadata.Status.builder()
-                                .phase(Resource.Metadata.Phase.PENDING)
-                                .message("Creation accepted by Confluent; waiting for Tableflow to reach RUNNING.")
-                                .build();
-                };
-        saveStatus(
-                topic,
-                TableflowTopic.TableflowTopicStatus.builder()
-                        .id(response.id())
-                        .state(
-                                state == null
-                                        ? null
-                                        : TableflowTopic.TableflowTopicState.builder()
-                                                .phase(state.phase())
-                                                .errorMessage(state.errorMessage())
-                                                .build())
-                        .build(),
-                status);
-    }
-
-    /**
-     * Save a status only when it changed and the resource was not removed or reapplied.
-     *
-     * @param topic The resource read before synchronization
-     * @param state The Confluent status
-     * @param status The deployment status
-     */
-    private void saveStatus(
-            TableflowTopic topic, TableflowTopic.TableflowTopicStatus state, Resource.Metadata.Status status) {
-        boolean unchanged = tableflowTopicRepository
+    private boolean isUnchangedSinceLastApply(TableflowTopic tableflowTopic) {
+        return tableflowTopicRepository
                 .findByName(
-                        managedClusterProperties.getName(), topic.getMetadata().getName())
-                .map(current ->
-                        current.isOlderOrEqualTo(topic) && current.getSpec().equals(topic.getSpec()))
+                        managedClusterProperties.getName(),
+                        tableflowTopic.getMetadata().getName())
+                .map(existingTableflowTopic -> existingTableflowTopic.isOlderOrEqualTo(tableflowTopic))
                 .orElse(false);
-        if (!unchanged
-                || (Objects.equals(topic.getStatus(), state)
-                        && Objects.equals(topic.getMetadata().getStatus(), status))) {
-            return;
-        }
-        TableflowTopic.TableflowTopicStatus previousState = topic.getStatus();
-        Resource.Metadata.Status previousStatus = topic.getMetadata().getStatus();
-        int previousGeneration = topic.getMetadata().getGeneration();
-        if (status.getPhase() == Resource.Metadata.Phase.SUCCESS && !topic.isSuccess()) {
-            topic.getMetadata().setGeneration(previousGeneration + 1);
-        }
-        topic.setStatus(state);
-        topic.getMetadata().setStatus(status);
-        try {
-            tableflowTopicRepository.create(topic);
-        } catch (KafkaStoreException exception) {
-            // The repository returns its cached resource; retain the previous state so the next run retries the write.
-            topic.setStatus(previousState);
-            topic.getMetadata().setStatus(previousStatus);
-            topic.getMetadata().setGeneration(previousGeneration);
-            throw exception;
-        }
     }
 }

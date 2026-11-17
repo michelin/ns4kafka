@@ -22,11 +22,11 @@ import io.micronaut.serde.annotation.Serdeable;
 import java.util.List;
 import lombok.Builder;
 
-/** One page of Tableflow topics in a Confluent cluster. */
+/** Tableflow topic list response. */
 @Builder
 @Serdeable
 public record TableflowTopicListResponse(List<TableflowTopicResponse> data, ListMetadata metadata) {
-    /** Link to the next page, when more topics are available. */
+    /** Pagination metadata. */
     @Builder
     @Serdeable
     public record ListMetadata(String next) {}

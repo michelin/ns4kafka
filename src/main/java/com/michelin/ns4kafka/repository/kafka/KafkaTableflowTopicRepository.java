@@ -37,7 +37,7 @@ import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.Producer;
 
-/** Kafka storage for Tableflow configurations and deployment status. */
+/** Kafka Tableflow topic repository. */
 @Singleton
 @KafkaListener(
         offsetReset = OffsetReset.EARLIEST,
@@ -75,10 +75,10 @@ public class KafkaTableflowTopicRepository extends KafkaStore<TableflowTopic> im
     }
 
     /**
-     * Find the stored configurations to process for a cluster.
+     * Find all Tableflow topics by cluster.
      *
      * @param cluster The cluster
-     * @return The list of topics
+     * @return The list of Tableflow topics
      */
     @Override
     public List<TableflowTopic> findAllForCluster(String cluster) {
@@ -88,11 +88,11 @@ public class KafkaTableflowTopicRepository extends KafkaStore<TableflowTopic> im
     }
 
     /**
-     * Find a topic by name.
+     * Find a Tableflow topic by name and cluster.
      *
      * @param cluster The cluster
      * @param name The topic name
-     * @return An optional topic
+     * @return An optional Tableflow topic
      */
     @Override
     public Optional<TableflowTopic> findByName(String cluster, String name) {
@@ -100,10 +100,10 @@ public class KafkaTableflowTopicRepository extends KafkaStore<TableflowTopic> im
     }
 
     /**
-     * Store a Tableflow configuration or its deployment status.
+     * Create a Tableflow topic.
      *
-     * @param topic The configuration to store
-     * @return The stored configuration
+     * @param topic The Tableflow topic
+     * @return The created Tableflow topic
      */
     @Override
     public TableflowTopic create(TableflowTopic topic) {
@@ -111,7 +111,7 @@ public class KafkaTableflowTopicRepository extends KafkaStore<TableflowTopic> im
     }
 
     /**
-     * Receive a topic record from Kafka and update the store.
+     * Receive a Tableflow topic record from Kafka and update the store.
      *
      * @param message The record
      */
