@@ -23,6 +23,7 @@ import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidTableflowValueS
 
 import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.TableflowTopic;
 import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
@@ -37,11 +38,13 @@ import java.util.Map;
 import java.util.Optional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 /** Service to manage Tableflow topics. */
 @Singleton
 public class TableflowTopicService {
     private final AclService aclService;
+    private final TopicService topicService;
     private final ConfluentCloudClient confluentCloudClient;
     private final TableflowTopicRepository tableflowTopicRepository;
     private final SchemaRegistryClient schemaRegistryClient;
@@ -51,6 +54,7 @@ public class TableflowTopicService {
      * Constructor.
      *
      * @param aclService The ACL service
+     * @param topicService The topic service
      * @param confluentCloudClient The Confluent Cloud client
      * @param tableflowTopicRepository The Tableflow topic repository
      * @param schemaRegistryClient The Schema Registry client
@@ -58,11 +62,13 @@ public class TableflowTopicService {
      */
     public TableflowTopicService(
             AclService aclService,
+            TopicService topicService,
             ConfluentCloudClient confluentCloudClient,
             TableflowTopicRepository tableflowTopicRepository,
             SchemaRegistryClient schemaRegistryClient,
             List<ManagedClusterProperties> managedClusterProperties) {
         this.aclService = aclService;
+        this.topicService = topicService;
         this.confluentCloudClient = confluentCloudClient;
         this.tableflowTopicRepository = tableflowTopicRepository;
         this.schemaRegistryClient = schemaRegistryClient;
@@ -140,6 +146,53 @@ public class TableflowTopicService {
                                     .build();
                         })
                         .toList());
+    }
+
+    /**
+     * List all Tableflow topics of a given namespace that exist in Confluent Cloud but are not synchronized to
+     * Ns4Kafka, filtered by name. Tableflow topics whose source topic is not in Ns4Kafka are skipped.
+     *
+     * @param namespace The namespace
+     * @param name The name filter
+     * @return The unsynchronized Tableflow topics
+     */
+    public Flux<TableflowTopic> listUnsynchronizedTableflowTopicsByWildcardName(Namespace namespace, String name) {
+        String cluster = namespace.getMetadata().getCluster();
+        List<String> nameFilterPatterns = RegexUtils.convertWildcardStringsToRegex(List.of(name));
+        List<AccessControlEntry> acls =
+                aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.TOPIC);
+
+        return confluentCloudClient
+                .listTableflowTopics(cluster)
+                .filter(response -> response.spec() != null
+                        && response.spec().displayName() != null
+                        // ...that belongs to this namespace
+                        && aclService.isResourceCoveredByAcls(
+                                acls, response.spec().displayName())
+                        // ...and matches the name filter
+                        && RegexUtils.isResourceCoveredByRegex(response.spec().displayName(), nameFilterPatterns))
+                // Ns4Kafka storage is blocking; keep it outside the HTTP client event loop.
+                .publishOn(Schedulers.boundedElastic())
+                // ...and isn't in Ns4Kafka storage
+                .filter(response ->
+                        findByName(namespace, response.spec().displayName()).isEmpty())
+                // ...and whose source topic is in Ns4Kafka storage
+                .filter(response -> topicService
+                        .findByName(namespace, response.spec().displayName())
+                        .isPresent())
+                .map(response -> TableflowTopic.builder()
+                        .metadata(Resource.Metadata.builder()
+                                .name(response.spec().displayName())
+                                .build())
+                        .spec(TableflowTopic.TableflowTopicSpec.builder()
+                                .tableFormats(response.spec().tableFormats())
+                                .storage(Optional.ofNullable(response.spec().storage())
+                                        .map(storage -> TableflowTopic.Storage.builder()
+                                                .kind(storage.kind())
+                                                .build())
+                                        .orElse(null))
+                                .build())
+                        .build());
     }
 
     /**

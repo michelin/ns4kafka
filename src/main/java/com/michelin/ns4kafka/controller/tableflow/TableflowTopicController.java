@@ -25,6 +25,7 @@ import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
 import com.michelin.ns4kafka.controller.generic.NamespacedResourceController;
 import com.michelin.ns4kafka.model.AuditLog;
 import com.michelin.ns4kafka.model.Namespace;
+import com.michelin.ns4kafka.model.Resource;
 import com.michelin.ns4kafka.model.TableflowTopic;
 import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.service.NamespaceService;
@@ -169,5 +170,43 @@ public class TableflowTopicController extends NamespacedResourceController {
 
                     return formatHttpResponse(createdTableflowTopic, ApplyStatus.CREATED, validationWarnings);
                 });
+    }
+
+    /**
+     * Import unsynchronized Tableflow topics.
+     *
+     * @param namespace The namespace
+     * @param name The name parameter
+     * @param dryrun Is dry run mode or not?
+     * @return The list of imported Tableflow topics
+     */
+    @Post("/_/import")
+    public Mono<List<TableflowTopic>> importResources(
+            String namespace,
+            @QueryValue(defaultValue = "*") String name,
+            @QueryValue(defaultValue = "false") boolean dryrun) {
+        Namespace ns = getNamespace(namespace);
+        return tableflowTopicService
+                .listUnsynchronizedTableflowTopicsByWildcardName(ns, name)
+                .map(unsynchronizedTableflowTopic -> {
+                    assignResourceMetadata(unsynchronizedTableflowTopic, ns, null);
+                    unsynchronizedTableflowTopic.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
+                    unsynchronizedTableflowTopic.getMetadata().setGeneration(1);
+
+                    if (dryrun) {
+                        return unsynchronizedTableflowTopic;
+                    }
+
+                    TableflowTopic importedTableflowTopic = tableflowTopicService.create(unsynchronizedTableflowTopic);
+                    sendEventLog(
+                            importedTableflowTopic,
+                            ApplyStatus.CREATED,
+                            null,
+                            importedTableflowTopic.getSpec(),
+                            EMPTY_STRING);
+
+                    return importedTableflowTopic;
+                })
+                .collectList();
     }
 }

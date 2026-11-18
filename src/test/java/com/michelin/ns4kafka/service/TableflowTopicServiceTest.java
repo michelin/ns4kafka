@@ -45,6 +45,7 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.client.exceptions.ReadTimeoutException;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
@@ -64,6 +65,9 @@ import reactor.test.StepVerifier;
 class TableflowTopicServiceTest {
     @Mock
     AclService aclService;
+
+    @Mock
+    TopicService topicService;
 
     @Mock
     ConfluentCloudClient confluentCloudClient;
@@ -278,6 +282,49 @@ class TableflowTopicServiceTest {
                 .expectNext(salesOrders)
                 .verifyComplete();
         verifyNoInteractions(confluentCloudClient);
+    }
+
+    @Test
+    void shouldListUnsynchronizedTableflowTopicsOwnedByNamespaceMatchingTheNameFilter() {
+        Namespace ns = namespace();
+        List<AccessControlEntry> acls = List.of(AccessControlEntry.builder().build());
+
+        when(aclService.findResourceOwnerGrantedToNamespace(ns, AccessControlEntry.ResourceType.TOPIC))
+                .thenReturn(acls);
+        when(confluentCloudClient.listTableflowTopics("cloud"))
+                .thenReturn(Flux.just(
+                        confluentTableflowTopic("other.orders"),
+                        confluentTableflowTopic("sales.orders"),
+                        confluentTableflowTopic("sales.pending-orders"),
+                        confluentTableflowTopic("sales.unknown-orders"),
+                        confluentTableflowTopic("sales.invoices"),
+                        new TableflowTopicResponse("tft-no-spec", null, null)));
+        when(aclService.isResourceCoveredByAcls(acls, "other.orders")).thenReturn(false);
+        when(aclService.isResourceCoveredByAcls(acls, "sales.orders")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, "sales.pending-orders")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, "sales.unknown-orders")).thenReturn(true);
+        when(aclService.isResourceCoveredByAcls(acls, "sales.invoices")).thenReturn(true);
+        when(tableflowTopicRepository.findByName("cloud", "sales.orders"))
+                .thenReturn(Optional.of(tableflowTopic("sales.orders")));
+        when(tableflowTopicRepository.findByName("cloud", "sales.pending-orders"))
+                .thenReturn(Optional.empty());
+        when(tableflowTopicRepository.findByName("cloud", "sales.unknown-orders"))
+                .thenReturn(Optional.empty());
+        when(topicService.findByName(ns, "sales.pending-orders")).thenReturn(Optional.of(topic()));
+        when(topicService.findByName(ns, "sales.unknown-orders")).thenReturn(Optional.empty());
+
+        StepVerifier.create(tableflowTopicService.listUnsynchronizedTableflowTopicsByWildcardName(ns, "*orders"))
+                .assertNext(tableflowTopic -> {
+                    assertEquals(
+                            "sales.pending-orders", tableflowTopic.getMetadata().getName());
+                    assertEquals(Set.of("ICEBERG"), tableflowTopic.getSpec().getTableFormats());
+                    assertEquals(
+                            "Managed", tableflowTopic.getSpec().getStorage().getKind());
+                    assertNull(tableflowTopic.getStatus());
+                })
+                .verifyComplete();
+
+        verify(tableflowTopicRepository, never()).findByName("cloud", "sales.invoices");
     }
 
     private static TableflowTopicResponse confluentTableflowTopic(String name) {

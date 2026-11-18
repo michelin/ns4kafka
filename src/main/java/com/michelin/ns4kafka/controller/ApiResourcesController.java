@@ -91,7 +91,7 @@ public class ApiResourcesController {
     public static final ResourceDefinition TABLEFLOW_TOPIC = ResourceDefinition.builder()
             .kind("TableflowTopic")
             .namespaced(true)
-            .synchronizable(false)
+            .synchronizable(true)
             .path("tableflow-topics")
             .names(List.of(
                     "tableflow-topics", "tableflow-topic", "tableflowtopics", "tableflowtopic", "tableflow", "tf"))
