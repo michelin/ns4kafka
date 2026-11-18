@@ -48,6 +48,7 @@ import jakarta.validation.Valid;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
@@ -87,7 +88,7 @@ public class TableflowTopicController extends NamespacedResourceController {
      * @return The matching Tableflow topics
      */
     @Get
-    public List<TableflowTopic> list(String namespace, @QueryValue(defaultValue = "*") String name) {
+    public Flux<TableflowTopic> list(String namespace, @QueryValue(defaultValue = "*") String name) {
         return tableflowTopicService.findByWildcardName(getNamespace(namespace), name);
     }
 

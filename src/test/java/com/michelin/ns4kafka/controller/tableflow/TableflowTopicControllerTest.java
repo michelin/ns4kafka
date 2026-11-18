@@ -55,6 +55,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -477,9 +478,11 @@ class TableflowTopicControllerTest {
         TableflowTopic tableflowTopic = icebergRequest();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(tableflowTopicService.findByWildcardName(ns, "*")).thenReturn(List.of(tableflowTopic));
+        when(tableflowTopicService.findByWildcardName(ns, "*")).thenReturn(Flux.just(tableflowTopic));
 
-        assertEquals(List.of(tableflowTopic), tableflowTopicController.list("test", "*"));
+        StepVerifier.create(tableflowTopicController.list("test", "*"))
+                .expectNext(tableflowTopic)
+                .verifyComplete();
     }
 
     private static Namespace namespace() {
