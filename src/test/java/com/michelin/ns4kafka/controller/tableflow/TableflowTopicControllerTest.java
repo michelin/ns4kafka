@@ -485,6 +485,51 @@ class TableflowTopicControllerTest {
                 .verifyComplete();
     }
 
+    @Test
+    void shouldImportTableflowTopics() {
+        Namespace ns = namespace();
+        TableflowTopic tableflowTopic = icebergRequest();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(tableflowTopicService.listUnsynchronizedTableflowTopicsByWildcardName(ns, "*"))
+                .thenReturn(Flux.just(tableflowTopic));
+        when(tableflowTopicService.create(tableflowTopic)).thenReturn(tableflowTopic);
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
+
+        StepVerifier.create(tableflowTopicController.importResources("test", "*", false))
+                .consumeNextWith(imported -> {
+                    assertEquals(List.of(tableflowTopic), imported);
+                    assertEquals("cloud", tableflowTopic.getMetadata().getCluster());
+                    assertEquals("test", tableflowTopic.getMetadata().getNamespace());
+                    assertEquals(1, tableflowTopic.getMetadata().getGeneration());
+                    assertEquals(
+                            Resource.Metadata.Phase.SUCCESS,
+                            tableflowTopic.getMetadata().getStatus().getPhase());
+                })
+                .verifyComplete();
+
+        verify(tableflowTopicService).create(tableflowTopic);
+        verify(applicationEventPublisher).publishEvent(any(AuditLog.class));
+    }
+
+    @Test
+    void shouldImportTableflowTopicsInDryRunMode() {
+        Namespace ns = namespace();
+        TableflowTopic tableflowTopic = icebergRequest();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(tableflowTopicService.listUnsynchronizedTableflowTopicsByWildcardName(ns, "orders"))
+                .thenReturn(Flux.just(tableflowTopic));
+
+        StepVerifier.create(tableflowTopicController.importResources("test", "orders", true))
+                .expectNext(List.of(tableflowTopic))
+                .verifyComplete();
+
+        verify(tableflowTopicService, never()).create(any());
+        verify(applicationEventPublisher, never()).publishEvent(any());
+    }
+
     private static Namespace namespace() {
         return Namespace.builder()
                 .metadata(Resource.Metadata.builder()
