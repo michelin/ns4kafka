@@ -545,7 +545,7 @@ public class FormatErrorUtils {
      */
     public static String invalidNamespacePermissionMode(String invalidPermissionModeValue) {
         return INVALID_FIELD.formatted(
-                invalidPermissionModeValue, "permissionMode", "only available on Confluent Cloud clusters");
+                invalidPermissionModeValue, "permissionMode", "the cluster is not configured to use RBAC");
     }
 
     /**

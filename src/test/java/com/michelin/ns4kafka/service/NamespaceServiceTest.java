@@ -193,9 +193,16 @@ class NamespaceServiceTest {
 
     @Test
     void shouldValidateNamespaceInRbacModeWhenClusterManagesRbac() {
+        ManagedClusterProperties.ConfluentCloudProperties confluentCloud =
+                new ManagedClusterProperties.ConfluentCloudProperties();
+        confluentCloud.setOrganizationId("org-id");
+        confluentCloud.setEnvironmentId("env-id");
+        confluentCloud.setClusterId("lkc-id");
+        confluentCloud.setBasicAuthUsername("api-key");
+        confluentCloud.setBasicAuthPassword("api-secret");
         ManagedClusterProperties managedClusterProperties1 = new ManagedClusterProperties("local", CONFLUENT_CLOUD);
         managedClusterProperties1.setManageAcls(true);
-        managedClusterProperties1.setConfluentCloud(new ManagedClusterProperties.ConfluentCloudProperties());
+        managedClusterProperties1.setConfluentCloud(confluentCloud);
 
         when(managedClusterProperties.stream()).thenReturn(Stream.of(managedClusterProperties1));
         when(namespaceRepository.findAllForCluster("local")).thenReturn(List.of());
@@ -241,8 +248,37 @@ class NamespaceServiceTest {
 
         assertEquals(
                 List.of("Invalid value \"RBAC\" for field \"permissionMode\": "
-                        + "only available on Confluent Cloud clusters."),
+                        + "the cluster is not configured to use RBAC."),
                 result);
+    }
+
+    @Test
+    void shouldNotValidateNamespaceInRbacModeWhenConfluentCloudIsNotFullyConfigured() {
+        ManagedClusterProperties managedClusterProperties1 = new ManagedClusterProperties("local", CONFLUENT_CLOUD);
+        managedClusterProperties1.setManageAcls(true);
+        managedClusterProperties1.setConfluentCloud(new ManagedClusterProperties.ConfluentCloudProperties());
+
+        when(managedClusterProperties.stream()).thenReturn(Stream.of(managedClusterProperties1));
+        when(namespaceRepository.findAllForCluster("local")).thenReturn(List.of());
+
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("namespace")
+                        .cluster("local")
+                        .build())
+                .spec(NamespaceSpec.builder()
+                        .kafkaUser("user")
+                        .permissionMode(PermissionMode.RBAC)
+                        .topicValidator(TopicValidator.builder()
+                                .validationConstraints(Map.of())
+                                .build())
+                        .build())
+                .build();
+
+        assertEquals(
+                List.of("Invalid value \"RBAC\" for field \"permissionMode\": "
+                        + "the cluster is not configured to use RBAC."),
+                namespaceService.validate(ns));
     }
 
     @Test
