@@ -31,6 +31,7 @@ import com.michelin.ns4kafka.model.TableflowTopic;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.TableflowTopicRepository;
 import com.michelin.ns4kafka.service.client.confluent.ConfluentCloudClient;
+import com.michelin.ns4kafka.service.client.confluent.entities.ConfluentCloudErrorResponse;
 import com.michelin.ns4kafka.service.client.confluent.entities.TableflowTopicResponse;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -233,6 +234,46 @@ class TableflowTopicAsyncExecutorTest {
 
         assertTrue(tableflowTopic.isFailed());
         assertEquals("Internal error", tableflowTopic.getMetadata().getStatus().getMessage());
+        verify(tableflowTopicRepository).create(tableflowTopic);
+    }
+
+    @Test
+    void shouldMarkTableflowTopicAsFailedWithConfluentErrorDetailWhenCreationFails() {
+        TableflowTopic tableflowTopic = TableflowTopic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name(TOPIC_NAME)
+                        .namespace("ns1")
+                        .cluster(CLUSTER)
+                        .generation(0)
+                        .updateTimestamp(Date.from(INSTANT))
+                        .status(Resource.Metadata.Status.ofPending())
+                        .build())
+                .spec(TableflowTopic.TableflowTopicSpec.builder()
+                        .tableFormats(Set.of("ICEBERG"))
+                        .storage(
+                                TableflowTopic.Storage.builder().kind("Managed").build())
+                        .build())
+                .build();
+
+        when(managedClusterProperties.isManageTableflow()).thenReturn(true);
+        when(managedClusterProperties.getName()).thenReturn(CLUSTER);
+        when(tableflowTopicRepository.findAllForCluster(CLUSTER)).thenReturn(List.of(tableflowTopic));
+        when(tableflowTopicRepository.findByName(CLUSTER, TOPIC_NAME)).thenReturn(Optional.of(tableflowTopic));
+        when(confluentCloudClient.listTableflowTopics(CLUSTER)).thenReturn(Flux.empty());
+        when(confluentCloudClient.createTableflowTopic(CLUSTER, tableflowTopic))
+                .thenReturn(Mono.error(new HttpClientResponseException(
+                        "Bad Request",
+                        HttpResponse.badRequest(ConfluentCloudErrorResponse.builder()
+                                .errors(List.of(new ConfluentCloudErrorResponse.Error(
+                                        "Bad Request: delta table format is not supported with managed storage")))
+                                .build()))));
+
+        StepVerifier.create(tableflowTopicAsyncExecutor.run()).verifyComplete();
+
+        assertTrue(tableflowTopic.isFailed());
+        assertEquals(
+                "Bad Request: delta table format is not supported with managed storage",
+                tableflowTopic.getMetadata().getStatus().getMessage());
         verify(tableflowTopicRepository).create(tableflowTopic);
     }
 

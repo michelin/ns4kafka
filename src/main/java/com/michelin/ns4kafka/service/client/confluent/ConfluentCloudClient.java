@@ -20,6 +20,7 @@ package com.michelin.ns4kafka.service.client.confluent;
 
 import com.michelin.ns4kafka.model.TableflowTopic;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
+import com.michelin.ns4kafka.service.client.confluent.entities.ConfluentCloudErrorResponse;
 import com.michelin.ns4kafka.service.client.confluent.entities.RoleBinding;
 import com.michelin.ns4kafka.service.client.confluent.entities.RoleBindingListResponse;
 import com.michelin.ns4kafka.service.client.confluent.entities.RoleBindingRequest;
@@ -28,6 +29,7 @@ import com.michelin.ns4kafka.service.client.confluent.entities.TableflowTopicLis
 import com.michelin.ns4kafka.service.client.confluent.entities.TableflowTopicRequest;
 import com.michelin.ns4kafka.service.client.confluent.entities.TableflowTopicResponse;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
+import io.micronaut.core.type.Argument;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.client.HttpClient;
@@ -91,11 +93,14 @@ public class ConfluentCloudClient {
                 tableflowTopic.getSpec().getTableFormats(),
                 new TableflowTopicRequest.Reference(config.getEnvironmentId()),
                 new TableflowTopicRequest.Reference(config.getClusterId())));
+
         HttpRequest<?> request = HttpRequest.POST(
                         URI.create(StringUtils.prependUri(CONFLUENT_CLOUD_API_URL, "/tableflow/v1/tableflow-topics")),
                         body)
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
-        return Mono.from(httpClient.retrieve(request, TableflowTopicResponse.class));
+
+        return Mono.from(httpClient.retrieve(
+                request, Argument.of(TableflowTopicResponse.class), Argument.of(ConfluentCloudErrorResponse.class)));
     }
 
     /**
@@ -136,8 +141,10 @@ public class ConfluentCloudClient {
                 .queryParam("spec.kafka_cluster", config.getClusterId())
                 .queryParam("page_size", TABLEFLOW_PAGE_SIZE)
                 .build();
+
         HttpRequest<?> request = HttpRequest.GET(pageToken == null ? uri : URI.create(uri + "&page_token=" + pageToken))
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+
         return Mono.from(httpClient.retrieve(request, TableflowTopicListResponse.class));
     }
 

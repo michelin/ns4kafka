@@ -23,8 +23,10 @@ import com.michelin.ns4kafka.model.TableflowTopic;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.TableflowTopicRepository;
 import com.michelin.ns4kafka.service.client.confluent.ConfluentCloudClient;
+import com.michelin.ns4kafka.service.client.confluent.entities.ConfluentCloudErrorResponse;
 import com.michelin.ns4kafka.service.client.confluent.entities.TableflowTopicResponse;
 import io.micronaut.context.annotation.EachBean;
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Locale;
@@ -134,16 +136,25 @@ public class TableflowTopicAsyncExecutor {
                                     tableflowTopic.getMetadata().getName(),
                                     managedClusterProperties.getName()))
                             .onErrorResume(e -> {
+                                String errorMessage = e instanceof HttpClientResponseException responseException
+                                        ? responseException
+                                                .getResponse()
+                                                .getBody(ConfluentCloudErrorResponse.class)
+                                                .filter(error -> error.errors() != null)
+                                                .map(error -> error.errors().stream()
+                                                        .map(ConfluentCloudErrorResponse.Error::detail)
+                                                        .collect(Collectors.joining(", ")))
+                                                .orElse(responseException.getMessage())
+                                        : Objects.toString(
+                                                e.getMessage(), e.getClass().getName());
+
                                 log.error(
                                         "Error while creating Tableflow topic {} on cluster {}.",
                                         tableflowTopic.getMetadata().getName(),
                                         managedClusterProperties.getName(),
                                         e);
 
-                                creationErrors.put(
-                                        tableflowTopic.getMetadata().getName(),
-                                        Objects.toString(
-                                                e.getMessage(), e.getClass().getName()));
+                                creationErrors.put(tableflowTopic.getMetadata().getName(), errorMessage);
                                 return Mono.empty();
                             }))
                     .then(Mono.fromSupplier(() -> creationErrors));
@@ -176,7 +187,6 @@ public class TableflowTopicAsyncExecutor {
                 status = Resource.Metadata.Status.ofSuccess();
             }
 
-            // Status is up to date
             if (Objects.equals(tableflowTopic.getMetadata().getStatus(), status)) {
                 return;
             }
