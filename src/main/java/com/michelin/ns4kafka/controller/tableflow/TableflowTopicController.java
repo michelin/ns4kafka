@@ -51,8 +51,8 @@ import java.util.Optional;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
-/** Controller to manage Tableflow topics. */
-@Tag(name = "Tableflow Topics", description = "Enable and list Tableflow for existing Kafka topics.")
+/** Controller to manage the Confluent Tableflow topics. */
+@Tag(name = "Tableflow Topics", description = "Manage the Confluent Tableflow topics.")
 @Controller(value = "/api/namespaces/{namespace}/tableflow-topics")
 @ExecuteOn(TaskExecutors.IO)
 public class TableflowTopicController extends NamespacedResourceController {
@@ -80,17 +80,15 @@ public class TableflowTopicController extends NamespacedResourceController {
     }
 
     /**
-     * List Tableflow topics owned by the namespace, filtered by name.
+     * List Tableflow topics by namespace, filtered by name.
      *
      * @param namespace The namespace
      * @param name The name filter
      * @return The matching Tableflow topics
      */
     @Get
-    public Mono<List<TableflowTopic>> list(String namespace, @QueryValue(defaultValue = "*") String name) {
-        return tableflowTopicService
-                .findByWildcardName(getNamespace(namespace), name)
-                .collectList();
+    public List<TableflowTopic> list(String namespace, @QueryValue(defaultValue = "*") String name) {
+        return tableflowTopicService.findByWildcardName(getNamespace(namespace), name);
     }
 
     /**

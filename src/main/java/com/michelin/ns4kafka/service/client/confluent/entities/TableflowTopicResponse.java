@@ -19,7 +19,6 @@
 package com.michelin.ns4kafka.service.client.confluent.entities;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.michelin.ns4kafka.model.TableflowTopic;
 import io.micronaut.serde.annotation.Serdeable;
 import java.util.Set;
 import lombok.Builder;
@@ -28,24 +27,6 @@ import lombok.Builder;
 @Builder
 @Serdeable
 public record TableflowTopicResponse(String id, Spec spec, Status status) {
-    /**
-     * Map the Confluent materialization status to its Ns4Kafka representation.
-     *
-     * @return The Tableflow topic status
-     */
-    public TableflowTopic.TableflowTopicStatus toTopicStatus() {
-        return TableflowTopic.TableflowTopicStatus.builder()
-                .id(id)
-                .state(
-                        status == null
-                                ? null
-                                : TableflowTopic.TableflowTopicState.builder()
-                                        .phase(status.phase())
-                                        .errorMessage(status.errorMessage())
-                                        .build())
-                .build();
-    }
-
     /** Tableflow topic spec. */
     @Builder
     @Serdeable
