@@ -105,7 +105,6 @@ public class TableflowTopic extends Resource {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class TableflowTopicState {
         private String phase;
-
         private String errorMessage;
     }
 }

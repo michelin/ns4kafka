@@ -93,7 +93,8 @@ public class ApiResourcesController {
             .namespaced(true)
             .synchronizable(false)
             .path("tableflow-topics")
-            .names(List.of("tableflow-topics", "tableflow-topic", "tableflowtopic", "tableflowtopics", "tft"))
+            .names(List.of(
+                    "tableflow-topics", "tableflow-topic", "tableflowtopics", "tableflowtopic", "tableflow", "tf"))
             .build();
 
     /** Schema resource definition. */

@@ -21,20 +21,28 @@ package com.michelin.ns4kafka.service;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidTableflowClusterConfiguration;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidTableflowValueSchema;
 
+import com.michelin.ns4kafka.model.AccessControlEntry;
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.TableflowTopic;
 import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.TableflowTopicRepository;
+import com.michelin.ns4kafka.service.client.confluent.ConfluentCloudClient;
+import com.michelin.ns4kafka.service.client.confluent.entities.TableflowTopicResponse;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
+import com.michelin.ns4kafka.util.RegexUtils;
 import jakarta.inject.Singleton;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /** Service to manage Tableflow topics. */
 @Singleton
 public class TableflowTopicService {
+    private final AclService aclService;
+    private final ConfluentCloudClient confluentCloudClient;
     private final TableflowTopicRepository tableflowTopicRepository;
     private final SchemaRegistryClient schemaRegistryClient;
     private final List<ManagedClusterProperties> managedClusterProperties;
@@ -42,17 +50,96 @@ public class TableflowTopicService {
     /**
      * Constructor.
      *
+     * @param aclService The ACL service
+     * @param confluentCloudClient The Confluent Cloud client
      * @param tableflowTopicRepository The Tableflow topic repository
      * @param schemaRegistryClient The Schema Registry client
      * @param managedClusterProperties The managed cluster properties
      */
     public TableflowTopicService(
+            AclService aclService,
+            ConfluentCloudClient confluentCloudClient,
             TableflowTopicRepository tableflowTopicRepository,
             SchemaRegistryClient schemaRegistryClient,
             List<ManagedClusterProperties> managedClusterProperties) {
+        this.aclService = aclService;
+        this.confluentCloudClient = confluentCloudClient;
         this.tableflowTopicRepository = tableflowTopicRepository;
         this.schemaRegistryClient = schemaRegistryClient;
         this.managedClusterProperties = managedClusterProperties;
+    }
+
+    /**
+     * Find all Tableflow topics of a given namespace.
+     *
+     * @param namespace The namespace
+     * @return The Tableflow topics
+     */
+    public List<TableflowTopic> findAllForNamespace(Namespace namespace) {
+        List<AccessControlEntry> acls =
+                aclService.findResourceOwnerGrantedToNamespace(namespace, AccessControlEntry.ResourceType.TOPIC);
+        return tableflowTopicRepository
+                .findAllForCluster(namespace.getMetadata().getCluster())
+                .stream()
+                .filter(tableflowTopic -> aclService.isResourceCoveredByAcls(
+                        acls, tableflowTopic.getMetadata().getName()))
+                .toList();
+    }
+
+    /**
+     * Find all Tableflow topics of a given namespace, filtered by name, with their current Confluent Cloud status.
+     *
+     * @param namespace The namespace
+     * @param name The name filter
+     * @return The Tableflow topics
+     */
+    public Flux<TableflowTopic> findByWildcardName(Namespace namespace, String name) {
+        List<String> nameFilterPatterns = RegexUtils.convertWildcardStringsToRegex(List.of(name));
+        List<TableflowTopic> tableflowTopics = findAllForNamespace(namespace).stream()
+                .filter(tableflowTopic -> RegexUtils.isResourceCoveredByRegex(
+                        tableflowTopic.getMetadata().getName(), nameFilterPatterns))
+                .toList();
+
+        if (tableflowTopics.isEmpty()
+                || managedClusterProperties.stream()
+                        .filter(properties -> properties
+                                .getName()
+                                .equals(namespace.getMetadata().getCluster()))
+                        .noneMatch(ManagedClusterProperties::isManageTableflow)) {
+            return Flux.fromIterable(tableflowTopics);
+        }
+
+        return confluentCloudClient
+                .listTableflowTopics(namespace.getMetadata().getCluster())
+                .filter(response -> response.spec() != null)
+                .collectMap(response -> response.spec().displayName())
+                .onErrorReturn(Map.of())
+                .flatMapIterable(responses -> tableflowTopics.stream()
+                        .map(tableflowTopic -> {
+                            TableflowTopicResponse response =
+                                    responses.get(tableflowTopic.getMetadata().getName());
+                            if (response == null) {
+                                return tableflowTopic;
+                            }
+
+                            return TableflowTopic.builder()
+                                    .metadata(tableflowTopic.getMetadata())
+                                    .spec(tableflowTopic.getSpec())
+                                    .status(TableflowTopic.TableflowTopicStatus.builder()
+                                            .id(response.id())
+                                            .state(Optional.ofNullable(response.status())
+                                                    .map(status -> TableflowTopic.TableflowTopicState.builder()
+                                                            .phase(status.phase())
+                                                            .errorMessage(
+                                                                    "none".equals(status.errorMessage())
+                                                                            ? null
+                                                                            : status.errorMessage())
+                                                            .build())
+                                                    .orElse(null))
+                                            .build())
+                                    .build();
+                        })
+                        .toList());
     }
 
     /**
