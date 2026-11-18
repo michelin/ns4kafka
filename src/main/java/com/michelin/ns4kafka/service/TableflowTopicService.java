@@ -127,15 +127,15 @@ public class TableflowTopicService {
                                     .spec(tableflowTopic.getSpec())
                                     .status(TableflowTopic.TableflowTopicStatus.builder()
                                             .id(response.id())
-                                            .state(
-                                                    response.status() == null
-                                                            ? null
-                                                            : TableflowTopic.TableflowTopicState.builder()
-                                                                    .phase(response.status()
-                                                                            .phase())
-                                                                    .errorMessage(response.status()
-                                                                            .errorMessage())
-                                                                    .build())
+                                            .state(Optional.ofNullable(response.status())
+                                                    .map(status -> TableflowTopic.TableflowTopicState.builder()
+                                                            .phase(status.phase())
+                                                            .errorMessage(
+                                                                    "none".equals(status.errorMessage())
+                                                                            ? null
+                                                                            : status.errorMessage())
+                                                            .build())
+                                                    .orElse(null))
                                             .build())
                                     .build();
                         })
