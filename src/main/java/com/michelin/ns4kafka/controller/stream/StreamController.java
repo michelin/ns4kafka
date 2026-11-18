@@ -81,7 +81,7 @@ public class StreamController extends NamespacedResourceController {
      * @return A list of Kafka Streams
      */
     @Get
-    List<KafkaStream> list(String namespace, @QueryValue(defaultValue = "*") String name) {
+    public List<KafkaStream> list(String namespace, @QueryValue(defaultValue = "*") String name) {
         return streamService.findByWildcardName(getNamespace(namespace), name);
     }
 
@@ -95,7 +95,7 @@ public class StreamController extends NamespacedResourceController {
      */
     @Get("/{stream}")
     @Deprecated(since = "1.12.0")
-    Optional<KafkaStream> get(String namespace, String stream) {
+    public Optional<KafkaStream> get(String namespace, String stream) {
         return streamService.findByName(getNamespace(namespace), stream);
     }
 
@@ -108,7 +108,7 @@ public class StreamController extends NamespacedResourceController {
      * @return An HTTP response
      */
     @Post
-    HttpResponse<KafkaStream> apply(
+    public HttpResponse<KafkaStream> apply(
             String namespace, @Body @Valid KafkaStream stream, @QueryValue(defaultValue = "false") boolean dryrun) {
         Namespace ns = getNamespace(namespace);
         if (!streamService.isNamespaceOwnerOfKafkaStream(
@@ -153,7 +153,8 @@ public class StreamController extends NamespacedResourceController {
      */
     @Delete("/{stream}")
     @Deprecated(since = "1.13.0")
-    HttpResponse<Void> delete(String namespace, String stream, @QueryValue(defaultValue = "false") boolean dryrun)
+    public HttpResponse<Void> delete(
+            String namespace, String stream, @QueryValue(defaultValue = "false") boolean dryrun)
             throws ExecutionException, InterruptedException, TimeoutException {
         Namespace ns = getNamespace(namespace);
         if (!streamService.isNamespaceOwnerOfKafkaStream(ns, stream)) {
@@ -187,7 +188,7 @@ public class StreamController extends NamespacedResourceController {
      * @return An HTTP response
      */
     @Delete
-    HttpResponse<List<KafkaStream>> bulkDelete(
+    public HttpResponse<List<KafkaStream>> bulkDelete(
             String namespace,
             @QueryValue @NotBlank(message = "The Kafka stream name parameter is required for deletion.") String name,
             @QueryValue(defaultValue = "false") boolean dryrun)
