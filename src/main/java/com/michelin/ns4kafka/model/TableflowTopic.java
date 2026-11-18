@@ -66,10 +66,12 @@ public class TableflowTopic extends Resource {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class TableflowTopicSpec {
-        @NotEmpty @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Table formats allowed by the namespace.")
+        @NotEmpty @Schema(
+                requiredMode = Schema.RequiredMode.REQUIRED,
+                description = "Table formats to materialize the topic into.")
         private Set<@NotBlank String> tableFormats;
 
-        @Valid @NotNull @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Storage allowed by the namespace.")
+        @Valid @NotNull @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Storage where the tables are written.")
         private Storage storage;
     }
 

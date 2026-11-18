@@ -238,8 +238,27 @@ class TableflowTopicIntegrationTest extends SchemaRegistryIntegrationTest {
 
     @Test
     void shouldNotCreateTableflowTopicWhenSpecIsInvalid() {
+        Topic topic = Topic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("ns1.invalid")
+                        .namespace("ns1")
+                        .build())
+                .spec(Topic.TopicSpec.builder()
+                        .partitions(3)
+                        .replicationFactor(1)
+                        .configs(
+                                Map.of("cleanup.policy", "delete", "min.insync.replicas", "1", "retention.ms", "60000"))
+                        .build())
+                .build();
+
+        ns4KafkaClient
+                .toBlocking()
+                .exchange(HttpRequest.create(HttpMethod.POST, "/api/namespaces/ns1/topics")
+                        .bearerAuth(token)
+                        .body(topic));
+
         TableflowTopic tableflowTopic = TableflowTopic.builder()
-                .metadata(Resource.Metadata.builder().name("ns1.create").build())
+                .metadata(Resource.Metadata.builder().name("ns1.invalid").build())
                 .spec(TableflowTopic.TableflowTopicSpec.builder()
                         .tableFormats(Set.of("DELTA"))
                         .storage(TableflowTopic.Storage.builder().kind("BYOS").build())
