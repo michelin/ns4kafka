@@ -123,7 +123,7 @@ public class ConfluentCloudClient {
                             : null;
                     return pageToken != null ? listTableflowTopicsPage(config, pageToken) : Mono.empty();
                 })
-                .flatMapIterable(TableflowTopicListResponse::data);
+                .flatMapIterable(response -> response.data() != null ? response.data() : List.of());
     }
 
     /**
