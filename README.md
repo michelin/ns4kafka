@@ -393,6 +393,7 @@ This is the name you need to set in the `metadata.cluster` field of your namespa
 | manage-acls                                 | boolean | No       | Does the cluster manages access control entries (Default: false)                                  |
 | manage-connectors                           | boolean | No       | Does the cluster manages connects (Default: false)                                                |
 | manage-topics                               | boolean | No       | Does the cluster manages topics (Default: false)                                                  |
+| manage-tableflow                            | boolean | No       | Does the cluster manages Tableflow topics. Confluent Cloud only (Default: false)                  |
 | manage-users                                | boolean | No       | Does the cluster manages users (Default: false)                                                   |
 | drop-unsync-acls                            | boolean | No       | Should unsynchronized acls and Confluent RBAC be dropped (Default: true)                          |
 | timeout.acl.create                          | int     | No       | The timeout in milliseconds used by the AdminClient to create acls (Default: 30000ms)             |
@@ -419,9 +420,10 @@ The configuration will depend on the authentication method selected for your bro
 
 #### Confluent Cloud
 
-The following properties are only available for Confluent Cloud cluster providers. They are required for:
+The following properties are only available for Confluent Cloud cluster providers. They are required for the synchronization of:
 
 - [Role Bindings](https://docs.confluent.io/platform/current/security/authorization/rbac/overview.html)
+- [Tableflow](https://docs.confluent.io/cloud/current/topics/tableflow/overview.html)
 
 ```yaml
 ns4kafka:
@@ -432,8 +434,8 @@ ns4kafka:
         organization-id: "xxx"
         environment-id: "env-xxx"
         cluster-id: "lkc-xxx"
-        basic-auth-username: "username"
-        basic-auth-password: "password"
+        basic-auth-username: "api-key"
+        basic-auth-password: "api-secret"
 ```
 
 | Property                            | Type    | Required | Description                                                                                        |
@@ -442,8 +444,10 @@ ns4kafka:
 | confluent-cloud.organization-id     | string  | No       | Confluent Cloud organization ID.                                                                   |
 | confluent-cloud.environment-id      | string  | No       | Confluent Cloud environment ID.                                                                    |
 | confluent-cloud.cluster-id          | string  | No       | Confluent Cloud cluster ID.                                                                        |
-| confluent-cloud.basic-auth-username | string  | No       | Username for the Confluent Cloud API.                                                              |
-| confluent-cloud.basic-auth-password | string  | No       | Password for the Confluent Cloud API.                                                              |
+| confluent-cloud.basic-auth-username | string  | No       | Global or Cloud resource management API key.                                                       |
+| confluent-cloud.basic-auth-password | string  | No       | Global or Cloud resource management API secret.                                                    |
+
+The API key can either be a global key or a Cloud resource management key. See [API key resource scopes](https://docs.confluent.io/cloud/current/security/authenticate/workload-identities/service-accounts/api-keys/overview.html#resource-scopes).
 
 ### Audit Log
 
@@ -640,7 +644,13 @@ ns4kafka:
 
 #### Scheduler
 
-Ns4Kafka schedules the deployment of connectors and the synchronization of Confluent role bindings. The scheduling frequency can be configured using the following properties:
+Ns4Kafka schedules:
+
+- The deployment of connectors.
+- The synchronization of Confluent role bindings.
+- The deployment of Tableflow topics.
+
+The scheduling frequency can be configured using the following properties:
 
 ```yaml
 ns4kafka:
@@ -648,6 +658,8 @@ ns4kafka:
     connector:
       interval-ms: 30000
     role-binding:
+      interval-ms: 30000
+    tableflow:
       interval-ms: 30000
 ```
 

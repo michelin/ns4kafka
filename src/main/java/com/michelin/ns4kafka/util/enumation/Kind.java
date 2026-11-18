@@ -43,6 +43,7 @@ public enum Kind {
     SCHEMA("Schema"),
     SUBJECT_CONFIG_STATE("SubjectConfigState"),
     STATUS("Status"),
+    TABLEFLOW_TOPIC("TableflowTopic"),
     TOPIC("Topic"),
     VAULT_RESPONSE("VaultResponse");
 
