@@ -21,10 +21,8 @@ package com.michelin.ns4kafka.controller.tableflow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -243,8 +241,6 @@ class TableflowTopicControllerTest {
                 })
                 .verify();
 
-        verify(tableflowTopicService, never()).validateConfiguration(any(), any());
-        verify(topicService, never()).findByName(any(Namespace.class), any());
         verify(tableflowTopicService, never()).validateSchemas(any());
         verify(tableflowTopicService, never()).create(any());
         verify(applicationEventPublisher, never()).publishEvent(any(AuditLog.class));
@@ -275,33 +271,76 @@ class TableflowTopicControllerTest {
         when(topicService.isNamespaceOwnerOfTopic("test", "orders")).thenReturn(true);
         when(topicService.findByName(ns, "orders")).thenReturn(Optional.empty());
 
-        ResourceValidationException error = assertThrows(
-                ResourceValidationException.class, () -> tableflowTopicController.apply("test", request, false));
+        StepVerifier.create(tableflowTopicController.apply("test", request, false))
+                .consumeErrorWith(error -> {
+                    assertEquals(ResourceValidationException.class, error.getClass());
+                    assertEquals(
+                            List.of(
+                                    "Invalid value \"orders\" for field \"name\": a topic with the same name must exist."),
+                            ((ResourceValidationException) error).getValidationErrors());
+                })
+                .verify();
 
-        assertEquals(
-                List.of("Invalid value \"orders\" for field \"name\": a topic with the same name must exist."),
-                error.getValidationErrors());
+        verify(tableflowTopicService, never()).validateSchemas(any());
         verify(tableflowTopicService, never()).create(any());
     }
 
     @Test
     void shouldNotCreateTableflowTopicWhenClusterIsNotConfigured() {
         Namespace ns = namespace();
+        Topic topic = Topic.builder()
+                .metadata(
+                        Resource.Metadata.builder().name("orders").generation(1).build())
+                .build();
         TableflowTopic request = icebergRequest();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic("test", "orders")).thenReturn(true);
-        doThrow(new ResourceValidationException(
-                        request, "Invalid \"orders\": the cluster is not configured to use Tableflow."))
-                .when(tableflowTopicService)
-                .validateConfiguration(ns, "orders");
+        when(tableflowTopicService.validateConfiguration(ns, "orders"))
+                .thenReturn(List.of("Invalid \"orders\": the cluster is not configured to use Tableflow."));
+        when(topicService.findByName(ns, "orders")).thenReturn(Optional.of(topic));
 
-        assertThrows(ResourceValidationException.class, () -> tableflowTopicController.apply("test", request, false));
+        StepVerifier.create(tableflowTopicController.apply("test", request, false))
+                .consumeErrorWith(error -> {
+                    assertEquals(ResourceValidationException.class, error.getClass());
+                    assertEquals(
+                            List.of("Invalid \"orders\": the cluster is not configured to use Tableflow."),
+                            ((ResourceValidationException) error).getValidationErrors());
+                })
+                .verify();
 
-        verify(topicService, never()).findByName(any(Namespace.class), any());
         verify(tableflowTopicService, never()).validateSchemas(any());
         verify(tableflowTopicService, never()).create(any());
         verify(applicationEventPublisher, never()).publishEvent(any(AuditLog.class));
+    }
+
+    @Test
+    void shouldNotCreateTableflowTopicWithAllValidationErrors() {
+        Namespace ns = namespace();
+        TableflowTopic request = icebergRequest();
+        request.getSpec().setTableFormats(Set.of("DELTA"));
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(topicService.isNamespaceOwnerOfTopic("test", "orders")).thenReturn(true);
+        when(tableflowTopicService.validateConfiguration(ns, "orders"))
+                .thenReturn(List.of("Invalid \"orders\": the cluster is not configured to use Tableflow."));
+        when(topicService.findByName(ns, "orders")).thenReturn(Optional.empty());
+
+        StepVerifier.create(tableflowTopicController.apply("test", request, false))
+                .consumeErrorWith(error -> {
+                    assertEquals(ResourceValidationException.class, error.getClass());
+                    List<String> validationErrors = ((ResourceValidationException) error).getValidationErrors();
+                    assertEquals(3, validationErrors.size());
+                    assertTrue(validationErrors.stream().anyMatch(message -> message.contains("tableFormats")));
+                    assertTrue(validationErrors.contains(
+                            "Invalid \"orders\": the cluster is not configured to use Tableflow."));
+                    assertTrue(validationErrors.contains(
+                            "Invalid value \"orders\" for field \"name\": a topic with the same name must exist."));
+                })
+                .verify();
+
+        verify(tableflowTopicService, never()).validateSchemas(any());
+        verify(tableflowTopicService, never()).create(any());
     }
 
     @Test

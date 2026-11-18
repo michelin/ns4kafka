@@ -162,6 +162,47 @@ class TableflowTopicAsyncExecutorTest {
     }
 
     @Test
+    void shouldMarkTableflowTopicAsSuccessWhenConfigurationOnlyDiffersByCase() {
+        TableflowTopic tableflowTopic = TableflowTopic.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name(TOPIC_NAME)
+                        .namespace("ns1")
+                        .cluster(CLUSTER)
+                        .generation(0)
+                        .updateTimestamp(Date.from(INSTANT))
+                        .status(Resource.Metadata.Status.ofPending())
+                        .build())
+                .spec(TableflowTopic.TableflowTopicSpec.builder()
+                        .tableFormats(Set.of("iceberg", "Delta"))
+                        .storage(
+                                TableflowTopic.Storage.builder().kind("managed").build())
+                        .build())
+                .build();
+
+        TableflowTopicResponse tableflowTopicResponse = TableflowTopicResponse.builder()
+                .id("tf-" + TOPIC_NAME)
+                .spec(TableflowTopicResponse.Spec.builder()
+                        .displayName(TOPIC_NAME)
+                        .tableFormats(Set.of("ICEBERG", "DELTA"))
+                        .storage(new TableflowTopicResponse.Storage("Managed"))
+                        .build())
+                .status(new TableflowTopicResponse.Status("RUNNING", null))
+                .build();
+
+        when(managedClusterProperties.isManageTableflow()).thenReturn(true);
+        when(managedClusterProperties.getName()).thenReturn(CLUSTER);
+        when(tableflowTopicRepository.findAllForCluster(CLUSTER)).thenReturn(List.of(tableflowTopic));
+        when(tableflowTopicRepository.findByName(CLUSTER, TOPIC_NAME)).thenReturn(Optional.of(tableflowTopic));
+        when(confluentCloudClient.listTableflowTopics(CLUSTER)).thenReturn(Flux.just(tableflowTopicResponse));
+
+        StepVerifier.create(tableflowTopicAsyncExecutor.run()).verifyComplete();
+
+        assertTrue(tableflowTopic.isSuccess());
+        verify(tableflowTopicRepository).create(tableflowTopic);
+        verify(confluentCloudClient, never()).createTableflowTopic(any(), any());
+    }
+
+    @Test
     void shouldMarkTableflowTopicAsFailedWhenCreationFails() {
         TableflowTopic tableflowTopic = TableflowTopic.builder()
                 .metadata(Resource.Metadata.builder()

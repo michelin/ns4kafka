@@ -20,7 +20,6 @@ package com.michelin.ns4kafka.service;
 
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidTableflowClusterConfiguration;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidTableflowValueSchema;
-import static com.michelin.ns4kafka.util.enumation.Kind.TABLEFLOW_TOPIC;
 
 import com.michelin.ns4kafka.model.Namespace;
 import com.michelin.ns4kafka.model.TableflowTopic;
@@ -28,7 +27,6 @@ import com.michelin.ns4kafka.model.Topic;
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
 import com.michelin.ns4kafka.repository.TableflowTopicRepository;
 import com.michelin.ns4kafka.service.client.schema.SchemaRegistryClient;
-import com.michelin.ns4kafka.util.exception.ResourceValidationException;
 import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
@@ -62,16 +60,19 @@ public class TableflowTopicService {
      *
      * @param namespace The namespace
      * @param topic The source topic name
+     * @return The validation errors
      */
-    public void validateConfiguration(Namespace namespace, String topic) {
+    public List<String> validateConfiguration(Namespace namespace, String topic) {
         boolean configured = managedClusterProperties.stream()
                 .filter(properties ->
                         properties.getName().equals(namespace.getMetadata().getCluster()))
                 .anyMatch(ManagedClusterProperties::isManageTableflow);
 
-        if (!configured) {
-            throw new ResourceValidationException(TABLEFLOW_TOPIC, topic, invalidTableflowClusterConfiguration(topic));
+        if (configured) {
+            return List.of();
         }
+
+        return List.of(invalidTableflowClusterConfiguration(topic));
     }
 
     /**

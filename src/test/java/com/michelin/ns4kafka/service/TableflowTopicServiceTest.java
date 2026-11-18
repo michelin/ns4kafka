@@ -214,8 +214,7 @@ class TableflowTopicServiceTest {
                 new ManagedClusterProperties("other", ManagedClusterProperties.KafkaProvider.SELF_MANAGED);
         when(managedClusterProperties.stream()).thenReturn(Stream.of(otherCluster, cloudCluster()));
 
-        tableflowTopicService.validateConfiguration(namespace(), "orders");
-
+        assertEquals(List.of(), tableflowTopicService.validateConfiguration(namespace(), "orders"));
         verifyNoInteractions(schemaRegistryClient, tableflowTopicRepository);
     }
 
@@ -237,14 +236,10 @@ class TableflowTopicServiceTest {
             default -> throw new IllegalArgumentException(field);
         }
         when(managedClusterProperties.stream()).thenReturn(Stream.of(cluster));
-        Namespace ns = namespace();
-
-        ResourceValidationException error = assertThrows(
-                ResourceValidationException.class, () -> tableflowTopicService.validateConfiguration(ns, "orders"));
 
         assertEquals(
                 List.of("Invalid \"orders\": the cluster is not configured to use Tableflow."),
-                error.getValidationErrors());
+                tableflowTopicService.validateConfiguration(namespace(), "orders"));
         verifyNoInteractions(schemaRegistryClient, tableflowTopicRepository);
     }
 }

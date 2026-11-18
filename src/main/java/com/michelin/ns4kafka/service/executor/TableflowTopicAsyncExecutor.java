@@ -27,6 +27,7 @@ import com.michelin.ns4kafka.service.client.confluent.entities.TableflowTopicRes
 import io.micronaut.context.annotation.EachBean;
 import jakarta.inject.Singleton;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -197,18 +198,23 @@ public class TableflowTopicAsyncExecutor {
     }
 
     /**
-     * Check if a Tableflow topic matches its Confluent Cloud configuration.
+     * Check if a Tableflow topic matches its Confluent Cloud configuration, ignoring case.
      *
      * @param tableflowTopic The Tableflow topic
      * @param response The Confluent Cloud Tableflow topic
      * @return true if they match, false otherwise
      */
     private static boolean matchesConfiguration(TableflowTopic tableflowTopic, TableflowTopicResponse response) {
-        return response.spec().tableFormats().equals(tableflowTopic.getSpec().getTableFormats())
+        return response.spec().tableFormats().stream()
+                        .map(tableFormat -> tableFormat.toUpperCase(Locale.ROOT))
+                        .collect(Collectors.toSet())
+                        .equals(tableflowTopic.getSpec().getTableFormats().stream()
+                                .map(tableFormat -> tableFormat.toUpperCase(Locale.ROOT))
+                                .collect(Collectors.toSet()))
                 && response.spec()
                         .storage()
                         .kind()
-                        .equals(tableflowTopic.getSpec().getStorage().getKind());
+                        .equalsIgnoreCase(tableflowTopic.getSpec().getStorage().getKind());
     }
 
     /**

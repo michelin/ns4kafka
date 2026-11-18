@@ -106,18 +106,20 @@ public class TableflowTopicController extends NamespacedResourceController {
             validationErrors.addAll(validationResult.errors());
             validationWarnings.addAll(validationResult.warnings());
         }
+
+        validationErrors.addAll(tableflowTopicService.validateConfiguration(ns, topic));
+
+        Optional<Topic> existingTopic = topicService.findByName(ns, topic);
+        if (existingTopic.isEmpty()) {
+            validationErrors.add(invalidTableflowSourceTopic(topic));
+        }
+
         if (!validationErrors.isEmpty()) {
             return Mono.error(new ResourceValidationException(tableflowTopic, validationErrors));
         }
 
-        tableflowTopicService.validateConfiguration(ns, topic);
-
-        Topic existingTopic = topicService
-                .findByName(ns, topic)
-                .orElseThrow(() -> new ResourceValidationException(tableflowTopic, invalidTableflowSourceTopic(topic)));
-
         return tableflowTopicService
-                .validateSchemas(existingTopic)
+                .validateSchemas(existingTopic.get())
                 // Ns4Kafka storage is blocking; keep it outside the HTTP client event loop.
                 .publishOn(Schedulers.boundedElastic())
                 .map(errors -> {
