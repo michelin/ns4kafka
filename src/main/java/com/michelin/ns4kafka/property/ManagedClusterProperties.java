@@ -179,7 +179,14 @@ public class ManagedClusterProperties {
      * @return true if it does, false otherwise
      */
     public boolean isManageRbac() {
-        return manageAcls && isConfluentCloud() && confluentCloud != null;
+        return manageAcls
+                && isConfluentCloud()
+                && confluentCloud != null
+                && StringUtils.isNotEmpty(confluentCloud.getOrganizationId())
+                && StringUtils.isNotEmpty(confluentCloud.getEnvironmentId())
+                && StringUtils.isNotEmpty(confluentCloud.getClusterId())
+                && StringUtils.isNotEmpty(confluentCloud.getBasicAuthUsername())
+                && StringUtils.isNotEmpty(confluentCloud.getBasicAuthPassword());
     }
 
     /**
