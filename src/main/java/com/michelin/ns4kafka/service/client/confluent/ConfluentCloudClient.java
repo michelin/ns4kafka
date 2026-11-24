@@ -19,6 +19,8 @@
 package com.michelin.ns4kafka.service.client.confluent;
 
 import com.michelin.ns4kafka.property.ManagedClusterProperties;
+import com.michelin.ns4kafka.service.client.confluent.entities.ApiKeyListResponse;
+import com.michelin.ns4kafka.service.client.confluent.entities.ApiKeyResponse;
 import com.michelin.ns4kafka.service.client.confluent.entities.RoleBinding;
 import com.michelin.ns4kafka.service.client.confluent.entities.RoleBindingListResponse;
 import com.michelin.ns4kafka.service.client.confluent.entities.RoleBindingRequest;
@@ -32,6 +34,8 @@ import io.micronaut.http.client.exceptions.ReadTimeoutException;
 import io.micronaut.retry.annotation.Retryable;
 import jakarta.inject.Singleton;
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -87,6 +91,63 @@ public class ConfluentCloudClient {
                     return pageToken != null ? listRoleBindingsPage(config, crnPattern, pageToken) : Mono.empty();
                 })
                 .flatMapIterable(response -> response.data() != null ? response.data() : List.of());
+    }
+
+    /**
+     * List all API keys for a managed cluster, following pagination.
+     *
+     * @param kafkaCluster The Kafka cluster
+     * @return The API keys list
+     */
+    @Retryable(
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
+    public Flux<ApiKeyResponse> listApiKeys(String kafkaCluster) {
+        return listApiKeys(kafkaCluster, null);
+    }
+
+    /**
+     * List all API keys for a managed cluster, following pagination.
+     *
+     * @param kafkaCluster The Kafka cluster
+     * @param ownerId Optional owner id filter (service account id)
+     * @return The API keys list
+     */
+    @Retryable(
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
+    public Flux<ApiKeyResponse> listApiKeys(String kafkaCluster, @Nullable String ownerId) {
+        ManagedClusterProperties.ConfluentCloudProperties config = getConfluentCloud(kafkaCluster);
+
+        return listApiKeysPageInternal(config, null, ownerId)
+                .expand(response -> {
+                    String pageToken = response.metadata() != null
+                            ? extractPageToken(response.metadata().next())
+                            : null;
+                    return pageToken != null ? listApiKeysPageInternal(config, pageToken, ownerId) : Mono.empty();
+                })
+                .flatMapIterable(response -> response.data() != null ? response.data() : List.of());
+    }
+
+    /**
+     * List one page of API keys for a managed cluster.
+     *
+     * @param kafkaCluster The Kafka cluster
+     * @param pageToken The page token from previous response, or null for first page
+     * @return The API keys page
+     */
+    @Retryable(
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
+    public Mono<ApiKeyListResponse> listApiKeysPage(String kafkaCluster, @Nullable String pageToken) {
+        ManagedClusterProperties.ConfluentCloudProperties config = getConfluentCloud(kafkaCluster);
+        return listApiKeysPageInternal(config, pageToken, null);
     }
 
     /**
@@ -151,6 +212,30 @@ public class ConfluentCloudClient {
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
 
         return Mono.from(httpClient.retrieve(request, RoleBindingListResponse.class));
+    }
+
+    /**
+     * List one page of API keys.
+     *
+     * @param config The Confluent Cloud properties
+     * @param pageToken The page token, or null for the first page
+     * @return The API keys page
+     */
+    private Mono<ApiKeyListResponse> listApiKeysPageInternal(
+            ManagedClusterProperties.ConfluentCloudProperties config,
+            @Nullable String pageToken,
+            @Nullable String ownerId) {
+        String query = pageToken != null
+                ? "?page_token=" + pageToken
+                : ownerId != null && !ownerId.isBlank()
+                        ? "?spec.owner=" + URLEncoder.encode(ownerId, StandardCharsets.UTF_8)
+                        : "";
+
+        HttpRequest<?> request = HttpRequest.GET(
+                        URI.create(StringUtils.prependUri(CONFLUENT_CLOUD_API_URL, "/iam/v2/api-keys" + query)))
+                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+
+        return Mono.from(httpClient.retrieve(request, ApiKeyListResponse.class));
     }
 
     /**
