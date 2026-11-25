@@ -52,6 +52,7 @@ import reactor.core.publisher.Mono;
 @Singleton
 public class ConfluentCloudClient {
     private static final String CONFLUENT_CLOUD_API_URL = "https://api.confluent.cloud";
+    private static final String TABLEFLOW_TOPICS_PATH = "/tableflow/v1/tableflow-topics";
     private static final String PAGE_TOKEN_PARAM = "page_token=";
     private static final int PAGE_SIZE = 1000;
     private static final int TABLEFLOW_PAGE_SIZE = 100;
@@ -86,18 +87,49 @@ public class ConfluentCloudClient {
             includes = ReadTimeoutException.class)
     public Mono<TableflowTopicResponse> createTableflowTopic(String kafkaCluster, TableflowTopic tableflowTopic) {
         ManagedClusterProperties.ConfluentCloudProperties config = getConfluentCloud(kafkaCluster);
+        Long retentionMs = tableflowTopic.getSpec().getSnapshotRetentionMs();
         TableflowTopicRequest body = new TableflowTopicRequest(new TableflowTopicRequest.Spec(
                 tableflowTopic.getMetadata().getName(),
                 new TableflowTopicRequest.Storage(
                         tableflowTopic.getSpec().getStorage().getKind()),
                 tableflowTopic.getSpec().getTableFormats(),
                 new TableflowTopicRequest.Reference(config.getEnvironmentId()),
-                new TableflowTopicRequest.Reference(config.getClusterId())));
+                new TableflowTopicRequest.Reference(config.getClusterId()),
+                retentionMs == null ? null : new TableflowTopicRequest.Config(retentionMs.toString())));
 
         HttpRequest<?> request = HttpRequest.POST(
-                        URI.create(StringUtils.prependUri(CONFLUENT_CLOUD_API_URL, "/tableflow/v1/tableflow-topics")),
-                        body)
+                        URI.create(StringUtils.prependUri(CONFLUENT_CLOUD_API_URL, TABLEFLOW_TOPICS_PATH)), body)
                 .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+
+        return Mono.from(httpClient.retrieve(
+                request, Argument.of(TableflowTopicResponse.class), Argument.of(ConfluentCloudErrorResponse.class)));
+    }
+
+    /**
+     * Update snapshot retention for an existing Tableflow topic.
+     *
+     * @param kafkaCluster The Kafka cluster
+     * @param name The source Kafka topic name
+     * @param retentionMs The snapshot retention in milliseconds
+     * @return The updated Tableflow topic
+     */
+    @Retryable(
+            delay = "${ns4kafka.retry.delay}",
+            attempts = "${ns4kafka.retry.attempt}",
+            multiplier = "${ns4kafka.retry.multiplier}",
+            includes = ReadTimeoutException.class)
+    public Mono<TableflowTopicResponse> updateTableflowTopic(String kafkaCluster, String name, long retentionMs) {
+        ManagedClusterProperties.ConfluentCloudProperties config = getConfluentCloud(kafkaCluster);
+        TableflowTopicRequest.Update body = new TableflowTopicRequest.Update(new TableflowTopicRequest.UpdateSpec(
+                new TableflowTopicRequest.Reference(config.getEnvironmentId()),
+                new TableflowTopicRequest.Reference(config.getClusterId()),
+                new TableflowTopicRequest.Config(Long.toString(retentionMs))));
+        URI uri = UriBuilder.of(CONFLUENT_CLOUD_API_URL)
+                .path(TABLEFLOW_TOPICS_PATH)
+                .path(name)
+                .build();
+        HttpRequest<?> request =
+                HttpRequest.PATCH(uri, body).basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
 
         return Mono.from(httpClient.retrieve(
                 request, Argument.of(TableflowTopicResponse.class), Argument.of(ConfluentCloudErrorResponse.class)));
@@ -136,7 +168,7 @@ public class ConfluentCloudClient {
     private Mono<TableflowTopicListResponse> listTableflowTopicsPage(
             ManagedClusterProperties.ConfluentCloudProperties config, @Nullable String pageToken) {
         URI uri = UriBuilder.of(CONFLUENT_CLOUD_API_URL)
-                .path("/tableflow/v1/tableflow-topics")
+                .path(TABLEFLOW_TOPICS_PATH)
                 .queryParam("environment", config.getEnvironmentId())
                 .queryParam("spec.kafka_cluster", config.getClusterId())
                 .queryParam("page_size", TABLEFLOW_PAGE_SIZE)

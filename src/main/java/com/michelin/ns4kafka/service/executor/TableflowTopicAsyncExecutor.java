@@ -86,28 +86,14 @@ public class TableflowTopicAsyncExecutor {
         return Mono.defer(() -> confluentCloudClient
                         .listTableflowTopics(managedClusterProperties.getName())
                         .collectMap(response -> response.spec().displayName()))
+                .publishOn(Schedulers.boundedElastic())
                 .flatMap(brokerTableflowTopics -> {
                     List<TableflowTopic> ns4KafkaTableflowTopics =
                             tableflowTopicRepository.findAllForCluster(managedClusterProperties.getName());
 
-                    List<TableflowTopic> toCreate = ns4KafkaTableflowTopics.stream()
-                            .filter(tableflowTopic -> !brokerTableflowTopics.containsKey(
-                                    tableflowTopic.getMetadata().getName()))
-                            .toList();
-
-                    if (!toCreate.isEmpty()) {
-                        log.atDebug()
-                                .addArgument(() -> toCreate.stream()
-                                        .map(tableflowTopic ->
-                                                tableflowTopic.getMetadata().getName())
-                                        .collect(Collectors.joining(",")))
-                                .log("Tableflow topic(s) to create: {}.");
-                    }
-
-                    return createTableflowTopics(toCreate)
+                    return reconcileTableflowTopics(ns4KafkaTableflowTopics, brokerTableflowTopics)
                             .publishOn(Schedulers.boundedElastic())
-                            .doOnNext(creationErrors ->
-                                    updateStatuses(ns4KafkaTableflowTopics, brokerTableflowTopics, creationErrors));
+                            .doOnNext(errors -> updateStatuses(ns4KafkaTableflowTopics, errors));
                 })
                 .then()
                 .doOnError(exception -> log.error(
@@ -118,45 +104,71 @@ public class TableflowTopicAsyncExecutor {
     }
 
     /**
-     * Create Tableflow topics.
+     * Reconcile Tableflow topics against the broker configuration.
      *
-     * @param toCreate The Tableflow topics to create
-     * @return The error message of each Tableflow topic that could not be created, by topic name
+     * @param tableflowTopics The desired Tableflow topics
+     * @param brokerTableflowTopics The Confluent Cloud Tableflow topics by name
+     * @return The reconciliation errors by topic name
      */
-    Mono<Map<String, String>> createTableflowTopics(List<TableflowTopic> toCreate) {
+    private Mono<Map<String, String>> reconcileTableflowTopics(
+            List<TableflowTopic> tableflowTopics, Map<String, TableflowTopicResponse> brokerTableflowTopics) {
         return Mono.defer(() -> {
-            Map<String, String> creationErrors = new ConcurrentHashMap<>();
+            Map<String, String> errors = new ConcurrentHashMap<>();
+            String cluster = managedClusterProperties.getName();
+            return Flux.fromIterable(tableflowTopics)
+                    .concatMap(tableflowTopic -> {
+                        String name = tableflowTopic.getMetadata().getName();
+                        TableflowTopicResponse observed = brokerTableflowTopics.get(name);
+                        Long retentionMs = tableflowTopic.getSpec().getSnapshotRetentionMs();
+                        if (observed != null && !matchesTableLayout(tableflowTopic, observed)) {
+                            errors.put(
+                                    name,
+                                    "The existing Confluent Tableflow configuration differs in table formats or storage kind.");
+                            return Mono.empty();
+                        }
+                        if (observed != null
+                                && (retentionMs == null
+                                        || (observed.spec().config() != null
+                                                && retentionMs
+                                                        .toString()
+                                                        .equals(observed.spec()
+                                                                .config()
+                                                                .retentionMs())))) {
+                            return Mono.empty();
+                        }
 
-            return Flux.fromIterable(toCreate)
-                    .concatMap(tableflowTopic -> confluentCloudClient
-                            .createTableflowTopic(managedClusterProperties.getName(), tableflowTopic)
-                            .doOnNext(_ -> log.info(
-                                    "Success creating Tableflow topic {} on cluster {}.",
-                                    tableflowTopic.getMetadata().getName(),
-                                    managedClusterProperties.getName()))
-                            .onErrorResume(e -> {
-                                String errorMessage = e instanceof HttpClientResponseException responseException
-                                        ? responseException
-                                                .getResponse()
-                                                .getBody(ConfluentCloudErrorResponse.class)
-                                                .filter(error -> error.errors() != null)
-                                                .map(error -> error.errors().stream()
-                                                        .map(ConfluentCloudErrorResponse.Error::detail)
-                                                        .collect(Collectors.joining(", ")))
-                                                .orElse(responseException.getMessage())
-                                        : Objects.toString(
-                                                e.getMessage(), e.getClass().getName());
+                        String action = observed == null ? "creating" : "updating";
+                        log.debug("Start {} Tableflow topic {} on cluster {}.", action, name, cluster);
+                        return Mono.defer(() -> observed == null
+                                        ? confluentCloudClient.createTableflowTopic(cluster, tableflowTopic)
+                                        : confluentCloudClient.updateTableflowTopic(cluster, name, retentionMs))
+                                .doOnNext(_ ->
+                                        log.info("Success {} Tableflow topic {} on cluster {}.", action, name, cluster))
+                                .onErrorResume(e -> {
+                                    String errorMessage = e instanceof HttpClientResponseException responseException
+                                            ? responseException
+                                                    .getResponse()
+                                                    .getBody(ConfluentCloudErrorResponse.class)
+                                                    .filter(error -> error.errors() != null)
+                                                    .map(error -> error.errors().stream()
+                                                            .map(ConfluentCloudErrorResponse.Error::detail)
+                                                            .collect(Collectors.joining(", ")))
+                                                    .orElse(responseException.getMessage())
+                                            : Objects.toString(
+                                                    e.getMessage(), e.getClass().getName());
 
-                                log.error(
-                                        "Error while creating Tableflow topic {} on cluster {}.",
-                                        tableflowTopic.getMetadata().getName(),
-                                        managedClusterProperties.getName(),
-                                        e);
+                                    log.error(
+                                            "Error while {} Tableflow topic {} on cluster {}.",
+                                            action,
+                                            name,
+                                            cluster,
+                                            e);
 
-                                creationErrors.put(tableflowTopic.getMetadata().getName(), errorMessage);
-                                return Mono.empty();
-                            }))
-                    .then(Mono.fromSupplier(() -> creationErrors));
+                                    errors.put(name, errorMessage);
+                                    return Mono.empty();
+                                });
+                    })
+                    .then(Mono.just(errors));
         });
     }
 
@@ -164,27 +176,13 @@ public class TableflowTopicAsyncExecutor {
      * Update the status of the Tableflow topics.
      *
      * @param ns4KafkaTableflowTopics The Ns4Kafka Tableflow topics
-     * @param brokerTableflowTopics The Confluent Cloud Tableflow topics by name
-     * @param creationErrors The error message of each Tableflow topic that could not be created, by topic name
+     * @param errors The reconciliation errors by topic name
      */
-    private void updateStatuses(
-            List<TableflowTopic> ns4KafkaTableflowTopics,
-            Map<String, TableflowTopicResponse> brokerTableflowTopics,
-            Map<String, String> creationErrors) {
+    private void updateStatuses(List<TableflowTopic> ns4KafkaTableflowTopics, Map<String, String> errors) {
         ns4KafkaTableflowTopics.forEach(tableflowTopic -> {
-            TableflowTopicResponse brokerTableflowTopic =
-                    brokerTableflowTopics.get(tableflowTopic.getMetadata().getName());
-
-            Resource.Metadata.Status status;
-            if (creationErrors.containsKey(tableflowTopic.getMetadata().getName())) {
-                status = Resource.Metadata.Status.ofFailed(
-                        creationErrors.get(tableflowTopic.getMetadata().getName()));
-            } else if (brokerTableflowTopic != null && !matchesConfiguration(tableflowTopic, brokerTableflowTopic)) {
-                status = Resource.Metadata.Status.ofFailed(
-                        "The existing Confluent Tableflow configuration differs from the requested configuration. Updates are not supported yet.");
-            } else {
-                status = Resource.Metadata.Status.ofSuccess();
-            }
+            String error = errors.get(tableflowTopic.getMetadata().getName());
+            Resource.Metadata.Status status =
+                    error == null ? Resource.Metadata.Status.ofSuccess() : Resource.Metadata.Status.ofFailed(error);
 
             if (Objects.equals(tableflowTopic.getMetadata().getStatus(), status)) {
                 return;
@@ -207,19 +205,21 @@ public class TableflowTopicAsyncExecutor {
     }
 
     /**
-     * Check if a Tableflow topic matches its Confluent Cloud configuration.
+     * Check if a Tableflow topic matches its Confluent Cloud formats and storage.
      *
      * @param tableflowTopic The Tableflow topic
      * @param response The Confluent Cloud Tableflow topic
-     * @return true if they match, false otherwise
+     * @return True if they match, false otherwise
      */
-    private static boolean matchesConfiguration(TableflowTopic tableflowTopic, TableflowTopicResponse response) {
-        return tableflowTopic.getSpec().getTableFormats().equals(response.spec().tableFormats())
-                && tableflowTopic
-                        .getSpec()
-                        .getStorage()
-                        .getKind()
-                        .equals(response.spec().storage().kind());
+    private static boolean matchesTableLayout(TableflowTopic tableflowTopic, TableflowTopicResponse response) {
+        TableflowTopic.Storage desiredStorage = tableflowTopic.getSpec().getStorage();
+        TableflowTopicResponse.Storage observedStorage = response.spec().storage();
+        return Objects.equals(
+                        tableflowTopic.getSpec().getTableFormats(),
+                        response.spec().tableFormats())
+                && Objects.equals(
+                        desiredStorage == null ? null : desiredStorage.getKind(),
+                        observedStorage == null ? null : observedStorage.kind());
     }
 
     /**

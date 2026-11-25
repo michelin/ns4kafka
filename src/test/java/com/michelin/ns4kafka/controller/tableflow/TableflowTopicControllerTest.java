@@ -18,6 +18,7 @@
  */
 package com.michelin.ns4kafka.controller.tableflow;
 
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidImmutableField;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -52,6 +53,8 @@ import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -416,26 +419,30 @@ class TableflowTopicControllerTest {
     }
 
     @Test
-    void shouldNotUpdateTableflowTopicWhenUnchanged() {
+    void shouldPreserveRetentionChangedDuringValidationWhenOmitted() {
         Namespace ns = namespace();
         Topic source = Topic.builder()
                 .metadata(
                         Resource.Metadata.builder().name("orders").generation(1).build())
                 .build();
         TableflowTopic stored = icebergRequest();
+        stored.getSpec().setSnapshotRetentionMs(604_800_000L);
         stored.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
+        TableflowTopic updated = icebergRequest();
+        updated.getSpec().setSnapshotRetentionMs(172_800_000L);
+        updated.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic("test", "orders")).thenReturn(true);
         when(topicService.findByName(ns, "orders")).thenReturn(Optional.of(source));
         when(tableflowTopicService.validateSchemas(source)).thenReturn(Mono.just(List.of()));
-        when(tableflowTopicService.findByName(ns, "orders")).thenReturn(Optional.of(stored));
+        when(tableflowTopicService.findByName(ns, "orders")).thenReturn(Optional.of(stored), Optional.of(updated));
 
         StepVerifier.create(tableflowTopicController.apply("test", icebergRequest(), false))
                 .consumeNextWith(response -> {
                     assertEquals(HttpStatus.OK, response.getStatus());
                     assertEquals("unchanged", response.getHeaders().get("X-Ns4kafka-Result"));
-                    assertEquals(stored, response.body());
+                    assertEquals(updated, response.body());
                 })
                 .verifyComplete();
 
@@ -444,7 +451,7 @@ class TableflowTopicControllerTest {
     }
 
     @Test
-    void shouldNotUpdateTableflowTopic() {
+    void shouldNotChangeExistingTableflowFormats() {
         Namespace ns = namespace();
         Topic source = Topic.builder()
                 .metadata(
@@ -457,7 +464,6 @@ class TableflowTopicControllerTest {
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic("test", "orders")).thenReturn(true);
         when(topicService.findByName(ns, "orders")).thenReturn(Optional.of(source));
-        when(tableflowTopicService.validateSchemas(source)).thenReturn(Mono.just(List.of()));
         when(tableflowTopicService.findByName(ns, "orders")).thenReturn(Optional.of(stored));
 
         StepVerifier.create(tableflowTopicController.apply("test", request, false))
@@ -465,11 +471,54 @@ class TableflowTopicControllerTest {
                     assertEquals(ResourceValidationException.class, error.getClass());
                     assertTrue(((ResourceValidationException) error)
                             .getValidationErrors()
-                            .contains("Updating Tableflow configuration is not supported yet."));
+                            .contains(invalidImmutableField("tableFormats")));
                 })
                 .verify();
 
         verify(tableflowTopicService, never()).create(any());
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldApplySnapshotRetention(boolean dryrun) {
+        Namespace ns = namespace();
+        Topic source = Topic.builder()
+                .metadata(Resource.Metadata.builder().name("orders").build())
+                .build();
+        TableflowTopic stored = icebergRequest();
+        stored.getMetadata().setGeneration(1);
+        TableflowTopic request = icebergRequest();
+        request.getSpec().setSnapshotRetentionMs(172_800_000L);
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(topicService.isNamespaceOwnerOfTopic("test", "orders")).thenReturn(true);
+        when(topicService.findByName(ns, "orders")).thenReturn(Optional.of(source));
+        when(tableflowTopicService.validateSchemas(source)).thenReturn(Mono.just(List.of()));
+        when(tableflowTopicService.findByName(ns, "orders")).thenReturn(Optional.of(stored));
+        if (!dryrun) {
+            when(tableflowTopicService.create(request)).thenReturn(request);
+            when(securityService.username()).thenReturn(Optional.of("test-user"));
+            when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
+        }
+
+        StepVerifier.create(tableflowTopicController.apply("test", request, dryrun))
+                .consumeNextWith(response -> {
+                    assertEquals("changed", response.header("X-Ns4kafka-Result"));
+                    assertEquals(172_800_000L, response.body().getSpec().getSnapshotRetentionMs());
+                    assertEquals(1, response.body().getMetadata().getGeneration());
+                    assertEquals(
+                            Resource.Metadata.Phase.PENDING,
+                            response.body().getMetadata().getStatus().getPhase());
+                })
+                .verifyComplete();
+
+        if (dryrun) {
+            verify(tableflowTopicService, never()).create(any());
+            verify(applicationEventPublisher, never()).publishEvent(any(AuditLog.class));
+        } else {
+            verify(tableflowTopicService).create(request);
+            verify(applicationEventPublisher).publishEvent(any(AuditLog.class));
+        }
     }
 
     @Test

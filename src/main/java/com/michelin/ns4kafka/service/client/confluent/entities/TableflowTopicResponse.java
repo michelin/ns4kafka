@@ -33,7 +33,8 @@ public record TableflowTopicResponse(String id, Spec spec, Status status) {
     public record Spec(
             @JsonProperty("display_name") String displayName,
             @JsonProperty("table_formats") Set<String> tableFormats,
-            Storage storage) {}
+            Storage storage,
+            TableflowTopicRequest.Config config) {}
 
     /** Tableflow topic storage. */
     @Builder

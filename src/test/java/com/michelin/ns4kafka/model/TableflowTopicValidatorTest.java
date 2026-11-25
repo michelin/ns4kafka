@@ -65,6 +65,21 @@ class TableflowTopicValidatorTest {
                 .hasErrors());
     }
 
+    @Test
+    void shouldValidateSnapshotRetentionAgainstNamespaceConstraints() {
+        TableflowTopic topic = topic(Set.of("ICEBERG"), "Managed");
+        TableflowTopicValidator validator = TableflowTopicValidator.builder()
+                .validationConstraints(
+                        Map.of("snapshotRetentionMs", ResourceValidator.Range.between(86_400_000, 172_800_000)))
+                .build();
+
+        topic.getSpec().setSnapshotRetentionMs(172_800_000L);
+        assertFalse(validator.validate(topic).hasErrors());
+
+        topic.getSpec().setSnapshotRetentionMs(604_800_000L);
+        assertTrue(validator.validate(topic).errors().getFirst().contains("snapshotRetentionMs"));
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"DELTA", "OTHER", "iceberg"})
     void shouldRejectFormatsOutsideTheNamespaceAllowlist(String format) {

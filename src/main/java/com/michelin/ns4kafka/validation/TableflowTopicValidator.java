@@ -22,6 +22,7 @@ import com.michelin.ns4kafka.model.TableflowTopic;
 import io.micronaut.serde.annotation.Serdeable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -60,6 +61,8 @@ public class TableflowTopicValidator extends ResourceValidator {
                                 tableflowTopic.getSpec().getStorage() == null
                                         ? null
                                         : tableflowTopic.getSpec().getStorage().getKind();
+                            case "snapshotRetentionMs" ->
+                                Objects.toString(tableflowTopic.getSpec().getSnapshotRetentionMs(), null);
                             default -> null;
                         };
                 value.ensureValid(key, fieldValue);
