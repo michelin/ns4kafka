@@ -1034,4 +1034,88 @@ class TopicControllerTest {
 
         assertEquals(List.of(topic1), topicController.list("test", "prefix.*", List.of("PII", "GDPR")));
     }
+
+    @Test
+    void shouldBulkDeleteTopicsByTags() throws InterruptedException, ExecutionException, TimeoutException {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Topic topic1 = Topic.builder()
+                .metadata(Resource.Metadata.builder().name("prefix.topic1").build())
+                .spec(Topic.TopicSpec.builder().tags(List.of("TEST")).build())
+                .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(topicService.findByWildcardNameAndTags(ns, "*", List.of("TEST"))).thenReturn(List.of(topic1));
+        when(securityService.username()).thenReturn(Optional.of("test-user"));
+        when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
+        doNothing().when(topicService).deleteTopics(List.of(topic1));
+        doNothing().when(applicationEventPublisher).publishEvent(any());
+
+        HttpResponse<List<Topic>> actual = topicController.bulkDelete("test", null, false, List.of("TEST"));
+
+        assertEquals(HttpStatus.OK, actual.getStatus());
+        verify(topicService).deleteTopics(List.of(topic1));
+    }
+
+    @Test
+    void shouldBulkDeleteTopicsByNameAndTags() throws InterruptedException, ExecutionException, TimeoutException {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        Topic topic1 = Topic.builder()
+                .metadata(Resource.Metadata.builder().name("prefix.topic1").build())
+                .spec(Topic.TopicSpec.builder().tags(List.of("TEST")).build())
+                .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(topicService.findByWildcardNameAndTags(ns, "prefix.*", List.of("TEST")))
+                .thenReturn(List.of(topic1));
+
+        HttpResponse<List<Topic>> actual = topicController.bulkDelete("test", "prefix.*", true, List.of("TEST"));
+
+        assertEquals(HttpStatus.OK, actual.getStatus());
+        verify(topicService, never()).deleteTopics(any());
+    }
+
+    @Test
+    void shouldNotBulkDeleteTopicsByTagsWhenNotFound()
+            throws InterruptedException, ExecutionException, TimeoutException {
+        Namespace ns = Namespace.builder()
+                .metadata(Resource.Metadata.builder()
+                        .name("test")
+                        .cluster("local")
+                        .build())
+                .build();
+
+        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
+        when(topicService.findByWildcardNameAndTags(ns, "*", List.of("UNKNOWN")))
+                .thenReturn(List.of());
+
+        HttpResponse<List<Topic>> actual = topicController.bulkDelete("test", null, false, List.of("UNKNOWN"));
+
+        assertEquals(HttpStatus.NOT_FOUND, actual.getStatus());
+        verify(topicService, never()).deleteTopics(any());
+    }
+
+    @Test
+    void shouldNotBulkDeleteTopicsWithoutNameAndTags()
+            throws InterruptedException, ExecutionException, TimeoutException {
+        ResourceValidationException exception = assertThrows(
+                ResourceValidationException.class, () -> topicController.bulkDelete("test", null, false, null));
+
+        assertEquals(
+                "The topic name or tags parameter is required for deletion.",
+                exception.getValidationErrors().getFirst());
+        verify(namespaceService, never()).findByName(any());
+        verify(topicService, never()).deleteTopics(any());
+    }
 }
