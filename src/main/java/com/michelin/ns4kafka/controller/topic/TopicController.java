@@ -49,7 +49,6 @@ import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.micronaut.security.utils.SecurityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -192,21 +191,46 @@ public class TopicController extends NamespacedResourceController {
     }
 
     /**
-     * Delete topics.
+     * Delete topics filtered by name.
      *
      * @param namespace The namespace
      * @param name The name parameter
      * @param dryrun Is dry run mode or not?
      * @return An HTTP response
      */
+    public HttpResponse<List<Topic>> bulkDelete(String namespace, String name, boolean dryrun)
+            throws InterruptedException, ExecutionException, TimeoutException {
+        return bulkDelete(namespace, name, dryrun, null);
+    }
+
+    /**
+     * Delete topics filtered by name and/or tags. Nothing is deleted if neither filter is given.
+     *
+     * @param namespace The namespace
+     * @param name The name parameter
+     * @param dryrun Is dry run mode or not?
+     * @param tags The tags parameter
+     * @return An HTTP response
+     */
     @Delete
     public HttpResponse<List<Topic>> bulkDelete(
             String namespace,
-            @QueryValue @NotBlank(message = "The topic name parameter is required for deletion.") String name,
-            @QueryValue(defaultValue = "false") boolean dryrun)
+            @QueryValue @Nullable String name,
+            @QueryValue(defaultValue = "false") boolean dryrun,
+            @QueryValue @Nullable List<String> tags)
             throws InterruptedException, ExecutionException, TimeoutException {
+        boolean hasName = name != null && !name.isBlank();
+        boolean hasTags = tags != null && tags.stream().anyMatch(tag -> !tag.isBlank());
+
+        if (!hasName && !hasTags) {
+            throw new ResourceValidationException(
+                    TOPIC, EMPTY_STRING, "The topic name or tags parameter is required for deletion.");
+        }
+
         Namespace ns = getNamespace(namespace);
-        List<Topic> topics = topicService.findByWildcardName(ns, name);
+        List<Topic> topics = hasTags
+                ? topicService.findByWildcardNameAndTags(ns, hasName ? name : "*", tags)
+                : topicService.findByWildcardName(ns, name);
 
         if (topics.isEmpty()) {
             return HttpResponse.notFound();
