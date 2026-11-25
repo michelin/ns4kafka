@@ -330,7 +330,8 @@ class TableflowTopicServiceTest {
     private static TableflowTopicResponse confluentTableflowTopic(String name) {
         return new TableflowTopicResponse(
                 "tft-" + name,
-                new TableflowTopicResponse.Spec(name, Set.of("ICEBERG"), new TableflowTopicResponse.Storage("Managed")),
+                new TableflowTopicResponse.Spec(
+                        name, Set.of("ICEBERG"), new TableflowTopicResponse.Storage("Managed"), null),
                 new TableflowTopicResponse.Status("FAILED", "Invalid record"));
     }
 

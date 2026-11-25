@@ -18,6 +18,7 @@
  */
 package com.michelin.ns4kafka.controller.tableflow;
 
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidImmutableField;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -52,6 +53,9 @@ import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -79,14 +83,20 @@ class TableflowTopicControllerTest {
     @InjectMocks
     TableflowTopicController tableflowTopicController;
 
-    @Test
-    void shouldCreateTableflowTopic() {
+    @ParameterizedTest
+    @EnumSource(
+            value = ApplyStatus.class,
+            names = {"CREATED", "CHANGED"})
+    void shouldApplyTableflowTopic(ApplyStatus expected) {
         Namespace ns = namespace();
         Topic topic = Topic.builder()
                 .metadata(
                         Resource.Metadata.builder().name("orders").generation(1).build())
                 .build();
         TableflowTopic request = icebergRequest();
+        request.getSpec().setSnapshotRetentionMs(172_800_000L);
+        TableflowTopic stored = expected == ApplyStatus.CHANGED ? icebergRequest() : null;
+        when(tableflowTopicService.findByName(ns, "orders")).thenReturn(Optional.ofNullable(stored));
         TableflowTopic createdTableflowTopic = icebergRequest();
         createdTableflowTopic.getMetadata().setStatus(Resource.Metadata.Status.ofPending());
 
@@ -113,6 +123,8 @@ class TableflowTopicControllerTest {
                     TableflowTopic actual = response.body();
                     assertNotNull(actual);
                     assertEquals(HttpStatus.OK, response.getStatus());
+                    assertEquals(expected.toString(), response.header("X-Ns4kafka-Result"));
+                    assertEquals(172_800_000L, actual.getSpec().getSnapshotRetentionMs());
                     assertNull(actual.getStatus());
                     assertEquals(
                             Resource.Metadata.Phase.PENDING,
@@ -127,18 +139,27 @@ class TableflowTopicControllerTest {
         verify(tableflowTopicService).validateConfiguration(ns, "orders");
         verify(tableflowTopicService).validateSchemas(topic);
         verify(tableflowTopicService).create(request);
-        verify(applicationEventPublisher).publishEvent(any(AuditLog.class));
+        ArgumentCaptor<AuditLog> audit = ArgumentCaptor.forClass(AuditLog.class);
+        verify(applicationEventPublisher).publishEvent(audit.capture());
+        assertEquals(stored == null ? null : stored.getSpec(), audit.getValue().getBefore());
+        assertEquals(request.getSpec(), audit.getValue().getAfter());
         verify(topicService, never()).create(any());
     }
 
-    @Test
-    void shouldCreateTableflowTopicInDryRunMode() {
+    @ParameterizedTest
+    @EnumSource(
+            value = ApplyStatus.class,
+            names = {"CREATED", "CHANGED"})
+    void shouldApplyTableflowTopicInDryRunMode(ApplyStatus expected) {
         Namespace ns = namespace();
         Topic topic = Topic.builder()
                 .metadata(
                         Resource.Metadata.builder().name("orders").generation(1).build())
                 .build();
         TableflowTopic request = icebergRequest();
+        request.getSpec().setSnapshotRetentionMs(172_800_000L);
+        TableflowTopic stored = expected == ApplyStatus.CHANGED ? icebergRequest() : null;
+        when(tableflowTopicService.findByName(ns, "orders")).thenReturn(Optional.ofNullable(stored));
         request.getMetadata().setCluster("caller-cluster");
         request.getMetadata().setNamespace("caller-namespace");
 
@@ -152,13 +173,18 @@ class TableflowTopicControllerTest {
                     TableflowTopic actual = response.body();
                     assertNotNull(actual);
                     assertEquals(HttpStatus.OK, response.getStatus());
+                    assertEquals(expected.toString(), response.getHeaders().get("X-Ns4kafka-Result"));
                     assertEquals(
-                            ApplyStatus.CREATED.toString(),
-                            response.getHeaders().get("X-Ns4kafka-Result"));
+                            stored == null ? 0 : stored.getMetadata().getGeneration(),
+                            actual.getMetadata().getGeneration());
+                    assertEquals(
+                            Resource.Metadata.Phase.PENDING,
+                            actual.getMetadata().getStatus().getPhase());
                     assertEquals("cloud", actual.getMetadata().getCluster());
                     assertEquals("test", actual.getMetadata().getNamespace());
                     assertEquals(Set.of("ICEBERG"), actual.getSpec().getTableFormats());
                     assertEquals("Managed", actual.getSpec().getStorage().getKind());
+                    assertEquals(172_800_000L, actual.getSpec().getSnapshotRetentionMs());
                     assertNull(actual.getStatus());
                 })
                 .verifyComplete();
@@ -416,35 +442,44 @@ class TableflowTopicControllerTest {
     }
 
     @Test
-    void shouldNotUpdateTableflowTopicWhenUnchanged() {
+    void shouldPreserveRetentionChangedDuringValidationWhenOmitted() {
         Namespace ns = namespace();
+        ns.getSpec()
+                .getTableflowTopicValidator()
+                .setValidationConstraints(Map.of("snapshotRetentionMs", ResourceValidator.Range.atLeast(86_400_000L)));
+        TableflowTopic request = icebergRequest();
         Topic source = Topic.builder()
                 .metadata(
                         Resource.Metadata.builder().name("orders").generation(1).build())
                 .build();
         TableflowTopic stored = icebergRequest();
+        stored.getSpec().setSnapshotRetentionMs(604_800_000L);
         stored.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
+        TableflowTopic updated = icebergRequest();
+        updated.getSpec().setSnapshotRetentionMs(172_800_000L);
+        updated.getMetadata().setStatus(Resource.Metadata.Status.ofSuccess());
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic("test", "orders")).thenReturn(true);
         when(topicService.findByName(ns, "orders")).thenReturn(Optional.of(source));
         when(tableflowTopicService.validateSchemas(source)).thenReturn(Mono.just(List.of()));
-        when(tableflowTopicService.findByName(ns, "orders")).thenReturn(Optional.of(stored));
+        when(tableflowTopicService.findByName(ns, "orders")).thenReturn(Optional.of(stored), Optional.of(updated));
 
-        StepVerifier.create(tableflowTopicController.apply("test", icebergRequest(), false))
+        StepVerifier.create(tableflowTopicController.apply("test", request, false))
                 .consumeNextWith(response -> {
                     assertEquals(HttpStatus.OK, response.getStatus());
                     assertEquals("unchanged", response.getHeaders().get("X-Ns4kafka-Result"));
-                    assertEquals(stored, response.body());
+                    assertEquals(updated, response.body());
                 })
                 .verifyComplete();
 
+        assertNull(request.getSpec().getSnapshotRetentionMs());
         verify(tableflowTopicService, never()).create(any());
         verify(applicationEventPublisher, never()).publishEvent(any(AuditLog.class));
     }
 
     @Test
-    void shouldNotUpdateTableflowTopic() {
+    void shouldRejectChangesToTableFormatsAndStorage() {
         Namespace ns = namespace();
         Topic source = Topic.builder()
                 .metadata(
@@ -452,12 +487,12 @@ class TableflowTopicControllerTest {
                 .build();
         TableflowTopic stored = icebergRequest();
         stored.getSpec().setTableFormats(Set.of("DELTA"));
+        stored.getSpec().getStorage().setKind("BYOS");
         TableflowTopic request = icebergRequest();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
         when(topicService.isNamespaceOwnerOfTopic("test", "orders")).thenReturn(true);
         when(topicService.findByName(ns, "orders")).thenReturn(Optional.of(source));
-        when(tableflowTopicService.validateSchemas(source)).thenReturn(Mono.just(List.of()));
         when(tableflowTopicService.findByName(ns, "orders")).thenReturn(Optional.of(stored));
 
         StepVerifier.create(tableflowTopicController.apply("test", request, false))
@@ -465,7 +500,8 @@ class TableflowTopicControllerTest {
                     assertEquals(ResourceValidationException.class, error.getClass());
                     assertTrue(((ResourceValidationException) error)
                             .getValidationErrors()
-                            .contains("Updating Tableflow configuration is not supported yet."));
+                            .containsAll(List.of(
+                                    invalidImmutableField("tableFormats"), invalidImmutableField("storage.kind"))));
                 })
                 .verify();
 

@@ -34,6 +34,7 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -86,28 +87,15 @@ public class TableflowTopicAsyncExecutor {
         return Mono.defer(() -> confluentCloudClient
                         .listTableflowTopics(managedClusterProperties.getName())
                         .collectMap(response -> response.spec().displayName()))
+                .publishOn(Schedulers.boundedElastic())
                 .flatMap(brokerTableflowTopics -> {
                     List<TableflowTopic> ns4KafkaTableflowTopics =
                             tableflowTopicRepository.findAllForCluster(managedClusterProperties.getName());
 
-                    List<TableflowTopic> toCreate = ns4KafkaTableflowTopics.stream()
-                            .filter(tableflowTopic -> !brokerTableflowTopics.containsKey(
-                                    tableflowTopic.getMetadata().getName()))
-                            .toList();
-
-                    if (!toCreate.isEmpty()) {
-                        log.atDebug()
-                                .addArgument(() -> toCreate.stream()
-                                        .map(tableflowTopic ->
-                                                tableflowTopic.getMetadata().getName())
-                                        .collect(Collectors.joining(",")))
-                                .log("Tableflow topic(s) to create: {}.");
-                    }
-
-                    return createTableflowTopics(toCreate)
+                    return applyTableflowTopics(ns4KafkaTableflowTopics, brokerTableflowTopics)
                             .publishOn(Schedulers.boundedElastic())
-                            .doOnNext(creationErrors ->
-                                    updateStatuses(ns4KafkaTableflowTopics, brokerTableflowTopics, creationErrors));
+                            .doOnNext(applyErrors ->
+                                    updateStatuses(ns4KafkaTableflowTopics, brokerTableflowTopics, applyErrors));
                 })
                 .then()
                 .doOnError(exception -> log.error(
@@ -118,20 +106,24 @@ public class TableflowTopicAsyncExecutor {
     }
 
     /**
-     * Create Tableflow topics.
+     * Apply Tableflow topics.
      *
-     * @param toCreate The Tableflow topics to create
-     * @return The error message of each Tableflow topic that could not be created, by topic name
+     * @param topics The desired Tableflow topics
+     * @param brokerTableflowTopics The observed Tableflow topics by name
+     * @return The error message of each Tableflow topic that could not be applied, by topic name
      */
-    Mono<Map<String, String>> createTableflowTopics(List<TableflowTopic> toCreate) {
+    private Mono<Map<String, String>> applyTableflowTopics(
+            List<TableflowTopic> topics, Map<String, TableflowTopicResponse> brokerTableflowTopics) {
         return Mono.defer(() -> {
-            Map<String, String> creationErrors = new ConcurrentHashMap<>();
+            Map<String, String> applyErrors = new ConcurrentHashMap<>();
 
-            return Flux.fromIterable(toCreate)
-                    .concatMap(tableflowTopic -> confluentCloudClient
-                            .createTableflowTopic(managedClusterProperties.getName(), tableflowTopic)
+            return Flux.fromIterable(topics)
+                    .concatMap(tableflowTopic -> Mono.defer(() -> applyTableflowTopic(
+                                    tableflowTopic,
+                                    brokerTableflowTopics.get(
+                                            tableflowTopic.getMetadata().getName())))
                             .doOnNext(_ -> log.info(
-                                    "Success creating Tableflow topic {} on cluster {}.",
+                                    "Success applying Tableflow topic {} on cluster {}.",
                                     tableflowTopic.getMetadata().getName(),
                                     managedClusterProperties.getName()))
                             .onErrorResume(e -> {
@@ -148,16 +140,45 @@ public class TableflowTopicAsyncExecutor {
                                                 e.getMessage(), e.getClass().getName());
 
                                 log.error(
-                                        "Error while creating Tableflow topic {} on cluster {}.",
+                                        "Error while applying Tableflow topic {} on cluster {}.",
                                         tableflowTopic.getMetadata().getName(),
                                         managedClusterProperties.getName(),
                                         e);
 
-                                creationErrors.put(tableflowTopic.getMetadata().getName(), errorMessage);
+                                applyErrors.put(tableflowTopic.getMetadata().getName(), errorMessage);
                                 return Mono.empty();
                             }))
-                    .then(Mono.fromSupplier(() -> creationErrors));
+                    .then(Mono.fromSupplier(() -> applyErrors));
         });
+    }
+
+    /**
+     * Create a missing topic or update its retention when the immutable configuration matches.
+     *
+     * @param topic The desired Tableflow topic
+     * @param observed The Confluent topic, if present
+     * @return The operation response, or empty when no write is needed
+     */
+    private Mono<TableflowTopicResponse> applyTableflowTopic(
+            TableflowTopic topic, @Nullable TableflowTopicResponse observed) {
+        String cluster = managedClusterProperties.getName();
+        String name = topic.getMetadata().getName();
+        if (observed == null) {
+            log.debug("Start creating Tableflow topic {} on cluster {}.", name, cluster);
+            return confluentCloudClient.createTableflowTopic(cluster, topic);
+        }
+
+        Long retention = topic.getSpec().getSnapshotRetentionMs();
+        String observedRetention = observed.spec().config() == null
+                ? null
+                : observed.spec().config().retentionMs();
+        if (retention == null
+                || retention.toString().equals(observedRetention)
+                || !matchesConfiguration(topic, observed)) {
+            return Mono.empty();
+        }
+        log.debug("Start updating Tableflow topic {} on cluster {}.", name, cluster);
+        return confluentCloudClient.updateTableflowTopic(cluster, name, retention);
     }
 
     /**
@@ -165,23 +186,23 @@ public class TableflowTopicAsyncExecutor {
      *
      * @param ns4KafkaTableflowTopics The Ns4Kafka Tableflow topics
      * @param brokerTableflowTopics The Confluent Cloud Tableflow topics by name
-     * @param creationErrors The error message of each Tableflow topic that could not be created, by topic name
+     * @param applyErrors The error message of each Tableflow topic that could not be applied, by topic name
      */
     private void updateStatuses(
             List<TableflowTopic> ns4KafkaTableflowTopics,
             Map<String, TableflowTopicResponse> brokerTableflowTopics,
-            Map<String, String> creationErrors) {
+            Map<String, String> applyErrors) {
         ns4KafkaTableflowTopics.forEach(tableflowTopic -> {
             TableflowTopicResponse brokerTableflowTopic =
                     brokerTableflowTopics.get(tableflowTopic.getMetadata().getName());
 
             Resource.Metadata.Status status;
-            if (creationErrors.containsKey(tableflowTopic.getMetadata().getName())) {
+            if (applyErrors.containsKey(tableflowTopic.getMetadata().getName())) {
                 status = Resource.Metadata.Status.ofFailed(
-                        creationErrors.get(tableflowTopic.getMetadata().getName()));
+                        applyErrors.get(tableflowTopic.getMetadata().getName()));
             } else if (brokerTableflowTopic != null && !matchesConfiguration(tableflowTopic, brokerTableflowTopic)) {
                 status = Resource.Metadata.Status.ofFailed(
-                        "The existing Confluent Tableflow configuration differs from the requested configuration. Updates are not supported yet.");
+                        "The existing Confluent Tableflow configuration differs in table formats or storage kind.");
             } else {
                 status = Resource.Metadata.Status.ofSuccess();
             }
@@ -214,12 +235,14 @@ public class TableflowTopicAsyncExecutor {
      * @return true if they match, false otherwise
      */
     private static boolean matchesConfiguration(TableflowTopic tableflowTopic, TableflowTopicResponse response) {
-        return tableflowTopic.getSpec().getTableFormats().equals(response.spec().tableFormats())
-                && tableflowTopic
-                        .getSpec()
-                        .getStorage()
-                        .getKind()
-                        .equals(response.spec().storage().kind());
+        TableflowTopic.Storage desiredStorage = tableflowTopic.getSpec().getStorage();
+        TableflowTopicResponse.Storage observedStorage = response.spec().storage();
+        return Objects.equals(
+                        tableflowTopic.getSpec().getTableFormats(),
+                        response.spec().tableFormats())
+                && Objects.equals(
+                        desiredStorage == null ? null : desiredStorage.getKind(),
+                        observedStorage == null ? null : observedStorage.kind());
     }
 
     /**

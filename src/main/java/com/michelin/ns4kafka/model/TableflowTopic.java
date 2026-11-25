@@ -24,6 +24,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import io.micronaut.serde.annotation.Serdeable;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -73,6 +74,11 @@ public class TableflowTopic extends Resource {
 
         @Valid @NotNull @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Storage where the tables are written.")
         private Storage storage;
+
+        @Min(value = 86_400_000, message = "must be greater than or equal to {value} ms (1 day)")
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        @Schema(description = "Maximum age of table snapshots or versions in milliseconds.")
+        private Long snapshotRetentionMs;
     }
 
     /** Tableflow topic storage. */

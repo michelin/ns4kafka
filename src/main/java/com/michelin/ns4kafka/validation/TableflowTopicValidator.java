@@ -18,15 +18,21 @@
  */
 package com.michelin.ns4kafka.validation;
 
+import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidImmutableField;
+
 import com.michelin.ns4kafka.model.TableflowTopic;
+import com.michelin.ns4kafka.model.TableflowTopic.TableflowTopicSpec;
 import io.micronaut.serde.annotation.Serdeable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
+import org.jspecify.annotations.Nullable;
 
 /** Tableflow topic validator. */
 @Getter
@@ -43,7 +49,30 @@ public class TableflowTopicValidator extends ResourceValidator {
      * @return The validation errors and warnings
      */
     public ValidationResult validate(TableflowTopic tableflowTopic) {
+        return validate(tableflowTopic, null);
+    }
+
+    /**
+     * Validate immutable fields and apply namespace rules to the effective configuration.
+     *
+     * @param tableflowTopic The requested Tableflow topic
+     * @param existingSpec The stored spec, or null on creation
+     * @return The validation errors and warnings
+     */
+    public ValidationResult validate(TableflowTopic tableflowTopic, @Nullable TableflowTopicSpec existingSpec) {
+        TableflowTopicSpec spec = tableflowTopic.getSpec();
         List<String> validationErrors = new ArrayList<>();
+        if (existingSpec != null) {
+            if (!Objects.equals(existingSpec.getTableFormats(), spec.getTableFormats())) {
+                validationErrors.add(invalidImmutableField("tableFormats"));
+            }
+            if (!Objects.equals(existingSpec.getStorage(), spec.getStorage())) {
+                validationErrors.add(invalidImmutableField("storage.kind"));
+            }
+        }
+        Long retention = spec.getSnapshotRetentionMs() == null && existingSpec != null
+                ? existingSpec.getSnapshotRetentionMs()
+                : spec.getSnapshotRetentionMs();
         List<String> validationWarnings = new ArrayList<>();
 
         validationConstraints.forEach((key, value) -> {
@@ -52,14 +81,12 @@ public class TableflowTopicValidator extends ResourceValidator {
                         switch (key) {
                             case "name" -> tableflowTopic.getMetadata().getName();
                             case "tableFormats" ->
-                                tableflowTopic.getSpec().getTableFormats() == null
-                                        ? null
-                                        : String.join(
-                                                ",", tableflowTopic.getSpec().getTableFormats());
+                                spec.getTableFormats() == null ? null : String.join(",", spec.getTableFormats());
                             case "storage.kind" ->
-                                tableflowTopic.getSpec().getStorage() == null
-                                        ? null
-                                        : tableflowTopic.getSpec().getStorage().getKind();
+                                Optional.ofNullable(spec.getStorage())
+                                        .map(TableflowTopic.Storage::getKind)
+                                        .orElse(null);
+                            case "snapshotRetentionMs" -> Objects.toString(retention, null);
                             default -> null;
                         };
                 value.ensureValid(key, fieldValue);

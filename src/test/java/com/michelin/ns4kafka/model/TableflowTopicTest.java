@@ -22,10 +22,28 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.michelin.ns4kafka.util.enumation.Kind;
 import io.micronaut.json.JsonMapper;
+import io.micronaut.validation.validator.Validator;
+import jakarta.validation.ConstraintViolation;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 class TableflowTopicTest {
+    @ParameterizedTest
+    @CsvSource({"86399999, false", "86400000, true"})
+    void shouldRequireAtLeastOneDayOfSnapshotRetention(long retention, boolean valid) {
+        Class<TableflowTopic.TableflowTopicSpec> spec = TableflowTopic.TableflowTopicSpec.class;
+        Set<ConstraintViolation<TableflowTopic.TableflowTopicSpec>> violations =
+                Validator.getInstance().validateValue(spec, "snapshotRetentionMs", retention);
+        assertEquals(valid, violations.isEmpty());
+        if (!valid) {
+            assertEquals(
+                    "must be greater than or equal to 86400000 ms (1 day)",
+                    violations.iterator().next().getMessage());
+        }
+    }
+
     @Test
     void shouldDeserializeASeparateResourceReferencingAnExistingTopic() throws Exception {
         JsonMapper mapper = JsonMapper.createDefault();

@@ -18,6 +18,7 @@
  */
 package com.michelin.ns4kafka.service.client.confluent.entities;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.micronaut.serde.annotation.Serdeable;
 import java.util.Set;
@@ -27,12 +28,29 @@ import java.util.Set;
 public record TableflowTopicRequest(Spec spec) {
     /** Tableflow topic spec. */
     @Serdeable
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public record Spec(
             @JsonProperty("display_name") String displayName,
             Storage storage,
             @JsonProperty("table_formats") Set<String> tableFormats,
             Reference environment,
-            @JsonProperty("kafka_cluster") Reference kafkaCluster) {}
+            @JsonProperty("kafka_cluster") Reference kafkaCluster,
+            Config config) {}
+
+    /** Request to update a Tableflow topic in place. */
+    @Serdeable
+    public record Update(UpdateSpec spec) {}
+
+    /** Writable Tableflow configuration and its cluster scope. */
+    @Serdeable
+    public record UpdateSpec(
+            Reference environment,
+            @JsonProperty("kafka_cluster") Reference kafkaCluster,
+            Config config) {}
+
+    /** Tableflow topic configuration. */
+    @Serdeable
+    public record Config(@JsonProperty("retention_ms") String retentionMs) {}
 
     /** Tableflow topic storage. */
     @Serdeable
