@@ -120,21 +120,19 @@ public class TableflowTopicAsyncExecutor {
                         String name = tableflowTopic.getMetadata().getName();
                         TableflowTopicResponse observed = brokerTableflowTopics.get(name);
                         Long retentionMs = tableflowTopic.getSpec().getSnapshotRetentionMs();
-                        if (observed != null && !matchesTableLayout(tableflowTopic, observed)) {
-                            errors.put(
-                                    name,
-                                    "The existing Confluent Tableflow configuration differs in table formats or storage kind.");
-                            return Mono.empty();
-                        }
-                        if (observed != null
-                                && (retentionMs == null
-                                        || (observed.spec().config() != null
-                                                && retentionMs
-                                                        .toString()
-                                                        .equals(observed.spec()
-                                                                .config()
-                                                                .retentionMs())))) {
-                            return Mono.empty();
+                        if (observed != null) {
+                            if (!matchesTableLayout(tableflowTopic, observed)) {
+                                errors.put(
+                                        name,
+                                        "The existing Confluent Tableflow configuration differs in table formats or storage kind.");
+                                return Mono.empty();
+                            }
+                            String observedRetention = observed.spec().config() == null
+                                    ? null
+                                    : observed.spec().config().retentionMs();
+                            if (retentionMs == null || retentionMs.toString().equals(observedRetention)) {
+                                return Mono.empty();
+                            }
                         }
 
                         String action = observed == null ? "creating" : "updating";

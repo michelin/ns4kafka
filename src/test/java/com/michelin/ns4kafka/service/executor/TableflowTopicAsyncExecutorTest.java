@@ -145,6 +145,7 @@ class TableflowTopicAsyncExecutorTest {
                 .id("tf-" + TOPIC_NAME)
                 .spec(TableflowTopicResponse.Spec.builder()
                         .displayName(TOPIC_NAME)
+                        .config(new TableflowTopicRequest.Config("604800000"))
                         .tableFormats(Set.of("ICEBERG"))
                         .storage(new TableflowTopicResponse.Storage("Managed"))
                         .build())
@@ -163,6 +164,7 @@ class TableflowTopicAsyncExecutorTest {
         assertEquals(1, tableflowTopic.getMetadata().getGeneration());
         verify(tableflowTopicRepository).create(tableflowTopic);
         verify(confluentCloudClient, never()).createTableflowTopic(any(), any());
+        verify(confluentCloudClient, never()).updateTableflowTopic(any(), any(), anyLong());
     }
 
     @Test
@@ -251,6 +253,7 @@ class TableflowTopicAsyncExecutorTest {
                         .status(Resource.Metadata.Status.ofPending())
                         .build())
                 .spec(TableflowTopic.TableflowTopicSpec.builder()
+                        .snapshotRetentionMs(172_800_000L)
                         .tableFormats(Set.of("ICEBERG"))
                         .storage(
                                 TableflowTopic.Storage.builder().kind("Managed").build())

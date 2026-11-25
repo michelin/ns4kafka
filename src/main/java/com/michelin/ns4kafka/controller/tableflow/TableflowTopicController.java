@@ -18,7 +18,6 @@
  */
 package com.michelin.ns4kafka.controller.tableflow;
 
-import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidImmutableField;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidOwner;
 import static com.michelin.ns4kafka.util.FormatErrorUtils.invalidTableflowSourceTopic;
 import static io.micronaut.core.util.StringUtils.EMPTY_STRING;
@@ -35,6 +34,7 @@ import com.michelin.ns4kafka.service.TableflowTopicService;
 import com.michelin.ns4kafka.service.TopicService;
 import com.michelin.ns4kafka.util.enumation.ApplyStatus;
 import com.michelin.ns4kafka.util.exception.ResourceValidationException;
+import com.michelin.ns4kafka.validation.TableflowTopicValidator;
 import com.michelin.ns4kafka.validation.ValidationResult;
 import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.HttpResponse;
@@ -52,7 +52,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -117,13 +116,13 @@ public class TableflowTopicController extends NamespacedResourceController {
             return Mono.error(new ResourceValidationException(tableflowTopic, invalidOwner(topic)));
         }
 
-        TableflowTopicSpec requestedSpec = tableflowTopic.getSpec();
-        Long requestedRetention = requestedSpec.getSnapshotRetentionMs();
         TableflowTopicSpec validatedExistingSpec = tableflowTopicService
                 .findByName(ns, topic)
                 .map(TableflowTopic::getSpec)
                 .orElse(null);
-        ValidationResult specValidation = validateSpec(ns, tableflowTopic, validatedExistingSpec, requestedRetention);
+        TableflowTopicValidator validator =
+                Objects.requireNonNullElseGet(ns.getSpec().getTableflowTopicValidator(), TableflowTopicValidator::new);
+        ValidationResult specValidation = validator.validate(tableflowTopic, validatedExistingSpec);
         List<String> validationErrors = new ArrayList<>(specValidation.errors());
         validationErrors.addAll(tableflowTopicService.validateConfiguration(ns, topic));
 
@@ -149,21 +148,21 @@ public class TableflowTopicController extends NamespacedResourceController {
                     TableflowTopicSpec existingSpec =
                             existingTableflowTopic.map(TableflowTopic::getSpec).orElse(null);
                     // A concurrent apply can change the stored spec while schema validation is in flight.
-                    ValidationResult currentSpecValidation = Objects.equals(existingSpec, validatedExistingSpec)
+                    ValidationResult validation = Objects.equals(validatedExistingSpec, existingSpec)
                             ? specValidation
-                            : validateSpec(ns, tableflowTopic, existingSpec, requestedRetention);
-                    if (currentSpecValidation.hasErrors()) {
-                        throw new ResourceValidationException(tableflowTopic, currentSpecValidation.errors());
+                            : validator.validate(tableflowTopic, existingSpec);
+                    if (validation.hasErrors()) {
+                        throw new ResourceValidationException(tableflowTopic, validation.errors());
                     }
-                    List<String> validationWarnings = currentSpecValidation.warnings();
-
-                    assignResourceMetadata(tableflowTopic, ns, existingTableflowTopic.orElse(null));
-
-                    if (requestedSpec.equals(existingSpec)) {
+                    List<String> validationWarnings = validation.warnings();
+                    Long retention = tableflowTopic.getSpec().getSnapshotRetentionMs();
+                    if (existingSpec != null
+                            && (retention == null || retention.equals(existingSpec.getSnapshotRetentionMs()))) {
                         return formatHttpResponse(
                                 existingTableflowTopic.orElseThrow(), ApplyStatus.UNCHANGED, validationWarnings);
                     }
 
+                    assignResourceMetadata(tableflowTopic, ns, existingTableflowTopic.orElse(null));
                     ApplyStatus status = existingSpec == null ? ApplyStatus.CREATED : ApplyStatus.CHANGED;
                     if (dryrun) {
                         return formatHttpResponse(tableflowTopic, status, validationWarnings);
@@ -175,43 +174,6 @@ public class TableflowTopicController extends NamespacedResourceController {
 
                     return formatHttpResponse(appliedTableflowTopic, status, validationWarnings);
                 });
-    }
-
-    /**
-     * Validate the requested configuration against the stored spec and namespace rules.
-     *
-     * @param namespace The namespace
-     * @param tableflowTopic The requested Tableflow topic
-     * @param existingSpec The stored spec, or null for a new resource
-     * @param requestedRetention The requested retention, or null to keep the existing setting
-     * @return The validation errors and warnings
-     */
-    private ValidationResult validateSpec(
-            Namespace namespace,
-            TableflowTopic tableflowTopic,
-            @Nullable TableflowTopicSpec existingSpec,
-            @Nullable Long requestedRetention) {
-        TableflowTopicSpec requestedSpec = tableflowTopic.getSpec();
-        requestedSpec.setSnapshotRetentionMs(
-                requestedRetention == null && existingSpec != null
-                        ? existingSpec.getSnapshotRetentionMs()
-                        : requestedRetention);
-        List<String> errors = new ArrayList<>();
-        if (existingSpec != null) {
-            if (!Objects.equals(existingSpec.getTableFormats(), requestedSpec.getTableFormats())) {
-                errors.add(invalidImmutableField("tableFormats"));
-            }
-            if (!Objects.equals(existingSpec.getStorage(), requestedSpec.getStorage())) {
-                errors.add(invalidImmutableField("storage.kind"));
-            }
-        }
-        if (namespace.getSpec().getTableflowTopicValidator() == null) {
-            return new ValidationResult(errors, List.of());
-        }
-        ValidationResult validation =
-                namespace.getSpec().getTableflowTopicValidator().validate(tableflowTopic);
-        errors.addAll(validation.errors());
-        return new ValidationResult(errors, validation.warnings());
     }
 
     /**

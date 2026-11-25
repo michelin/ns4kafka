@@ -55,6 +55,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -421,6 +422,10 @@ class TableflowTopicControllerTest {
     @Test
     void shouldPreserveRetentionChangedDuringValidationWhenOmitted() {
         Namespace ns = namespace();
+        ns.getSpec()
+                .getTableflowTopicValidator()
+                .setValidationConstraints(Map.of("snapshotRetentionMs", ResourceValidator.Range.atLeast(86_400_000L)));
+        TableflowTopic request = icebergRequest();
         Topic source = Topic.builder()
                 .metadata(
                         Resource.Metadata.builder().name("orders").generation(1).build())
@@ -438,7 +443,7 @@ class TableflowTopicControllerTest {
         when(tableflowTopicService.validateSchemas(source)).thenReturn(Mono.just(List.of()));
         when(tableflowTopicService.findByName(ns, "orders")).thenReturn(Optional.of(stored), Optional.of(updated));
 
-        StepVerifier.create(tableflowTopicController.apply("test", icebergRequest(), false))
+        StepVerifier.create(tableflowTopicController.apply("test", request, false))
                 .consumeNextWith(response -> {
                     assertEquals(HttpStatus.OK, response.getStatus());
                     assertEquals("unchanged", response.getHeaders().get("X-Ns4kafka-Result"));
@@ -446,12 +451,13 @@ class TableflowTopicControllerTest {
                 })
                 .verifyComplete();
 
+        assertNull(request.getSpec().getSnapshotRetentionMs());
         verify(tableflowTopicService, never()).create(any());
         verify(applicationEventPublisher, never()).publishEvent(any(AuditLog.class));
     }
 
     @Test
-    void shouldNotChangeExistingTableflowFormats() {
+    void shouldRejectChangesToTableFormatsAndStorage() {
         Namespace ns = namespace();
         Topic source = Topic.builder()
                 .metadata(
@@ -459,6 +465,7 @@ class TableflowTopicControllerTest {
                 .build();
         TableflowTopic stored = icebergRequest();
         stored.getSpec().setTableFormats(Set.of("DELTA"));
+        stored.getSpec().getStorage().setKind("BYOS");
         TableflowTopic request = icebergRequest();
 
         when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
@@ -471,7 +478,8 @@ class TableflowTopicControllerTest {
                     assertEquals(ResourceValidationException.class, error.getClass());
                     assertTrue(((ResourceValidationException) error)
                             .getValidationErrors()
-                            .contains(invalidImmutableField("tableFormats")));
+                            .containsAll(List.of(
+                                    invalidImmutableField("tableFormats"), invalidImmutableField("storage.kind"))));
                 })
                 .verify();
 
@@ -517,7 +525,10 @@ class TableflowTopicControllerTest {
             verify(applicationEventPublisher, never()).publishEvent(any(AuditLog.class));
         } else {
             verify(tableflowTopicService).create(request);
-            verify(applicationEventPublisher).publishEvent(any(AuditLog.class));
+            ArgumentCaptor<AuditLog> audit = ArgumentCaptor.forClass(AuditLog.class);
+            verify(applicationEventPublisher).publishEvent(audit.capture());
+            assertEquals(stored.getSpec(), audit.getValue().getBefore());
+            assertEquals(request.getSpec(), audit.getValue().getAfter());
         }
     }
 

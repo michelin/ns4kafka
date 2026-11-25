@@ -22,10 +22,27 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.michelin.ns4kafka.util.enumation.Kind;
 import io.micronaut.json.JsonMapper;
+import io.micronaut.validation.validator.Validator;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class TableflowTopicTest {
+    @Test
+    void shouldRequireAtLeastOneDayOfSnapshotRetention() {
+        Validator validator = Validator.getInstance();
+        Class<TableflowTopic.TableflowTopicSpec> spec = TableflowTopic.TableflowTopicSpec.class;
+        assertEquals(
+                1,
+                validator
+                        .validateValue(spec, "snapshotRetentionMs", 86_399_999L)
+                        .size());
+        assertEquals(
+                0,
+                validator
+                        .validateValue(spec, "snapshotRetentionMs", 86_400_000L)
+                        .size());
+    }
+
     @Test
     void shouldDeserializeASeparateResourceReferencingAnExistingTopic() throws Exception {
         JsonMapper mapper = JsonMapper.createDefault();

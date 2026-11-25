@@ -237,29 +237,6 @@ class TableflowTopicIntegrationTest extends SchemaRegistryIntegrationTest {
     }
 
     @Test
-    void shouldRejectSnapshotRetentionBelowOneDay() {
-        TableflowTopic resource = TableflowTopic.builder()
-                .metadata(Resource.Metadata.builder().name("ns1.low-retention").build())
-                .spec(TableflowTopic.TableflowTopicSpec.builder()
-                        .tableFormats(Set.of("ICEBERG"))
-                        .storage(
-                                TableflowTopic.Storage.builder().kind("Managed").build())
-                        .snapshotRetentionMs(86_399_999L)
-                        .build())
-                .build();
-        HttpRequest<?> request = HttpRequest.POST("/api/namespaces/ns1/tableflow-topics", resource)
-                .bearerAuth(token);
-
-        HttpClientResponseException exception = assertThrows(
-                HttpClientResponseException.class,
-                () -> ns4KafkaClient.toBlocking().exchange(request));
-
-        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatus());
-        assertTrue(exception.getResponse().getBody(Status.class).orElseThrow().getDetails().getCauses().stream()
-                .anyMatch(cause -> cause.contains("snapshotRetentionMs")));
-    }
-
-    @Test
     void shouldNotCreateTableflowTopicWhenSpecIsInvalid() {
         Topic topic = Topic.builder()
                 .metadata(Resource.Metadata.builder()
