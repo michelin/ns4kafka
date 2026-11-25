@@ -39,6 +39,9 @@ micronaut:
       gitlab:
         connect-timeout: "5s"
         event-loop-group: "gitlab"
+        pool:
+          max-concurrent-requests-per-http2-connection: 64
+          max-concurrent-http2-connections: 2
         read-idle-timeout: "5s"
         read-timeout: "5s"
         url: "${micronaut.security.gitlab.url}"
