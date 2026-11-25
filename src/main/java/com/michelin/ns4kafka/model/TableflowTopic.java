@@ -75,7 +75,8 @@ public class TableflowTopic extends Resource {
         @Valid @NotNull @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Storage where the tables are written.")
         private Storage storage;
 
-        @Min(86_400_000) @JsonInclude(JsonInclude.Include.NON_NULL)
+        @Min(value = 86_400_000, message = "must be greater than or equal to {value} ms (1 day)")
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         @Schema(description = "Maximum age of table snapshots or versions in milliseconds.")
         private Long snapshotRetentionMs;
     }
