@@ -26,6 +26,7 @@ import io.micronaut.serde.annotation.Serdeable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -82,9 +83,9 @@ public class TableflowTopicValidator extends ResourceValidator {
                             case "tableFormats" ->
                                 spec.getTableFormats() == null ? null : String.join(",", spec.getTableFormats());
                             case "storage.kind" ->
-                                spec.getStorage() == null
-                                        ? null
-                                        : spec.getStorage().getKind();
+                                Optional.ofNullable(spec.getStorage())
+                                        .map(TableflowTopic.Storage::getKind)
+                                        .orElse(null);
                             case "snapshotRetentionMs" -> Objects.toString(retention, null);
                             default -> null;
                         };

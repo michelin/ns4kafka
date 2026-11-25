@@ -52,7 +52,7 @@ import reactor.core.publisher.Mono;
 @Singleton
 public class ConfluentCloudClient {
     private static final String CONFLUENT_CLOUD_API_URL = "https://api.confluent.cloud";
-    private static final String TABLEFLOW_TOPICS_PATH = "/tableflow/v1/tableflow-topics";
+    private static final String TABLEFLOW_TOPICS_PATH = "tableflow/v1/tableflow-topics";
     private static final String PAGE_TOKEN_PARAM = "page_token=";
     private static final int PAGE_SIZE = 1000;
     private static final int TABLEFLOW_PAGE_SIZE = 100;
@@ -97,9 +97,11 @@ public class ConfluentCloudClient {
                 new TableflowTopicRequest.Reference(config.getClusterId()),
                 retentionMs == null ? null : new TableflowTopicRequest.Config(retentionMs.toString())));
 
-        HttpRequest<?> request = HttpRequest.POST(
-                        URI.create(StringUtils.prependUri(CONFLUENT_CLOUD_API_URL, TABLEFLOW_TOPICS_PATH)), body)
-                .basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
+        URI uri = UriBuilder.of(CONFLUENT_CLOUD_API_URL)
+                .path(TABLEFLOW_TOPICS_PATH)
+                .build();
+        HttpRequest<?> request =
+                HttpRequest.POST(uri, body).basicAuth(config.getBasicAuthUsername(), config.getBasicAuthPassword());
 
         return Mono.from(httpClient.retrieve(
                 request, Argument.of(TableflowTopicResponse.class), Argument.of(ConfluentCloudErrorResponse.class)));

@@ -52,6 +52,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -155,9 +156,7 @@ public class TableflowTopicController extends NamespacedResourceController {
                         throw new ResourceValidationException(tableflowTopic, validation.errors());
                     }
                     List<String> validationWarnings = validation.warnings();
-                    Long retention = tableflowTopic.getSpec().getSnapshotRetentionMs();
-                    if (existingSpec != null
-                            && (retention == null || retention.equals(existingSpec.getSnapshotRetentionMs()))) {
+                    if (isSnapshotRetentionUnchanged(tableflowTopic.getSpec().getSnapshotRetentionMs(), existingSpec)) {
                         return formatHttpResponse(
                                 existingTableflowTopic.orElseThrow(), ApplyStatus.UNCHANGED, validationWarnings);
                     }
@@ -174,6 +173,18 @@ public class TableflowTopicController extends NamespacedResourceController {
 
                     return formatHttpResponse(appliedTableflowTopic, status, validationWarnings);
                 });
+    }
+
+    /**
+     * Check whether an existing topic can keep its stored retention.
+     *
+     * @param retention The requested retention, or null if omitted
+     * @param existingSpec The stored spec, or null on creation
+     * @return True if the retention is omitted or matches the stored value on an existing topic
+     */
+    private static boolean isSnapshotRetentionUnchanged(
+            @Nullable Long retention, @Nullable TableflowTopicSpec existingSpec) {
+        return existingSpec != null && (retention == null || retention.equals(existingSpec.getSnapshotRetentionMs()));
     }
 
     /**
