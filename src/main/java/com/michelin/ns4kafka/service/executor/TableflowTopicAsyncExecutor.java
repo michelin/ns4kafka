@@ -34,6 +34,7 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -91,9 +92,10 @@ public class TableflowTopicAsyncExecutor {
                     List<TableflowTopic> ns4KafkaTableflowTopics =
                             tableflowTopicRepository.findAllForCluster(managedClusterProperties.getName());
 
-                    return reconcileTableflowTopics(ns4KafkaTableflowTopics, brokerTableflowTopics)
+                    return applyTableflowTopics(ns4KafkaTableflowTopics, brokerTableflowTopics)
                             .publishOn(Schedulers.boundedElastic())
-                            .doOnNext(errors -> updateStatuses(ns4KafkaTableflowTopics, errors));
+                            .doOnNext(applyErrors ->
+                                    updateStatuses(ns4KafkaTableflowTopics, brokerTableflowTopics, applyErrors));
                 })
                 .then()
                 .doOnError(exception -> log.error(
@@ -104,83 +106,106 @@ public class TableflowTopicAsyncExecutor {
     }
 
     /**
-     * Reconcile Tableflow topics against the broker configuration.
+     * Apply Tableflow topics.
      *
-     * @param tableflowTopics The desired Tableflow topics
-     * @param brokerTableflowTopics The Confluent Cloud Tableflow topics by name
-     * @return The reconciliation errors by topic name
+     * @param topics The desired Tableflow topics
+     * @param brokerTableflowTopics The observed Tableflow topics by name
+     * @return The error message of each Tableflow topic that could not be applied, by topic name
      */
-    private Mono<Map<String, String>> reconcileTableflowTopics(
-            List<TableflowTopic> tableflowTopics, Map<String, TableflowTopicResponse> brokerTableflowTopics) {
+    private Mono<Map<String, String>> applyTableflowTopics(
+            List<TableflowTopic> topics, Map<String, TableflowTopicResponse> brokerTableflowTopics) {
         return Mono.defer(() -> {
-            Map<String, String> errors = new ConcurrentHashMap<>();
-            String cluster = managedClusterProperties.getName();
-            return Flux.fromIterable(tableflowTopics)
-                    .concatMap(tableflowTopic -> {
-                        String name = tableflowTopic.getMetadata().getName();
-                        TableflowTopicResponse observed = brokerTableflowTopics.get(name);
-                        Long retentionMs = tableflowTopic.getSpec().getSnapshotRetentionMs();
-                        if (observed != null) {
-                            if (!matchesTableLayout(tableflowTopic, observed)) {
-                                errors.put(
-                                        name,
-                                        "The existing Confluent Tableflow configuration differs in table formats or storage kind.");
+            Map<String, String> applyErrors = new ConcurrentHashMap<>();
+
+            return Flux.fromIterable(topics)
+                    .concatMap(tableflowTopic -> Mono.defer(() -> applyTableflowTopic(
+                                    tableflowTopic,
+                                    brokerTableflowTopics.get(
+                                            tableflowTopic.getMetadata().getName())))
+                            .doOnNext(_ -> log.info(
+                                    "Success applying Tableflow topic {} on cluster {}.",
+                                    tableflowTopic.getMetadata().getName(),
+                                    managedClusterProperties.getName()))
+                            .onErrorResume(e -> {
+                                String errorMessage = e instanceof HttpClientResponseException responseException
+                                        ? responseException
+                                                .getResponse()
+                                                .getBody(ConfluentCloudErrorResponse.class)
+                                                .filter(error -> error.errors() != null)
+                                                .map(error -> error.errors().stream()
+                                                        .map(ConfluentCloudErrorResponse.Error::detail)
+                                                        .collect(Collectors.joining(", ")))
+                                                .orElse(responseException.getMessage())
+                                        : Objects.toString(
+                                                e.getMessage(), e.getClass().getName());
+
+                                log.error(
+                                        "Error while applying Tableflow topic {} on cluster {}.",
+                                        tableflowTopic.getMetadata().getName(),
+                                        managedClusterProperties.getName(),
+                                        e);
+
+                                applyErrors.put(tableflowTopic.getMetadata().getName(), errorMessage);
                                 return Mono.empty();
-                            }
-                            String observedRetention = observed.spec().config() == null
-                                    ? null
-                                    : observed.spec().config().retentionMs();
-                            if (retentionMs == null || retentionMs.toString().equals(observedRetention)) {
-                                return Mono.empty();
-                            }
-                        }
-
-                        String action = observed == null ? "creating" : "updating";
-                        log.debug("Start {} Tableflow topic {} on cluster {}.", action, name, cluster);
-                        return Mono.defer(() -> observed == null
-                                        ? confluentCloudClient.createTableflowTopic(cluster, tableflowTopic)
-                                        : confluentCloudClient.updateTableflowTopic(cluster, name, retentionMs))
-                                .doOnNext(_ ->
-                                        log.info("Success {} Tableflow topic {} on cluster {}.", action, name, cluster))
-                                .onErrorResume(e -> {
-                                    String errorMessage = e instanceof HttpClientResponseException responseException
-                                            ? responseException
-                                                    .getResponse()
-                                                    .getBody(ConfluentCloudErrorResponse.class)
-                                                    .filter(error -> error.errors() != null)
-                                                    .map(error -> error.errors().stream()
-                                                            .map(ConfluentCloudErrorResponse.Error::detail)
-                                                            .collect(Collectors.joining(", ")))
-                                                    .orElse(responseException.getMessage())
-                                            : Objects.toString(
-                                                    e.getMessage(), e.getClass().getName());
-
-                                    log.error(
-                                            "Error while {} Tableflow topic {} on cluster {}.",
-                                            action,
-                                            name,
-                                            cluster,
-                                            e);
-
-                                    errors.put(name, errorMessage);
-                                    return Mono.empty();
-                                });
-                    })
-                    .then(Mono.just(errors));
+                            }))
+                    .then(Mono.fromSupplier(() -> applyErrors));
         });
+    }
+
+    /**
+     * Create a missing topic or update its retention when the immutable configuration matches.
+     *
+     * @param topic The desired Tableflow topic
+     * @param observed The Confluent topic, if present
+     * @return The operation response, or empty when no write is needed
+     */
+    private Mono<TableflowTopicResponse> applyTableflowTopic(
+            TableflowTopic topic, @Nullable TableflowTopicResponse observed) {
+        String cluster = managedClusterProperties.getName();
+        String name = topic.getMetadata().getName();
+        if (observed == null) {
+            log.debug("Start creating Tableflow topic {} on cluster {}.", name, cluster);
+            return confluentCloudClient.createTableflowTopic(cluster, topic);
+        }
+
+        Long retention = topic.getSpec().getSnapshotRetentionMs();
+        String observedRetention = observed.spec().config() == null
+                ? null
+                : observed.spec().config().retentionMs();
+        if (retention == null
+                || retention.toString().equals(observedRetention)
+                || !matchesConfiguration(topic, observed)) {
+            return Mono.empty();
+        }
+        log.debug("Start updating Tableflow topic {} on cluster {}.", name, cluster);
+        return confluentCloudClient.updateTableflowTopic(cluster, name, retention);
     }
 
     /**
      * Update the status of the Tableflow topics.
      *
      * @param ns4KafkaTableflowTopics The Ns4Kafka Tableflow topics
-     * @param errors The reconciliation errors by topic name
+     * @param brokerTableflowTopics The Confluent Cloud Tableflow topics by name
+     * @param applyErrors The error message of each Tableflow topic that could not be applied, by topic name
      */
-    private void updateStatuses(List<TableflowTopic> ns4KafkaTableflowTopics, Map<String, String> errors) {
+    private void updateStatuses(
+            List<TableflowTopic> ns4KafkaTableflowTopics,
+            Map<String, TableflowTopicResponse> brokerTableflowTopics,
+            Map<String, String> applyErrors) {
         ns4KafkaTableflowTopics.forEach(tableflowTopic -> {
-            String error = errors.get(tableflowTopic.getMetadata().getName());
-            Resource.Metadata.Status status =
-                    error == null ? Resource.Metadata.Status.ofSuccess() : Resource.Metadata.Status.ofFailed(error);
+            TableflowTopicResponse brokerTableflowTopic =
+                    brokerTableflowTopics.get(tableflowTopic.getMetadata().getName());
+
+            Resource.Metadata.Status status;
+            if (applyErrors.containsKey(tableflowTopic.getMetadata().getName())) {
+                status = Resource.Metadata.Status.ofFailed(
+                        applyErrors.get(tableflowTopic.getMetadata().getName()));
+            } else if (brokerTableflowTopic != null && !matchesConfiguration(tableflowTopic, brokerTableflowTopic)) {
+                status = Resource.Metadata.Status.ofFailed(
+                        "The existing Confluent Tableflow configuration differs in table formats or storage kind.");
+            } else {
+                status = Resource.Metadata.Status.ofSuccess();
+            }
 
             if (Objects.equals(tableflowTopic.getMetadata().getStatus(), status)) {
                 return;
@@ -203,13 +228,13 @@ public class TableflowTopicAsyncExecutor {
     }
 
     /**
-     * Check if a Tableflow topic matches its Confluent Cloud formats and storage.
+     * Check if a Tableflow topic matches its Confluent Cloud configuration.
      *
      * @param tableflowTopic The Tableflow topic
      * @param response The Confluent Cloud Tableflow topic
-     * @return True if they match, false otherwise
+     * @return true if they match, false otherwise
      */
-    private static boolean matchesTableLayout(TableflowTopic tableflowTopic, TableflowTopicResponse response) {
+    private static boolean matchesConfiguration(TableflowTopic tableflowTopic, TableflowTopicResponse response) {
         TableflowTopic.Storage desiredStorage = tableflowTopic.getSpec().getStorage();
         TableflowTopicResponse.Storage observedStorage = response.spec().storage();
         return Objects.equals(

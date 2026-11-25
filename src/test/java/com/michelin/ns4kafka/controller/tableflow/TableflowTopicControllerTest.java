@@ -54,7 +54,7 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -83,14 +83,20 @@ class TableflowTopicControllerTest {
     @InjectMocks
     TableflowTopicController tableflowTopicController;
 
-    @Test
-    void shouldCreateTableflowTopic() {
+    @ParameterizedTest
+    @EnumSource(
+            value = ApplyStatus.class,
+            names = {"CREATED", "CHANGED"})
+    void shouldApplyTableflowTopic(ApplyStatus expected) {
         Namespace ns = namespace();
         Topic topic = Topic.builder()
                 .metadata(
                         Resource.Metadata.builder().name("orders").generation(1).build())
                 .build();
         TableflowTopic request = icebergRequest();
+        request.getSpec().setSnapshotRetentionMs(172_800_000L);
+        TableflowTopic stored = expected == ApplyStatus.CHANGED ? icebergRequest() : null;
+        when(tableflowTopicService.findByName(ns, "orders")).thenReturn(Optional.ofNullable(stored));
         TableflowTopic createdTableflowTopic = icebergRequest();
         createdTableflowTopic.getMetadata().setStatus(Resource.Metadata.Status.ofPending());
 
@@ -117,6 +123,8 @@ class TableflowTopicControllerTest {
                     TableflowTopic actual = response.body();
                     assertNotNull(actual);
                     assertEquals(HttpStatus.OK, response.getStatus());
+                    assertEquals(expected.toString(), response.header("X-Ns4kafka-Result"));
+                    assertEquals(172_800_000L, actual.getSpec().getSnapshotRetentionMs());
                     assertNull(actual.getStatus());
                     assertEquals(
                             Resource.Metadata.Phase.PENDING,
@@ -131,18 +139,27 @@ class TableflowTopicControllerTest {
         verify(tableflowTopicService).validateConfiguration(ns, "orders");
         verify(tableflowTopicService).validateSchemas(topic);
         verify(tableflowTopicService).create(request);
-        verify(applicationEventPublisher).publishEvent(any(AuditLog.class));
+        ArgumentCaptor<AuditLog> audit = ArgumentCaptor.forClass(AuditLog.class);
+        verify(applicationEventPublisher).publishEvent(audit.capture());
+        assertEquals(stored == null ? null : stored.getSpec(), audit.getValue().getBefore());
+        assertEquals(request.getSpec(), audit.getValue().getAfter());
         verify(topicService, never()).create(any());
     }
 
-    @Test
-    void shouldCreateTableflowTopicInDryRunMode() {
+    @ParameterizedTest
+    @EnumSource(
+            value = ApplyStatus.class,
+            names = {"CREATED", "CHANGED"})
+    void shouldApplyTableflowTopicInDryRunMode(ApplyStatus expected) {
         Namespace ns = namespace();
         Topic topic = Topic.builder()
                 .metadata(
                         Resource.Metadata.builder().name("orders").generation(1).build())
                 .build();
         TableflowTopic request = icebergRequest();
+        request.getSpec().setSnapshotRetentionMs(172_800_000L);
+        TableflowTopic stored = expected == ApplyStatus.CHANGED ? icebergRequest() : null;
+        when(tableflowTopicService.findByName(ns, "orders")).thenReturn(Optional.ofNullable(stored));
         request.getMetadata().setCluster("caller-cluster");
         request.getMetadata().setNamespace("caller-namespace");
 
@@ -156,13 +173,18 @@ class TableflowTopicControllerTest {
                     TableflowTopic actual = response.body();
                     assertNotNull(actual);
                     assertEquals(HttpStatus.OK, response.getStatus());
+                    assertEquals(expected.toString(), response.getHeaders().get("X-Ns4kafka-Result"));
                     assertEquals(
-                            ApplyStatus.CREATED.toString(),
-                            response.getHeaders().get("X-Ns4kafka-Result"));
+                            stored == null ? 0 : stored.getMetadata().getGeneration(),
+                            actual.getMetadata().getGeneration());
+                    assertEquals(
+                            Resource.Metadata.Phase.PENDING,
+                            actual.getMetadata().getStatus().getPhase());
                     assertEquals("cloud", actual.getMetadata().getCluster());
                     assertEquals("test", actual.getMetadata().getNamespace());
                     assertEquals(Set.of("ICEBERG"), actual.getSpec().getTableFormats());
                     assertEquals("Managed", actual.getSpec().getStorage().getKind());
+                    assertEquals(172_800_000L, actual.getSpec().getSnapshotRetentionMs());
                     assertNull(actual.getStatus());
                 })
                 .verifyComplete();
@@ -484,52 +506,6 @@ class TableflowTopicControllerTest {
                 .verify();
 
         verify(tableflowTopicService, never()).create(any());
-    }
-
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    void shouldApplySnapshotRetention(boolean dryrun) {
-        Namespace ns = namespace();
-        Topic source = Topic.builder()
-                .metadata(Resource.Metadata.builder().name("orders").build())
-                .build();
-        TableflowTopic stored = icebergRequest();
-        stored.getMetadata().setGeneration(1);
-        TableflowTopic request = icebergRequest();
-        request.getSpec().setSnapshotRetentionMs(172_800_000L);
-
-        when(namespaceService.findByName("test")).thenReturn(Optional.of(ns));
-        when(topicService.isNamespaceOwnerOfTopic("test", "orders")).thenReturn(true);
-        when(topicService.findByName(ns, "orders")).thenReturn(Optional.of(source));
-        when(tableflowTopicService.validateSchemas(source)).thenReturn(Mono.just(List.of()));
-        when(tableflowTopicService.findByName(ns, "orders")).thenReturn(Optional.of(stored));
-        if (!dryrun) {
-            when(tableflowTopicService.create(request)).thenReturn(request);
-            when(securityService.username()).thenReturn(Optional.of("test-user"));
-            when(securityService.hasRole(ResourceBasedSecurityRule.IS_ADMIN)).thenReturn(false);
-        }
-
-        StepVerifier.create(tableflowTopicController.apply("test", request, dryrun))
-                .consumeNextWith(response -> {
-                    assertEquals("changed", response.header("X-Ns4kafka-Result"));
-                    assertEquals(172_800_000L, response.body().getSpec().getSnapshotRetentionMs());
-                    assertEquals(1, response.body().getMetadata().getGeneration());
-                    assertEquals(
-                            Resource.Metadata.Phase.PENDING,
-                            response.body().getMetadata().getStatus().getPhase());
-                })
-                .verifyComplete();
-
-        if (dryrun) {
-            verify(tableflowTopicService, never()).create(any());
-            verify(applicationEventPublisher, never()).publishEvent(any(AuditLog.class));
-        } else {
-            verify(tableflowTopicService).create(request);
-            ArgumentCaptor<AuditLog> audit = ArgumentCaptor.forClass(AuditLog.class);
-            verify(applicationEventPublisher).publishEvent(audit.capture());
-            assertEquals(stored.getSpec(), audit.getValue().getBefore());
-            assertEquals(request.getSpec(), audit.getValue().getAfter());
-        }
     }
 
     @Test

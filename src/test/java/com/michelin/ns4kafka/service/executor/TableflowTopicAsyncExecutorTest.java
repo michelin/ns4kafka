@@ -124,7 +124,7 @@ class TableflowTopicAsyncExecutorTest {
     }
 
     @Test
-    void shouldMarkTableflowTopicAsSuccessWhenAlreadyExists() {
+    void shouldReconcileRetentionOnAnExistingTableflowTopic() {
         TableflowTopic tableflowTopic = TableflowTopic.builder()
                 .metadata(Resource.Metadata.builder()
                         .name(TOPIC_NAME)
@@ -156,8 +156,21 @@ class TableflowTopicAsyncExecutorTest {
         when(managedClusterProperties.getName()).thenReturn(CLUSTER);
         when(tableflowTopicRepository.findAllForCluster(CLUSTER)).thenReturn(List.of(tableflowTopic));
         when(tableflowTopicRepository.findByName(CLUSTER, TOPIC_NAME)).thenReturn(Optional.of(tableflowTopic));
-        when(confluentCloudClient.listTableflowTopics(CLUSTER)).thenReturn(Flux.just(tableflowTopicResponse));
-
+        long retentionMs = 172_800_000L;
+        TableflowTopicResponse updated = new TableflowTopicResponse(
+                tableflowTopicResponse.id(),
+                new TableflowTopicResponse.Spec(
+                        TOPIC_NAME,
+                        Set.of("ICEBERG"),
+                        new TableflowTopicResponse.Storage("Managed"),
+                        new TableflowTopicRequest.Config(Long.toString(retentionMs))),
+                tableflowTopicResponse.status());
+        when(confluentCloudClient.listTableflowTopics(CLUSTER))
+                .thenReturn(
+                        Flux.just(tableflowTopicResponse),
+                        Flux.just(tableflowTopicResponse),
+                        Flux.just(tableflowTopicResponse),
+                        Flux.just(updated));
         StepVerifier.create(tableflowTopicAsyncExecutor.run()).verifyComplete();
 
         assertTrue(tableflowTopic.isSuccess());
@@ -165,6 +178,24 @@ class TableflowTopicAsyncExecutorTest {
         verify(tableflowTopicRepository).create(tableflowTopic);
         verify(confluentCloudClient, never()).createTableflowTopic(any(), any());
         verify(confluentCloudClient, never()).updateTableflowTopic(any(), any(), anyLong());
+
+        tableflowTopic.getSpec().setSnapshotRetentionMs(retentionMs);
+        when(confluentCloudClient.updateTableflowTopic(CLUSTER, TOPIC_NAME, retentionMs))
+                .thenReturn(Mono.error(new IllegalStateException("Update failed")), Mono.just(updated));
+
+        StepVerifier.create(tableflowTopicAsyncExecutor.run()).verifyComplete();
+        assertTrue(tableflowTopic.isFailed());
+        assertEquals("Update failed", tableflowTopic.getMetadata().getStatus().getMessage());
+        assertEquals(1, tableflowTopic.getMetadata().getGeneration());
+
+        StepVerifier.create(tableflowTopicAsyncExecutor.run()).verifyComplete();
+        assertTrue(tableflowTopic.isSuccess());
+        assertEquals(2, tableflowTopic.getMetadata().getGeneration());
+
+        StepVerifier.create(tableflowTopicAsyncExecutor.run()).verifyComplete();
+        assertEquals(2, tableflowTopic.getMetadata().getGeneration());
+        verify(confluentCloudClient, times(2)).updateTableflowTopic(CLUSTER, TOPIC_NAME, retentionMs);
+        verify(confluentCloudClient, never()).createTableflowTopic(any(), any());
     }
 
     @Test
@@ -284,62 +315,6 @@ class TableflowTopicAsyncExecutorTest {
                 tableflowTopic.getMetadata().getStatus().getMessage());
         verify(confluentCloudClient, never()).createTableflowTopic(any(), any());
         verify(confluentCloudClient, never()).updateTableflowTopic(any(), any(), anyLong());
-    }
-
-    @Test
-    void shouldRetrySnapshotRetentionUpdateAndSkipWhenConverged() {
-        long retentionMs = 172_800_000L;
-        TableflowTopic tableflowTopic = TableflowTopic.builder()
-                .metadata(Resource.Metadata.builder()
-                        .name(TOPIC_NAME)
-                        .cluster(CLUSTER)
-                        .generation(1)
-                        .updateTimestamp(Date.from(INSTANT))
-                        .status(Resource.Metadata.Status.ofPending())
-                        .build())
-                .spec(TableflowTopic.TableflowTopicSpec.builder()
-                        .tableFormats(Set.of("ICEBERG"))
-                        .storage(
-                                TableflowTopic.Storage.builder().kind("Managed").build())
-                        .snapshotRetentionMs(retentionMs)
-                        .build())
-                .build();
-        TableflowTopicResponse.Spec.SpecBuilder observedSpec = TableflowTopicResponse.Spec.builder()
-                .displayName(TOPIC_NAME)
-                .tableFormats(Set.of("ICEBERG"))
-                .storage(new TableflowTopicResponse.Storage("Managed"));
-        TableflowTopicResponse previous = TableflowTopicResponse.builder()
-                .spec(observedSpec
-                        .config(new TableflowTopicRequest.Config("604800000"))
-                        .build())
-                .build();
-        TableflowTopicResponse updated = TableflowTopicResponse.builder()
-                .spec(observedSpec
-                        .config(new TableflowTopicRequest.Config("172800000"))
-                        .build())
-                .build();
-        when(managedClusterProperties.isManageTableflow()).thenReturn(true);
-        when(managedClusterProperties.getName()).thenReturn(CLUSTER);
-        when(tableflowTopicRepository.findAllForCluster(CLUSTER)).thenReturn(List.of(tableflowTopic));
-        when(tableflowTopicRepository.findByName(CLUSTER, TOPIC_NAME)).thenReturn(Optional.of(tableflowTopic));
-        when(confluentCloudClient.listTableflowTopics(CLUSTER))
-                .thenReturn(Flux.just(previous), Flux.just(previous), Flux.just(updated));
-        when(confluentCloudClient.updateTableflowTopic(CLUSTER, TOPIC_NAME, retentionMs))
-                .thenReturn(Mono.error(new IllegalStateException("Update failed")), Mono.just(updated));
-
-        StepVerifier.create(tableflowTopicAsyncExecutor.run()).verifyComplete();
-        assertTrue(tableflowTopic.isFailed());
-        assertEquals("Update failed", tableflowTopic.getMetadata().getStatus().getMessage());
-        assertEquals(1, tableflowTopic.getMetadata().getGeneration());
-
-        StepVerifier.create(tableflowTopicAsyncExecutor.run()).verifyComplete();
-        assertTrue(tableflowTopic.isSuccess());
-        assertEquals(2, tableflowTopic.getMetadata().getGeneration());
-
-        StepVerifier.create(tableflowTopicAsyncExecutor.run()).verifyComplete();
-        assertEquals(2, tableflowTopic.getMetadata().getGeneration());
-        verify(confluentCloudClient, times(2)).updateTableflowTopic(CLUSTER, TOPIC_NAME, retentionMs);
-        verify(confluentCloudClient, never()).createTableflowTopic(any(), any());
     }
 
     @Test

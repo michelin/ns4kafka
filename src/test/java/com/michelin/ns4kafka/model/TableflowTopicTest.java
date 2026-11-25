@@ -25,22 +25,19 @@ import io.micronaut.json.JsonMapper;
 import io.micronaut.validation.validator.Validator;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 class TableflowTopicTest {
-    @Test
-    void shouldRequireAtLeastOneDayOfSnapshotRetention() {
-        Validator validator = Validator.getInstance();
+    @ParameterizedTest
+    @CsvSource({"86399999, false", "86400000, true"})
+    void shouldRequireAtLeastOneDayOfSnapshotRetention(long retention, boolean valid) {
         Class<TableflowTopic.TableflowTopicSpec> spec = TableflowTopic.TableflowTopicSpec.class;
         assertEquals(
-                1,
-                validator
-                        .validateValue(spec, "snapshotRetentionMs", 86_399_999L)
-                        .size());
-        assertEquals(
-                0,
-                validator
-                        .validateValue(spec, "snapshotRetentionMs", 86_400_000L)
-                        .size());
+                valid,
+                Validator.getInstance()
+                        .validateValue(spec, "snapshotRetentionMs", retention)
+                        .isEmpty());
     }
 
     @Test
